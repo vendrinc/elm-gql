@@ -1,4 +1,4 @@
-# examples/02-inputs
+# examples/03-nested
 
 ```graphql
 type Query {
