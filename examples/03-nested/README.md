@@ -43,7 +43,7 @@ query =
 
 
 type alias User =
-    { name : String
+    { name : Name
     , email : Maybe String
     }
 
