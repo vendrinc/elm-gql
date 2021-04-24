@@ -3,9 +3,11 @@
 
 ## Example
 
+### GraphQL schema
+
 ```graphql
 type Query {
-  user: User
+  me: User
 }
 
 type User {
@@ -15,17 +17,39 @@ type User {
 }
 ```
 
+### Elm code
+
 ```elm
 import GQL
 
-type alias User =
-  { name : String
-  , email : Maybe String
-  }
 
-query : GQL.User User
+query : GQL.Query (Maybe User)
 query =
-  GQL.query.user User
-    |> GQL.with .name
-    |> GQL.with .email
+    GQL.query.me user
+
+
+type alias User =
+    { name : String
+    , email : Maybe String
+    }
+
+
+user : GQL.User User
+user =
+    GQL.user User
+        |> GQL.with .name
+        |> GQL.with .email
 ```
+
+### GraphQL query
+
+```graphql
+query {
+  me {
+    name
+    email
+  }
+}
+```
+
+
