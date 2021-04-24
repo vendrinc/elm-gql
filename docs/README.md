@@ -1,5 +1,5 @@
-# ryannhg/elm-gql
-> A CLI built on top of dillonkearns/elm-graphql
+# ryannhg/elm-graphql
+> Work with GraphQL with Elm
 
 ## Example
 
