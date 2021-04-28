@@ -1,6 +1,18 @@
-module Gql exposing (..)
+module Gql exposing
+    ( field, Data, Query, map, map2
+    , body, expect
+    , queryString
+    )
 
-{-| -}
+{-|
+
+@docs field, Data, Query, map, map2
+
+@docs body, expect
+
+@docs queryString
+
+-}
 
 import Dict exposing (Dict)
 import Http
@@ -8,8 +20,42 @@ import Json.Decode as Json
 import Json.Encode
 
 
-stringField : String -> Query String
-stringField name =
+{-| -}
+within : String -> Query data -> Query data
+within name (Query toFieldsGql toFieldsDecoder) =
+    Query
+        (\aliases ->
+            let
+                ( maybeAlias, newAliases ) =
+                    makeAlias name aliases
+
+                ( _, fields ) =
+                    toFieldsGql Dict.empty
+            in
+            ( newAliases
+            , [ Field name maybeAlias [] fields
+              ]
+            )
+        )
+        (\aliases ->
+            let
+                ( maybeAlias, newAliases ) =
+                    makeAlias name aliases
+
+                aliasedName =
+                    Maybe.withDefault name maybeAlias
+
+                ( _, fieldsDecoder ) =
+                    toFieldsDecoder Dict.empty
+            in
+            ( newAliases
+            , Json.field aliasedName fieldsDecoder
+            )
+        )
+
+
+field : String -> Json.Decoder data -> Query data
+field name decoder =
     Query
         (\aliases ->
             let
@@ -30,7 +76,7 @@ stringField name =
                     Maybe.withDefault name maybeAlias
             in
             ( newAliases
-            , Json.field aliasedName Json.string
+            , Json.field aliasedName decoder
             )
         )
 

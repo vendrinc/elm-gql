@@ -3,12 +3,13 @@ module Example exposing (..)
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Gql
+import Json.Decode as Json
 import Test exposing (..)
 
 
 field : Gql.Query String
 field =
-    Gql.stringField "test"
+    Gql.field "test" Json.string
 
 
 suite : Test
