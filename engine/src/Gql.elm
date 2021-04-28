@@ -1,12 +1,15 @@
 module Gql exposing
-    ( field, fieldWith, object, objectWith, Data, Query, map, map2
+    ( field, fieldWith, object, objectWith
+    , Data, Query, map, map2
     , body, expect
     , queryString
     )
 
 {-|
 
-@docs field, fieldWith, object, objectWith, Data, Query, map, map2
+@docs field, fieldWith, object, objectWith
+
+@docs Data, Query, map, map2
 
 @docs body, expect
 
