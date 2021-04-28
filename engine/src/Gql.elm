@@ -16,13 +16,13 @@ stringField name =
                 existing =
                     Dict.get name aliases
 
-                aliasedName =
+                maybeAliasedName =
                     case existing of
                         Nothing ->
-                            name
+                            Nothing
 
                         Just found ->
-                            name ++ String.fromInt (found + 1)
+                            Just (name ++ String.fromInt (found + 1))
             in
             ( case existing of
                 Nothing ->
@@ -30,7 +30,7 @@ stringField name =
 
                 Just found ->
                     Dict.insert name (found + 1) aliases
-            , [ Field aliasedName Nothing [] []
+            , [ Field name maybeAliasedName [] []
               ]
             )
         )
@@ -195,7 +195,9 @@ renderField : Field -> String
 renderField (Field name maybeAlias args children) =
     let
         aliasString =
-            Maybe.withDefault "" maybeAlias
+            maybeAlias
+                |> Maybe.map (\a -> a ++ ":")
+                |> Maybe.withDefault ""
 
         argString =
             case args of
