@@ -1,12 +1,12 @@
 module Gql exposing
-    ( field, Data, Query, map, map2
+    ( field, fieldWith, object, objectWith, Data, Query, map, map2
     , body, expect
     , queryString
     )
 
 {-|
 
-@docs field, Data, Query, map, map2
+@docs field, fieldWith, object, objectWith, Data, Query, map, map2
 
 @docs body, expect
 
@@ -21,8 +21,14 @@ import Json.Encode
 
 
 {-| -}
-within : String -> Query data -> Query data
-within name (Query toFieldsGql toFieldsDecoder) =
+object : String -> Query data -> Query data
+object =
+    objectWith []
+
+
+{-| -}
+objectWith : List ( String, Argument ) -> String -> Query data -> Query data
+objectWith args name (Query toFieldsGql toFieldsDecoder) =
     Query
         (\aliases ->
             let
@@ -33,7 +39,7 @@ within name (Query toFieldsGql toFieldsDecoder) =
                     toFieldsGql Dict.empty
             in
             ( newAliases
-            , [ Field name maybeAlias [] fields
+            , [ Field name maybeAlias args fields
               ]
             )
         )
@@ -55,7 +61,12 @@ within name (Query toFieldsGql toFieldsDecoder) =
 
 
 field : String -> Json.Decoder data -> Query data
-field name decoder =
+field =
+    fieldWith []
+
+
+fieldWith : List ( String, Argument ) -> String -> Json.Decoder data -> Query data
+fieldWith args name decoder =
     Query
         (\aliases ->
             let
@@ -63,7 +74,7 @@ field name decoder =
                     makeAlias name aliases
             in
             ( newAliases
-            , [ Field name maybeAlias [] []
+            , [ Field name maybeAlias args []
               ]
             )
         )
