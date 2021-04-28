@@ -2,14 +2,68 @@ module Gql exposing (..)
 
 {-| -}
 
+import Dict exposing (Dict)
 import Http
 import Json.Decode as Json
 import Json.Encode
-import Set exposing (Set)
+
+
+stringField : String -> Query String
+stringField name =
+    Query
+        (\aliases ->
+            let
+                existing =
+                    Dict.get name aliases
+
+                aliasedName =
+                    case existing of
+                        Nothing ->
+                            name
+
+                        Just found ->
+                            name ++ String.fromInt (found + 1)
+            in
+            ( case existing of
+                Nothing ->
+                    Dict.insert name 0 aliases
+
+                Just found ->
+                    Dict.insert name (found + 1) aliases
+            , [ Field aliasedName Nothing [] []
+              ]
+            )
+        )
+        (\aliases ->
+            let
+                existing =
+                    Dict.get name aliases
+
+                aliasedName =
+                    case existing of
+                        Nothing ->
+                            name
+
+                        Just found ->
+                            name ++ String.fromInt (found + 1)
+            in
+            ( case existing of
+                Nothing ->
+                    Dict.insert name 0 aliases
+
+                Just found ->
+                    Dict.insert name (found + 1) aliases
+            , Json.field aliasedName Json.string
+            )
+        )
 
 
 type Data source selected
     = Data (Query selected)
+
+
+type alias AliasCache =
+    Dict String Int
 
 
 {-| An unguarded GQL query.
@@ -19,16 +73,20 @@ type Query selected
         -- Both of these take a Set String, which is how we're keeping track of
         -- what needs to be aliased
         -- How to make the gql query
-        (Set String -> List Field)
+        (AliasCache -> ( AliasCache, List Field ))
         -- How to decode the data coming back
-        (Set String -> Json.Decoder selected)
+        (AliasCache -> ( AliasCache, Json.Decoder selected ))
 
 
 map : (a -> b) -> Query a -> Query b
 map fn (Query fields decoder) =
     Query fields
         (\aliases ->
-            Json.map fn (decoder aliases)
+            let
+                ( newAliases, newDecoder ) =
+                    decoder aliases
+            in
+            ( newAliases, Json.map fn newDecoder )
         )
 
 
@@ -36,10 +94,28 @@ map2 : (a -> b -> c) -> Query a -> Query b -> Query c
 map2 fn (Query oneFields oneDecoder) (Query twoFields twoDecoder) =
     Query
         (\aliases ->
-            oneFields aliases ++ twoFields aliases
+            let
+                ( oneAliasesNew, oneFieldsNew ) =
+                    oneFields aliases
+
+                ( twoAliasesNew, twoFieldsNew ) =
+                    twoFields oneAliasesNew
+            in
+            ( twoAliasesNew
+            , oneFieldsNew ++ twoFieldsNew
+            )
         )
         (\aliases ->
-            Json.map fn (decoder aliases)
+            let
+                ( oneAliasesNew, oneDecoderNew ) =
+                    oneDecoder aliases
+
+                ( twoAliasesNew, twoDecoderNew ) =
+                    twoDecoder oneAliasesNew
+            in
+            ( twoAliasesNew
+            , Json.map2 fn oneDecoderNew twoDecoderNew
+            )
         )
 
 
@@ -86,25 +162,26 @@ body : Query data -> Http.Body
 body q =
     Http.jsonBody
         (Json.Encode.object
-            [ ( "query", Json.Encode.string (toQuery q) ) ]
+            [ ( "query", Json.Encode.string (queryString q) ) ]
         )
 
 
 {-| -}
 expect : (Result Http.Error data -> msg) -> Query data -> Http.Expect msg
 expect toMsg (Query gql decoder) =
-    Http.expectJson toMsg (decoder Set.empty)
+    Http.expectJson toMsg (Tuple.second (decoder Dict.empty))
 
 
-toQuery : Query data -> String
-toQuery (Query gql _) =
+queryString : Query data -> String
+queryString (Query gql _) =
     let
-        fields =
-            gql Set.empty
+        ( _, fields ) =
+            gql Dict.empty
     in
     fieldsToQueryString fields ""
 
 
+fieldsToQueryString : List Field -> String -> String
 fieldsToQueryString fields rendered =
     case fields of
         [] ->
