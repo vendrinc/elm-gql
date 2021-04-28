@@ -13,49 +13,38 @@ stringField name =
     Query
         (\aliases ->
             let
-                existing =
-                    Dict.get name aliases
-
-                maybeAliasedName =
-                    case existing of
-                        Nothing ->
-                            Nothing
-
-                        Just found ->
-                            Just (name ++ String.fromInt (found + 1))
+                ( maybeAlias, newAliases ) =
+                    makeAlias name aliases
             in
-            ( case existing of
-                Nothing ->
-                    Dict.insert name 0 aliases
-
-                Just found ->
-                    Dict.insert name (found + 1) aliases
-            , [ Field name maybeAliasedName [] []
+            ( newAliases
+            , [ Field name maybeAlias [] []
               ]
             )
         )
         (\aliases ->
             let
-                existing =
-                    Dict.get name aliases
+                ( maybeAlias, newAliases ) =
+                    makeAlias name aliases
 
                 aliasedName =
-                    case existing of
-                        Nothing ->
-                            name
-
-                        Just found ->
-                            name ++ String.fromInt (found + 1)
+                    Maybe.withDefault name maybeAlias
             in
-            ( case existing of
-                Nothing ->
-                    Dict.insert name 0 aliases
-
-                Just found ->
-                    Dict.insert name (found + 1) aliases
+            ( newAliases
             , Json.field aliasedName Json.string
             )
         )
+
+
+makeAlias : String -> Dict String Int -> ( Maybe String, Dict String Int )
+makeAlias name aliases =
+    case Dict.get name aliases of
+        Nothing ->
+            ( Nothing, Dict.insert name 0 aliases )
+
+        Just found ->
+            ( Just (name ++ String.fromInt (found + 1))
+            , Dict.insert name (found + 1) aliases
+            )
 
 
 type Data source selected
