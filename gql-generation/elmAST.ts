@@ -1,3 +1,5 @@
+import { capitalize } from "./util";
+
 export type ImportDeclaration = {
   name: string;
   as?: string;
@@ -18,9 +20,25 @@ export type Module = {
   body: object[];
 };
 
-export const importDeclaration = (moduleName: string): ImportDeclaration => {
+type VarRef = {
+  name: string;
+  module: string | null;
+};
+
+export const varRef = (name: string, module?: string): VarRef => {
+  return {
+    name,
+    module: module || null,
+  };
+};
+
+export const importDeclaration = (
+  moduleName: string,
+  as?: string
+): ImportDeclaration => {
   return {
     name: moduleName,
+    as,
   };
 };
 
@@ -40,7 +58,7 @@ export const module = (
   };
 };
 
-export const string = (str: string) => {
+export const string = (str: string): ExprStringLiteral => {
   return {
     tag: "StringLiteral",
     value: str,
@@ -59,7 +77,7 @@ export const customTypeVariant = (
   parameterTypes = []
 ): CustomTypeVariant => {
   return {
-    name,
+    name: capitalize(name),
     parameterTypes,
   };
 };
@@ -83,30 +101,155 @@ export type TypeReference = {
   arguments: TypeReference[];
 };
 
-export type Expression = {
+export type ExprVarRef = {
   tag: "VariableReference";
   name: string;
 };
 
-export const variableReference = (name: string): Expression => {
+type VariableDefintion = {
+  tag: "VariableDefinition";
+  name: string;
+};
+
+export type ExprAnonymousFunction = {
+  tag: "AnonymousFunction";
+  parameters: VariableDefintion[];
+  body: Expression;
+};
+
+type ExprFunctionApplication = {
+  tag: "FunctionApplication";
+  function: ExprVarRef;
+  arguments: Expression[];
+  display: {
+    showAsInfix: boolean;
+  };
+};
+
+type ExprListLiteral = {
+  tag: "ListLiteral";
+  terms: Expression[];
+};
+
+type CasePatternStringLiteral = {
+  tag: "StringLiteral";
+  value: string;
+};
+
+type CasePatternAnything = {
+  tag: "AnythingPattern";
+};
+
+type CasePattern = CasePatternAnything | CasePatternStringLiteral;
+
+type CaseBranch = { pattern: CasePattern; body: Expression };
+
+type ExprCaseExpression = {
+  tag: "CaseExpression";
+  subject: ExprVarRef;
+  branches: CaseBranch[];
+};
+
+type ExprStringLiteral = {
+  tag: "StringLiteral"
+  value: string
+  display: { representation: "SingleQuotedString" },
+}
+
+export type Expression =
+  | ExprVarRef
+  | ExprFunctionApplication
+  | ExprAnonymousFunction
+  | ExprListLiteral
+  | ExprStringLiteral
+  | ExprCaseExpression;
+
+export const anonymousFunction = (
+  parameters: string[],
+  body: Expression
+): ExprAnonymousFunction => {
+  return {
+    tag: "AnonymousFunction",
+    parameters: parameters.map((name) => {
+      return {
+        tag: "VariableDefinition",
+        name,
+      };
+    }),
+    body,
+  };
+};
+
+export const variableReference = (name: string): ExprVarRef => {
   return {
     tag: "VariableReference",
     name,
   };
 };
 
-export const listLiteral = (terms: Expression[]) => {
+export const listLiteral = (terms: Expression[]): ExprListLiteral => {
   return {
     tag: "ListLiteral",
     terms,
   };
 };
 
-export const typeReference = (name: string, args: TypeReference[] = []): TypeReference => {
+export const typeReference = (
+  varRef: VarRef,
+  args: TypeReference[] = []
+): TypeReference => {
   return {
     tag: "TypeReference",
-    name,
+    ...varRef,
     arguments: args,
+  };
+};
+
+export const functionApplication = (
+  func: ExprVarRef,
+  args: Expression[],
+  infix?: boolean
+): ExprFunctionApplication => {
+  return {
+    tag: "FunctionApplication",
+    function: func,
+    arguments: args,
+    display: {
+      showAsInfix: infix || false,
+    },
+  };
+};
+
+export const caseStringPattern = (
+  value: string,
+  body: Expression
+): CaseBranch => {
+  return {
+    pattern: {
+      tag: "StringLiteral",
+      value,
+    },
+    body,
+  };
+};
+
+export const caseAnythingPattern = (body: Expression): CaseBranch => {
+  return {
+    pattern: {
+      tag: "AnythingPattern",
+    },
+    body,
+  };
+}
+
+export const caseExpression = (
+  subject: ExprVarRef,
+  branches: CaseBranch[]
+): ExprCaseExpression => {
+  return {
+    tag: "CaseExpression",
+    subject,
+    branches,
   };
 };
 

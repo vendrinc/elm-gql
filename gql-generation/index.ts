@@ -35,6 +35,12 @@ const main = async () => {
   for (const type_ in schema.getTypeMap()) {
     const typeDefinition = typeMap[type_];
 
+    // Skip special types
+    if(typeDefinition.name.startsWith("__")) {
+      continue
+    }
+
+
     // For now, let's just do enums
     if (typeDefinition instanceof GraphQLEnumType) {
       enums.push(typeDefinition);
@@ -53,16 +59,60 @@ const main = async () => {
     // Create an exhaustive array of all types
     const list = Elm.definition(
       "list",
-      Elm.typeReference("List", [Elm.typeReference(customType.name)]),
+      Elm.typeReference(Elm.varRef("List"), [
+        Elm.typeReference(Elm.varRef(customType.name)),
+      ]),
       Elm.listLiteral(
         variants.map((variant) => Elm.variableReference(variant.name))
       )
     );
 
+    // Create wire decoder
+    const decoder = Elm.definition(
+      "decoder",
+      Elm.typeReference(Elm.varRef("Decoder", "Json.Decode"), [
+        Elm.typeReference(Elm.varRef(customType.name)),
+      ]),
+      Elm.functionApplication(
+        Elm.variableReference("|>"),
+        [
+          Elm.variableReference("Decode.string"),
+          Elm.functionApplication(Elm.variableReference("Decode.andThen"), [
+            Elm.anonymousFunction(
+              ["string"],
+              Elm.caseExpression(
+                Elm.variableReference("string"),
+                [...variants.map(variant =>
+                  Elm.caseStringPattern(
+                    variant.name,
+                    Elm.functionApplication(
+                      Elm.variableReference("Decode.succeed"),
+                      [Elm.variableReference(variant.name)]
+                    )
+                  )
+                )
+                , Elm.caseAnythingPattern(
+                  Elm.functionApplication(
+                    Elm.variableReference("Decode.fail"),
+                    [Elm.string("Can't decode it")]
+                  )
+                )]
+              )
+            ),
+          ]),
+        ],
+        true
+      )
+    );
+
     // Create module
     const moduleName = `${RootModule}.${enumType.name}`;
-    const htmlImport = Elm.importDeclaration("Html");
-    const module = Elm.module(moduleName, [htmlImport], [customType, list]);
+    const jsonDecodeImport = Elm.importDeclaration("Json.Decode", "Decode");
+    const module = Elm.module(
+      moduleName,
+      [jsonDecodeImport],
+      [customType, list, decoder]
+    );
     await writeElmFile(module);
   });
 };
