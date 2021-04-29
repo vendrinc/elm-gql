@@ -2,6 +2,7 @@ module GraphQL.Engine exposing
     ( Selection, select, with
     , Scalar, scalar
     , field
+    , Operation
     )
 
 {-|
@@ -17,6 +18,10 @@ import Json.Decode as Json
 
 type Selection kind value
     = Selection
+
+
+type Operation
+    = Operation
 
 
 select : value -> Selection kind value
