@@ -7,16 +7,16 @@ export type ImportDeclaration = {
 export type Definition = {};
 
 export type Module = {
-    moduleName: string
-    imports: {
-        [key:string]: {
-            as?: string;
-            exposing?: string;
-        }
-    }
-    // todo
-    body: object[]
-}
+  moduleName: string;
+  imports: {
+    [key: string]: {
+      as?: string;
+      exposing?: string;
+    };
+  };
+  // todo
+  body: object[];
+};
 
 export const importDeclaration = (moduleName: string): ImportDeclaration => {
   return {
@@ -49,23 +49,105 @@ export const string = (str: string) => {
 };
 
 export type CustomTypeVariant = {
-  name: string
+  name: string;
   // todo
-  parameterTypes: object[]
-}
+  parameterTypes: object[];
+};
 
-export const customTypeVariant = (name: string, parameterTypes = []): CustomTypeVariant => {
+export const customTypeVariant = (
+  name: string,
+  parameterTypes = []
+): CustomTypeVariant => {
   return {
     name,
-    parameterTypes
-  }
-}
+    parameterTypes,
+  };
+};
 
-export const customType = (name: string, parameters = [], variants: CustomTypeVariant[]) => {
+export const customType = (
+  name: string,
+  parameters = [],
+  variants: CustomTypeVariant[]
+) => {
   return {
     tag: "CustomType",
     name,
     parameters,
-    variants
-  }
-}
+    variants,
+  };
+};
+
+export type TypeReference = {
+  tag: "TypeReference";
+  name: string;
+  arguments: TypeReference[];
+};
+
+export type Expression = {
+  tag: "VariableReference";
+  name: string;
+};
+
+export const variableReference = (name: string): Expression => {
+  return {
+    tag: "VariableReference",
+    name,
+  };
+};
+
+export const listLiteral = (terms: Expression[]) => {
+  return {
+    tag: "ListLiteral",
+    terms,
+  };
+};
+
+export const typeReference = (name: string, args: TypeReference[] = []): TypeReference => {
+  return {
+    tag: "TypeReference",
+    name,
+    arguments: args,
+  };
+};
+
+export const definition = (
+  name: string,
+  returnType: TypeReference,
+  expression: object
+) => {
+  return {
+    tag: "Definition",
+    name,
+    parameters: [],
+    returnType,
+    expression,
+  };
+};
+// {
+//   "tag": "Definition",
+//   "name": "list",
+//   "parameters": [],
+//   "returnType": {
+//       "tag": "TypeReference",
+//       "name": "List",
+//       "module": null,
+//       "arguments": [
+//           {
+//               "tag": "TypeReference",
+//               "name": "AppAccessSource",
+//               "module": null,
+//               "arguments": [],
+//           }
+//       ],
+//   },
+//   "expression": {
+//       "tag": "ListLiteral",
+//       "terms": [
+//           {
+//               "tag": "VariableReference",
+//               "name": "GSuite",
+//           },
+//           {
+//               "tag": "VariableReference",
+//               "name": "GoogleSAML",
+//           },

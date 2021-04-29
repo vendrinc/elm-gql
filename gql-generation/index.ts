@@ -1,26 +1,26 @@
 import { loadSchema } from "@graphql-tools/load";
 import { UrlLoader } from "@graphql-tools/url-loader";
 import { GraphQLEnumType } from "graphql";
-const { writeFile, mkdir } = require('fs').promises;
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
-const  path = require('path');
+const { writeFile, mkdir } = require("fs").promises;
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
+const path = require("path");
 
-import * as Elm from "./elmAST"
+import * as Elm from "./elmAST";
 
-const RootModule = "TnGql"
+const RootModule = "TnGql";
 
 const writeElmFile = async (module: Elm.Module) => {
-    const jsonFileName = `./output/json/${module.moduleName}.json`
-    await mkdir(path.dirname(jsonFileName), {recursive: true})
-    await writeFile(jsonFileName, JSON.stringify(module));
+  const jsonFileName = `./output/json/${module.moduleName}.json`;
+  await mkdir(path.dirname(jsonFileName), { recursive: true });
+  await writeFile(jsonFileName, JSON.stringify(module));
 
-    const { stdout } = await exec(`./bin/elm-format --from-json ${jsonFileName}`)
+  const { stdout } = await exec(`./bin/elm-format --from-json ${jsonFileName}`);
 
-    const elmFileName = `./output/elm/${module.moduleName}.elm`
-    await mkdir(path.dirname(elmFileName), {recursive: true})
-    await writeFile(elmFileName, stdout);
-}
+  const elmFileName = `./output/elm/${module.moduleName}.elm`;
+  await mkdir(path.dirname(elmFileName), { recursive: true });
+  await writeFile(elmFileName, stdout);
+};
 
 const main = async () => {
   const schema = await loadSchema("http://api.blissfully.com/prod/graphql", {
@@ -28,40 +28,43 @@ const main = async () => {
     loaders: [new UrlLoader()],
   });
 
-  const typeMap = schema.getTypeMap()
+  const typeMap = schema.getTypeMap();
 
-  const enums: GraphQLEnumType[] = []
+  const enums: GraphQLEnumType[] = [];
 
-  for(const type_ in schema.getTypeMap()) {
-    const typeDefinition = typeMap[type_]
+  for (const type_ in schema.getTypeMap()) {
+    const typeDefinition = typeMap[type_];
 
-    // For now, let's just do enums 
-    if(typeDefinition instanceof GraphQLEnumType) {
-        enums.push(typeDefinition)
+    // For now, let's just do enums
+    if (typeDefinition instanceof GraphQLEnumType) {
+      enums.push(typeDefinition);
     }
   }
 
   //TODO Could be parallel-optimized
-  await enums.map(async enumType => {
-
+  await enums.map(async (enumType) => {
     // Create each value as a Type
-    const variants = enumType.getValues().map(enumValue =>
-        Elm.customTypeVariant(enumValue.name, [])
-    )
+    const variants = enumType
+      .getValues()
+      .map((enumValue) => Elm.customTypeVariant(enumValue.name, []));
 
-    const customType = Elm.customType(enumType.name, [], variants)
+    const customType = Elm.customType(enumType.name, [], variants);
 
     // Create an exhaustive array of all types
-
+    const list = Elm.definition(
+      "list",
+      Elm.typeReference("List", [Elm.typeReference(customType.name)]),
+      Elm.listLiteral(
+        variants.map((variant) => Elm.variableReference(variant.name))
+      )
+    );
 
     // Create module
-    const moduleName = `${RootModule}.${enumType.name}`
-    const htmlImport = Elm.importDeclaration("Html")
-    const module = Elm.module(moduleName, [htmlImport], [customType])
-    await writeElmFile(module)
-  })  
+    const moduleName = `${RootModule}.${enumType.name}`;
+    const htmlImport = Elm.importDeclaration("Html");
+    const module = Elm.module(moduleName, [htmlImport], [customType, list]);
+    await writeElmFile(module);
+  });
 };
-
-
 
 main();
