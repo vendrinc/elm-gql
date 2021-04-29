@@ -11,13 +11,13 @@ import * as Elm from "./elmAST";
 const RootModule = "TnGql";
 
 const writeElmFile = async (module: Elm.Module) => {
-  const jsonFileName = `./output/json/${module.moduleName}.json`;
+  const jsonFileName = `./output/json/${module.moduleName.replace(/\./g, "/")}.json`;
   await mkdir(path.dirname(jsonFileName), { recursive: true });
   await writeFile(jsonFileName, JSON.stringify(module));
 
   const { stdout } = await exec(`./bin/elm-format --from-json ${jsonFileName}`);
 
-  const elmFileName = `./output/elm/${module.moduleName}.elm`;
+  const elmFileName = `./output/elm/${module.moduleName.replace(/\./g, "/")}.elm`;
   await mkdir(path.dirname(elmFileName), { recursive: true });
   await writeFile(elmFileName, stdout);
 };
@@ -106,7 +106,7 @@ const main = async () => {
     );
 
     // Create module
-    const moduleName = `${RootModule}.${enumType.name}`;
+    const moduleName = `${RootModule}.Types.${enumType.name}`;
     const jsonDecodeImport = Elm.importDeclaration("Json.Decode", "Decode");
     const module = Elm.module(
       moduleName,
