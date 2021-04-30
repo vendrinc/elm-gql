@@ -2,7 +2,7 @@ module GraphQL.Engine exposing
     ( Selection, select, with
     , Scalar, scalar
     , field
-    , Operation
+    , Input, Mutation, Optional, Query, enum
     )
 
 {-|
@@ -20,8 +20,20 @@ type Selection kind value
     = Selection
 
 
-type Operation
-    = Operation
+type Query
+    = Query
+
+
+type Mutation
+    = Mutation
+
+
+type Input kind
+    = Input
+
+
+type Optional kind
+    = Optional
 
 
 select : value -> Selection kind value
@@ -45,6 +57,15 @@ type Scalar kind value
 scalar : value -> Scalar kind value
 scalar =
     Scalar
+
+
+
+-- ENUM
+
+
+enum : List ( String, enum ) -> Json.Decoder enum
+enum =
+    Debug.todo ""
 
 
 

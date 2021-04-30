@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import GQL
+import GQL.Types
 import Html exposing (Html)
 
 
@@ -10,13 +11,13 @@ main =
 
 
 type alias App =
-    { id : GQL.ID
+    { id : GQL.Types.ID
     , slug : String
     , name : String
     }
 
 
-query : GQL.Query (Maybe App)
+query : GQL.Types.Query (Maybe App)
 query =
     GQL.query.app
         { id = GQL.id "123"
@@ -24,7 +25,7 @@ query =
         app
 
 
-app : GQL.App App
+app : GQL.Types.App App
 app =
     GQL.select App
         |> GQL.with GQL.app.id
