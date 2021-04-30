@@ -28,6 +28,7 @@ module GQL.Types exposing
 
 import GQL.Role
 import GraphQL.Engine
+import Time
 
 
 
@@ -43,7 +44,7 @@ type ID_
 
 
 type alias Timestamp =
-    GraphQL.Engine.Scalar Timestamp_ String
+    GraphQL.Engine.Scalar Timestamp_ Time.Posix
 
 
 type Timestamp_
