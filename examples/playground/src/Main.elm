@@ -3,6 +3,7 @@ module Main exposing (main)
 import GQL
 import GQL.PersonCreateInput
 import GQL.PersonUpdateInput
+import GQL.SetOptionalString
 import GQL.Types
 import Html exposing (Html)
 
@@ -78,8 +79,15 @@ updateMutation =
     GQL.mutation.personUpdate
         { input =
             GQL.personUpdateInput { id = GQL.id "1234" }
-                [ GQL.PersonUpdateInput.name (Just "Aaron White")
-                , GQL.PersonUpdateInput.email Nothing
+                [ GQL.PersonUpdateInput.name
+                    (Just (GQL.setRequiredString { value = "Aaron White" }))
+                , GQL.PersonUpdateInput.email
+                    (Just
+                        (GQL.setOptionalString
+                            [ GQL.SetOptionalString.value (Just "aaron@blissfully.com")
+                            ]
+                        )
+                    )
                 ]
         }
         personUpdateResult

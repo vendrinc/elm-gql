@@ -1,5 +1,6 @@
 module GQL.PersonUpdateInput exposing (Optional, email, name)
 
+import GQL.Types
 import GraphQL.Engine
 
 
@@ -11,11 +12,11 @@ type PersonUpdateInput
     = PersonUpdateInput Never
 
 
-name : Maybe String -> Optional
+name : Maybe GQL.Types.SetRequiredString -> Optional
 name =
     Debug.todo "name"
 
 
-email : Maybe String -> Optional
+email : Maybe GQL.Types.SetOptionalString -> Optional
 email =
     Debug.todo "email"
