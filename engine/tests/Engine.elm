@@ -4,6 +4,7 @@ import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Gql.Engine
 import Json.Decode as Json
+import Json.Encode
 import Test exposing (..)
 
 
@@ -18,7 +19,7 @@ suite =
 
 aliases =
     let
-        field : Gql.Engine.Query String
+        field : Gql.Engine.Selection whatever String
         field =
             Gql.Engine.field "test" Json.string
     in
@@ -61,7 +62,15 @@ arguments =
             \_ ->
                 let
                     field =
-                        Gql.Engine.fieldWith [ ( "arg", Gql.Engine.stringArg "My argument" ) ] "test" Json.string
+                        Gql.Engine.fieldWith
+                            [ ( "arg"
+                              , Gql.Engine.arg
+                                    (Json.Encode.string "My argument")
+                                    "String"
+                              )
+                            ]
+                            "test"
+                            Json.string
 
                     query =
                         Gql.Engine.map2 (++) field field

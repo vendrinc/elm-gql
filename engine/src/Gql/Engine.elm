@@ -1,7 +1,8 @@
 module Gql.Engine exposing
     ( field, fieldWith, object, objectWith
-    , Data, Query, map, map2
-    , stringArg
+    , Selection, map, map2
+    , arg
+    , Query, query, Mutation, mutation
     , body, expect
     , queryString
     )
@@ -10,9 +11,11 @@ module Gql.Engine exposing
 
 @docs field, fieldWith, object, objectWith
 
-@docs Data, Query, map, map2
+@docs Selection, map, map2
 
-@docs stringArg
+@docs arg
+
+@docs Query, query, Mutation, mutation
 
 @docs body, expect
 
@@ -27,75 +30,77 @@ import Json.Encode
 
 
 {-| -}
-object : String -> Query data -> Query data
+object : String -> Selection source data -> Selection source data
 object =
     objectWith []
 
 
 {-| -}
-objectWith : List ( String, Argument ) -> String -> Query data -> Query data
-objectWith args name (Query toFieldsGql toFieldsDecoder) =
-    Query
-        (\context ->
-            let
-                ( fieldContext, fields ) =
-                    toFieldsGql { context | aliases = Dict.empty }
+objectWith : List ( String, Argument ) -> String -> Selection source data -> Selection source data
+objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
+    Selection <|
+        Details
+            (\context ->
+                let
+                    ( fieldContext, fields ) =
+                        toFieldsGql { context | aliases = Dict.empty }
 
-                new =
-                    applyContext args name { fieldContext | aliases = context.aliases }
-            in
-            ( new.context
-            , [ Field name new.aliasString new.args fields
-              ]
+                    new =
+                        applyContext args name { fieldContext | aliases = context.aliases }
+                in
+                ( new.context
+                , [ Field name new.aliasString new.args fields
+                  ]
+                )
             )
-        )
-        (\context ->
-            let
-                ( fieldContext, fieldsDecoder ) =
-                    toFieldsDecoder { context | aliases = Dict.empty }
+            (\context ->
+                let
+                    ( fieldContext, fieldsDecoder ) =
+                        toFieldsDecoder { context | aliases = Dict.empty }
 
-                new =
-                    applyContext args name { fieldContext | aliases = context.aliases }
+                    new =
+                        applyContext args name { fieldContext | aliases = context.aliases }
 
-                aliasedName =
-                    Maybe.withDefault name new.aliasString
-            in
-            ( new.context
-            , Json.field aliasedName fieldsDecoder
+                    aliasedName =
+                        Maybe.withDefault name new.aliasString
+                in
+                ( new.context
+                , Json.field aliasedName fieldsDecoder
+                )
             )
-        )
 
 
-field : String -> Json.Decoder data -> Query data
+field : String -> Json.Decoder data -> Selection source data
 field =
     fieldWith []
 
 
-fieldWith : List ( String, Argument ) -> String -> Json.Decoder data -> Query data
+fieldWith : List ( String, Argument ) -> String -> Json.Decoder data -> Selection source data
 fieldWith args name decoder =
-    Query
-        (\context ->
-            let
-                new =
-                    applyContext args name context
-            in
-            ( new.context
-            , [ Field name new.aliasString new.args []
-              ]
+    Selection <|
+        Details
+            (\context ->
+                let
+                    new =
+                        applyContext args name context
+                in
+                ( new.context
+                , [ Field name new.aliasString new.args []
+                  ]
+                )
             )
-        )
-        (\context ->
-            let
-                new =
-                    applyContext args name context
+            (\context ->
+                let
+                    new =
+                        applyContext args name context
 
-                aliasedName =
-                    Maybe.withDefault name new.aliasString
-            in
-            ( new.context
-            , Json.field aliasedName decoder
+                    aliasedName =
+                        Maybe.withDefault name new.aliasString
+                in
+                ( new.context
+                , Json.field aliasedName decoder
+                )
             )
-        )
 
 
 applyContext :
@@ -180,8 +185,8 @@ makeAlias name aliases =
             )
 
 
-type Data source selected
-    = Data (Query selected)
+type Selection source selected
+    = Selection (Details selected)
 
 
 type alias Context =
@@ -199,8 +204,8 @@ empty =
 
 {-| An unguarded GQL query.
 -}
-type Query selected
-    = Query
+type Details selected
+    = Details
         -- Both of these take a Set String, which is how we're keeping track of
         -- what needs to be aliased
         -- How to make the gql query
@@ -223,64 +228,112 @@ But we can define anything else in terms of these:
 
 -}
 type Argument
-    = ArgString String -- includes quotes
-    | ArgStringLiteral String -- does not include quotes
-    | ArgFloat Float
-    | ArgInt Int
-    | ArgBoolean Bool
-    | Null
+    = ArgValue Json.Encode.Value String
     | Var String
 
 
-{-| -}
-stringArg : String -> Argument
-stringArg str =
-    ArgString str
+{-| The encoded value and the name of the expected type for this argument
+-}
+arg : Json.Encode.Value -> String -> Argument
+arg val typename =
+    ArgValue val typename
 
 
-map : (a -> b) -> Query a -> Query b
-map fn (Query fields decoder) =
-    Query fields
-        (\aliases ->
-            let
-                ( newAliases, newDecoder ) =
-                    decoder aliases
-            in
-            ( newAliases, Json.map fn newDecoder )
-        )
-
-
-map2 : (a -> b -> c) -> Query a -> Query b -> Query c
-map2 fn (Query oneFields oneDecoder) (Query twoFields twoDecoder) =
-    Query
-        (\aliases ->
-            let
-                ( oneAliasesNew, oneFieldsNew ) =
-                    oneFields aliases
-
-                ( twoAliasesNew, twoFieldsNew ) =
-                    twoFields oneAliasesNew
-            in
-            ( twoAliasesNew
-            , oneFieldsNew ++ twoFieldsNew
+map : (a -> b) -> Selection source a -> Selection source b
+map fn (Selection (Details fields decoder)) =
+    Selection <|
+        Details fields
+            (\aliases ->
+                let
+                    ( newAliases, newDecoder ) =
+                        decoder aliases
+                in
+                ( newAliases, Json.map fn newDecoder )
             )
-        )
-        (\aliases ->
-            let
-                ( oneAliasesNew, oneDecoderNew ) =
-                    oneDecoder aliases
 
-                ( twoAliasesNew, twoDecoderNew ) =
-                    twoDecoder oneAliasesNew
-            in
-            ( twoAliasesNew
-            , Json.map2 fn oneDecoderNew twoDecoderNew
+
+map2 : (a -> b -> c) -> Selection source a -> Selection source b -> Selection source c
+map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields twoDecoder)) =
+    Selection <|
+        Details
+            (\aliases ->
+                let
+                    ( oneAliasesNew, oneFieldsNew ) =
+                        oneFields aliases
+
+                    ( twoAliasesNew, twoFieldsNew ) =
+                        twoFields oneAliasesNew
+                in
+                ( twoAliasesNew
+                , oneFieldsNew ++ twoFieldsNew
+                )
             )
-        )
+            (\aliases ->
+                let
+                    ( oneAliasesNew, oneDecoderNew ) =
+                        oneDecoder aliases
+
+                    ( twoAliasesNew, twoDecoderNew ) =
+                        twoDecoder oneAliasesNew
+                in
+                ( twoAliasesNew
+                , Json.map2 fn oneDecoderNew twoDecoderNew
+                )
+            )
 
 
 
 {- Making requests -}
+
+
+type Query
+    = Query
+
+
+type Mutation
+    = Mutation
+
+
+query :
+    Selection Query msg
+    ->
+        { headers : List Http.Header
+        , url : String
+        , timeout : Maybe Float
+        , tracker : Maybe String
+        }
+    -> Cmd (Result Http.Error msg)
+query sel config =
+    Http.request
+        { method = "POST"
+        , headers = config.headers
+        , url = config.url
+        , body = body sel
+        , expect = expect identity sel
+        , timeout = config.timeout
+        , tracker = config.tracker
+        }
+
+
+mutation :
+    Selection Mutation msg
+    ->
+        { headers : List Http.Header
+        , url : String
+        , timeout : Maybe Float
+        , tracker : Maybe String
+        }
+    -> Cmd (Result Http.Error msg)
+mutation sel config =
+    Http.request
+        { method = "POST"
+        , headers = config.headers
+        , url = config.url
+        , body = body sel
+        , expect = expect identity sel
+        , timeout = config.timeout
+        , tracker = config.tracker
+        }
 
 
 {-|
@@ -296,7 +349,7 @@ map2 fn (Query oneFields oneDecoder) (Query twoFields twoDecoder) =
         }
 
 -}
-body : Query data -> Http.Body
+body : Selection source data -> Http.Body
 body q =
     Http.jsonBody
         (Json.Encode.object
@@ -305,13 +358,17 @@ body q =
 
 
 {-| -}
-expect : (Result Http.Error data -> msg) -> Query data -> Http.Expect msg
-expect toMsg (Query gql decoder) =
-    Http.expectJson toMsg (Tuple.second (decoder empty))
+expect : (Result Http.Error data -> msg) -> Selection source data -> Http.Expect msg
+expect toMsg (Selection (Details gql toDecoder)) =
+    let
+        ( context, decoder ) =
+            toDecoder empty
+    in
+    Http.expectJson toMsg (Json.field "data" decoder)
 
 
-queryString : Query data -> String
-queryString (Query gql _) =
+queryString : Selection source data -> String
+queryString (Selection (Details gql _)) =
     let
         ( context, fields ) =
             gql empty
@@ -447,53 +504,20 @@ renderArgs args rendered =
 
 
 argToString : Argument -> String
-argToString arg =
-    case arg of
-        ArgString string ->
-            "\"" ++ string ++ "\""
-
-        ArgStringLiteral string ->
-            string
-
-        ArgFloat float ->
-            String.fromFloat float
-
-        ArgInt int ->
-            String.fromInt int
-
-        ArgBoolean True ->
-            "true"
-
-        ArgBoolean False ->
-            "false"
-
-        Null ->
-            "null"
+argToString argument =
+    case argument of
+        ArgValue json typename ->
+            Json.Encode.encode 0 json
 
         Var str ->
             "$" ++ str
 
 
 argToTypeString : Argument -> String
-argToTypeString arg =
-    case arg of
-        ArgString string ->
-            "String"
-
-        ArgStringLiteral string ->
-            "Enum"
-
-        ArgFloat float ->
-            "Float"
-
-        ArgInt int ->
-            "Int"
-
-        ArgBoolean _ ->
-            "Boolean"
-
-        Null ->
-            "null"
+argToTypeString argument =
+    case argument of
+        ArgValue v typename ->
+            typename
 
         Var str ->
             ""
