@@ -1,0 +1,17 @@
+{
+  "name": "elm-worker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm install && npm run build",
+    "build": "elm make src/Worker.elm --output=dist/elm.compiled.js",
+    "go": "npm run build && node index.js $1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "elm": "0.19.1-5"
+  }
+}
