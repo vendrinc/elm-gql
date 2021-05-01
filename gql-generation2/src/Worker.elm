@@ -6,6 +6,7 @@ import Elm.CodeGen as Elm
 import Elm.Pretty as Elm
 import GraphQL.Schema
 import Json.Decode as Json
+import String.Extra as String
 
 
 port writeElmFile : { moduleName : String, contents : String } -> Cmd msg
@@ -58,12 +59,13 @@ run flags =
                                 docs =
                                     Nothing
 
+                                enumNameToConstructorName =
+                                    String.toSentenceCase
+
                                 constructors =
                                     enumDefinition.values
-                                        |> List.map
-                                            (\value ->
-                                                ( value.name, [] )
-                                            )
+                                        |> List.map .name
+                                        |> List.map (\name -> ( enumNameToConstructorName name, [] ))
 
                                 enumType =
                                     Elm.customTypeDecl docs enumDefinition.name [] constructors
@@ -75,12 +77,69 @@ run flags =
                                         )
                                         "list"
                                         (Elm.list
-                                            (constructors |> List.map (\( name, _ ) -> Elm.fqVal [] name))
+                                            (constructors |> List.map Tuple.first |> List.map (Elm.fqVal []))
                                         )
+
+                                enumDecoder =
+                                    Elm.valDecl Nothing
+                                        (Just (Elm.typed "Decoder" [ Elm.typed enumDefinition.name [] ]))
+                                        "decoder"
+                                        (Elm.pipe (Elm.fun "Decode.string")
+                                            [ Elm.apply
+                                                [ Elm.fun "Decode.andThen"
+                                                , Elm.lambda [ Elm.varPattern "string" ]
+                                                    (Elm.caseExpr (Elm.val "string")
+                                                        ((enumDefinition.values
+                                                            |> List.map
+                                                                (\value ->
+                                                                    ( Elm.stringPattern value.name
+                                                                    , -- Decode.succeed
+                                                                      Elm.apply
+                                                                        [ Elm.fun "Decode.succeed"
+                                                                        , Elm.fqVal [] (enumNameToConstructorName value.name)
+                                                                        ]
+                                                                    )
+                                                                )
+                                                         )
+                                                            ++ [ ( Elm.allPattern
+                                                                 , -- Decode.fail ("Invalid InsightType type, " ++ string ++ " try re-running the @dillonkearns/elm-graphql CLI ")
+                                                                   Elm.apply
+                                                                    [ Elm.fun "Decode.fail"
+                                                                    , Elm.string
+                                                                        ("Invalid "
+                                                                            ++ enumDefinition.name
+                                                                            ++ " type"
+                                                                        )
+                                                                    ]
+                                                                 )
+                                                               ]
+                                                        )
+                                                    )
+                                                ]
+                                            ]
+                                        )
+
+                                -- decoder : Decoder InsightType
+                                -- decoder =
+                                --     Decode.string
+                                --         |> Decode.andThen
+                                --             (\string ->
+                                --                 case string of
+                                --                     "orphan" ->
+                                --                         Decode.succeed Orphan
+                                --                     _ ->
+                                --                         Decode.fail ("Invalid InsightType type, " ++ string ++ " try re-running the @dillonkearns/elm-graphql CLI ")
+                                --             )
                             in
                             { moduleName = moduleName_ |> String.join "."
                             , contents =
-                                Elm.file module_ [] [ enumType, listOfValues ] Nothing
+                                Elm.file module_
+                                    [ Elm.importStmt [ "Json", "Decode" ] (Just [ "Decode" ]) (Just ([ Elm.funExpose "Decoder" ] |> Elm.exposeExplicit))
+
+                                    -- import Json.Decode as Decode exposing (Decoder)
+                                    ]
+                                    [ enumType, listOfValues, enumDecoder ]
+                                    Nothing
                                     |> Elm.pretty 120
                             }
                         )
