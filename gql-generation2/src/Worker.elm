@@ -2,6 +2,7 @@ port module Worker exposing (main)
 
 import Debug
 import GraphQL.Schema exposing (empty)
+import Json.Decode as Json
 
 port outgoing : String -> Cmd msg
 
@@ -20,13 +21,18 @@ main =
 
 
 type alias Flags =
-    { message : String
+    { schemaJson : Json.Value
     }
 
 
 run : Flags -> Cmd msg
 run flags =
     let
-        _ = Debug.log "flags" flags
+        _ = Debug.log "schema" (case Json.decodeValue GraphQL.Schema.decoder flags.schemaJson of
+                    Ok schema ->
+                        Just schema
+
+                    Err error ->
+                        Nothing)
     in
-    outgoing flags.message
+    outgoing "hi"
