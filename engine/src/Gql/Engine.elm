@@ -1,9 +1,10 @@
 module Gql.Engine exposing
     ( field, fieldWith, object, objectWith
-    , Selection, map, map2
+    , enum, maybeEnum
+    , union
+    , Selection, select, with, map, map2, recover
     , arg
     , Query, query, Mutation, mutation
-    , body, expect
     , queryString
     )
 
@@ -11,13 +12,15 @@ module Gql.Engine exposing
 
 @docs field, fieldWith, object, objectWith
 
-@docs Selection, map, map2
+@docs enum, maybeEnum
+
+@docs union
+
+@docs Selection, select, with, map, map2, recover
 
 @docs arg
 
 @docs Query, query, Mutation, mutation
-
-@docs body, expect
 
 @docs queryString
 
@@ -27,6 +30,115 @@ import Dict exposing (Dict)
 import Http
 import Json.Decode as Json
 import Json.Encode
+
+
+{-| -}
+recover : recovered -> (data -> recovered) -> Selection source data -> Selection source recovered
+recover default wrapValue (Selection (Details toQuery toDecoder)) =
+    Selection
+        (Details toQuery
+            (\context ->
+                let
+                    ( newContext, decoder ) =
+                        toDecoder context
+                in
+                ( newContext
+                , Json.oneOf
+                    [ Json.map wrapValue decoder
+                    , Json.succeed default
+                    ]
+                )
+            )
+        )
+
+
+{-| -}
+union : List ( String, Selection source data ) -> Selection source data
+union options =
+    Selection <|
+        Details
+            (\context ->
+                let
+                    ( fragments, fragmentContext ) =
+                        List.foldl
+                            (\( name, Selection (Details fragQuery _) ) ( frags, currentContext ) ->
+                                let
+                                    ( newContext, fields ) =
+                                        fragQuery currentContext
+                                in
+                                ( Fragment name fields :: frags
+                                , newContext
+                                )
+                            )
+                            ( [], context )
+                            options
+                in
+                ( fragmentContext
+                , Field "__typename" Nothing [] [] :: fragments
+                )
+            )
+            (\context ->
+                let
+                    ( fragmentDecoders, fragmentContext ) =
+                        List.foldl
+                            (\( name, Selection (Details _ toFragDecoder) ) ( frags, currentContext ) ->
+                                let
+                                    ( newContext, fragDecoder ) =
+                                        toFragDecoder currentContext
+
+                                    fragDecoderWithTypename =
+                                        Json.field "__typename" Json.string
+                                            |> Json.andThen
+                                                (\typename ->
+                                                    if typename == name then
+                                                        fragDecoder
+
+                                                    else
+                                                        Json.fail "Unknown union variant"
+                                                )
+                                in
+                                ( fragDecoderWithTypename :: frags
+                                , newContext
+                                )
+                            )
+                            ( [], context )
+                            options
+                in
+                ( fragmentContext
+                , Json.oneOf fragmentDecoders
+                )
+            )
+
+
+{-| -}
+maybeEnum : List ( String, item ) -> Json.Decoder (Maybe item)
+maybeEnum options =
+    Json.oneOf
+        [ Json.map Just (enum options)
+        , Json.succeed Nothing
+        ]
+
+
+{-| -}
+enum : List ( String, item ) -> Json.Decoder item
+enum options =
+    Json.string
+        |> Json.andThen
+            (findFirstMatch options)
+
+
+findFirstMatch : List ( String, item ) -> String -> Json.Decoder item
+findFirstMatch options str =
+    case options of
+        [] ->
+            Json.fail ("Unexpected enum value: " ++ str)
+
+        ( name, value ) :: remaining ->
+            if name == str then
+                Json.succeed value
+
+            else
+                findFirstMatch remaining str
 
 
 {-| -}
@@ -217,6 +329,8 @@ type Details selected
 type Field
     = --    name   alias          args                        children
       Field String (Maybe String) (List ( String, Argument )) (List Field)
+      --        ...on FragmentName
+    | Fragment String (List Field)
 
 
 {-| We can also accept:
@@ -237,6 +351,26 @@ type Argument
 arg : Json.Encode.Value -> String -> Argument
 arg val typename =
     ArgValue val typename
+
+
+{-| -}
+select : data -> Selection source data
+select data =
+    Selection
+        (Details
+            (\context ->
+                ( context, [] )
+            )
+            (\context ->
+                ( context, Json.succeed data )
+            )
+        )
+
+
+{-| -}
+with : Selection source a -> Selection source (a -> b) -> Selection source b
+with =
+    map2 (|>)
 
 
 map : (a -> b) -> Selection source a -> Selection source b
@@ -467,30 +601,39 @@ fieldsToQueryString fields rendered =
 
 
 renderField : Field -> String
-renderField (Field name maybeAlias args children) =
-    let
-        aliasString =
-            maybeAlias
-                |> Maybe.map (\a -> a ++ ":")
-                |> Maybe.withDefault ""
+renderField myField =
+    case myField of
+        Fragment name fields ->
+            ".. on "
+                ++ name
+                ++ "{"
+                ++ fieldsToQueryString fields ""
+                ++ "}"
 
-        argString =
-            case args of
-                [] ->
-                    ""
+        Field name maybeAlias args fields ->
+            let
+                aliasString =
+                    maybeAlias
+                        |> Maybe.map (\a -> a ++ ":")
+                        |> Maybe.withDefault ""
 
-                nonEmpty ->
-                    "(" ++ renderArgs nonEmpty "" ++ ")"
+                argString =
+                    case args of
+                        [] ->
+                            ""
 
-        selection =
-            case children of
-                [] ->
-                    ""
+                        nonEmpty ->
+                            "(" ++ renderArgs nonEmpty "" ++ ")"
 
-                _ ->
-                    "{" ++ fieldsToQueryString children "" ++ "}"
-    in
-    aliasString ++ name ++ argString ++ selection
+                selection =
+                    case fields of
+                        [] ->
+                            ""
+
+                        _ ->
+                            "{" ++ fieldsToQueryString fields "" ++ "}"
+            in
+            aliasString ++ name ++ argString ++ selection
 
 
 renderArgs : List ( String, Argument ) -> String -> String
