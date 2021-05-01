@@ -2,7 +2,7 @@ module Gql.Engine exposing
     ( field, fieldWith, object, objectWith
     , enum, maybeEnum
     , union
-    , Selection, map, map2, recover
+    , Selection, select, with, map, map2, recover
     , arg
     , Query, query, Mutation, mutation
     , queryString
@@ -16,7 +16,7 @@ module Gql.Engine exposing
 
 @docs union
 
-@docs Selection, map, map2, recover
+@docs Selection, select, with, map, map2, recover
 
 @docs arg
 
@@ -351,6 +351,26 @@ type Argument
 arg : Json.Encode.Value -> String -> Argument
 arg val typename =
     ArgValue val typename
+
+
+{-| -}
+select : data -> Selection source data
+select data =
+    Selection
+        (Details
+            (\context ->
+                ( context, [] )
+            )
+            (\context ->
+                ( context, Json.succeed data )
+            )
+        )
+
+
+{-| -}
+with : Selection source a -> Selection source (a -> b) -> Selection source b
+with =
+    map2 (|>)
 
 
 map : (a -> b) -> Selection source a -> Selection source b
