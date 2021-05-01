@@ -1,9 +1,8 @@
 const { Elm } = require('./dist/elm.compiled.js')
-const args = process.argv.slice(2)
 
-fs = require("fs")
 const path = require("path")
 const https = require("https")
+const { writeFile, mkdir } = require("fs").promises;
 const axios = require("axios").create({
   httpsAgent: new https.Agent({
     rejectUnauthorized: false,
@@ -113,8 +112,11 @@ axios
         }
       })
 
-
-      app.ports.outgoing.subscribe(data => console.log('Elm says', data))
+      app.ports.writeElmFile.subscribe(async ({moduleName, contents}) => {
+        const elmFileName = `./output/elm/${moduleName.replace(/\./g, "/")}.elm`;
+        await mkdir(path.dirname(elmFileName), { recursive: true });
+        await writeFile(elmFileName, contents);
+      })
     })
 
 

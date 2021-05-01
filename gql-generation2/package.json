@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npm install && npm run build",
     "build": "elm make src/Worker.elm --output=dist/elm.compiled.js",
-    "go": "npm run build && node index.js $1"
+    "go": "rm -rf ./output && npm run build && node index.js $1"
   },
   "keywords": [],
   "author": "",

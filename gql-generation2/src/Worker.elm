@@ -8,7 +8,7 @@ import GraphQL.Schema
 import Json.Decode as Json
 
 
-port outgoing : String -> Cmd msg
+port writeElmFile : { moduleName : String, contents : String } -> Cmd msg
 
 
 main : Program Flags () Never
@@ -42,18 +42,18 @@ run flags =
             )
                 |> Maybe.withDefault GraphQL.Schema.empty
 
-        _ =
+        enumFiles =
             Debug.log "enumFiles"
                 (schema.enums
                     |> Dict.toList
                     |> List.map
                         (\( enumRef, enumDefinition ) ->
                             let
-                                moduleName =
+                                moduleName_ =
                                     [ "TnGql", "Enum", enumDefinition.name ]
 
                                 module_ =
-                                    Elm.normalModule moduleName []
+                                    Elm.normalModule moduleName_ []
 
                                 docs =
                                     Nothing
@@ -78,9 +78,12 @@ run flags =
                                             (constructors |> List.map (\( name, _ ) -> Elm.fqVal [] name))
                                         )
                             in
-                            Elm.file module_ [] [ enumType, listOfValues ] Nothing
-                                |> Elm.pretty 120
+                            { moduleName = moduleName_ |> String.join "."
+                            , contents =
+                                Elm.file module_ [] [ enumType, listOfValues ] Nothing
+                                    |> Elm.pretty 120
+                            }
                         )
                 )
     in
-    outgoing "hi"
+    Cmd.batch (enumFiles |> List.map writeElmFile)
