@@ -7,7 +7,7 @@ type Query {
 
 type Mutation {
   personCreate(input: PersonCreateInput!): PersonCreateResult!
-  # personUpdate(input: PersonUpdateInput!): PersonUpdateResult!
+  personUpdate(input: PersonUpdateInput!): PersonUpdateResult!
 }
 
 # OBJECTS
@@ -21,7 +21,9 @@ type App {
 type Person {
   id: ID!
   name: Name!
+  role: Role!
   email: String
+  friends(limit: Int): [Person!]!
 }
 
 type Name {
@@ -30,12 +32,20 @@ type Name {
   last: String!
 }
 
+type NameAlreadyExistsError implements Error {
+  message: String!
+}
+
+type NotFoundError implements Error {
+  id: ID!
+  message: String!
+}
+
 # ENUMS
 
-enum Color {
-  RED
-  BLUE
-  GREEN
+enum Role {
+  ADMIN
+  GUEST
 }
 
 # SCALARS
@@ -45,15 +55,6 @@ scalar Timestamp
 # INTERFACES
 
 interface Error {
-  message: String!
-}
-
-type NameAlreadyExistsError implements Error {
-  message: String!
-}
-
-type NotFoundError implements Error {
-  id: ID!
   message: String!
 }
 

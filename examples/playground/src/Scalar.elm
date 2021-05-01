@@ -1,12 +1,22 @@
-module Scalar exposing (decoders)
+module Scalar exposing (codecs)
 
-import Blissfully as GQL
-import Json.Decode as Json
+import Codec exposing (Codec)
+import Time
 
 
-decoders :
-    { id : Json.Decoder GQL.ID
+{-| NOTE:
+Before we can generate GQL.elm, we'll need to
+verify that each scalar has a codec defined here
+-}
+codecs :
+    { id : Codec String
+    , timestamp : Codec Time.Posix
     }
-decoders =
-    { id = Debug.todo ""
+codecs =
+    { id = Codec.string
+    , timestamp =
+        Codec.map
+            Time.millisToPosix
+            Time.posixToMillis
+            Codec.int
     }
