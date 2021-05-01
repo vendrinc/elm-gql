@@ -1,7 +1,7 @@
 port module Worker exposing (main)
 
--- WIRING THINGS UP
 import Debug
+import GraphQL.Schema exposing (empty)
 
 port outgoing : String -> Cmd msg
 
