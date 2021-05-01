@@ -1,4 +1,5 @@
 # ryannhg/elm-graphql
+
 > Work with GraphQL with Elm
 
 ## Example
@@ -52,4 +53,13 @@ query {
 }
 ```
 
+## Namespace Rules
 
+Here's the GraphQL spec: http://spec.graphql.org/June2018/#sec-Schema
+
+All types are guaranteed to have unique names.
+
+However, it's not quite a global name space.
+
+1. Enum values themselves can have overlapping names.
+2. Two separate types can have the same field names with no clash. So, App can have name, but Person can have name as well.
