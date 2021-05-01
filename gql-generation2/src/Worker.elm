@@ -1,8 +1,12 @@
 port module Worker exposing (main)
 
 import Debug
-import GraphQL.Schema exposing (empty)
+import Dict
+import Elm.CodeGen as Elm
+import Elm.Pretty as Elm
+import GraphQL.Schema
 import Json.Decode as Json
+
 
 port outgoing : String -> Cmd msg
 
@@ -28,11 +32,55 @@ type alias Flags =
 run : Flags -> Cmd msg
 run flags =
     let
-        _ = Debug.log "schema" (case Json.decodeValue GraphQL.Schema.decoder flags.schemaJson of
-                    Ok schema ->
-                        Just schema
+        schema =
+            (case Json.decodeValue GraphQL.Schema.decoder flags.schemaJson of
+                Ok schema_ ->
+                    Just schema_
 
-                    Err error ->
-                        Nothing)
+                Err error ->
+                    Nothing
+            )
+                |> Maybe.withDefault GraphQL.Schema.empty
+
+        _ =
+            Debug.log "enumFiles"
+                (schema.enums
+                    |> Dict.toList
+                    |> List.map
+                        (\( enumRef, enumDefinition ) ->
+                            let
+                                moduleName =
+                                    [ "TnGql", "Enum", enumDefinition.name ]
+
+                                module_ =
+                                    Elm.normalModule moduleName []
+
+                                docs =
+                                    Nothing
+
+                                constructors =
+                                    enumDefinition.values
+                                        |> List.map
+                                            (\value ->
+                                                ( value.name, [] )
+                                            )
+
+                                enumType =
+                                    Elm.customTypeDecl docs enumDefinition.name [] constructors
+
+                                listOfValues =
+                                    Elm.valDecl Nothing
+                                        (Just
+                                            (Elm.listAnn (Elm.typed enumDefinition.name []))
+                                        )
+                                        "list"
+                                        (Elm.list
+                                            (constructors |> List.map (\( name, _ ) -> Elm.fqVal [] name))
+                                        )
+                            in
+                            Elm.file module_ [] [ enumType, listOfValues ] Nothing
+                                |> Elm.pretty 120
+                        )
+                )
     in
     outgoing "hi"
