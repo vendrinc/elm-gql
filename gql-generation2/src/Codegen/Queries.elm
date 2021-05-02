@@ -85,9 +85,9 @@ generateFiles graphQLSchema =
                     expression =
                         Elm.lambda [ Elm.varPattern "req_", Elm.varPattern "selection_" ]
                             (Elm.apply
-                                [ Elm.fqFun Common.modules.engine.fqName "query"
+                                [ Common.modules.engine.fns.query
                                 , Elm.string queryOperation.name
-                                , Elm.fqFun [ "Json" ] "maybe"
+                                , Common.modules.json.fns.maybe
                                 , Elm.val "selection_"
                                 , Elm.list
                                     (queryOperation.arguments
@@ -95,17 +95,41 @@ generateFiles graphQLSchema =
                                             (\argument ->
                                                 Elm.tuple
                                                     [ Elm.string argument.name
-                                                    , case argument.type_ of
-                                                        GraphQL.Schema.Type.Scalar scalarName ->
-                                                            Elm.apply
-                                                                [ Elm.fqFun Common.modules.engine.args.fqName "scalar"
-                                                                , Elm.fqFun Common.modules.scalar.codecs.fqName argument.name
-                                                                , Elm.access (Elm.val "req") argument.name
-                                                                ]
+                                                    , let
+                                                        convert type__ =
+                                                            case type__ of
+                                                                GraphQL.Schema.Type.Scalar scalarName ->
+                                                                    Elm.apply
+                                                                        [ Common.modules.engine.args.fns.scalar
+                                                                        , Elm.fqFun Common.modules.scalar.codecs.fqName (String.decapitalize scalarName)
+                                                                        , Elm.access (Elm.val "req") argument.name
+                                                                        ]
 
-                                                        -- GraphQL.Engine.args.scalar Scalar.codecs.id req_.id
-                                                        _ ->
-                                                            Elm.string "unimplemented"
+                                                                GraphQL.Schema.Type.Enum enumName ->
+                                                                    Elm.apply
+                                                                        [ Common.modules.engine.args.fns.scalar
+                                                                        , Common.modules.engine.args.fns.enum
+                                                                        , Elm.fqFun [ "TnGql", "Enum", enumName ] "decoder"
+                                                                        , Elm.access (Elm.val "req") argument.name
+                                                                        ]
+
+                                                                GraphQL.Schema.Type.InputObject inputObject ->
+                                                                    Elm.apply
+                                                                        [ Common.modules.engine.args.fns.scalar
+                                                                        , Elm.fqFun [ "TnGql", "InputObject", inputObject ] "decoder"
+                                                                        , Elm.access (Elm.val "req") argument.name
+                                                                        ]
+
+                                                                GraphQL.Schema.Type.Nullable innerType ->
+                                                                    -- bugbug pretty sure the inner decoder
+                                                                    -- needs to be instructed to handle null
+                                                                    -- but I'm just glossing over that for now
+                                                                    convert innerType
+
+                                                                _ ->
+                                                                    Elm.string "unimplemented"
+                                                      in
+                                                      convert argument.type_
                                                     ]
                                             )
                                     )
