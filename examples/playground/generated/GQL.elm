@@ -1,18 +1,25 @@
 module GQL exposing
     ( Selection, select, with
     , map, map2, map3, map4, map5
-    , query, mutation
-    , id, timestamp
-    , app, person, name, nameAlreadyExistsError, notFoundError
-    , error
-    , personCreateResult, personUpdateResult
-    , personCreateInput, personUpdateInput, setRequiredString, setOptionalString
+    , Query, query
+    , Mutation, mutation
+    , ID, id
+    , Timestamp, timestamp
+    , App, app
+    , Person, person
+    , Name, name
+    , NameAlreadyExistsError, nameAlreadyExistsError
+    , NotFoundError, notFoundError
+    , Error, error
+    , PersonCreateResult, personCreateResult
+    , PersonUpdateResult, personUpdateResult
+    , PersonCreateInput, personCreateInput
+    , PersonUpdateInput, personUpdateInput
+    , SetRequiredString, setRequiredString
+    , SetOptionalString, setOptionalString
     )
 
 {-|
-
-
-## ( Not based on schema, but aliased here for dev UX )
 
 @docs Selection, select, with
 @docs map, map2, map3, map4, map5
@@ -20,32 +27,42 @@ module GQL exposing
 
 ## Operations
 
-@docs query, mutation
+@docs Query, query
+@docs Mutation, mutation
 
 
 ## Scalars
 
-@docs id, timestamp
+@docs ID, id
+@docs Timestamp, timestamp
 
 
 ## Objects
 
-@docs app, person, name, nameAlreadyExistsError, notFoundError
+@docs App, app
+@docs Person, person
+@docs Name, name
+@docs NameAlreadyExistsError, nameAlreadyExistsError
+@docs NotFoundError, notFoundError
 
 
 ## Interfaces
 
-@docs error
+@docs Error, error
 
 
 ## Unions
 
-@docs personCreateResult, personUpdateResult
+@docs PersonCreateResult, personCreateResult
+@docs PersonUpdateResult, personUpdateResult
 
 
 ## Inputs
 
-@docs personCreateInput, personUpdateInput, setRequiredString, setOptionalString
+@docs PersonCreateInput, personCreateInput
+@docs PersonUpdateInput, personUpdateInput
+@docs SetRequiredString, setRequiredString
+@docs SetOptionalString, setOptionalString
 
 -}
 
@@ -104,6 +121,10 @@ map5 =
 
 
 -- OBJECTS
+    
+
+type alias Query value =
+    GQL.Query value
 
 
 query :
@@ -126,6 +147,10 @@ query =
                 [ ( "id", GraphQL.Engine.args.scalar Scalar.codecs.id req_.id )
                 ]
     }
+    
+
+type alias Mutation value =
+    GQL.Mutation value
 
 
 mutation :
@@ -148,6 +173,10 @@ mutation =
                 [ ( "input", GraphQL.Engine.args.input req_.input )
                 ]
     }
+    
+
+type alias App value =
+    GQL.App value
 
 
 app :
@@ -160,6 +189,10 @@ app =
     , slug = GraphQL.Engine.fields.primitive "slug" Codec.string
     , name = GraphQL.Engine.fields.primitive "name" Codec.string
     }
+
+
+type alias Person value =
+    GQL.Person value
 
 
 person :
@@ -178,6 +211,10 @@ person =
     }
 
 
+type alias Name value =
+    GQL.Name value
+
+
 name :
     { first : GQL.Name String
     , middle : GQL.Name (Maybe String)
@@ -190,12 +227,20 @@ name =
     }
 
 
+type alias NameAlreadyExistsError value =
+    GQL.NameAlreadyExistsError value
+
+
 nameAlreadyExistsError :
     { message : GQL.NameAlreadyExistsError String
     }
 nameAlreadyExistsError =
     { message = GraphQL.Engine.fields.primitive "message" Codec.string
     }
+
+
+type alias NotFoundError value =
+    GQL.NotFoundError value
 
 
 notFoundError :
@@ -212,6 +257,10 @@ notFoundError =
 -- ENUM DECODERS ( Used internally for fields and inputs )
 
 
+type alias Role =
+    GQL.Role.Role
+
+
 role : Codec GQL.Role
 role =
     GraphQL.Engine.enum
@@ -224,9 +273,17 @@ role =
 -- SCALARS
 
 
+type alias ID =
+    GQL.ID
+
+
 id : String -> GQL.ID
 id =
     GraphQL.Engine.toScalar
+
+
+type alias Timestamp =
+    GQL.Timestamp
 
 
 timestamp : Time.Posix -> GQL.Timestamp
@@ -236,6 +293,10 @@ timestamp =
 
 
 -- INTERFACES
+
+
+type alias Error value =
+    GQL.Error value
 
 
 error :
@@ -250,6 +311,10 @@ error =
 -- UNIONS
 
 
+type alias PersonCreateResult value =
+    GQL.PersonCreateResult value
+
+
 personCreateResult :
     { person : GQL.Person value
     , nameAlreadyExistsError : GQL.NameAlreadyExistsError value
@@ -260,6 +325,10 @@ personCreateResult opts_ =
         [ ( "Person", GraphQL.Engine.fragment opts_.person )
         , ( "NameAlreadyExistsError", GraphQL.Engine.fragment opts_.nameAlreadyExistsError )
         ]
+
+
+type alias PersonUpdateResult value =
+    GQL.PersonUpdateResult value
 
 
 personUpdateResult :
@@ -278,11 +347,19 @@ personUpdateResult frags_ =
 -- INPUTS
 
 
+type alias PersonCreateInput =
+    GQL.PersonCreateInput
+
+
 personCreateInput : { name : String } -> List GQL.PersonCreateInput.Optional -> GQL.PersonCreateInput
 personCreateInput req_ =
     GraphQL.Engine.input
         [ ( "name", GraphQL.Engine.args.value (Encode.string req_.name) )
         ]
+
+
+type alias PersonUpdateInput =
+    GQL.PersonUpdateInput
 
 
 personUpdateInput : { id : GQL.ID } -> List GQL.PersonUpdateInput.Optional -> GQL.PersonUpdateInput
@@ -292,12 +369,20 @@ personUpdateInput req_ =
         ]
 
 
+type alias SetRequiredString =
+    GQL.SetRequiredString
+
+
 setRequiredString : { value : String } -> GQL.SetRequiredString
 setRequiredString req_ =
     GraphQL.Engine.input
         [ ( "value", GraphQL.Engine.args.value (Encode.string req_.value) )
         ]
         []
+
+
+type alias SetOptionalString =
+    GQL.SetOptionalString
 
 
 setOptionalString : List GQL.SetOptionalString.Optional -> GQL.SetOptionalString
