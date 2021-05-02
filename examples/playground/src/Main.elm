@@ -4,7 +4,6 @@ import GQL
 import GQL.PersonCreateInput
 import GQL.PersonUpdateInput
 import GQL.SetOptionalString
-import GQL.Types
 import Html exposing (Html)
 
 
@@ -14,20 +13,20 @@ main =
 
 
 type alias App =
-    { id : GQL.Types.ID
+    { id : GQL.ID
     , slug : String
     , name : String
     }
 
 
 type alias Person =
-    { id : GQL.Types.ID
+    { id : GQL.ID
     , name : String
     , email : Maybe String
     }
 
 
-appQuery : GQL.Types.Query (Maybe App)
+appQuery : GQL.Query (Maybe App)
 appQuery =
     GQL.query.app
         { id = GQL.id "123"
@@ -35,7 +34,7 @@ appQuery =
         app
 
 
-app : GQL.Types.App App
+app : GQL.App App
 app =
     GQL.select App
         |> GQL.with GQL.app.id
@@ -43,7 +42,7 @@ app =
         |> GQL.with GQL.app.name
 
 
-createMutation : GQL.Types.Mutation (Result String Person)
+createMutation : GQL.Mutation (Result String Person)
 createMutation =
     GQL.mutation.personCreate
         { input =
@@ -54,7 +53,7 @@ createMutation =
         personCreateResult
 
 
-personCreateResult : GQL.Types.PersonCreateResult (Result String Person)
+personCreateResult : GQL.PersonCreateResult (Result String Person)
 personCreateResult =
     GQL.personCreateResult
         { person = GQL.map Ok person
@@ -62,7 +61,7 @@ personCreateResult =
         }
 
 
-person : GQL.Types.Person Person
+person : GQL.Person Person
 person =
     GQL.select Person
         |> GQL.with GQL.person.id
@@ -74,7 +73,7 @@ person =
 -- UPDATE
 
 
-updateMutation : GQL.Types.Mutation (Result String Person)
+updateMutation : GQL.Mutation (Result String Person)
 updateMutation =
     GQL.mutation.personUpdate
         { input =
@@ -93,7 +92,7 @@ updateMutation =
         personUpdateResult
 
 
-personUpdateResult : GQL.Types.PersonUpdateResult (Result String Person)
+personUpdateResult : GQL.PersonUpdateResult (Result String Person)
 personUpdateResult =
     GQL.personUpdateResult
         { person = GQL.map Ok person
