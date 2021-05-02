@@ -113,7 +113,7 @@ axios
       })
 
       app.ports.writeElmFile.subscribe(async ({moduleName, contents}) => {
-        const elmFileName = `./output/elm/${moduleName.replace(/\./g, "/")}.elm`;
+        const elmFileName = `./output/${moduleName.replace(/\./g, "/")}.elm`;
         await mkdir(path.dirname(elmFileName), { recursive: true });
         await writeFile(elmFileName, contents);
       })

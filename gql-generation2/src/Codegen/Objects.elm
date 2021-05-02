@@ -30,28 +30,28 @@ generateFiles graphQLSchema =
                     docs =
                         Nothing
 
-                    fieldDecl =
+                    ( fieldDecl, linkage ) =
                         object.fields
-                            |> List.map
-                                (\field ->
+                            |> List.foldl
+                                (\field ( accDecls, linkage_ ) ->
                                     let
                                         typeAnnotation =
                                             Common.gqlTypeToElmTypeAnnotation field.type_ Nothing
 
-                                        -- { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) {} []
+                                        -- { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) []
                                         -- , name =
                                         --     \selection_ ->
-                                        --         GraphQL.Engine.field identity "name" (GraphQL.Engine.decoder selection_) {} []
-                                        -- , role = GraphQL.Engine.field identity "role" role {} []
-                                        -- , email = GraphQL.Engine.field Json.maybe "email" (Codec.decoder Scalar.codecs.string) {} []
+                                        --         GraphQL.Engine.field identity "name" (GraphQL.Engine.decoder selection_) []
+                                        -- , role = GraphQL.Engine.field identity "role" role []
+                                        -- , email = GraphQL.Engine.field Json.maybe "email" (Codec.decoder Scalar.codecs.string) []
                                         -- , friends =
                                         --     \selection_ opts_ ->
-                                        --         GraphQL.Engine.field Json.list "friends" (GraphQL.Engine.decoder selection_) {} opts_
+                                        --         GraphQL.Engine.field Json.list "friends" (GraphQL.Engine.decoder selection_) (GraphQL.Engine.optionalsToArguments opts_)
                                         -- }
-                                        implementation =
+                                        ( implementation, import_ ) =
                                             case field.type_ of
                                                 GraphQL.Schema.Type.Scalar scalarName ->
-                                                    Elm.apply
+                                                    ( Elm.apply
                                                         [ Common.modules.engine.fns.field
                                                         , Elm.fun "identity"
                                                         , Elm.string field.name
@@ -61,15 +61,51 @@ generateFiles graphQLSchema =
                                                                 , Elm.fqFun Common.modules.scalar.codecs.fqName (String.decapitalize scalarName)
                                                                 ]
                                                             )
-                                                        , Elm.record []
                                                         , Elm.list []
                                                         ]
+                                                    , Just Common.modules.scalar.codecs.fqName
+                                                    )
+
+                                                GraphQL.Schema.Type.Enum enumName ->
+                                                    ( Elm.apply
+                                                        [ Common.modules.engine.fns.field
+                                                        , Elm.fun "identity"
+                                                        , Elm.string field.name
+                                                        , Elm.fqFun [ "TnGql", "Enum", enumName ] "decoder"
+                                                        , Elm.list []
+                                                        ]
+                                                    , Just [ "TnGql", "Enum", enumName ]
+                                                    )
+
+                                                GraphQL.Schema.Type.Object objectName ->
+                                                    ( Elm.lambda [ Elm.varPattern "selection_" ]
+                                                        -- GraphQL.Engine.field identity "name" (GraphQL.Engine.decoder selection_) []
+                                                        (Elm.apply
+                                                            [ Common.modules.engine.fns.field
+                                                            , Elm.fun "identity"
+                                                            , Elm.string field.name
+                                                            , Elm.parens
+                                                                (Elm.apply
+                                                                    [ Elm.fqFun [ "TnGql", "Object", objectName ] "decoder"
+                                                                    , Elm.val "selection_"
+                                                                    ]
+                                                                )
+                                                            , Elm.list []
+                                                            ]
+                                                        )
+                                                    , Just [ "TnGql", "Object", objectName ]
+                                                    )
 
                                                 _ ->
-                                                    Elm.string "unimplemented"
+                                                    ( Elm.string "unimplemented", Nothing )
                                     in
-                                    ( field.name, typeAnnotation, implementation )
+                                    ( ( field.name, typeAnnotation, implementation ) :: accDecls
+                                    , import_
+                                        |> Maybe.map (\i -> linkage_ |> Elm.addImport (Elm.importStmt i Nothing Nothing))
+                                        |> Maybe.withDefault linkage_
+                                    )
                                 )
+                                ( [], Elm.emptyLinkage )
 
                     -- GQL.Query (Maybe value)
                     objectTypeAnnotation =
@@ -84,12 +120,15 @@ generateFiles graphQLSchema =
 
                     objectDecl =
                         Elm.valDecl Nothing (Just objectTypeAnnotation) (String.decapitalize object.name) objectImplementation
+
+                    ( imports_, exposing_ ) =
+                        linkage
+                            |> Elm.addImport Common.modules.decode.import_
                 in
                 { name = moduleName
                 , file =
                     Elm.file module_
-                        [ Common.modules.decode.import_
-                        ]
+                        imports_
                         [ objectDecl ]
                         Nothing
                 }

@@ -55,7 +55,7 @@ generateFiles graphQLSchema =
                 --     }
                 let
                     moduleName =
-                        [ "TnGql", "Queries", queryOperation.name ]
+                        [ "TnGql", "Queries", String.toSentenceCase queryOperation.name ]
 
                     module_ =
                         Elm.normalModule moduleName []

@@ -3,7 +3,6 @@ port module Worker exposing (main)
 import Codegen.Enums
 import Codegen.Objects
 import Codegen.Queries
-import Debug
 import Elm.CodeGen as Elm
 import Elm.Pretty as Elm
 import GraphQL.Schema
