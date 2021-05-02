@@ -11,6 +11,7 @@ module GQL exposing
     , NameAlreadyExistsError, nameAlreadyExistsError
     , NotFoundError, notFoundError
     , Error, error
+    , Role
     , PersonCreateResult, personCreateResult
     , PersonUpdateResult, personUpdateResult
     , PersonCreateInput, personCreateInput
@@ -49,6 +50,11 @@ module GQL exposing
 ## Interfaces
 
 @docs Error, error
+
+
+## Enums
+
+@docs Role
 
 
 ## Unions
@@ -121,7 +127,7 @@ map5 =
 
 
 -- OBJECTS
-    
+
 
 type alias Query value =
     GQL.Query value
@@ -147,7 +153,7 @@ query =
                 [ ( "id", GraphQL.Engine.args.scalar Scalar.codecs.id req_.id )
                 ]
     }
-    
+
 
 type alias Mutation value =
     GQL.Mutation value
@@ -173,7 +179,7 @@ mutation =
                 [ ( "input", GraphQL.Engine.args.input req_.input )
                 ]
     }
-    
+
 
 type alias App value =
     GQL.App value
@@ -185,9 +191,9 @@ app :
     , name : GQL.App String
     }
 app =
-    { id = GraphQL.Engine.fields.scalar "id" Scalar.codecs.id
-    , slug = GraphQL.Engine.fields.primitive "slug" Codec.string
-    , name = GraphQL.Engine.fields.primitive "name" Codec.string
+    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) {} []
+    , slug = GraphQL.Engine.field identity "slug" (Codec.decoder Scalar.codecs.string) {} []
+    , name = GraphQL.Engine.field identity "name" (Codec.decoder Scalar.codecs.string) {} []
     }
 
 
@@ -197,17 +203,21 @@ type alias Person value =
 
 person :
     { id : GQL.Person GQL.ID
-    , name : GQL.Person String
+    , name : GQL.Name value -> GQL.Person value
     , role : GQL.Person GQL.Role
     , email : GQL.Person (Maybe String)
     , friends : GQL.Person value -> List GQL.Person.Friends.Optional -> GQL.Person (List value)
     }
 person =
-    { id = GraphQL.Engine.fields.scalar "id" Scalar.codecs.id
-    , name = GraphQL.Engine.fields.primitive "name" Codec.string
-    , role = GraphQL.Engine.fields.primitive "role" role
-    , email = GraphQL.Engine.fields.primitive "email" (Codec.maybe Codec.string)
-    , friends = GraphQL.Engine.fields.nestedWithOptionals "friends" Json.list
+    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) {} []
+    , name =
+        \selection_ ->
+            GraphQL.Engine.field identity "name" (GraphQL.Engine.decoder selection_) {} []
+    , role = GraphQL.Engine.field identity "role" role {} []
+    , email = GraphQL.Engine.field Json.maybe "email" (Codec.decoder Scalar.codecs.string) {} []
+    , friends =
+        \selection_ opts_ ->
+            GraphQL.Engine.field Json.list "friends" (GraphQL.Engine.decoder selection_) {} opts_
     }
 
 
@@ -221,9 +231,9 @@ name :
     , last : GQL.Name String
     }
 name =
-    { first = GraphQL.Engine.fields.primitive "first" Codec.string
-    , middle = GraphQL.Engine.fields.primitive "middle" (Codec.maybe Codec.string)
-    , last = GraphQL.Engine.fields.primitive "last" Codec.string
+    { first = GraphQL.Engine.field identity "first" (Codec.decoder Scalar.codecs.string) {} []
+    , middle = GraphQL.Engine.field Json.maybe "middle" (Codec.decoder Scalar.codecs.string) {} []
+    , last = GraphQL.Engine.field identity "last" (Codec.decoder Scalar.codecs.string) {} []
     }
 
 
@@ -235,7 +245,7 @@ nameAlreadyExistsError :
     { message : GQL.NameAlreadyExistsError String
     }
 nameAlreadyExistsError =
-    { message = GraphQL.Engine.fields.primitive "message" Codec.string
+    { message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) {} []
     }
 
 
@@ -248,8 +258,8 @@ notFoundError :
     , message : GQL.NotFoundError String
     }
 notFoundError =
-    { id = GraphQL.Engine.fields.scalar "id" Scalar.codecs.id
-    , message = GraphQL.Engine.fields.primitive "message" Codec.string
+    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) {} []
+    , message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) {} []
     }
 
 
@@ -261,7 +271,7 @@ type alias Role =
     GQL.Role.Role
 
 
-role : Codec GQL.Role
+role : Json.Decoder GQL.Role
 role =
     GraphQL.Engine.enum
         [ ( "ADMIN", GQL.Role.ADMIN )
@@ -303,7 +313,7 @@ error :
     { message : GQL.Error String
     }
 error =
-    { message = GraphQL.Engine.fields.primitive "message" Codec.string
+    { message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) {} []
     }
 
 

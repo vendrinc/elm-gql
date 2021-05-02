@@ -3,9 +3,9 @@ module GraphQL.Engine exposing
     , map, map2, map3, map4, map5
     , Query, query
     , Mutation, mutation
-    , Scalar, toScalar, fromScalar
+    , Scalar, toScalarCodec, toScalar, fromScalar
     , Argument, args
-    , fields
+    , field, decoder
     , enum
     , union, fragment
     , Input, Optional, input
@@ -17,9 +17,9 @@ module GraphQL.Engine exposing
 @docs map, map2, map3, map4, map5
 @docs Query, query
 @docs Mutation, mutation
-@docs Scalar, toScalar, fromScalar
+@docs Scalar, toScalarCodec, toScalar, fromScalar
 @docs Argument, args
-@docs fields
+@docs field, decoder
 @docs enum
 @docs union, fragment
 @docs Input, Optional, input
@@ -126,12 +126,12 @@ type Argument
 
 args :
     { value : Json.Value -> Argument
-    , scalar : Codec value -> Scalar kind value -> Argument
+    , scalar : Codec (Scalar kind value) -> Scalar kind value -> Argument
     , input : Input kind -> Argument
     }
 args =
     { value = Value
-    , scalar = \codec -> fromScalar >> Codec.encodeToValue codec >> Value
+    , scalar = \codec -> Codec.encodeToValue codec >> Value
     , input = fromInput >> Nested
     }
 
@@ -142,6 +142,11 @@ args =
 
 type Scalar kind value
     = Scalar value
+
+
+toScalarCodec : Codec value -> Codec (Scalar kind value)
+toScalarCodec =
+    Codec.map toScalar fromScalar
 
 
 toScalar : value -> Scalar kind value
@@ -158,7 +163,7 @@ fromScalar (Scalar value) =
 -- ENUM
 
 
-enum : List ( String, enum ) -> Codec enum
+enum : List ( String, enum ) -> Json.Decoder enum
 enum =
     Debug.todo ""
 
@@ -167,21 +172,20 @@ enum =
 --- FIELD
 
 
-fields :
-    { primitive : String -> Codec value -> Selection kind value
-    , scalar : String -> Codec value -> Selection kind (Scalar any value)
-    , nestedWithOptionals :
-        String
-        -> (Json.Decoder selection -> Json.Decoder value)
-        -> Selection inner selection
-        -> List (Optional a)
-        -> Selection outer value
-    }
-fields =
-    { primitive = Debug.todo "fields.primitive"
-    , scalar = Debug.todo "fields.scalar"
-    , nestedWithOptionals = Debug.todo "fields.nestedWithOptionals"
-    }
+decoder : Selection kind value -> Json.Decoder value
+decoder =
+    Debug.todo "decoder"
+
+
+field :
+    (Json.Decoder selection -> Json.Decoder value)
+    -> String
+    -> Json.Decoder selection
+    -> req
+    -> List (Optional a)
+    -> Selection kind value
+field =
+    Debug.todo "field"
 
 
 

@@ -21,8 +21,14 @@ type alias App =
 
 type alias Person =
     { id : GQL.ID
-    , name : String
+    , name : Name
     , email : Maybe String
+    }
+
+
+type alias Name =
+    { first : String
+    , last : String
     }
 
 
@@ -65,8 +71,15 @@ person : GQL.Person Person
 person =
     GQL.select Person
         |> GQL.with GQL.person.id
-        |> GQL.with GQL.person.name
+        |> GQL.with (GQL.person.name name)
         |> GQL.with GQL.person.email
+
+
+name : GQL.Name Name
+name =
+    GQL.select Name
+        |> GQL.with GQL.name.first
+        |> GQL.with GQL.name.last
 
 
 
