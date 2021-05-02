@@ -23,6 +23,11 @@ modules =
             { maybe = Elm.fqFun moduleJson "maybe"
             }
         }
+    , codec =
+        { fns =
+            { decoder = Elm.fqFun [ "Codec" ] "decoder"
+            }
+        }
     , decode =
         { fqName = [ "Json", "Decode" ]
         , name = [ "Decode" ]
@@ -33,6 +38,7 @@ modules =
         , import_ = Elm.importStmt moduleEngine Nothing Nothing
         , fns =
             { query = Elm.fqFun moduleEngine "query"
+            , field = Elm.fqFun moduleEngine "field"
             }
         , args =
             { fqName = moduleEngineArgs
