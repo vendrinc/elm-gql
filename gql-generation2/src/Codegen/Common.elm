@@ -5,18 +5,41 @@ import GraphQL.Schema.Type exposing (Type(..))
 import Json.Decode exposing (nullable)
 
 
+moduleEngine =
+    [ "GraphQL", "Engine" ]
+
+
+moduleEngineArgs =
+    moduleEngine ++ [ "args" ]
+
+
+moduleJson =
+    [ "Json" ]
+
+
 modules =
-    { decode =
+    { json =
+        { fns =
+            { maybe = Elm.fqFun moduleJson "maybe"
+            }
+        }
+    , decode =
         { fqName = [ "Json", "Decode" ]
         , name = [ "Decode" ]
         , import_ = Elm.importStmt [ "Json", "Decode" ] (Just [ "Decode" ]) (Just ([ Elm.funExpose "Decoder" ] |> Elm.exposeExplicit))
         }
     , engine =
-        { fqName = [ "GraphQL", "Engine" ]
-        , import_ = Elm.importStmt [ "GraphQL", "Engine" ] Nothing Nothing
+        { fqName = moduleEngine
+        , import_ = Elm.importStmt moduleEngine Nothing Nothing
+        , fns =
+            { query = Elm.fqFun moduleEngine "query"
+            }
         , args =
-            { fqName = [ "GraphQL", "Engine", "args" ]
-            , import_ = Elm.importStmt [ "GraphQL", "Engine", "args" ] Nothing Nothing
+            { fqName = moduleEngineArgs
+            , import_ = Elm.importStmt moduleEngineArgs Nothing Nothing
+            , fns =
+                { scalar = Elm.fqFun moduleEngineArgs "scalar"
+                }
             }
         }
     , scalar =
@@ -39,44 +62,28 @@ gqlTypeToElmTypeAnnotation gqlType maybeAppliedToTypes =
     let
         appliedToTypes =
             Maybe.withDefault [] maybeAppliedToTypes
-
-        gqlTypeToElmTypeAnnotatio_ nullable gqlType_ =
-            let
-                innerType =
-                    case gqlType_ of
-                        Scalar scalarName ->
-                            Elm.fqTyped [ "TnGql", "Scalar" ] scalarName appliedToTypes
-
-                        InputObject inputObjectName ->
-                            Elm.fqTyped [ "TnGql", "InputObject" ] inputObjectName appliedToTypes
-
-                        Object objectName ->
-                            Elm.fqTyped [ "TnGql", "Object" ] objectName appliedToTypes
-
-                        Enum enumName ->
-                            Elm.fqTyped [ "TnGql", "Enum" ] enumName appliedToTypes
-
-                        Union unionName ->
-                            Elm.fqTyped [ "TnGql", "Union" ] unionName appliedToTypes
-
-                        Interface interfaceName ->
-                            Elm.fqTyped [ "TnGql", "Interface" ] interfaceName appliedToTypes
-
-                        List_ listElementType ->
-                            Elm.typed "List" [ gqlTypeToElmTypeAnnotatio_ True listElementType ]
-
-                        Non_Null nonNullType ->
-                            gqlTypeToElmTypeAnnotatio_ False nonNullType
-            in
-            if nullable then
-                Elm.maybeAnn innerType
-
-            else
-                innerType
     in
     case gqlType of
-        Non_Null gqlType_ ->
-            gqlTypeToElmTypeAnnotatio_ False gqlType_
+        Scalar scalarName ->
+            Elm.fqTyped [ "TnGql", "Scalar" ] scalarName appliedToTypes
 
-        _ ->
-            gqlTypeToElmTypeAnnotatio_ True gqlType
+        InputObject inputObjectName ->
+            Elm.fqTyped [ "TnGql", "InputObject" ] inputObjectName appliedToTypes
+
+        Object objectName ->
+            Elm.fqTyped [ "TnGql", "Object" ] objectName appliedToTypes
+
+        Enum enumName ->
+            Elm.fqTyped [ "TnGql", "Enum" ] enumName appliedToTypes
+
+        Union unionName ->
+            Elm.fqTyped [ "TnGql", "Union" ] unionName appliedToTypes
+
+        Interface interfaceName ->
+            Elm.fqTyped [ "TnGql", "Interface" ] interfaceName appliedToTypes
+
+        List_ listElementType ->
+            Elm.typed "List" [ gqlTypeToElmTypeAnnotation listElementType maybeAppliedToTypes ]
+
+        Nullable nonNullType ->
+            Elm.maybeAnn (gqlTypeToElmTypeAnnotation nonNullType maybeAppliedToTypes)

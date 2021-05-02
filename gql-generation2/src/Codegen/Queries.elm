@@ -85,9 +85,9 @@ generateFiles graphQLSchema =
                     expression =
                         Elm.lambda [ Elm.varPattern "req_", Elm.varPattern "selection_" ]
                             (Elm.apply
-                                [ Elm.fqFun Common.modules.engine.fqName "query"
+                                [ Common.modules.engine.fns.query
                                 , Elm.string queryOperation.name
-                                , Elm.fqFun [ "Json" ] "maybe"
+                                , Common.modules.json.fns.maybe
                                 , Elm.val "selection_"
                                 , Elm.list
                                     (queryOperation.arguments
@@ -98,7 +98,7 @@ generateFiles graphQLSchema =
                                                     , case argument.type_ of
                                                         GraphQL.Schema.Type.Scalar scalarName ->
                                                             Elm.apply
-                                                                [ Elm.fqFun Common.modules.engine.args.fqName "scalar"
+                                                                [ Common.modules.engine.args.fns.scalar
                                                                 , Elm.fqFun Common.modules.scalar.codecs.fqName argument.name
                                                                 , Elm.access (Elm.val "req") argument.name
                                                                 ]
