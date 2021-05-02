@@ -12,6 +12,18 @@ enumNameToConstructorName =
     String.toSentenceCase
 
 
+moduleFqJsonDecode =
+    [ "Json", "Decode" ]
+
+
+moduleJsonDecode =
+    [ "Decode" ]
+
+
+importJson =
+    Elm.importStmt moduleFqJsonDecode (Just moduleJsonDecode) (Just ([ Elm.funExpose "Decoder" ] |> Elm.exposeExplicit))
+
+
 generateFiles : GraphQL.Schema.Schema -> List Codegen.Common.File
 generateFiles graphQLSchema =
     graphQLSchema.enums
@@ -50,18 +62,17 @@ generateFiles graphQLSchema =
                         Elm.valDecl Nothing
                             (Just (Elm.typed "Decoder" [ Elm.typed enumDefinition.name [] ]))
                             "decoder"
-                            (Elm.pipe (Elm.fun "Decode.string")
+                            (Elm.pipe (Elm.fqFun moduleJsonDecode "string")
                                 [ Elm.apply
-                                    [ Elm.fun "Decode.andThen"
+                                    [ Elm.fqFun moduleJsonDecode "andThen"
                                     , Elm.lambda [ Elm.varPattern "string" ]
                                         (Elm.caseExpr (Elm.val "string")
                                             ((enumDefinition.values
                                                 |> List.map
                                                     (\value ->
                                                         ( Elm.stringPattern value.name
-                                                        , -- Decode.succeed
-                                                          Elm.apply
-                                                            [ Elm.fun "Decode.succeed"
+                                                        , Elm.apply
+                                                            [ Elm.fqFun moduleJsonDecode "succeed"
                                                             , Elm.fqVal [] (enumNameToConstructorName value.name)
                                                             ]
                                                         )
@@ -69,7 +80,7 @@ generateFiles graphQLSchema =
                                              )
                                                 ++ [ ( Elm.allPattern
                                                      , Elm.apply
-                                                        [ Elm.fun "Decode.fail"
+                                                        [ Elm.fqFun moduleJsonDecode "fail"
                                                         , Elm.string
                                                             ("Invalid "
                                                                 ++ enumDefinition.name
@@ -87,7 +98,7 @@ generateFiles graphQLSchema =
                 { name = moduleName
                 , file =
                     Elm.file module_
-                        [ Elm.importStmt [ "Json", "Decode" ] (Just [ "Decode" ]) (Just ([ Elm.funExpose "Decoder" ] |> Elm.exposeExplicit))
+                        [ importJson
                         ]
                         [ enumType, listOfValues, enumDecoder ]
                         Nothing
