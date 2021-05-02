@@ -1,6 +1,7 @@
 port module Worker exposing (main)
 
 import Codegen.Enums
+import Codegen.Objects
 import Codegen.Queries
 import Debug
 import Elm.CodeGen as Elm
@@ -50,8 +51,11 @@ run flags =
         queryFiles =
             Codegen.Queries.generateFiles schema
 
+        objectFiles =
+            Codegen.Objects.generateFiles schema
+
         allFiles =
-            enumFiles ++ queryFiles
+            enumFiles ++ queryFiles ++ objectFiles
     in
     Cmd.batch
         (allFiles

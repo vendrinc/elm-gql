@@ -39,6 +39,8 @@ modules =
             , import_ = Elm.importStmt moduleEngineArgs Nothing Nothing
             , fns =
                 { scalar = Elm.fqFun moduleEngineArgs "scalar"
+                , enum = Elm.fqFun moduleEngineArgs "enum"
+                , input = Elm.fqFun moduleEngineArgs "input"
                 }
             }
         }
