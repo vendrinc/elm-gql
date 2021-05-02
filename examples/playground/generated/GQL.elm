@@ -72,7 +72,7 @@ module GQL exposing
 
 -}
 
-import Codec exposing (Codec)
+import Codec
 import GQL.Person.Friends
 import GQL.PersonCreateInput
 import GQL.PersonUpdateInput
@@ -191,9 +191,9 @@ app :
     , name : GQL.App String
     }
 app =
-    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) {} []
-    , slug = GraphQL.Engine.field identity "slug" (Codec.decoder Scalar.codecs.string) {} []
-    , name = GraphQL.Engine.field identity "name" (Codec.decoder Scalar.codecs.string) {} []
+    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) []
+    , slug = GraphQL.Engine.field identity "slug" (Codec.decoder Scalar.codecs.string) []
+    , name = GraphQL.Engine.field identity "name" (Codec.decoder Scalar.codecs.string) []
     }
 
 
@@ -209,15 +209,15 @@ person :
     , friends : GQL.Person value -> List GQL.Person.Friends.Optional -> GQL.Person (List value)
     }
 person =
-    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) {} []
+    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) []
     , name =
         \selection_ ->
-            GraphQL.Engine.field identity "name" (GraphQL.Engine.decoder selection_) {} []
-    , role = GraphQL.Engine.field identity "role" role {} []
-    , email = GraphQL.Engine.field Json.maybe "email" (Codec.decoder Scalar.codecs.string) {} []
+            GraphQL.Engine.field identity "name" (GraphQL.Engine.decoder selection_) []
+    , role = GraphQL.Engine.field identity "role" role []
+    , email = GraphQL.Engine.field Json.maybe "email" (Codec.decoder Scalar.codecs.string) []
     , friends =
         \selection_ opts_ ->
-            GraphQL.Engine.field Json.list "friends" (GraphQL.Engine.decoder selection_) {} opts_
+            GraphQL.Engine.field Json.list "friends" (GraphQL.Engine.decoder selection_) (GraphQL.Engine.optionalsToArguments opts_)
     }
 
 
@@ -231,9 +231,9 @@ name :
     , last : GQL.Name String
     }
 name =
-    { first = GraphQL.Engine.field identity "first" (Codec.decoder Scalar.codecs.string) {} []
-    , middle = GraphQL.Engine.field Json.maybe "middle" (Codec.decoder Scalar.codecs.string) {} []
-    , last = GraphQL.Engine.field identity "last" (Codec.decoder Scalar.codecs.string) {} []
+    { first = GraphQL.Engine.field identity "first" (Codec.decoder Scalar.codecs.string) []
+    , middle = GraphQL.Engine.field Json.maybe "middle" (Codec.decoder Scalar.codecs.string) []
+    , last = GraphQL.Engine.field identity "last" (Codec.decoder Scalar.codecs.string) []
     }
 
 
@@ -245,7 +245,7 @@ nameAlreadyExistsError :
     { message : GQL.NameAlreadyExistsError String
     }
 nameAlreadyExistsError =
-    { message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) {} []
+    { message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) []
     }
 
 
@@ -258,8 +258,8 @@ notFoundError :
     , message : GQL.NotFoundError String
     }
 notFoundError =
-    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) {} []
-    , message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) {} []
+    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) []
+    , message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) []
     }
 
 
@@ -313,7 +313,7 @@ error :
     { message : GQL.Error String
     }
 error =
-    { message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) {} []
+    { message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) []
     }
 
 
