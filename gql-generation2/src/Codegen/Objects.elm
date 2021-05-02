@@ -20,16 +20,6 @@ generateFiles graphQLSchema =
         |> Dict.toList
         |> List.map
             (\( _, object ) ->
-                -- app :
-                --     { id : GQL.App GQL.ID
-                --     , slug : GQL.App String
-                --     , name : GQL.App String
-                --     }
-                -- app =
-                --     { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) {} []
-                --     , slug = GraphQL.Engine.field identity "slug" (Codec.decoder Scalar.codecs.string) {} []
-                --     , slug = GraphQL.Engine.field identity "name" (Codec.decoder Scalar.codecs.string) {} []
-                --     }
                 let
                     moduleName =
                         [ "TnGql", "Object", object.name ]
@@ -44,17 +34,39 @@ generateFiles graphQLSchema =
                         object.fields
                             |> List.map
                                 (\field ->
-                                    -- { name : String
-                                    -- , description : Maybe String
-                                    -- , type_ : Type
-                                    -- , permissions : List Permission
-                                    -- }
                                     let
                                         typeAnnotation =
                                             Common.gqlTypeToElmTypeAnnotation field.type_ Nothing
 
+                                        -- { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) {} []
+                                        -- , name =
+                                        --     \selection_ ->
+                                        --         GraphQL.Engine.field identity "name" (GraphQL.Engine.decoder selection_) {} []
+                                        -- , role = GraphQL.Engine.field identity "role" role {} []
+                                        -- , email = GraphQL.Engine.field Json.maybe "email" (Codec.decoder Scalar.codecs.string) {} []
+                                        -- , friends =
+                                        --     \selection_ opts_ ->
+                                        --         GraphQL.Engine.field Json.list "friends" (GraphQL.Engine.decoder selection_) {} opts_
+                                        -- }
                                         implementation =
-                                            Elm.string "unimplemented"
+                                            case field.type_ of
+                                                GraphQL.Schema.Type.Scalar scalarName ->
+                                                    Elm.apply
+                                                        [ Common.modules.engine.fns.field
+                                                        , Elm.fun "identity"
+                                                        , Elm.string field.name
+                                                        , Elm.parens
+                                                            (Elm.apply
+                                                                [ Common.modules.codec.fns.decoder
+                                                                , Elm.fqFun Common.modules.scalar.codecs.fqName (String.decapitalize scalarName)
+                                                                ]
+                                                            )
+                                                        , Elm.record []
+                                                        , Elm.list []
+                                                        ]
+
+                                                _ ->
+                                                    Elm.string "unimplemented"
                                     in
                                     ( field.name, typeAnnotation, implementation )
                                 )
@@ -81,8 +93,4 @@ generateFiles graphQLSchema =
                         [ objectDecl ]
                         Nothing
                 }
-             -- { name = queryOperation.name
-             -- , signature = type_
-             -- , implementation = expression
-             -- }
             )
