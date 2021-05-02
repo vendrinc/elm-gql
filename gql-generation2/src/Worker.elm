@@ -1,8 +1,8 @@
 port module Worker exposing (main)
 
 import Codegen.Enums
+import Codegen.Queries
 import Debug
-import Dict
 import Elm.CodeGen as Elm
 import Elm.Pretty as Elm
 import GraphQL.Schema
@@ -47,8 +47,11 @@ run flags =
         enumFiles =
             Codegen.Enums.generateFiles schema
 
+        queryFiles =
+            Codegen.Queries.generateFiles schema
+
         allFiles =
-            enumFiles
+            enumFiles ++ queryFiles
     in
     Cmd.batch
         (allFiles

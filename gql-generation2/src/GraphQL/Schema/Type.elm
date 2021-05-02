@@ -1,5 +1,5 @@
 module GraphQL.Schema.Type exposing
-    ( Type
+    ( Type(..)
     , decoder
     , toKind
     , toString
@@ -7,6 +7,7 @@ module GraphQL.Schema.Type exposing
 
 import GraphQL.Schema.Kind as Kind exposing (Kind)
 import Json.Decode as Json
+
 
 type Type
     = Scalar String
@@ -64,6 +65,7 @@ lazyDecoder =
 nameDecoder : Json.Decoder String
 nameDecoder =
     Json.field "name" Json.string
+
 
 toString : Type -> String
 toString type_ =

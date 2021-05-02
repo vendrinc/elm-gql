@@ -11,6 +11,7 @@ import String.Extra as String
 enumNameToConstructorName =
     String.toSentenceCase
 
+
 generateFiles : GraphQL.Schema.Schema -> List Common.File
 generateFiles graphQLSchema =
     graphQLSchema.enums
