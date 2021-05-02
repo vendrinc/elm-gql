@@ -37,9 +37,9 @@ type alias User =
 
 user : GQL.User User
 user =
-    GQL.user User
-        |> GQL.with .name
-        |> GQL.with .email
+    GQL.select User
+        |> GQL.with GQL.user.name
+        |> GQL.with GQL.user.email
 ```
 
 ### GraphQL query
