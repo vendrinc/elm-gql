@@ -4,7 +4,7 @@ module GraphQL.Engine exposing
     , Query, query
     , Mutation, mutation
     , Scalar, toScalarCodec, toScalar, fromScalar
-    , Argument, args
+    , Argument, args, optionalsToArguments
     , field, decoder
     , enum
     , union, fragment
@@ -18,7 +18,7 @@ module GraphQL.Engine exposing
 @docs Query, query
 @docs Mutation, mutation
 @docs Scalar, toScalarCodec, toScalar, fromScalar
-@docs Argument, args
+@docs Argument, args, optionalsToArguments
 @docs field, decoder
 @docs enum
 @docs union, fragment
@@ -136,6 +136,11 @@ args =
     }
 
 
+optionalsToArguments : List (Optional any) -> List ( String, Argument )
+optionalsToArguments =
+    Debug.todo ""
+
+
 
 -- SCALAR
 
@@ -181,8 +186,7 @@ field :
     (Json.Decoder selection -> Json.Decoder value)
     -> String
     -> Json.Decoder selection
-    -> req
-    -> List (Optional a)
+    -> List ( String, Argument )
     -> Selection kind value
 field =
     Debug.todo "field"
