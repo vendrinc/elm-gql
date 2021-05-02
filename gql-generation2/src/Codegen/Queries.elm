@@ -4,6 +4,8 @@ import Codegen.Common as Common
 import Dict
 import Elm.CodeGen as Elm
 import GraphQL.Schema
+import GraphQL.Schema.Argument exposing (Argument)
+import GraphQL.Schema.Type exposing (Type(..))
 import String.Extra as String
 
 
@@ -81,7 +83,34 @@ generateFiles graphQLSchema =
                             )
 
                     expression =
-                        Elm.string "unimplemented"
+                        Elm.lambda [ Elm.varPattern "req_", Elm.varPattern "selection_" ]
+                            (Elm.apply
+                                [ Elm.fqFun Common.modules.engine.fqName "query"
+                                , Elm.string queryOperation.name
+                                , Elm.fqFun [ "Json" ] "maybe"
+                                , Elm.val "selection_"
+                                , Elm.list
+                                    (queryOperation.arguments
+                                        |> List.map
+                                            (\argument ->
+                                                Elm.tuple
+                                                    [ Elm.string argument.name
+                                                    , case argument.type_ of
+                                                        GraphQL.Schema.Type.Scalar scalarName ->
+                                                            Elm.apply
+                                                                [ Elm.fqFun Common.modules.engine.args.fqName "scalar"
+                                                                , Elm.fqFun Common.modules.scalar.codecs.fqName argument.name
+                                                                , Elm.access (Elm.val "req") argument.name
+                                                                ]
+
+                                                        -- GraphQL.Engine.args.scalar Scalar.codecs.id req_.id
+                                                        _ ->
+                                                            Elm.string "unimplemented"
+                                                    ]
+                                            )
+                                    )
+                                ]
+                            )
 
                     testVal =
                         Elm.valDecl Nothing (Just type_) queryOperation.name expression

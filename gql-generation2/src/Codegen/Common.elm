@@ -11,6 +11,20 @@ modules =
         , name = [ "Decode" ]
         , import_ = Elm.importStmt [ "Json", "Decode" ] (Just [ "Decode" ]) (Just ([ Elm.funExpose "Decoder" ] |> Elm.exposeExplicit))
         }
+    , engine =
+        { fqName = [ "GraphQL", "Engine" ]
+        , import_ = Elm.importStmt [ "GraphQL", "Engine" ] Nothing Nothing
+        , args =
+            { fqName = [ "GraphQL", "Engine", "args" ]
+            , import_ = Elm.importStmt [ "GraphQL", "Engine", "args" ] Nothing Nothing
+            }
+        }
+    , scalar =
+        { codecs =
+            { fqName = [ "Scalar", "codecs" ]
+            , import_ = Elm.importStmt [ "Scalar", "codecs" ] Nothing Nothing
+            }
+        }
     }
 
 
@@ -52,7 +66,7 @@ gqlTypeToElmTypeAnnotation gqlType maybeAppliedToTypes =
                             Elm.typed "List" [ gqlTypeToElmTypeAnnotatio_ True listElementType ]
 
                         Non_Null nonNullType ->
-                            Elm.typed "FIXME" [ gqlTypeToElmTypeAnnotatio_ False nonNullType ]
+                            gqlTypeToElmTypeAnnotatio_ False nonNullType
             in
             if nullable then
                 Elm.maybeAnn innerType
