@@ -58,12 +58,12 @@ generateFiles graphQLSchema =
                                                         , Elm.parens
                                                             (Elm.apply
                                                                 [ Common.modules.codec.fns.decoder
-                                                                , Elm.fqFun Common.modules.scalar.codecs.fqName (String.decapitalize scalarName)
+                                                                , Elm.access Common.modules.scalar.exports.codec (String.decapitalize scalarName)
                                                                 ]
                                                             )
                                                         , Elm.list []
                                                         ]
-                                                    , Just Common.modules.scalar.codecs.fqName
+                                                    , Nothing
                                                     )
 
                                                 GraphQL.Schema.Type.Enum enumName ->
@@ -124,6 +124,7 @@ generateFiles graphQLSchema =
                     ( imports_, exposing_ ) =
                         linkage
                             |> Elm.addImport Common.modules.decode.import_
+                            |> Elm.addImport Common.modules.scalar.import_
                 in
                 { name = moduleName
                 , file =

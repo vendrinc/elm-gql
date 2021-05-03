@@ -101,7 +101,9 @@ generateFiles graphQLSchema =
                                                                 GraphQL.Schema.Type.Scalar scalarName ->
                                                                     Elm.apply
                                                                         [ Common.modules.engine.args.fns.scalar
-                                                                        , Elm.fqFun Common.modules.scalar.codecs.fqName (String.decapitalize scalarName)
+                                                                        , Elm.access Common.modules.scalar.exports.codec (String.decapitalize scalarName)
+
+                                                                        -- , Elm.fqFun Common.modules.scalar.codecs.fqName (String.decapitalize scalarName)
                                                                         , Elm.access (Elm.val "req") argument.name
                                                                         ]
 

@@ -51,9 +51,9 @@ modules =
             }
         }
     , scalar =
-        { codecs =
-            { fqName = [ "Scalar", "codecs" ]
-            , import_ = Elm.importStmt [ "Scalar", "codecs" ] Nothing Nothing
+        { import_ = Elm.importStmt [ "Scalar" ] Nothing Nothing
+        , exports =
+            { codec = Elm.fqVal [ "Scalar" ] "codecs"
             }
         }
     }
