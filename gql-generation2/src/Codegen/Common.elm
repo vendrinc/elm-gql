@@ -78,7 +78,12 @@ gqlTypeToElmTypeAnnotation gqlType maybeAppliedToTypes =
     in
     case gqlType of
         Scalar scalarName ->
-            ( Elm.fqTyped [ "TnGql", "Scalar" ] scalarName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "Scalar" ] Nothing Nothing) )
+            case scalarName of
+                "String" ->
+                    ( Elm.typed scalarName [], linkage )
+
+                _ ->
+                    ( Elm.fqTyped [ "TnGql", "Scalar" ] scalarName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "Scalar" ] Nothing Nothing) )
 
         Enum enumName ->
             ( Elm.fqTyped [ "TnGql", "Enum" ] enumName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "Enum", enumName ] Nothing Nothing) )
