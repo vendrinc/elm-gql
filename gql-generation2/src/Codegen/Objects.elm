@@ -118,7 +118,41 @@ objectToModule object =
 
 generateFiles : GraphQL.Schema.Schema -> List Common.File
 generateFiles graphQLSchema =
-    graphQLSchema.objects
-        |> Dict.toList
-        |> List.map Tuple.second
-        |> List.map objectToModule
+    let
+        objects =
+            graphQLSchema.objects
+                |> Dict.toList
+                |> List.map Tuple.second
+
+        objectFiles =
+            objects
+                |> List.map objectToModule
+
+        moduleName =
+            [ "TnGql", "Object" ]
+
+        module_ =
+            Elm.normalModule moduleName []
+
+        phantomTypeDeclarations =
+            objects
+                |> List.map
+                    (\object ->
+                        Elm.customTypeDecl Nothing object.name [] [ ( object.name, [] ) ]
+                    )
+
+        -- ( imports_, exposing_ ) =
+        --     Elm.combineLinkage linkage
+        --         |> Elm.addImport Common.modules.decode.import_
+        --         |> Elm.addImport Common.modules.scalar.import_
+        --     in
+        masterObjectFile =
+            { name = moduleName
+            , file =
+                Elm.file module_
+                    []
+                    phantomTypeDeclarations
+                    Nothing
+            }
+    in
+    masterObjectFile :: objectFiles
