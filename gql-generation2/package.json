@@ -1,0 +1,23 @@
+{
+  "name": "elm-worker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm install && npm run build",
+    "build": "elm make src/Worker.elm --output=dist/elm.compiled.js",
+    "clean": "rm -rf ./output",
+    "go": "yarn clean && mkdir output && cp -r templates/* output && yarn build && node index.js $1",
+    "test-build": "(cd output ; elm make Main.elm)",
+    "test": "yarn go && yarn test-build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "elm": "0.19.1-5"
+  },
+  "dependencies": {
+    "axios": "^0.21.1"
+  }
+}

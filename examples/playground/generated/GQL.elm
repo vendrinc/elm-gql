@@ -1,18 +1,26 @@
 module GQL exposing
     ( Selection, select, with
     , map, map2, map3, map4, map5
-    , query, mutation
-    , id, timestamp
-    , app, person, name, nameAlreadyExistsError, notFoundError
-    , error
-    , personCreateResult, personUpdateResult
-    , personCreateInput, personUpdateInput, setRequiredString, setOptionalString
+    , Query, query
+    , Mutation, mutation
+    , ID, id
+    , Timestamp, timestamp
+    , App, app
+    , Person, person
+    , Name, name
+    , NameAlreadyExistsError, nameAlreadyExistsError
+    , NotFoundError, notFoundError
+    , Error, error
+    , Role
+    , PersonCreateResult, personCreateResult
+    , PersonUpdateResult, personUpdateResult
+    , PersonCreateInput, personCreateInput
+    , PersonUpdateInput, personUpdateInput
+    , SetRequiredString, setRequiredString
+    , SetOptionalString, setOptionalString
     )
 
 {-|
-
-
-## ( Not based on schema, but aliased here for dev UX )
 
 @docs Selection, select, with
 @docs map, map2, map3, map4, map5
@@ -20,36 +28,51 @@ module GQL exposing
 
 ## Operations
 
-@docs query, mutation
+@docs Query, query
+@docs Mutation, mutation
 
 
 ## Scalars
 
-@docs id, timestamp
+@docs ID, id
+@docs Timestamp, timestamp
 
 
 ## Objects
 
-@docs app, person, name, nameAlreadyExistsError, notFoundError
+@docs App, app
+@docs Person, person
+@docs Name, name
+@docs NameAlreadyExistsError, nameAlreadyExistsError
+@docs NotFoundError, notFoundError
 
 
 ## Interfaces
 
-@docs error
+@docs Error, error
+
+
+## Enums
+
+@docs Role
 
 
 ## Unions
 
-@docs personCreateResult, personUpdateResult
+@docs PersonCreateResult, personCreateResult
+@docs PersonUpdateResult, personUpdateResult
 
 
 ## Inputs
 
-@docs personCreateInput, personUpdateInput, setRequiredString, setOptionalString
+@docs PersonCreateInput, personCreateInput
+@docs PersonUpdateInput, personUpdateInput
+@docs SetRequiredString, setRequiredString
+@docs SetOptionalString, setOptionalString
 
 -}
 
-import Codec exposing (Codec)
+import Codec
 import GQL.Person.Friends
 import GQL.PersonCreateInput
 import GQL.PersonUpdateInput
@@ -106,6 +129,10 @@ map5 =
 -- OBJECTS
 
 
+type alias Query value =
+    GQL.Query value
+
+
 query :
     { app : { id : GQL.ID } -> GQL.App value -> GQL.Query (Maybe value)
     , person : { id : GQL.ID } -> GQL.Person value -> GQL.Query (Maybe value)
@@ -126,6 +153,10 @@ query =
                 [ ( "id", GraphQL.Engine.args.scalar Scalar.codecs.id req_.id )
                 ]
     }
+
+
+type alias Mutation value =
+    GQL.Mutation value
 
 
 mutation :
@@ -150,32 +181,48 @@ mutation =
     }
 
 
+type alias App value =
+    GQL.App value
+
+
 app :
     { id : GQL.App GQL.ID
     , slug : GQL.App String
     , name : GQL.App String
     }
 app =
-    { id = GraphQL.Engine.fields.scalar "id" Scalar.codecs.id
-    , slug = GraphQL.Engine.fields.primitive "slug" Codec.string
-    , name = GraphQL.Engine.fields.primitive "name" Codec.string
+    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) []
+    , slug = GraphQL.Engine.field identity "slug" (Codec.decoder Scalar.codecs.string) []
+    , name = GraphQL.Engine.field identity "name" (Codec.decoder Scalar.codecs.string) []
     }
+
+
+type alias Person value =
+    GQL.Person value
 
 
 person :
     { id : GQL.Person GQL.ID
-    , name : GQL.Person String
+    , name : GQL.Name value -> GQL.Person value
     , role : GQL.Person GQL.Role
     , email : GQL.Person (Maybe String)
     , friends : GQL.Person value -> List GQL.Person.Friends.Optional -> GQL.Person (List value)
     }
 person =
-    { id = GraphQL.Engine.fields.scalar "id" Scalar.codecs.id
-    , name = GraphQL.Engine.fields.primitive "name" Codec.string
-    , role = GraphQL.Engine.fields.primitive "role" role
-    , email = GraphQL.Engine.fields.primitive "email" (Codec.maybe Codec.string)
-    , friends = GraphQL.Engine.fields.nestedWithOptionals "friends" Json.list
+    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) []
+    , name =
+        \selection_ ->
+            GraphQL.Engine.field identity "name" (GraphQL.Engine.decoder selection_) []
+    , role = GraphQL.Engine.field identity "role" role []
+    , email = GraphQL.Engine.field Json.maybe "email" (Codec.decoder Scalar.codecs.string) []
+    , friends =
+        \selection_ opts_ ->
+            GraphQL.Engine.field Json.list "friends" (GraphQL.Engine.decoder selection_) (GraphQL.Engine.optionalsToArguments opts_)
     }
+
+
+type alias Name value =
+    GQL.Name value
 
 
 name :
@@ -184,18 +231,26 @@ name :
     , last : GQL.Name String
     }
 name =
-    { first = GraphQL.Engine.fields.primitive "first" Codec.string
-    , middle = GraphQL.Engine.fields.primitive "middle" (Codec.maybe Codec.string)
-    , last = GraphQL.Engine.fields.primitive "last" Codec.string
+    { first = GraphQL.Engine.field identity "first" (Codec.decoder Scalar.codecs.string) []
+    , middle = GraphQL.Engine.field Json.maybe "middle" (Codec.decoder Scalar.codecs.string) []
+    , last = GraphQL.Engine.field identity "last" (Codec.decoder Scalar.codecs.string) []
     }
+
+
+type alias NameAlreadyExistsError value =
+    GQL.NameAlreadyExistsError value
 
 
 nameAlreadyExistsError :
     { message : GQL.NameAlreadyExistsError String
     }
 nameAlreadyExistsError =
-    { message = GraphQL.Engine.fields.primitive "message" Codec.string
+    { message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) []
     }
+
+
+type alias NotFoundError value =
+    GQL.NotFoundError value
 
 
 notFoundError :
@@ -203,8 +258,8 @@ notFoundError :
     , message : GQL.NotFoundError String
     }
 notFoundError =
-    { id = GraphQL.Engine.fields.scalar "id" Scalar.codecs.id
-    , message = GraphQL.Engine.fields.primitive "message" Codec.string
+    { id = GraphQL.Engine.field identity "id" (Codec.decoder Scalar.codecs.id) []
+    , message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) []
     }
 
 
@@ -212,7 +267,11 @@ notFoundError =
 -- ENUM DECODERS ( Used internally for fields and inputs )
 
 
-role : Codec GQL.Role
+type alias Role =
+    GQL.Role.Role
+
+
+role : Json.Decoder GQL.Role
 role =
     GraphQL.Engine.enum
         [ ( "ADMIN", GQL.Role.ADMIN )
@@ -224,9 +283,17 @@ role =
 -- SCALARS
 
 
+type alias ID =
+    GQL.ID
+
+
 id : String -> GQL.ID
 id =
     GraphQL.Engine.toScalar
+
+
+type alias Timestamp =
+    GQL.Timestamp
 
 
 timestamp : Time.Posix -> GQL.Timestamp
@@ -238,16 +305,24 @@ timestamp =
 -- INTERFACES
 
 
+type alias Error value =
+    GQL.Error value
+
+
 error :
     { message : GQL.Error String
     }
 error =
-    { message = GraphQL.Engine.fields.primitive "message" Codec.string
+    { message = GraphQL.Engine.field identity "message" (Codec.decoder Scalar.codecs.string) []
     }
 
 
 
 -- UNIONS
+
+
+type alias PersonCreateResult value =
+    GQL.PersonCreateResult value
 
 
 personCreateResult :
@@ -260,6 +335,10 @@ personCreateResult opts_ =
         [ ( "Person", GraphQL.Engine.fragment opts_.person )
         , ( "NameAlreadyExistsError", GraphQL.Engine.fragment opts_.nameAlreadyExistsError )
         ]
+
+
+type alias PersonUpdateResult value =
+    GQL.PersonUpdateResult value
 
 
 personUpdateResult :
@@ -278,11 +357,19 @@ personUpdateResult frags_ =
 -- INPUTS
 
 
+type alias PersonCreateInput =
+    GQL.PersonCreateInput
+
+
 personCreateInput : { name : String } -> List GQL.PersonCreateInput.Optional -> GQL.PersonCreateInput
 personCreateInput req_ =
     GraphQL.Engine.input
         [ ( "name", GraphQL.Engine.args.value (Encode.string req_.name) )
         ]
+
+
+type alias PersonUpdateInput =
+    GQL.PersonUpdateInput
 
 
 personUpdateInput : { id : GQL.ID } -> List GQL.PersonUpdateInput.Optional -> GQL.PersonUpdateInput
@@ -292,12 +379,20 @@ personUpdateInput req_ =
         ]
 
 
+type alias SetRequiredString =
+    GQL.SetRequiredString
+
+
 setRequiredString : { value : String } -> GQL.SetRequiredString
 setRequiredString req_ =
     GraphQL.Engine.input
         [ ( "value", GraphQL.Engine.args.value (Encode.string req_.value) )
         ]
         []
+
+
+type alias SetOptionalString =
+    GQL.SetOptionalString
 
 
 setOptionalString : List GQL.SetOptionalString.Optional -> GQL.SetOptionalString

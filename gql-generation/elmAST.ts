@@ -151,10 +151,10 @@ type ExprCaseExpression = {
 };
 
 type ExprStringLiteral = {
-  tag: "StringLiteral"
-  value: string
-  display: { representation: "SingleQuotedString" },
-}
+  tag: "StringLiteral";
+  value: string;
+  display: { representation: "SingleQuotedString" };
+};
 
 export type Expression =
   | ExprVarRef
@@ -240,7 +240,7 @@ export const caseAnythingPattern = (body: Expression): CaseBranch => {
     },
     body,
   };
-}
+};
 
 export const caseExpression = (
   subject: ExprVarRef,
@@ -266,31 +266,25 @@ export const definition = (
     expression,
   };
 };
-// {
-//   "tag": "Definition",
-//   "name": "list",
-//   "parameters": [],
-//   "returnType": {
-//       "tag": "TypeReference",
-//       "name": "List",
-//       "module": null,
-//       "arguments": [
-//           {
-//               "tag": "TypeReference",
-//               "name": "AppAccessSource",
-//               "module": null,
-//               "arguments": [],
-//           }
-//       ],
-//   },
-//   "expression": {
-//       "tag": "ListLiteral",
-//       "terms": [
-//           {
-//               "tag": "VariableReference",
-//               "name": "GSuite",
-//           },
-//           {
-//               "tag": "VariableReference",
-//               "name": "GoogleSAML",
-//           },
+
+export type RecordType = {
+  tag: "RecordType",
+  fields : {
+    [key: string]: TypeReference
+  }
+}
+
+export const recordType = (fields: { [key: string]: TypeReference }): RecordType => {
+  return {
+    tag: "RecordType",
+    fields,
+  };
+};
+
+export const functionType = (argumentTypes: TypeReference[], returnType: TypeReference) => {
+  return {
+    tag: "FunctionType",
+    argumentTypes,
+    returnType
+  }
+}
