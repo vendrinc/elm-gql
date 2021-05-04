@@ -9,31 +9,44 @@ import GraphQL.Schema.Type exposing (Type(..))
 import String.Extra as String
 
 
+
+-- target:
+-- module TnGql.Object.App exposing (..)
+-- import Json.Decode as Decode exposing (Decoder)
+-- import TnGql.Object
+-- import GraphQL.Engine as Engine
+-- app : { name : Engine.Selection Tng.Object.App String, slug : Engine.Selection Tng.Object.App String  }
+-- app =
+--     { name = Engine.field "name" Decode.string
+--     , slug = Engine.field "slug" Decode.string
+--     }
+
+
 objectToModule : GraphQL.Schema.Object.Object -> Common.File
 objectToModule object =
     let
-        ( fieldDecl, linkage ) =
+        ( fieldTypesAndImpls, linkage ) =
             object.fields
+                |> List.filter
+                    (\field ->
+                        List.member field.name [ "name", "slug" ]
+                    )
                 |> List.foldl
                     (\field ( accDecls, linkageAcc ) ->
                         let
-                            ( typeAnnotation, linkage__ ) =
+                            ( underlyingTypeAnnotation, linkage__ ) =
                                 Common.gqlTypeToElmTypeAnnotation field.type_ Nothing
+
+                            typeAnnotation =
+                                Elm.fqTyped [ "GraphQL", "Engine" ] "Selection" [ Elm.fqTyped [ "TnGql", "Object" ] object.name [], underlyingTypeAnnotation ]
 
                             ( implementation, import_ ) =
                                 case field.type_ of
                                     GraphQL.Schema.Type.Scalar scalarName ->
                                         ( Elm.apply
                                             [ Common.modules.engine.fns.field
-                                            , Elm.fun "identity"
                                             , Elm.string field.name
-                                            , Elm.parens
-                                                (Elm.apply
-                                                    [ Common.modules.codec.fns.decoder
-                                                    , Elm.access Common.modules.scalar.exports.codec (String.decapitalize scalarName)
-                                                    ]
-                                                )
-                                            , Elm.list []
+                                            , Elm.fqVal [ "Decode" ] (String.decapitalize scalarName)
                                             ]
                                         , Nothing
                                         )
@@ -84,12 +97,12 @@ objectToModule object =
 
         -- GQL.Query (Maybe value)
         objectTypeAnnotation =
-            fieldDecl
+            fieldTypesAndImpls
                 |> List.map (\( name, typeAnnotation, _ ) -> ( name, typeAnnotation ))
                 |> Elm.recordAnn
 
         objectImplementation =
-            fieldDecl
+            fieldTypesAndImpls
                 |> List.map (\( name, _, implementation ) -> ( name, implementation ))
                 |> Elm.record
 
@@ -106,6 +119,8 @@ objectToModule object =
             Elm.combineLinkage linkage
                 |> Elm.addImport Common.modules.decode.import_
                 |> Elm.addImport Common.modules.scalar.import_
+                |> Elm.addImport (Elm.importStmt [ "TnGql", "Object" ] Nothing Nothing)
+                |> Elm.addImport (Elm.importStmt [ "GraphQL", "Engine" ] Nothing Nothing)
     in
     { name = moduleName
     , file =
@@ -118,7 +133,42 @@ objectToModule object =
 
 generateFiles : GraphQL.Schema.Schema -> List Common.File
 generateFiles graphQLSchema =
-    graphQLSchema.objects
-        |> Dict.toList
-        |> List.map Tuple.second
-        |> List.map objectToModule
+    let
+        objects =
+            graphQLSchema.objects
+                |> Dict.toList
+                |> List.map Tuple.second
+                |> List.filter (\object -> object.name == "App")
+
+        objectFiles =
+            objects
+                |> List.map objectToModule
+
+        moduleName =
+            [ "TnGql", "Object" ]
+
+        module_ =
+            Elm.normalModule moduleName []
+
+        phantomTypeDeclarations =
+            objects
+                |> List.map
+                    (\object ->
+                        Elm.customTypeDecl Nothing object.name [] [ ( object.name, [] ) ]
+                    )
+
+        -- ( imports_, exposing_ ) =
+        --     Elm.combineLinkage linkage
+        --         |> Elm.addImport Common.modules.decode.import_
+        --         |> Elm.addImport Common.modules.scalar.import_
+        --     in
+        masterObjectFile =
+            { name = moduleName
+            , file =
+                Elm.file module_
+                    []
+                    phantomTypeDeclarations
+                    Nothing
+            }
+    in
+    masterObjectFile :: objectFiles
