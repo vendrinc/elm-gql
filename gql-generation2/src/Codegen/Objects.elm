@@ -38,7 +38,7 @@ objectToModule object =
                                 Common.gqlTypeToElmTypeAnnotation field.type_ Nothing
 
                             typeAnnotation =
-                                Elm.fqTyped [ "GraphQL", "Engine" ] "Selection" [ Elm.fqTyped [ "Tng", "Object" ] object.name [], underlyingTypeAnnotation ]
+                                Elm.fqTyped [ "GraphQL", "Engine" ] "Selection" [ Elm.fqTyped [ "TnGql", "Object" ] object.name [], underlyingTypeAnnotation ]
 
                             ( implementation, import_ ) =
                                 case field.type_ of
@@ -46,7 +46,7 @@ objectToModule object =
                                         ( Elm.apply
                                             [ Common.modules.engine.fns.field
                                             , Elm.string field.name
-                                            , Elm.fqVal [ "Decoder" ] (String.decapitalize scalarName)
+                                            , Elm.fqVal [ "Decode" ] (String.decapitalize scalarName)
                                             ]
                                         , Nothing
                                         )
@@ -119,6 +119,7 @@ objectToModule object =
             Elm.combineLinkage linkage
                 |> Elm.addImport Common.modules.decode.import_
                 |> Elm.addImport Common.modules.scalar.import_
+                |> Elm.addImport (Elm.importStmt [ "TnGql", "Object" ] Nothing Nothing)
                 |> Elm.addImport (Elm.importStmt [ "GraphQL", "Engine" ] Nothing Nothing)
     in
     { name = moduleName
