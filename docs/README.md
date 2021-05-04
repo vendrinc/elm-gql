@@ -63,3 +63,4 @@ However, it's not quite a global name space.
 
 1. Enum values themselves can have overlapping names.
 2. Two separate types can have the same field names with no clash. So, App can have name, but Person can have name as well.
+3. Arguments to fields can also be the same for different fields. Easy example is id being taken by Apps or People.
