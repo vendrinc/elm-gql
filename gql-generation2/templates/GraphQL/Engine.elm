@@ -7,6 +7,7 @@ module GraphQL.Engine exposing
     , Query, query, Mutation, mutation
     , queryString
     , Argument(..), maybeScalarEncode
+    , Id, encodeId, decodeId
     )
 
 {-|
@@ -25,12 +26,32 @@ module GraphQL.Engine exposing
 
 @docs queryString
 
+@docs Id, encodeId, decodeId
+
 -}
 
 import Dict exposing (Dict)
 import Http
 import Json.Decode as Json
 import Json.Encode
+
+
+{-|-}
+type Id =
+    Id String
+
+{-|-}
+encodeId : Id -> Json.Value
+encodeId (Id str) =
+    Encode.string str
+
+
+{-|-}
+decodeId : Json.Decoder Id
+decodeId  =
+    Decode.map Id
+        Decode.string
+
 
 
 {-| -}
