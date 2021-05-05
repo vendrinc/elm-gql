@@ -3,7 +3,8 @@ module Main exposing (main)
 import TnGql.Queries.App
 import TnGql.Object.App
 import Html exposing (Html)
-
+import GraphQL.Engine as GQL
+import TnGql.Object
 
 main : Html msg
 main =
@@ -11,23 +12,22 @@ main =
 
 
 type alias App =
-    { id : GQL.ID
-    , slug : String
+    { slug : String
     , name : String
     }
 
-appQuery : GQL.Query (Maybe App)
+appQuery : GQL.Selection GQL.Query App
 appQuery =
     TnGql.Queries.App.app
-        { id = GQL.id "123"
+        { slug = Just "blissfully"
+        , id = Nothing
         }
         app
 
 
-app : TnGql.Object.App App
+app : GQL.Selection  TnGql.Object.App App
 app =
-    Tn.select App
-        |> GQL.with GQL.app.id
-        |> GQL.with GQL.app.slug
-        |> GQL.with GQL.app.name
+    GQL.select App
+        |> GQL.with TnGql.Object.App.app.slug
+        |> GQL.with TnGql.Object.App.app.name
 
