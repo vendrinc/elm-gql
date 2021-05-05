@@ -86,7 +86,7 @@ queryToModule queryOperation =
                                                                     , Elm.access (Elm.val "required") argument.name
                                                                     ]
                                                                 )
-                                                            , Elm.string (String.decapitalize scalarName)
+                                                            , Elm.string scalarName
                                                             ]
 
                                                     GraphQL.Schema.Type.Enum enumName ->

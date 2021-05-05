@@ -6,8 +6,7 @@ module GraphQL.Engine exposing
     , arg
     , Query, query, Mutation, mutation
     , queryString
-    , Argument(..)
-    , maybeScalarEncode
+    , Argument(..), maybeScalarEncode
     )
 
 {-|
@@ -431,14 +430,14 @@ type Mutation
 
 
 query :
-    Selection Query msg
+    Selection Query value
     ->
         { headers : List Http.Header
         , url : String
         , timeout : Maybe Float
         , tracker : Maybe String
         }
-    -> Cmd (Result Http.Error msg)
+    -> Cmd (Result Http.Error value)
 query sel config =
     Http.request
         { method = "POST"
@@ -487,10 +486,43 @@ mutation sel config =
 -}
 body : Selection source data -> Http.Body
 body q =
+    let
+        variables : Dict String Argument
+        variables =
+            (getContext q).variables
+
+        encodedVariables : Json.Value
+        encodedVariables =
+            variables
+                |> Dict.toList
+                |> List.map (Tuple.mapSecond toValue)
+                |> Json.Encode.object
+
+        toValue : Argument -> Json.Value
+        toValue arg_ =
+            case arg_ of
+                ArgValue value str ->
+                    value
+
+                Var str ->
+                    Json.Encode.string str
+    in
     Http.jsonBody
         (Json.Encode.object
-            [ ( "query", Json.Encode.string (queryString q) ) ]
+            [ ( "operationName", Json.Encode.string "MyQuery" )
+            , ( "query", Json.Encode.string (queryString q) )
+            , ( "variables", encodedVariables )
+            ]
         )
+
+
+getContext : Selection source selected -> Context
+getContext (Selection (Details gql _)) =
+    let
+        ( context, fields ) =
+            gql empty
+    in
+    context
 
 
 {-| -}
@@ -522,8 +554,6 @@ queryString (Selection (Details gql _)) =
         ++ "{"
         ++ fieldsToQueryString fields ""
         ++ "}"
-        ++ "\n"
-        ++ renderParameterValues context.variables
 
 
 renderParameterValues : Dict String Argument -> String
@@ -580,16 +610,11 @@ renderParametersHelper args rendered =
             rendered
 
         ( name, value ) :: remaining ->
-            let
-                comma =
-                    case rendered of
-                        "" ->
-                            ""
+            if String.isEmpty rendered then
+                renderParametersHelper remaining ("$" ++ name ++ ":" ++ argToTypeString value)
 
-                        _ ->
-                            ", "
-            in
-            renderParametersHelper remaining (rendered ++ comma ++ "$" ++ name ++ ":" ++ argToTypeString value)
+            else
+                renderParametersHelper remaining (rendered ++ ", $" ++ name ++ ":" ++ argToTypeString value)
 
 
 fieldsToQueryString : List Field -> String -> String
@@ -599,7 +624,11 @@ fieldsToQueryString fields rendered =
             rendered
 
         top :: remaining ->
-            fieldsToQueryString remaining (rendered ++ renderField top)
+            if String.isEmpty rendered then
+                fieldsToQueryString remaining (renderField top)
+
+            else
+                fieldsToQueryString remaining (rendered ++ "\n" ++ renderField top)
 
 
 renderField : Field -> String
@@ -645,7 +674,11 @@ renderArgs args rendered =
             rendered
 
         ( name, top ) :: remaining ->
-            renderArgs remaining (rendered ++ name ++ ": " ++ argToString top)
+            if String.isEmpty rendered then
+                renderArgs remaining (rendered ++ name ++ ": " ++ argToString top)
+
+            else
+                renderArgs remaining (rendered ++ ", " ++ name ++ ": " ++ argToString top)
 
 
 argToString : Argument -> String
@@ -667,8 +700,9 @@ argToTypeString argument =
         Var str ->
             ""
 
-maybeScalarEncode :  (a  -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
-maybeScalarEncode encoder maybeA  = 
+
+maybeScalarEncode : (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
+maybeScalarEncode encoder maybeA =
     maybeA
         |> Maybe.map encoder
         |> Maybe.withDefault Json.Encode.null
