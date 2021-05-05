@@ -6,6 +6,8 @@ module GraphQL.Engine exposing
     , arg
     , Query, query, Mutation, mutation
     , queryString
+    , Argument(..)
+    , maybeScalarEncode
     )
 
 {-|
@@ -142,13 +144,13 @@ findFirstMatch options str =
 
 
 {-| -}
-object : String -> Selection source data -> Selection source data
+object : String -> Selection source data -> Selection otherSource data
 object =
     objectWith []
 
 
 {-| -}
-objectWith : List ( String, Argument ) -> String -> Selection source data -> Selection source data
+objectWith : List ( String, Argument ) -> String -> Selection source data -> Selection otherSource data
 objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
     Selection <|
         Details
@@ -664,3 +666,9 @@ argToTypeString argument =
 
         Var str ->
             ""
+
+maybeScalarEncode :  (a  -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
+maybeScalarEncode encoder maybeA  = 
+    maybeA
+        |> Maybe.map encoder
+        |> Maybe.withDefault Json.Encode.null

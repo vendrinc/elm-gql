@@ -35,6 +35,11 @@ modules =
         , name = [ "Decode" ]
         , import_ = Elm.importStmt [ "Json", "Decode" ] (Just [ "Decode" ]) (Just ([ Elm.funExpose "Decoder" ] |> Elm.exposeExplicit))
         }
+    , encode =
+        { fqName = [ "Json", "Encode" ]
+        , name = [ "Encode" ]
+        , import_ = Elm.importStmt [ "Json", "Encode" ] Nothing Nothing
+        }
     , engine =
         { fqName = moduleEngine
         , import_ = Elm.importStmt moduleEngine Nothing Nothing

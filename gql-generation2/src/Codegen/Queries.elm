@@ -9,6 +9,19 @@ import GraphQL.Schema.Type exposing (Type(..))
 import String.Extra as String
 
 
+
+-- target
+-- app : { slug : Maybe String, id : Maybe String } -> GraphQL.Engine.Selection TnGql.Object.App value -> GraphQL.Engine.Selection GraphQL.Engine.Query value
+-- app =
+--     \required selection ->
+--     GraphQL.Engine.objectWith
+--         [ ("slug", GraphQL.Engine.ArgValue (Maybe.map Json.Encode.string required.slug |> Maybe.withDefault Json.Encode.null) "string")
+--         , ("id", GraphQL.Engine.ArgValue (Maybe.map Json.Encode.string required.id |> Maybe.withDefault Json.Encode.null) "string")
+--         ]
+--         "app"
+--         selection
+
+
 queryToModule : GraphQL.Schema.Query -> Common.File
 queryToModule queryOperation =
     let
@@ -18,7 +31,7 @@ queryToModule queryOperation =
 
         -- GQL.Query (Maybe value)
         returnType =
-            Elm.typed "GraphQL.Engine.Query" [ Elm.typed "Maybe" [ Elm.typed "value" [] ] ]
+            Elm.typed "GraphQL.Engine.Selection" [ Elm.typed "GraphQL.Engine.Query" [], Elm.typed "value" [] ]
 
         ( inputType, argumentsLinkage ) =
             queryOperation.arguments
@@ -36,8 +49,11 @@ queryToModule queryOperation =
 
         ( type_, functionAnnotationLinkage ) =
             let
-                ( operationType, linkage____ ) =
-                    Common.gqlTypeToElmTypeAnnotation queryOperation.type_ (Just [ Elm.typeVar "value" ])
+                ( innerOperationType, linkage____ ) =
+                    Common.gqlTypeToElmTypeAnnotation queryOperation.type_ Nothing
+
+                operationType =
+                    Elm.typed "GraphQL.Engine.Selection" [ innerOperationType, Elm.typeVar "value" ]
             in
             ( Elm.funAnn inputType
                 (Elm.funAnn
@@ -48,12 +64,9 @@ queryToModule queryOperation =
             )
 
         expression =
-            Elm.lambda [ Elm.varPattern "req_", Elm.varPattern "selection_" ]
+            Elm.lambda [ Elm.varPattern "required", Elm.varPattern "selection" ]
                 (Elm.apply
-                    [ Common.modules.engine.fns.query
-                    , Elm.string queryOperation.name
-                    , Common.modules.json.fns.maybe
-                    , Elm.val "selection_"
+                    [ Elm.fqVal [ "GraphQL", "Engine" ] "objectWith"
                     , Elm.list
                         (queryOperation.arguments
                             |> List.map
@@ -65,11 +78,15 @@ queryToModule queryOperation =
                                                 case type__ of
                                                     GraphQL.Schema.Type.Scalar scalarName ->
                                                         Elm.apply
-                                                            [ Common.modules.engine.args.fns.scalar
-                                                            , Elm.access Common.modules.scalar.exports.codec (String.decapitalize scalarName)
-
-                                                            -- , Elm.fqFun Common.modules.scalar.codecs.fqName (String.decapitalize scalarName)
-                                                            , Elm.access (Elm.val "req") argument.name
+                                                            [ Elm.fqVal [ "GraphQL", "Engine" ] "ArgValue"
+                                                            , Elm.parens
+                                                                (Elm.apply
+                                                                    [ Elm.fqVal [ "GraphQL", "Engine" ] "maybeScalarEncode"
+                                                                    , Elm.fqVal [ "Json", "Encode" ] (String.decapitalize scalarName)
+                                                                    , Elm.access (Elm.val "required") argument.name
+                                                                    ]
+                                                                )
+                                                            , Elm.string (String.decapitalize scalarName)
                                                             ]
 
                                                     GraphQL.Schema.Type.Enum enumName ->
@@ -77,14 +94,14 @@ queryToModule queryOperation =
                                                             [ Common.modules.engine.args.fns.scalar
                                                             , Common.modules.engine.args.fns.enum
                                                             , Elm.fqFun [ "TnGql", "Enum", enumName ] "decoder"
-                                                            , Elm.access (Elm.val "req") argument.name
+                                                            , Elm.access (Elm.val "required") argument.name
                                                             ]
 
                                                     GraphQL.Schema.Type.InputObject inputObject ->
                                                         Elm.apply
                                                             [ Common.modules.engine.args.fns.scalar
                                                             , Elm.fqFun [ "TnGql", "InputObject", inputObject ] "decoder"
-                                                            , Elm.access (Elm.val "req") argument.name
+                                                            , Elm.access (Elm.val "required") argument.name
                                                             ]
 
                                                     GraphQL.Schema.Type.Nullable innerType ->
@@ -100,6 +117,8 @@ queryToModule queryOperation =
                                         ]
                                 )
                         )
+                    , Elm.string queryOperation.name
+                    , Elm.val "selection"
                     ]
                 )
 
@@ -112,6 +131,7 @@ queryToModule queryOperation =
         ( imports_, exposing_ ) =
             linkage
                 |> Elm.addImport Common.modules.decode.import_
+                |> Elm.addImport Common.modules.encode.import_
                 |> Elm.mergeLinkage argumentsLinkage
                 |> Elm.mergeLinkage functionAnnotationLinkage
     in
