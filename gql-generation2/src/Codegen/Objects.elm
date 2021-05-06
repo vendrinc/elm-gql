@@ -38,7 +38,11 @@ objectToModule object =
                                 Common.gqlTypeToElmTypeAnnotation field.type_ Nothing
 
                             typeAnnotation =
-                                Elm.fqTyped [ "GraphQL", "Engine" ] "Selection" [ Elm.fqTyped [ "TnGql", "Object" ] object.name [], underlyingTypeAnnotation ]
+                                Elm.fqTyped [ "GraphQL", "Engine" ]
+                                    "Selection"
+                                    [ Elm.fqTyped [ "TnGql", "Object" ] object.name []
+                                    , underlyingTypeAnnotation
+                                    ]
 
                             ( implementation, import_ ) =
                                 case field.type_ of
