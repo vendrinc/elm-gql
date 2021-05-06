@@ -33,7 +33,7 @@ module GraphQL.Engine exposing
 import Dict exposing (Dict)
 import Http
 import Json.Decode as Json
-import Json.Encode
+import Json.Encode as Encode
 
 
 {-|-}
@@ -49,8 +49,8 @@ encodeId (Id str) =
 {-|-}
 decodeId : Json.Decoder Id
 decodeId  =
-    Decode.map Id
-        Decode.string
+    Json.map Id
+        Json.string
 
 
 
@@ -364,13 +364,13 @@ But we can define anything else in terms of these:
 
 -}
 type Argument
-    = ArgValue Json.Encode.Value String
+    = ArgValue Encode.Value String
     | Var String
 
 
 {-| The encoded value and the name of the expected type for this argument
 -}
-arg : Json.Encode.Value -> String -> Argument
+arg : Encode.Value -> String -> Argument
 arg val typename =
     ArgValue val typename
 
@@ -517,7 +517,7 @@ body q =
             variables
                 |> Dict.toList
                 |> List.map (Tuple.mapSecond toValue)
-                |> Json.Encode.object
+                |> Encode.object
 
         toValue : Argument -> Json.Value
         toValue arg_ =
@@ -526,12 +526,12 @@ body q =
                     value
 
                 Var str ->
-                    Json.Encode.string str
+                    Encode.string str
     in
     Http.jsonBody
-        (Json.Encode.object
-            [ ( "operationName", Json.Encode.string "MyQuery" )
-            , ( "query", Json.Encode.string (queryString q) )
+        (Encode.object
+            [ ( "operationName", Encode.string "MyQuery" )
+            , ( "query", Encode.string (queryString q) )
             , ( "variables", encodedVariables )
             ]
         )
@@ -706,7 +706,7 @@ argToString : Argument -> String
 argToString argument =
     case argument of
         ArgValue json typename ->
-            Json.Encode.encode 0 json
+            Encode.encode 0 json
 
         Var str ->
             "$" ++ str
@@ -722,8 +722,8 @@ argToTypeString argument =
             ""
 
 
-maybeScalarEncode : (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
+maybeScalarEncode : (a -> Encode.Value) -> Maybe a -> Encode.Value
 maybeScalarEncode encoder maybeA =
     maybeA
         |> Maybe.map encoder
-        |> Maybe.withDefault Json.Encode.null
+        |> Maybe.withDefault Encode.null

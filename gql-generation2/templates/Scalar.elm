@@ -4,7 +4,8 @@ import GraphQL.Engine as Engine
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Time
-
+import Url
+import Iso8601
 
 type alias Codec scalar =
     { encode : scalar -> Encode.Value
@@ -33,39 +34,39 @@ codecs =
         }
     , iso4217 =
         { encode = \(Iso4217 raw) -> Encode.string raw
-        , decoder = Object.scalarDecoder |> Decode.map Iso4217
+        , decoder = Decode.string |> Decode.map Iso4217
         }
     , markdown =
         { encode = \(Markdown raw) -> Encode.string raw
-        , decoder = Object.scalarDecoder |> Decode.map Markdown
+        , decoder = Decode.string |> Decode.map Markdown
         }
     , pageCursor =
         { encode = \(PageCursor raw) -> Encode.string raw
-        , decoder = Object.scalarDecoder |> Decode.map PageCursor
+        , decoder = Decode.string |> Decode.map PageCursor
         }
     , json =
         { encode = \(Json raw) -> Encode.string raw
-        , decoder = Object.scalarDecoder |> Decode.map Json
+        , decoder = Decode.string |> Decode.map Json
         }
     , viewID =
         { encode = \(ViewID raw) -> Encode.string raw
-        , decoder = Object.scalarDecoder |> Decode.map ViewID
+        , decoder = Decode.string |> Decode.map ViewID
         }
     , columnID =
         { encode = \(ColumnID raw) -> Encode.string raw
-        , decoder = Object.scalarDecoder |> Decode.map ColumnID
+        , decoder = Decode.string |> Decode.map ColumnID
         }
     , surveyID =
         { encode = \(SurveyID raw) -> Encode.string raw
-        , decoder = Object.scalarDecoder |> Decode.map SurveyID
+        , decoder = Decode.string |> Decode.map SurveyID
         }
     , never =
         { encode = \Never -> Encode.string "Never"
-        , decoder = Object.scalarDecoder |> Decode.map (always Never)
+        , decoder = Decode.string |> Decode.map (always Never)
         }
     , presence =
         { encode = \Present -> Encode.string "Present"
-        , decoder = Object.scalarDecoder |> Decode.map (always Present)
+        , decoder = Decode.string |> Decode.map (always Present)
         }
     }
 
