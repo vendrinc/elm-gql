@@ -83,12 +83,24 @@ gqlTypeToElmTypeAnnotation gqlType maybeAppliedToTypes =
     in
     case gqlType of
         Scalar scalarName ->
-            case scalarName of
-                "String" ->
-                    ( Elm.typed scalarName [], linkage )
+            case String.toLower scalarName of
+                "string" ->
+                    ( Elm.typed "String" [], linkage )
+
+                "int" ->
+                    ( Elm.typed "Int" [], linkage )
+
+                "float" ->
+                    ( Elm.typed "Float" [], linkage )
+
+                "boolean" ->
+                    ( Elm.typed "Bool" [], linkage )
+
+                "id" ->
+                    ( Elm.fqTyped [ "GraphQL", "Engine" ] "Id" appliedToTypes, linkage )
 
                 _ ->
-                    ( Elm.fqTyped [ "TnGql", "Scalar" ] scalarName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "Scalar" ] Nothing Nothing) )
+                    ( Elm.fqTyped [ "Scalar" ] scalarName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "Scalar" ] Nothing Nothing) )
 
         Enum enumName ->
             ( Elm.fqTyped [ "TnGql", "Enum" ] enumName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "Enum", enumName ] Nothing Nothing) )

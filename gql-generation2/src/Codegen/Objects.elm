@@ -29,7 +29,7 @@ objectToModule object =
             object.fields
                 |> List.filter
                     (\field ->
-                        List.member field.name [ "name", "slug" ]
+                        List.member field.name [ "name", "slug", "id" ]
                     )
                 |> List.foldl
                     (\field ( accDecls, linkageAcc ) ->
@@ -46,9 +46,9 @@ objectToModule object =
                                         ( Elm.apply
                                             [ Common.modules.engine.fns.field
                                             , Elm.string field.name
-                                            , Elm.fqVal [ "Decode" ] (String.decapitalize scalarName)
+                                            , decodeScalar scalarName
                                             ]
-                                        , Nothing
+                                        , Just [ "Scalar" ]
                                         )
 
                                     GraphQL.Schema.Type.Enum enumName ->
@@ -129,6 +129,25 @@ objectToModule object =
             [ objectDecl ]
             Nothing
     }
+
+
+decodeScalar : String -> Elm.Expression
+decodeScalar scalarName =
+    let
+        lowered =
+            String.toLower scalarName
+    in
+    if List.member lowered [ "string", "int", "float" ] then
+        Elm.fqVal [ "Decode" ] (String.decapitalize scalarName)
+
+    else if lowered == "boolean" then
+        Elm.fqVal [ "Decode" ] "bool"
+
+    else if lowered == "id" then
+        Elm.fqVal [ "GraphQL", "Engine" ] "decodeId"
+
+    else
+        Elm.fqVal [ "Scalar" ] (String.decapitalize scalarName)
 
 
 generateFiles : GraphQL.Schema.Schema -> List Common.File
