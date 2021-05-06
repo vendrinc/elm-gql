@@ -1,11 +1,12 @@
-module Scalar exposing (codecs)
+module Scalar exposing (SurveyId, Url, ViewId, url)
 
 import GraphQL.Engine as Engine
+import Iso8601
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Time
 import Url
-import Iso8601
+
 
 type alias Codec scalar =
     { encode : scalar -> Encode.Value
@@ -13,61 +14,79 @@ type alias Codec scalar =
     }
 
 
-codecs =
-    { url =
-        { encode = Url.toString >> String.trim >> String.replace " " "%20" >> Encode.string
-        , decoder =
-            Decode.string
-                |> Decode.andThen
-                    (\urlString ->
-                        case Url.fromString urlString of
-                            Nothing ->
-                                Decode.fail ("Not a valid url: " ++ urlString)
+url =
+    { encode = Url.toString >> String.trim >> String.replace " " "%20" >> Encode.string
+    , decoder =
+        Decode.string
+            |> Decode.andThen
+                (\urlString ->
+                    case Url.fromString urlString of
+                        Nothing ->
+                            Decode.fail ("Not a valid url: " ++ urlString)
 
-                            Just url ->
-                                Decode.succeed url
-                    )
-        }
-    , dateTime =
-        { encode = Iso8601.encode
-        , decode = Iso8601.decoder
-        }
-    , iso4217 =
-        { encode = \(Iso4217 raw) -> Encode.string raw
-        , decoder = Decode.string |> Decode.map Iso4217
-        }
-    , markdown =
-        { encode = \(Markdown raw) -> Encode.string raw
-        , decoder = Decode.string |> Decode.map Markdown
-        }
-    , pageCursor =
-        { encode = \(PageCursor raw) -> Encode.string raw
-        , decoder = Decode.string |> Decode.map PageCursor
-        }
-    , json =
-        { encode = \(Json raw) -> Encode.string raw
-        , decoder = Decode.string |> Decode.map Json
-        }
-    , viewID =
-        { encode = \(ViewID raw) -> Encode.string raw
-        , decoder = Decode.string |> Decode.map ViewID
-        }
-    , columnID =
-        { encode = \(ColumnID raw) -> Encode.string raw
-        , decoder = Decode.string |> Decode.map ColumnID
-        }
-    , surveyID =
-        { encode = \(SurveyID raw) -> Encode.string raw
-        , decoder = Decode.string |> Decode.map SurveyID
-        }
-    , never =
-        { encode = \Never -> Encode.string "Never"
-        , decoder = Decode.string |> Decode.map (always Never)
-        }
-    , presence =
-        { encode = \Present -> Encode.string "Present"
-        , decoder = Decode.string |> Decode.map (always Present)
-        }
+                        Just successfulUrl ->
+                            Decode.succeed successfulUrl
+                )
+    }
+
+
+dateTime =
+    { encode = Iso8601.encode
+    , decode = Iso8601.decoder
+    }
+
+
+iso4217 =
+    { encode = \(Iso4217 raw) -> Encode.string raw
+    , decoder = Decode.string |> Decode.map Iso4217
+    }
+
+
+markdown =
+    { encode = \(Markdown raw) -> Encode.string raw
+    , decoder = Decode.string |> Decode.map Markdown
+    }
+
+
+pageCursor =
+    { encode = \(PageCursor raw) -> Encode.string raw
+    , decoder = Decode.string |> Decode.map PageCursor
+    }
+
+
+json =
+    { encode = \(Json raw) -> Encode.string raw
+    , decoder = Decode.string |> Decode.map Json
+    }
+
+
+viewId =
+    { encode = \(ViewId raw) -> Encode.string raw
+    , decoder = Decode.string |> Decode.map ViewId
+    }
+
+
+columnId =
+    { encode = \(ColumnId raw) -> Encode.string raw
+    , decoder = Decode.string |> Decode.map ColumnId
+    }
+
+
+surveyId =
+    { encode = \(SurveyId raw) -> Encode.string raw
+    , decoder = Decode.string |> Decode.map SurveyId
+    }
+
+
+never =
+    { encode = \Never -> Encode.string "Never"
+    , decoder = Decode.string |> Decode.map (always Never)
+    }
+
+
+presence =
+    { encode = \Present -> Encode.string "Present"
+    , decoder = Decode.string |> Decode.map (always Present)
     }
 
 
@@ -75,16 +94,16 @@ type Id
     = Id String
 
 
-type SurveyID
-    = SurveyID String
+type SurveyId
+    = SurveyId String
 
 
-type ViewID
-    = ViewID String
+type ViewId
+    = ViewId String
 
 
-type ColumnID
-    = ColumnID String
+type ColumnId
+    = ColumnId String
 
 
 type Iso4217

@@ -1,5 +1,5 @@
 module GraphQL.Engine exposing
-    ( field, fieldWith, object, objectWith
+    ( nullable, field, fieldWith, object, objectWith
     , enum, maybeEnum
     , union
     , Selection, select, with, map, map2, recover
@@ -12,7 +12,7 @@ module GraphQL.Engine exposing
 
 {-|
 
-@docs field, fieldWith, object, objectWith
+@docs nullable, field, fieldWith, object, objectWith
 
 @docs enum, maybeEnum
 
@@ -161,6 +161,29 @@ findFirstMatch options str =
 
             else
                 findFirstMatch remaining str
+
+
+{-|
+Used in generated code to handle maybes
+-}
+nullable : Selection source data -> Selection source (Maybe data)
+nullable (Selection (Details toFieldsGql toFieldsDecoder)) =
+    Selection <|
+        Details
+            toFieldsGql
+            (\context ->
+                let
+                    ( fieldContext, fieldsDecoder ) =
+                        toFieldsDecoder context
+                 
+                in
+                ( new.context
+                , Json.oneOf 
+                    [ Json.map Just fieldsDecoder
+                    , Json.succeed Nothing
+                    ]
+                )
+            )
 
 
 {-| -}

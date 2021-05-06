@@ -7,6 +7,7 @@ import GraphQL.Schema
 import GraphQL.Schema.Object
 import GraphQL.Schema.Type exposing (Type(..))
 import String.Extra as String
+import Utils.String
 
 
 
@@ -29,67 +30,26 @@ objectToModule object =
             object.fields
                 |> List.filter
                     (\field ->
-                        List.member field.name [ "name", "slug", "id" ]
+                        List.member field.name [ "name", "slug", "id", "viewUrl", "parent" ]
                     )
                 |> List.foldl
                     (\field ( accDecls, linkageAcc ) ->
                         let
-                            ( underlyingTypeAnnotation, linkage__ ) =
-                                Common.gqlTypeToElmTypeAnnotation field.type_ Nothing
+                            -- ( underlyingTypeAnnotation, linkage__ ) =
+                            --     Common.gqlTypeToElmTypeAnnotation field.type_ Nothing
+                            ( typeAnnotation, typeLinkage ) =
+                                createTypeSignature object field.type_ False
 
-                            typeAnnotation =
-                                Elm.fqTyped [ "GraphQL", "Engine" ]
-                                    "Selection"
-                                    [ Elm.fqTyped [ "TnGql", "Object" ] object.name []
-                                    , underlyingTypeAnnotation
-                                    ]
-
+                            -- Elm.fqTyped [ "GraphQL", "Engine" ]
+                            --     "Selection"
+                            --     [ Elm.fqTyped [ "TnGql", "Object" ] object.name []
+                            --     , underlyingTypeAnnotation
+                            --     ]
                             ( implementation, import_ ) =
-                                case field.type_ of
-                                    GraphQL.Schema.Type.Scalar scalarName ->
-                                        ( Elm.apply
-                                            [ Common.modules.engine.fns.field
-                                            , Elm.string field.name
-                                            , decodeScalar scalarName
-                                            ]
-                                        , Just [ "Scalar" ]
-                                        )
-
-                                    GraphQL.Schema.Type.Enum enumName ->
-                                        ( Elm.apply
-                                            [ Common.modules.engine.fns.field
-                                            , Elm.fun "identity"
-                                            , Elm.string field.name
-                                            , Elm.fqFun [ "TnGql", "Enum", enumName ] "decoder"
-                                            , Elm.list []
-                                            ]
-                                        , Just [ "TnGql", "Enum", enumName ]
-                                        )
-
-                                    GraphQL.Schema.Type.Object objectName ->
-                                        ( Elm.lambda [ Elm.varPattern "selection_" ]
-                                            -- GraphQL.Engine.field identity "name" (GraphQL.Engine.decoder selection_) []
-                                            (Elm.apply
-                                                [ Common.modules.engine.fns.field
-                                                , Elm.fun "identity"
-                                                , Elm.string field.name
-                                                , Elm.parens
-                                                    (Elm.apply
-                                                        [ Elm.fqFun [ "TnGql", "Object", objectName ] "decoder"
-                                                        , Elm.val "selection_"
-                                                        ]
-                                                    )
-                                                , Elm.list []
-                                                ]
-                                            )
-                                        , Just [ "TnGql", "Object", objectName ]
-                                        )
-
-                                    _ ->
-                                        ( Elm.string "unimplemented", Nothing )
+                                createImplementation field.name field.type_ False
                         in
                         ( ( field.name, typeAnnotation, implementation ) :: accDecls
-                        , linkage__
+                        , typeLinkage
                             :: (import_
                                     |> Maybe.map (\i -> Elm.emptyLinkage |> Elm.addImport (Elm.importStmt i Nothing Nothing))
                                     |> Maybe.withDefault Elm.emptyLinkage
@@ -135,14 +95,91 @@ objectToModule object =
     }
 
 
-decodeScalar : String -> Elm.Expression
-decodeScalar scalarName =
+createTypeSignature object fieldType nullable =
+    case fieldType of
+        GraphQL.Schema.Type.Object selectedObjectName ->
+            let
+                
+                typeAnnotation =
+                    Elm.funAnn 
+                        (Common.modules.engine.fns.selection object.name (Elm.typeVar "data")) 
+                        
+                        (Common.modules.engine.fns.selection selectedObjectName 
+                            (if nullable then
+                                (Elm.maybeAnn (Elm.typeVar "data"))
+                            else
+                                (Elm.typeVar "data")
+
+                            )
+                        ) 
+
+            in
+            ( typeAnnotation
+            , Elm.emptyLinkage
+            )
+        
+        GraphQL.Schema.Type.Nullable newType  ->
+            createTypeSignature object newType True
+
+        _ ->
+            let
+                ( dataType, linkage ) =
+                    Common.gqlTypeToElmTypeAnnotation fieldType Nothing
+
+                typeAnnotation =
+                    Common.modules.engine.fns.selection object.name dataType
+            in
+            ( typeAnnotation, linkage )
+
+
+createImplementation name type_ nullable =
+    case type_ of
+        GraphQL.Schema.Type.Scalar scalarName ->
+            ( Elm.apply
+                [ Common.modules.engine.fns.field
+                , Elm.string name
+                , decodeScalar scalarName nullable
+                ]
+            , Just [ "Scalar" ]
+            )
+
+        GraphQL.Schema.Type.Enum enumName ->
+            ( Elm.apply
+                [ Common.modules.engine.fns.field
+                , Elm.fun "identity"
+                , Elm.string name
+                , Elm.fqFun [ "TnGql", "Enum", enumName ] "decoder"
+                , Elm.list []
+                ]
+            , Just [ "TnGql", "Enum", enumName ]
+            )
+
+        GraphQL.Schema.Type.Object objectName ->
+            ( Elm.lambda [ Elm.varPattern "selection_" ]
+                (Elm.apply
+                    [ Common.modules.engine.fns.object
+                    , Elm.string name
+                    , Elm.val "selection_"
+                    ]
+                )
+            , Just [ "TnGql", "Object", objectName ]
+            )
+
+        GraphQL.Schema.Type.Nullable newType ->
+            createImplementation name newType True
+
+        _ ->
+            ( Elm.string ("unimplemented: " ++ Debug.toString type_), Nothing )
+
+
+decodeScalar : String -> Bool -> Elm.Expression
+decodeScalar scalarName nullable =
     let
         lowered =
             String.toLower scalarName
     in
     if List.member lowered [ "string", "int", "float" ] then
-        Elm.fqVal [ "Decode" ] (String.decapitalize scalarName)
+        Elm.fqVal [ "Decode" ] (Utils.String.formatValue scalarName)
 
     else if lowered == "boolean" then
         Elm.fqVal [ "Decode" ] "bool"
@@ -151,7 +188,7 @@ decodeScalar scalarName =
         Elm.fqVal [ "GraphQL", "Engine" ] "decodeId"
 
     else
-        Elm.fqVal [ "Scalar" ] (String.decapitalize scalarName)
+        Elm.access (Elm.fqVal [ "Scalar" ] (Utils.String.formatValue scalarName)) "decoder"
 
 
 generateFiles : GraphQL.Schema.Schema -> List Common.File

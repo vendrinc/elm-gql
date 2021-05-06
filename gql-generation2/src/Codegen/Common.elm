@@ -2,6 +2,7 @@ module Codegen.Common exposing (File, gqlTypeToElmTypeAnnotation, modules)
 
 import Elm.CodeGen as Elm
 import GraphQL.Schema.Type exposing (Type(..))
+import Utils.String
 
 
 moduleEngine : Elm.ModuleName
@@ -46,6 +47,15 @@ modules =
         , fns =
             { query = Elm.fqFun moduleEngine "query"
             , field = Elm.fqFun moduleEngine "field"
+            , object = Elm.fqFun moduleEngine "object"
+            , selection =
+                \objectName dataType ->
+                    Elm.fqTyped
+                        [ "GraphQL", "Engine" ]
+                        "Selection"
+                        [ Elm.fqTyped [ "TnGql", "Object" ] objectName []
+                        , dataType
+                        ]
             }
         , args =
             { fqName = moduleEngineArgs
@@ -100,10 +110,12 @@ gqlTypeToElmTypeAnnotation gqlType maybeAppliedToTypes =
                     ( Elm.fqTyped [ "GraphQL", "Engine" ] "Id" appliedToTypes, linkage )
 
                 _ ->
-                    ( Elm.fqTyped [ "Scalar" ] scalarName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "Scalar" ] Nothing Nothing) )
+                    ( Elm.fqTyped [ "Scalar" ] (Utils.String.formatTypename scalarName) appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "Scalar" ] Nothing Nothing) )
 
         Enum enumName ->
-            ( Elm.fqTyped [ "TnGql", "Enum" ] enumName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "Enum", enumName ] Nothing Nothing) )
+            ( Elm.fqTyped [ "TnGql", "Enum" ] enumName appliedToTypes
+            , linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "Enum", enumName ] Nothing Nothing)
+            )
 
         List_ listElementType ->
             let
@@ -120,13 +132,21 @@ gqlTypeToElmTypeAnnotation gqlType maybeAppliedToTypes =
             ( Elm.maybeAnn innerType, linkage_ )
 
         InputObject inputObjectName ->
-            ( Elm.fqTyped [ "TnGql", "InputObject" ] inputObjectName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "InputObject", inputObjectName ] Nothing Nothing) )
+            ( Elm.fqTyped [ "TnGql", "InputObject" ] inputObjectName appliedToTypes
+            , linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "InputObject", inputObjectName ] Nothing Nothing)
+            )
 
         Object objectName ->
-            ( Elm.fqTyped [ "TnGql", "Object" ] objectName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "Object" ] Nothing Nothing) )
+            ( Elm.fqTyped [ "TnGql", "Object" ] objectName appliedToTypes
+            , linkage 
+                |> Elm.addImport (Elm.importStmt [ "TnGql", "Object" ] Nothing Nothing)
+            )
 
         Union unionName ->
-            ( Elm.fqTyped [ "TnGql", "Union" ] unionName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "Union", unionName ] Nothing Nothing) )
+            ( Elm.fqTyped [ "TnGql", "Union" ] unionName appliedToTypes
+            , linkage 
+                |> Elm.addImport (Elm.importStmt [ "TnGql", "Union", unionName ] Nothing Nothing)
+            )
 
         Interface interfaceName ->
             ( Elm.fqTyped [ "TnGql", "Interface" ] interfaceName appliedToTypes, linkage |> Elm.addImport (Elm.importStmt [ "TnGql", "Interface", interfaceName ] Nothing Nothing) )
