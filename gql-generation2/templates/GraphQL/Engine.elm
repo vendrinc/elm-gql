@@ -177,7 +177,7 @@ nullable (Selection (Details toFieldsGql toFieldsDecoder)) =
                         toFieldsDecoder context
                  
                 in
-                ( new.context
+                ( fieldContext
                 , Json.oneOf 
                     [ Json.map Just fieldsDecoder
                     , Json.succeed Nothing

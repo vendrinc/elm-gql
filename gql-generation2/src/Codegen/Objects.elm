@@ -35,26 +35,11 @@ objectToModule object =
                 |> List.foldl
                     (\field ( accDecls, linkageAcc ) ->
                         let
-                            -- ( underlyingTypeAnnotation, linkage__ ) =
-                            --     Common.gqlTypeToElmTypeAnnotation field.type_ Nothing
-                            ( typeAnnotation, typeLinkage ) =
-                                createTypeSignature object field.type_ False
-
-                            -- Elm.fqTyped [ "GraphQL", "Engine" ]
-                            --     "Selection"
-                            --     [ Elm.fqTyped [ "TnGql", "Object" ] object.name []
-                            --     , underlyingTypeAnnotation
-                            --     ]
-                            ( implementation, import_ ) =
-                                createImplementation field.name field.type_ False
+                            implemented =
+                                implementField object.name field.name field.type_ False
                         in
-                        ( ( field.name, typeAnnotation, implementation ) :: accDecls
-                        , typeLinkage
-                            :: (import_
-                                    |> Maybe.map (\i -> Elm.emptyLinkage |> Elm.addImport (Elm.importStmt i Nothing Nothing))
-                                    |> Maybe.withDefault Elm.emptyLinkage
-                               )
-                            :: linkageAcc
+                        ( ( field.name, implemented.annotation, implemented.expression ) :: accDecls
+                        , implemented.linkage :: linkageAcc
                         )
                     )
                     ( [], [] )
@@ -95,81 +80,119 @@ objectToModule object =
     }
 
 
-createTypeSignature object fieldType nullable =
+implementField :
+    String
+    -> String
+    -> Type
+    -> Bool
+    ->
+        { expression : Elm.Expression
+        , annotation : Elm.TypeAnnotation
+        , linkage : Elm.Linkage
+        }
+implementField objectName fieldName fieldType nullable =
     case fieldType of
-        GraphQL.Schema.Type.Object selectedObjectName ->
-            let
-                
-                typeAnnotation =
-                    Elm.funAnn 
-                        (Common.modules.engine.fns.selection object.name (Elm.typeVar "data")) 
-                        
-                        (Common.modules.engine.fns.selection selectedObjectName 
-                            (if nullable then
-                                (Elm.maybeAnn (Elm.typeVar "data"))
-                            else
-                                (Elm.typeVar "data")
+        GraphQL.Schema.Type.Nullable newType ->
+            implementField objectName fieldName newType True
 
-                            )
-                        ) 
-
-            in
-            ( typeAnnotation
-            , Elm.emptyLinkage
-            )
-        
-        GraphQL.Schema.Type.Nullable newType  ->
-            createTypeSignature object newType True
-
-        _ ->
-            let
-                ( dataType, linkage ) =
-                    Common.gqlTypeToElmTypeAnnotation fieldType Nothing
-
-                typeAnnotation =
-                    Common.modules.engine.fns.selection object.name dataType
-            in
-            ( typeAnnotation, linkage )
-
-
-createImplementation name type_ nullable =
-    case type_ of
         GraphQL.Schema.Type.Scalar scalarName ->
-            ( Elm.apply
-                [ Common.modules.engine.fns.field
-                , Elm.string name
-                , decodeScalar scalarName nullable
-                ]
-            , Just [ "Scalar" ]
-            )
+            let
+                signature =
+                    fieldSignature objectName fieldType
+            in
+            { expression =
+                Elm.apply
+                    [ Common.modules.engine.fns.field
+                    , Elm.string fieldName
+                    , decodeScalar scalarName nullable
+                    ]
+            , annotation = signature.annotation
+            , linkage =
+                signature.linkage
+                    |> Elm.addImport Common.modules.scalar.import_
+            }
 
         GraphQL.Schema.Type.Enum enumName ->
-            ( Elm.apply
-                [ Common.modules.engine.fns.field
-                , Elm.fun "identity"
-                , Elm.string name
-                , Elm.fqFun [ "TnGql", "Enum", enumName ] "decoder"
-                , Elm.list []
-                ]
-            , Just [ "TnGql", "Enum", enumName ]
-            )
-
-        GraphQL.Schema.Type.Object objectName ->
-            ( Elm.lambda [ Elm.varPattern "selection_" ]
-                (Elm.apply
-                    [ Common.modules.engine.fns.object
-                    , Elm.string name
-                    , Elm.val "selection_"
+            let
+                signature =
+                    fieldSignature objectName fieldType
+            in
+            { expression =
+                Elm.apply
+                    [ Common.modules.engine.fns.field
+                    , Elm.fun "identity"
+                    , Elm.string fieldName
+                    , Elm.fqFun [ "TnGql", "Enum", enumName ] "decoder"
+                    , Elm.list []
                     ]
-                )
-            , Just [ "TnGql", "Object", objectName ]
-            )
+            , annotation = signature.annotation
+            , linkage =
+                signature.linkage
+                    |> Elm.addImport (Common.modules.generated.enum enumName)
+            }
 
-        GraphQL.Schema.Type.Nullable newType ->
-            createImplementation name newType True
+        GraphQL.Schema.Type.Object nestedObjectName ->
+            { expression =
+                Elm.lambda [ Elm.varPattern "selection_" ]
+                    (Elm.apply
+                        [ Common.modules.engine.fns.object
+                        , Elm.string fieldName
+                        , if nullable then
+                            Elm.parens
+                                (Elm.apply
+                                    [ Elm.fqFun Common.modules.engine.fqName "nullable"
+                                    , Elm.val "selection_"
+                                    ]
+                                )
+
+                          else
+                            Elm.val "selection_"
+                        ]
+                    )
+            , annotation =
+                Elm.funAnn
+                    (Common.modules.engine.fns.selection objectName (Elm.typeVar "data"))
+                    (Common.modules.engine.fns.selection nestedObjectName
+                        (if nullable then
+                            Elm.maybeAnn (Elm.typeVar "data")
+
+                         else
+                            Elm.typeVar "data"
+                        )
+                    )
+            , linkage =
+                Elm.emptyLinkage
+            }
 
         _ ->
-            ( Elm.string ("unimplemented: " ++ Debug.toString type_), Nothing )
+            let
+                signature =
+                    fieldSignature objectName fieldType
+            in
+            { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
+            , annotation = signature.annotation
+            , linkage = signature.linkage
+            }
+
+
+fieldSignature :
+    String
+    -> Type
+    ->
+        { annotation : Elm.TypeAnnotation
+        , linkage : Elm.Linkage
+        }
+fieldSignature objectName fieldType =
+    let
+        ( dataType, linkage ) =
+            Common.gqlTypeToElmTypeAnnotation fieldType Nothing
+
+        typeAnnotation =
+            Common.modules.engine.fns.selection objectName dataType
+    in
+    { annotation = typeAnnotation
+    , linkage = linkage
+    }
 
 
 decodeScalar : String -> Bool -> Elm.Expression
