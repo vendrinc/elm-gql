@@ -48,6 +48,14 @@ modules =
             { query = Elm.fqFun moduleEngine "query"
             , field = Elm.fqFun moduleEngine "field"
             , object = Elm.fqFun moduleEngine "object"
+            , selectUnion =
+                \objectName dataType ->
+                    Elm.fqTyped
+                        [ "GraphQL", "Engine" ]
+                        "Selection"
+                        [ Elm.fqTyped [ "TnGql", "Union" ] objectName []
+                        , dataType
+                        ]
             , selection =
                 \objectName dataType ->
                     Elm.fqTyped

@@ -28,15 +28,18 @@ objectToModule object =
     let
         ( fieldTypesAndImpls, linkage ) =
             object.fields
-                |> List.filter
-                    (\field ->
-                        List.member field.name [ "name", "slug", "id", "viewUrl", "parent" ]
-                    )
+                -- |> List.filter
+                --     (\field ->
+                --         List.member field.name [ "name", "slug", "id", "viewUrl", "parent" ]
+                --     )
                 |> List.foldl
                     (\field ( accDecls, linkageAcc ) ->
                         let
                             implemented =
-                                implementField object.name field.name field.type_ False
+                                implementField object.name
+                                    field.name
+                                    field.type_
+                                    UnwrappedValue
                         in
                         ( ( field.name, implemented.annotation, implemented.expression ) :: accDecls
                         , implemented.linkage :: linkageAcc
@@ -80,20 +83,29 @@ objectToModule object =
     }
 
 
+type Wrapped
+    = UnwrappedValue
+    | InList Wrapped
+    | InMaybe Wrapped
+
+
 implementField :
     String
     -> String
     -> Type
-    -> Bool
+    -> Wrapped
     ->
         { expression : Elm.Expression
         , annotation : Elm.TypeAnnotation
         , linkage : Elm.Linkage
         }
-implementField objectName fieldName fieldType nullable =
+implementField objectName fieldName fieldType wrapped =
     case fieldType of
         GraphQL.Schema.Type.Nullable newType ->
-            implementField objectName fieldName newType True
+            implementField objectName fieldName newType (InMaybe wrapped)
+
+        GraphQL.Schema.Type.List_ newType ->
+            implementField objectName fieldName newType (InList wrapped)
 
         GraphQL.Schema.Type.Scalar scalarName ->
             let
@@ -104,7 +116,7 @@ implementField objectName fieldName fieldType nullable =
                 Elm.apply
                     [ Common.modules.engine.fns.field
                     , Elm.string fieldName
-                    , decodeScalar scalarName nullable
+                    , decodeScalar scalarName wrapped
                     ]
             , annotation = signature.annotation
             , linkage =
@@ -120,10 +132,8 @@ implementField objectName fieldName fieldType nullable =
             { expression =
                 Elm.apply
                     [ Common.modules.engine.fns.field
-                    , Elm.fun "identity"
                     , Elm.string fieldName
                     , Elm.fqFun [ "TnGql", "Enum", enumName ] "decoder"
-                    , Elm.list []
                     ]
             , annotation = signature.annotation
             , linkage =
@@ -137,34 +147,20 @@ implementField objectName fieldName fieldType nullable =
                     (Elm.apply
                         [ Common.modules.engine.fns.object
                         , Elm.string fieldName
-                        , if nullable then
-                            Elm.parens
-                                (Elm.apply
-                                    [ Elm.fqFun Common.modules.engine.fqName "nullable"
-                                    , Elm.val "selection_"
-                                    ]
-                                )
-
-                          else
-                            Elm.val "selection_"
+                        , wrapExpression wrapped (Elm.val "selection_")
                         ]
                     )
             , annotation =
                 Elm.funAnn
-                    (Common.modules.engine.fns.selection objectName (Elm.typeVar "data"))
-                    (Common.modules.engine.fns.selection nestedObjectName
-                        (if nullable then
-                            Elm.maybeAnn (Elm.typeVar "data")
-
-                         else
-                            Elm.typeVar "data"
-                        )
+                    (Common.modules.engine.fns.selection nestedObjectName (Elm.typeVar "data"))
+                    (Common.modules.engine.fns.selection objectName
+                        (wrapAnnotation wrapped (Elm.typeVar "data"))
                     )
             , linkage =
                 Elm.emptyLinkage
             }
 
-        _ ->
+        GraphQL.Schema.Type.Interface interfaceName ->
             let
                 signature =
                     fieldSignature objectName fieldType
@@ -173,6 +169,71 @@ implementField objectName fieldName fieldType nullable =
             , annotation = signature.annotation
             , linkage = signature.linkage
             }
+
+        GraphQL.Schema.Type.InputObject inputName ->
+            let
+                signature =
+                    fieldSignature objectName fieldType
+            in
+            { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
+            , annotation = signature.annotation
+            , linkage = signature.linkage
+            }
+
+        GraphQL.Schema.Type.Union unionName ->
+            { expression =
+                Elm.lambda [ Elm.varPattern "union_" ]
+                    (Elm.apply
+                        [ Common.modules.engine.fns.object
+                        , Elm.string fieldName
+                        , wrapExpression wrapped (Elm.val "union_")
+                        ]
+                    )
+            , annotation =
+                Elm.funAnn
+                    (Common.modules.engine.fns.selectUnion unionName (Elm.typeVar "data"))
+                    (Common.modules.engine.fns.selection objectName
+                        (wrapAnnotation wrapped (Elm.typeVar "data"))
+                    )
+            , linkage =
+                Elm.emptyLinkage
+            }
+
+
+wrapAnnotation : Wrapped -> Elm.TypeAnnotation -> Elm.TypeAnnotation
+wrapAnnotation wrap signature =
+    case wrap of
+        UnwrappedValue ->
+            signature
+
+        InList inner ->
+            Elm.listAnn (wrapAnnotation inner signature)
+
+        InMaybe inner ->
+            Elm.maybeAnn (wrapAnnotation inner signature)
+
+
+wrapExpression : Wrapped -> Elm.Expression -> Elm.Expression
+wrapExpression wrap exp =
+    case wrap of
+        UnwrappedValue ->
+            exp
+
+        InList inner ->
+            Elm.parens
+                (Elm.apply
+                    [ Elm.fqFun [ "Decode" ] "list"
+                    , wrapExpression inner exp
+                    ]
+                )
+
+        InMaybe inner ->
+            Elm.parens
+                (Elm.apply
+                    [ Elm.fqFun Common.modules.engine.fqName "nullable"
+                    , wrapExpression inner exp
+                    ]
+                )
 
 
 fieldSignature :
@@ -195,7 +256,7 @@ fieldSignature objectName fieldType =
     }
 
 
-decodeScalar : String -> Bool -> Elm.Expression
+decodeScalar : String -> Wrapped -> Elm.Expression
 decodeScalar scalarName nullable =
     let
         lowered =
