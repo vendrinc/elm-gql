@@ -48,6 +48,7 @@ modules =
             { query = Elm.fqFun moduleEngine "query"
             , field = Elm.fqFun moduleEngine "field"
             , object = Elm.fqFun moduleEngine "object"
+            , union = Elm.fqFun moduleEngine "union"
             , selectUnion =
                 \objectName dataType ->
                     Elm.fqTyped
