@@ -1,0 +1,24 @@
+{
+  "name": "elm-graphql",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "pull": "git submodule update --remote"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryannhg/elm-graphql.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ryannhg/elm-graphql/issues"
+  },
+  "homepage": "https://github.com/ryannhg/elm-graphql#readme"
+}

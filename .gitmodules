@@ -1,0 +1,3 @@
+[submodule "elm-prefab"]
+	path = elm-prefab
+	url = https://github.com/mdgriffith/elm-prefab
