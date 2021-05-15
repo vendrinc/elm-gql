@@ -2,8 +2,9 @@ port module Worker exposing (main)
 
 import Codegen.Enums
 import Codegen.Objects
-import Codegen.Queries
+import Codegen.Operations
 import Codegen.Union
+import Dict
 import Elm.CodeGen as Elm
 import Elm.Pretty as Elm
 import GraphQL.Schema
@@ -49,7 +50,17 @@ run flags =
             Codegen.Enums.generateFiles schema
 
         queryFiles =
-            Codegen.Queries.generateFiles schema
+            schema.queries
+                |> Dict.toList
+                |> List.map Tuple.second
+                |> Codegen.Operations.generateFiles Codegen.Operations.Query
+
+
+        mutationFiles =
+            schema.queries
+                |> Dict.toList
+                |> List.map Tuple.second
+                |> Codegen.Operations.generateFiles Codegen.Operations.Mutation
 
         objectFiles =
             Codegen.Objects.generateFiles schema
@@ -58,7 +69,7 @@ run flags =
             Codegen.Union.generateFiles schema
 
         allFiles =
-            enumFiles ++ queryFiles ++ objectFiles ++ unionFiles
+            enumFiles ++ queryFiles ++ objectFiles ++ unionFiles ++ mutationFiles
     in
     Cmd.batch
         (allFiles

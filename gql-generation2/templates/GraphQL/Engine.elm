@@ -8,6 +8,7 @@ module GraphQL.Engine exposing
     , queryString
     , Argument(..), maybeScalarEncode
     , Id, encodeId, decodeId
+    , Optional(..)
     )
 
 {-|
@@ -27,6 +28,8 @@ module GraphQL.Engine exposing
 @docs queryString
 
 @docs Id, encodeId, decodeId
+
+@docs Optional
 
 -}
 
@@ -53,6 +56,10 @@ decodeId  =
         Json.string
 
 
+
+{-|-}
+type Optional arg =
+    Optional String Argument
 
 {-| -}
 recover : recovered -> (data -> recovered) -> Selection source data -> Selection source recovered
@@ -744,7 +751,7 @@ argToTypeString argument =
         Var str ->
             ""
 
-
+{-|-}
 maybeScalarEncode : (a -> Encode.Value) -> Maybe a -> Encode.Value
 maybeScalarEncode encoder maybeA =
     maybeA
