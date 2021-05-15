@@ -1,5 +1,6 @@
 module GraphQL.Schema exposing
-    ( Query
+    ( Mutation
+    , Query
     , Schema
     , decoder
     , empty
