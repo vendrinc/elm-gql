@@ -3,6 +3,7 @@ port module Worker exposing (main)
 import Codegen.Enums
 import Codegen.Objects
 import Codegen.Queries
+import Codegen.Union
 import Elm.CodeGen as Elm
 import Elm.Pretty as Elm
 import GraphQL.Schema
@@ -53,11 +54,19 @@ run flags =
         objectFiles =
             Codegen.Objects.generateFiles schema
 
+        unionFiles =
+            Codegen.Union.generateFiles schema
+
         allFiles =
-            enumFiles ++ queryFiles ++ objectFiles
+            enumFiles ++ queryFiles ++ objectFiles ++ unionFiles
     in
     Cmd.batch
         (allFiles
-            |> List.map (\file -> { moduleName = String.join "." file.name, contents = Elm.pretty 120 file.file })
+            |> List.map
+                (\file ->
+                    { moduleName = String.join "." file.name
+                    , contents = Elm.pretty 120 file.file
+                    }
+                )
             |> List.map writeElmFile
         )
