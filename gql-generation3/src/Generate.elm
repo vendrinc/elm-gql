@@ -7,24 +7,38 @@ import Elm
 import Elm.Gen
 import Elm.Type as Type
 import Elm.Pattern as Pattern
+import GraphQL.Schema
+import Http
 
-
-main : Program {} () ()
+main : Program {} () Msg
 main =
     Platform.worker
         { init =
             \json ->
                 ( ()
-                , Elm.Gen.files
-                    [ Elm.render file
-                    ]
+                , GraphQL.Schema.get "https://api.blissfully.com/prod/graphql"
+                    SchemaReceived
+                --Elm.Gen.files
+                --    [ Elm.render file
+                --    ]
                 )
         , update =
             \msg model ->
-                (model, Cmd.none)
+                case msg of
+                    SchemaReceived (Ok schema) ->
+                        (model
+                        , Elm.Gen.files
+                            [ Elm.render file
+                            ]
+                        )
+                    SchemaReceived (Err err) ->
+                        (model, Elm.Gen.error "Something went wrong with retriving the scheam")
         , subscriptions = \_ -> Sub.none
         }
 
+
+type Msg =
+    SchemaReceived (Result Http.Error GraphQL.Schema.Schema)
 
 
 file =
