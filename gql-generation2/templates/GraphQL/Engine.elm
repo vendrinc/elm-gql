@@ -27,6 +27,8 @@ module GraphQL.Engine exposing
 
 @docs queryString
 
+@docs Argument, maybeScalarEncode
+
 @docs Id, encodeId, decodeId
 
 @docs Optional
@@ -233,12 +235,12 @@ objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
                 )
             )
 
-
+{-| -}
 field : String -> Json.Decoder data -> Selection source data
 field =
     fieldWith []
 
-
+{-| -}
 fieldWith : List ( String, Argument ) -> String -> Json.Decoder data -> Selection source data
 fieldWith args name decoder =
     Selection <|
@@ -348,7 +350,7 @@ makeAlias name aliases =
             , Dict.insert name (found + 1) aliases
             )
 
-
+{-| -}
 type Selection source selected
     = Selection (Details selected)
 
@@ -424,7 +426,7 @@ with : Selection source a -> Selection source (a -> b) -> Selection source b
 with =
     map2 (|>)
 
-
+{-| -}
 map : (a -> b) -> Selection source a -> Selection source b
 map fn (Selection (Details fields decoder)) =
     Selection <|
@@ -437,7 +439,7 @@ map fn (Selection (Details fields decoder)) =
                 ( newAliases, Json.map fn newDecoder )
             )
 
-
+{-| -}
 map2 : (a -> b -> c) -> Selection source a -> Selection source b -> Selection source c
 map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields twoDecoder)) =
     Selection <|
@@ -471,15 +473,15 @@ map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields
 
 {- Making requests -}
 
-
+{-|-}
 type Query
     = Query
 
-
+{-|-}
 type Mutation
     = Mutation
 
-
+{-|-}
 query :
     Selection Query value
     ->
@@ -500,7 +502,7 @@ query sel config =
         , tracker = config.tracker
         }
 
-
+{-|-}
 mutation :
     Selection Mutation msg
     ->
@@ -585,7 +587,9 @@ expect toMsg (Selection (Details gql toDecoder)) =
     in
     Http.expectJson toMsg (Json.field "data" decoder)
 
+{-|
 
+-}
 queryString : Selection source data -> String
 queryString (Selection (Details gql _)) =
     let
