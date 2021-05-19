@@ -2,8 +2,12 @@ module Generate.Enums exposing (generateFiles)
 
 import Dict
 import Elm
+import Elm.Gen.Json.Decode
+import Elm.Pattern
+import Elm.Type
 import GraphQL.Schema
 import String.Extra as String
+import Utils.ElmAux as ElmAux
 
 
 enumNameToConstructorName =
@@ -17,66 +21,47 @@ generateFiles graphQLSchema =
         |> List.map
             (\( _, enumDefinition ) ->
                 let
-                    moduleName =
-                        [ "TnGql", "Enum", enumDefinition.name ]
-
-                    -- module_ =
-                    --     Elm.normalModule moduleName []
                     constructors =
                         enumDefinition.values
                             |> List.map .name
                             |> List.map (\name -> ( enumNameToConstructorName name, [] ))
 
-                    -- enumType =
-                    --     Elm.valueFrom
-                    --     Elm.customTypeDecl docs enumDefinition.name [] constructors
+                    enumTypeDeclaration =
+                        Elm.Type.custom enumDefinition.name
+                            constructors
+
                     listOfValues =
                         constructors
                             |> List.map (Tuple.first >> Elm.value)
                             |> Elm.list
                             |> Elm.declaration "list"
 
-                    -- enumDecoder =
-                    --     Elm.valDecl Nothing
-                    --         (Just (Elm.typed "Decoder" [ Elm.typed enumDefinition.name [] ]))
-                    --         "decoder"
-                    --         (Elm.pipe (Elm.fqFun Common.modules.decode.name "string")
-                    --             [ Elm.apply
-                    --                 [ Elm.fqFun Common.modules.decode.name "andThen"
-                    --                 , Elm.lambda [ Elm.varPattern "string" ]
-                    --                     (Elm.caseExpr (Elm.val "string")
-                    --                         ((enumDefinition.values
-                    --                             |> List.map
-                    --                                 (\value ->
-                    --                                     ( Elm.stringPattern value.name
-                    --                                     , Elm.apply
-                    --                                         [ Elm.fqFun Common.modules.decode.name "succeed"
-                    --                                         , Elm.fqVal [] (enumNameToConstructorName value.name)
-                    --                                         ]
-                    --                                     )
-                    --                                 )
-                    --                          )
-                    --                             ++ [ ( Elm.allPattern
-                    --                                  , Elm.apply
-                    --                                     [ Elm.fqFun Common.modules.decode.name "fail"
-                    --                                     , Elm.string
-                    --                                         ("Invalid "
-                    --                                             ++ enumDefinition.name
-                    --                                             ++ " type"
-                    --                                         )
-                    --                                     ]
-                    --                                  )
-                    --                                ]
-                    --                         )
-                    --                     )
-                    --                 ]
-                    --             ]
-                    --         )
+                    enumDecoder =
+                        Elm.declaration "decoder"
+                            (Elm.Gen.Json.Decode.string
+                                |> ElmAux.pipe
+                                    (ElmAux.apply
+                                        Elm.Gen.Json.Decode.andThen
+                                        [ Elm.lambda [ Elm.Pattern.var "string" ]
+                                            (Elm.caseOn (Elm.value "string")
+                                                ((constructors
+                                                    |> List.map
+                                                        (\( name, _ ) ->
+                                                            ( Elm.Pattern.string name, ElmAux.apply Elm.Gen.Json.Decode.succeed [ Elm.value name ] )
+                                                        )
+                                                 )
+                                                    ++ [ ( Elm.Pattern.skip, ElmAux.apply Elm.Gen.Json.Decode.fail [ Elm.string "Invalid type" ] ) ]
+                                                )
+                                            )
+                                        ]
+                                    )
+                            )
                 in
-                Elm.file (Elm.moduleName [ "Enum", enumDefinition.name ])
-                    [ -- enumType
-                      listOfValues |> Elm.expose
-
-                    -- , enumDecoder
+                Elm.file (Elm.moduleName [ "TnGql", "Enum", enumDefinition.name ])
+                    [ enumTypeDeclaration
+                        |> Elm.expose
+                    , listOfValues
+                        |> Elm.expose
+                    , enumDecoder
                     ]
             )
