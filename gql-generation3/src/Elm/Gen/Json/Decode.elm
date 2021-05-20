@@ -1,7 +1,7 @@
 module Elm.Gen.Json.Decode exposing (..)
 
 import Elm
-import Elm.Let exposing (Declaration)
+
 
 
 moduleName : Elm.Module
@@ -9,21 +9,21 @@ moduleName =
     Elm.moduleName [ "Json", "Decode" ]
 
 
-string : ( Elm.Module, String )
+string : Elm.Expression
 string =
-    ( moduleName, "string" )
+    Elm.valueFrom moduleName "string"
 
 
-andThen : ( Elm.Module, String )
+andThen : Elm.Expression
 andThen =
-    ( moduleName, "andThen" )
+    Elm.valueFrom moduleName "andThen"
 
 
-succeed : ( Elm.Module, String )
+succeed : Elm.Expression
 succeed =
-    ( moduleName, "succeed" )
+    Elm.valueFrom moduleName "succeed"
 
 
-fail : ( Elm.Module, String )
+fail : Elm.Expression
 fail =
-    ( moduleName, "fail" )
+    Elm.valueFrom moduleName "fail"

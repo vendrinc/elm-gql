@@ -7,7 +7,6 @@ import Elm.Pattern
 import Elm.Type
 import GraphQL.Schema
 import String.Extra as String
-import Utils.ElmAux as ElmAux
 
 
 enumNameToConstructorName =
@@ -39,18 +38,18 @@ generateFiles graphQLSchema =
                     enumDecoder =
                         Elm.declaration "decoder"
                             (Elm.Gen.Json.Decode.string
-                                |> ElmAux.pipe
-                                    (ElmAux.apply
+                                |> Elm.pipe
+                                    (Elm.apply
                                         Elm.Gen.Json.Decode.andThen
                                         [ Elm.lambda [ Elm.Pattern.var "string" ]
-                                            (Elm.caseOn (Elm.value "string")
+                                            (Elm.caseOf (Elm.value "string")
                                                 ((constructors
                                                     |> List.map
                                                         (\( name, _ ) ->
-                                                            ( Elm.Pattern.string name, ElmAux.apply Elm.Gen.Json.Decode.succeed [ Elm.value name ] )
+                                                            ( Elm.Pattern.string name, Elm.apply Elm.Gen.Json.Decode.succeed [ Elm.value name ] )
                                                         )
                                                  )
-                                                    ++ [ ( Elm.Pattern.skip, ElmAux.apply Elm.Gen.Json.Decode.fail [ Elm.string "Invalid type" ] ) ]
+                                                    ++ [ ( Elm.Pattern.skip, Elm.apply Elm.Gen.Json.Decode.fail [ Elm.string "Invalid type" ] ) ]
                                                 )
                                             )
                                         ]
