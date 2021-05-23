@@ -5,7 +5,6 @@ module Generate exposing (main)
 import Elm
 import Elm.Gen
 import Elm.Pattern as Pattern
-import Elm.Type as Type
 import Generate.Enums
 import GraphQL.Schema
 import Http

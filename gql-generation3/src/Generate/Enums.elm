@@ -4,7 +4,6 @@ import Dict
 import Elm
 import Elm.Gen.Json.Decode
 import Elm.Pattern
-import Elm.Type
 import GraphQL.Schema
 import String.Extra as String
 
@@ -26,7 +25,7 @@ generateFiles graphQLSchema =
                             |> List.map (\name -> ( enumNameToConstructorName name, [] ))
 
                     enumTypeDeclaration =
-                        Elm.Type.custom enumDefinition.name
+                        Elm.customType enumDefinition.name
                             constructors
 
                     listOfValues =
@@ -49,7 +48,7 @@ generateFiles graphQLSchema =
                                                             ( Elm.Pattern.string name, Elm.apply Elm.Gen.Json.Decode.succeed [ Elm.value name ] )
                                                         )
                                                  )
-                                                    ++ [ ( Elm.Pattern.skip, Elm.apply Elm.Gen.Json.Decode.fail [ Elm.string "Invalid type" ] ) ]
+                                                    ++ [ ( Elm.Pattern.wildcard, Elm.apply Elm.Gen.Json.Decode.fail [ Elm.string "Invalid type" ] ) ]
                                                 )
                                             )
                                         ]
