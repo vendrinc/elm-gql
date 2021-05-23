@@ -122,13 +122,14 @@ queryToModule op queryOperation =
         queryFunction =
             Elm.declaration
                 queryOperation.name
-                -- (List.filterMap identity
-                --     [ justIf hasRequiredArgs (Elm.varPattern "required")
-                --     , justIf hasOptionalArgs (Elm.varPattern "optional")
-                --     , Just (Elm.varPattern "selection")
-                --     ]
-                -- )
-                expression
+                (Elm.lambda
+                (List.filterMap identity
+                    [ justIf hasRequiredArgs (Elm.Pattern.var "required")
+                    , justIf hasOptionalArgs (Elm.Pattern.var "optional")
+                    , Just (Elm.Pattern.var "selection")
+                    ]
+                )
+                expression)
 
         moduleName =
             [ "TnGql", dir, String.toSentenceCase queryOperation.name ]
@@ -211,7 +212,7 @@ implementArgEncoder objectName fieldName fieldType wrapped =
             --         fieldSignature objectName fieldType
             -- in
             { expression =
-                Elm.apply (Elm.valueFrom (Elm.moduleName ["GraphQL", "Engine"]) "optional")
+                Elm.apply (Elm.valueFrom (Elm.moduleName ["GraphQL", "Engine"]) "nullable")
                     [ Elm.string fieldName
                     , Elm.apply GenEngine.arg
                         [ 
@@ -316,10 +317,10 @@ encodeScalar scalarName nullable =
             String.toLower scalarName
     in
     if List.member lowered [ "string", "int", "float" ] then
-        Elm.valueFrom (Elm.moduleName [ "Encode" ]) (Utils.String.formatValue scalarName)
+        Elm.valueFrom (Elm.moduleName [ "Json", "Encode" ]) (Utils.String.formatValue scalarName)
 
     else if lowered == "boolean" then
-        Elm.valueFrom (Elm.moduleName [ "Encode" ]) "bool"
+        Elm.valueFrom (Elm.moduleName [ "Json", "Encode" ]) "bool"
 
     else if lowered == "id" then
         GenEngine.encodeId

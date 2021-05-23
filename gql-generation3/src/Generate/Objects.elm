@@ -45,23 +45,24 @@ objectToModule object =
                                     field.type_
                                     UnwrappedValue
                         in
-                        ( ( field.name, implemented.expression ) :: accDecls
+                        ( ( field.name, implemented.annotation, implemented.expression ) :: accDecls
                         )
                     )
                     ( [] )
 
         -- GQL.Query (Maybe value)
-        -- objectTypeAnnotation =
-        --     fieldTypesAndImpls
-        --         |> List.map (\( name, _ ) -> ( name, typeAnnotation ))
-        --         |> Elm.Annotation.record
+        objectTypeAnnotation =
+            fieldTypesAndImpls
+                |> List.map (\( name, typeAnnotation, _ ) -> ( name, typeAnnotation ))
+                |> Elm.Annotation.record
 
         objectImplementation =
             fieldTypesAndImpls
+                |> List.map (\( name, _, expression ) -> ( name, expression ))
                 |> Elm.record
 
         objectDecl =
-            Elm.declaration (String.decapitalize object.name) objectImplementation
+            Elm.declarationWith (String.decapitalize object.name) objectTypeAnnotation objectImplementation
     in
     Elm.file (Elm.moduleName [ "TnGql", "Object", object.name ])
         [ objectDecl |> Elm.expose
@@ -80,7 +81,7 @@ implementField :
     -> Wrapped
     ->
         { expression : Elm.Expression
-        -- , annotation : Elm.Annotation.Annotation
+        , annotation : Elm.Annotation.Annotation
         }
 implementField objectName fieldName fieldType wrapped =
     case fieldType of
@@ -100,7 +101,7 @@ implementField objectName fieldName fieldType wrapped =
                     [ Elm.string fieldName
                     , decodeScalar scalarName wrapped
                     ]
-            -- , annotation = signature.annotation
+            , annotation = signature.annotation
             }
 
         GraphQL.Schema.Type.Enum enumName ->
@@ -113,7 +114,7 @@ implementField objectName fieldName fieldType wrapped =
                     [ Elm.string fieldName
                     , Elm.valueFrom (Elm.moduleName [ "TnGql", "Enum", enumName]) "decoder"
                     ]
-            -- , annotation = signature.annotation
+            , annotation = signature.annotation
             }
 
         GraphQL.Schema.Type.Object nestedObjectName ->
@@ -124,12 +125,10 @@ implementField objectName fieldName fieldType wrapped =
                         , wrapExpression wrapped (Elm.value "selection_")
                         ]
                     )
-            -- , annotation =
-            --     Elm.funAnn
-            --         (Common.modules.engine.fns.selection nestedObjectName (Elm.typeVar "data"))
-            --         (Common.modules.engine.fns.selection objectName
-            --             (wrapAnnotation wrapped (Elm.typeVar "data"))
-            --         )
+            , annotation =
+                Elm.Annotation.function
+                    [ Elm.Annotation.namedWith (Elm.moduleName ["GraphQL", "Engine"]) nestedObjectName [Elm.Annotation.var "data"] ]
+                    (Elm.Annotation.namedWith (Elm.moduleName ["GraphQL", "Engine"]) objectName [(wrapAnnotation wrapped (Elm.Annotation.var "data"))])
             }
 
         GraphQL.Schema.Type.Interface interfaceName ->
@@ -138,7 +137,7 @@ implementField objectName fieldName fieldType wrapped =
                     fieldSignature objectName fieldType
             in
             { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
-            -- , annotation = signature.annotation
+            , annotation = signature.annotation
             }
 
         GraphQL.Schema.Type.InputObject inputName ->
@@ -147,7 +146,7 @@ implementField objectName fieldName fieldType wrapped =
                     fieldSignature objectName fieldType
             in
             { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
-            -- , annotation = signature.annotation
+            , annotation = signature.annotation
             }
 
         GraphQL.Schema.Type.Union unionName ->
@@ -158,12 +157,10 @@ implementField objectName fieldName fieldType wrapped =
                         , wrapExpression wrapped (Elm.value "union_")
                         ]
                     )
-            -- , annotation =
-            --     Elm.funAnn
-            --         (Common.modules.engine.fns.selectUnion unionName (Elm.typeVar "data"))
-            --         (Common.modules.engine.fns.selection objectName
-            --             (wrapAnnotation wrapped (Elm.typeVar "data"))
-            --         )
+            , annotation =
+                Elm.Annotation.function
+                    [ Elm.Annotation.namedWith (Elm.moduleName ["GraphQL", "Engine"]) unionName [Elm.Annotation.var "data"] ]
+                    (Elm.Annotation.namedWith (Elm.moduleName ["GraphQL", "Engine"]) objectName [(wrapAnnotation wrapped (Elm.Annotation.var "data"))])
             }
 
 
