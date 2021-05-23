@@ -1,0 +1,8 @@
+{
+    "name": "ryannhg/elm-graphql",
+    "summary": "Elm GraphQL Engine",
+    "version": "1.0.0",
+    "exposed-modules": [
+        "GraphQL.Engine"
+    ]
+}

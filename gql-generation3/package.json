@@ -4,9 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "clean": "rm -rf ./output",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "(cd ../elm-prefab; yarn install; cd ../gql-generation3)",
-    "generate": "(yarn build; cd ../elm-prefab; node dist/index.js src/Generate.elm --cwd ../gql-generation3 --output output)"
+    "generate": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; cd ../elm-prefab; node dist/index.js src/Generate.elm --cwd ../gql-generation3 --output output)",
+    "test-generated": "(cd output ; elm make Main.elm)"
   },
   "author": "",
   "license": "ISC"
