@@ -6,6 +6,7 @@ import Elm
 import Elm.Gen
 import Elm.Pattern as Pattern
 import Generate.Enums
+import Generate.Objects
 import GraphQL.Schema
 import Http
 
@@ -18,9 +19,6 @@ main =
                 ( ()
                 , GraphQL.Schema.get "https://api.blissfully.com/prod/graphql"
                     SchemaReceived
-                  --Elm.Gen.files
-                  --    [ Elm.render file
-                  --    ]
                 )
         , update =
             \msg model ->
@@ -29,10 +27,13 @@ main =
                         let
                             enumFiles =
                                 Generate.Enums.generateFiles schema
+                            
+                            objectFiles =
+                                Generate.Objects.generateFiles schema
                         in
                         ( model
                         , Elm.Gen.files
-                            (List.map Elm.render (file :: enumFiles))
+                            (List.map Elm.render ( enumFiles ++ objectFiles))
                         )
 
                     SchemaReceived (Err err) ->
@@ -43,10 +44,3 @@ main =
 
 type Msg
     = SchemaReceived (Result Http.Error GraphQL.Schema.Schema)
-
-
-file =
-    Elm.file (Elm.moduleName [ "My", "Module" ])
-        [ Elm.declaration "placeholder"
-            (Elm.string "a fancy string!")
-        ]
