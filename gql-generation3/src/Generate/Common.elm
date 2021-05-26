@@ -1,16 +1,18 @@
 module Generate.Common exposing (..)
 
 -- import Codegen.Common as Common
+
 import Dict
 import Elm
 import Elm.Annotation
+import Elm.Gen.GraphQL.Engine as GenEngine
 import Elm.Pattern
 import GraphQL.Schema
 import GraphQL.Schema.Object
 import GraphQL.Schema.Type exposing (Type(..))
 import String.Extra as String
 import Utils.String
-import Elm.Gen.GraphQL.Engine as GenEngine
+
 
 gqlTypeToElmTypeAnnotation : GraphQL.Schema.Type.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
 gqlTypeToElmTypeAnnotation gqlType maybeAppliedToTypes =
@@ -34,46 +36,38 @@ gqlTypeToElmTypeAnnotation gqlType maybeAppliedToTypes =
                     Elm.Annotation.bool
 
                 "id" ->
-                    ( Elm.Annotation.namedWith (Elm.moduleName[ "GraphQL", "Engine" ]) "Id" appliedToTypes)
+                    Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) "Id" appliedToTypes
 
                 _ ->
-                    ( Elm.Annotation.namedWith (Elm.moduleName[ "Scalar" ])
+                    Elm.Annotation.namedWith (Elm.moduleName [ "Scalar" ])
                         (Utils.String.formatTypename scalarName)
                         appliedToTypes
-                    )
 
         Enum enumName ->
-            ( Elm.Annotation.namedWith (Elm.moduleName[ "TnGql", "Enum" ]) enumName appliedToTypes
-            )
+            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "Enum" ]) enumName appliedToTypes
 
         List_ listElementType ->
             let
-                ( innerType ) =
+                innerType =
                     gqlTypeToElmTypeAnnotation listElementType maybeAppliedToTypes
             in
-            ( Elm.Annotation.list innerType )
+            Elm.Annotation.list innerType
 
         Nullable nonNullType ->
             let
-                ( innerType ) =
+                innerType =
                     gqlTypeToElmTypeAnnotation nonNullType maybeAppliedToTypes
             in
-            ( Elm.Annotation.maybe innerType )
+            Elm.Annotation.maybe innerType
 
         InputObject inputObjectName ->
-            ( Elm.Annotation.namedWith (Elm.moduleName[ "TnGql", "InputObject" ]) inputObjectName appliedToTypes
-            )
+            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "InputObject" ]) inputObjectName appliedToTypes
 
         Object objectName ->
-            ( Elm.Annotation.namedWith (Elm.moduleName[ "TnGql", "Object" ]) objectName appliedToTypes
-          
-            )
+            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "Object" ]) objectName appliedToTypes
 
         Union unionName ->
-            ( Elm.Annotation.namedWith (Elm.moduleName[ "TnGql", "Union" ]) unionName appliedToTypes
-            )
+            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "Union" ]) unionName appliedToTypes
 
         Interface interfaceName ->
-            ( Elm.Annotation.namedWith (Elm.moduleName[ "TnGql", "Interface" ]) interfaceName appliedToTypes
-            )
-
+            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "Interface" ]) interfaceName appliedToTypes
