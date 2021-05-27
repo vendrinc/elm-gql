@@ -406,7 +406,11 @@ arg val typename =
     ArgValue val typename
 
 
-{-| -}
+{-|
+
+    Encode the nullability in the argument itself.
+
+-}
 optional : String -> Argument -> Optional arg
 optional =
     Optional

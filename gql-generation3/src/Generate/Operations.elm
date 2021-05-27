@@ -329,35 +329,55 @@ implementArgEncoder objectName fieldName fieldType wrapped =
 --     }
 
 
-encodeScalar : String -> Wrapped -> Elm.Expression -> Elm.Expression
-encodeScalar scalarName nullable val =
-    let
-        lowered =
-            String.toLower scalarName
-    in
-    case lowered of
-        "int" ->
-            Encode.int val
+{-|
 
-        "float" ->
-            Encode.float val
+    val -> our variable containing the value we want to encode
 
-        "string" ->
-            Encode.string val
+    We then want to
 
-        "boolean" ->
-            Encode.bool val
+-}
+encodeScalar : String -> Wrapped -> (Elm.Expression -> Elm.Expression)
+encodeScalar scalarName wrapped =
+    case wrapped of
+        InList inner ->
+            Encode.list
+                (encodeScalar scalarName inner)
 
-        "id" ->
-            Engine.encodeId val
-
-        _ ->
-            Elm.apply
-                (Elm.valueFrom (Elm.moduleName [ "Scalar" ])
-                    (Utils.String.formatValue scalarName)
-                    |> Elm.get "encode"
+        InMaybe inner ->
+            Engine.maybeScalarEncode
+                (encodeScalar scalarName
+                    inner
                 )
-                [ val ]
+
+        UnwrappedValue ->
+            let
+                lowered =
+                    String.toLower scalarName
+            in
+            case lowered of
+                "int" ->
+                    Encode.int
+
+                "float" ->
+                    Encode.float
+
+                "string" ->
+                    Encode.string
+
+                "boolean" ->
+                    Encode.bool
+
+                "id" ->
+                    Engine.encodeId
+
+                _ ->
+                    \val ->
+                        Elm.apply
+                            (Elm.valueFrom (Elm.moduleName [ "Scalar" ])
+                                (Utils.String.formatValue scalarName)
+                                |> Elm.get "encode"
+                            )
+                            [ val ]
 
 
 applyIf : Bool -> (c -> c) -> c -> c
