@@ -3,12 +3,11 @@ module GraphQL.Engine exposing
     , enum, maybeEnum
     , union
     , Selection, select, with, map, map2, recover
-    , arg
+    , arg, Optional, optional
     , Query, query, Mutation, mutation
     , queryString
     , Argument(..), maybeScalarEncode
     , Id, encodeId, decodeId
-    , Optional(..)
     )
 
 {-|
@@ -21,7 +20,7 @@ module GraphQL.Engine exposing
 
 @docs Selection, select, with, map, map2, recover
 
-@docs arg
+@docs arg, Optional, optional
 
 @docs Query, query, Mutation, mutation
 
@@ -31,8 +30,6 @@ module GraphQL.Engine exposing
 
 @docs Id, encodeId, decodeId
 
-@docs Optional
-
 -}
 
 import Dict exposing (Dict)
@@ -41,27 +38,23 @@ import Json.Decode as Json
 import Json.Encode as Encode
 
 
-{-|-}
-type Id =
-    Id String
+{-| -}
+type Id
+    = Id String
 
-{-|-}
+
+{-| -}
 encodeId : Id -> Json.Value
 encodeId (Id str) =
     Encode.string str
 
 
-{-|-}
+{-| -}
 decodeId : Json.Decoder Id
-decodeId  =
+decodeId =
     Json.map Id
         Json.string
 
-
-
-{-|-}
-type Optional arg =
-    Optional String Argument
 
 {-| -}
 recover : recovered -> (data -> recovered) -> Selection source data -> Selection source recovered
@@ -172,8 +165,7 @@ findFirstMatch options str =
                 findFirstMatch remaining str
 
 
-{-|
-Used in generated code to handle maybes
+{-| Used in generated code to handle maybes
 -}
 nullable : Selection source data -> Selection source (Maybe data)
 nullable (Selection (Details toFieldsGql toFieldsDecoder)) =
@@ -184,10 +176,9 @@ nullable (Selection (Details toFieldsGql toFieldsDecoder)) =
                 let
                     ( fieldContext, fieldsDecoder ) =
                         toFieldsDecoder context
-                 
                 in
                 ( fieldContext
-                , Json.oneOf 
+                , Json.oneOf
                     [ Json.map Just fieldsDecoder
                     , Json.succeed Nothing
                     ]
@@ -235,10 +226,12 @@ objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
                 )
             )
 
+
 {-| -}
 field : String -> Json.Decoder data -> Selection source data
 field =
     fieldWith []
+
 
 {-| -}
 fieldWith : List ( String, Argument ) -> String -> Json.Decoder data -> Selection source data
@@ -350,6 +343,7 @@ makeAlias name aliases =
             , Dict.insert name (found + 1) aliases
             )
 
+
 {-| -}
 type Selection source selected
     = Selection (Details selected)
@@ -400,11 +394,22 @@ type Argument
     | Var String
 
 
+{-| -}
+type Optional arg
+    = Optional String Argument
+
+
 {-| The encoded value and the name of the expected type for this argument
 -}
 arg : Encode.Value -> String -> Argument
 arg val typename =
     ArgValue val typename
+
+
+{-| -}
+optional : String -> Argument -> Optional arg
+optional =
+    Optional
 
 
 {-| -}
@@ -426,6 +431,7 @@ with : Selection source a -> Selection source (a -> b) -> Selection source b
 with =
     map2 (|>)
 
+
 {-| -}
 map : (a -> b) -> Selection source a -> Selection source b
 map fn (Selection (Details fields decoder)) =
@@ -438,6 +444,7 @@ map fn (Selection (Details fields decoder)) =
                 in
                 ( newAliases, Json.map fn newDecoder )
             )
+
 
 {-| -}
 map2 : (a -> b -> c) -> Selection source a -> Selection source b -> Selection source c
@@ -473,15 +480,18 @@ map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields
 
 {- Making requests -}
 
-{-|-}
+
+{-| -}
 type Query
     = Query
 
-{-|-}
+
+{-| -}
 type Mutation
     = Mutation
 
-{-|-}
+
+{-| -}
 query :
     Selection Query value
     ->
@@ -502,7 +512,8 @@ query sel config =
         , tracker = config.tracker
         }
 
-{-|-}
+
+{-| -}
 mutation :
     Selection Mutation msg
     ->
@@ -587,9 +598,8 @@ expect toMsg (Selection (Details gql toDecoder)) =
     in
     Http.expectJson toMsg (Json.field "data" decoder)
 
-{-|
 
--}
+{-| -}
 queryString : Selection source data -> String
 queryString (Selection (Details gql _)) =
     let
@@ -755,7 +765,8 @@ argToTypeString argument =
         Var str ->
             ""
 
-{-|-}
+
+{-| -}
 maybeScalarEncode : (a -> Encode.Value) -> Maybe a -> Encode.Value
 maybeScalarEncode encoder maybeA =
     maybeA

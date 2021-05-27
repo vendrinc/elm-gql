@@ -1,16 +1,12 @@
 module Generate.Common exposing (..)
 
--- import Codegen.Common as Common
-
 import Dict
 import Elm
 import Elm.Annotation
-import Elm.Gen.GraphQL.Engine as GenEngine
 import Elm.Pattern
 import GraphQL.Schema
 import GraphQL.Schema.Object
 import GraphQL.Schema.Type exposing (Type(..))
-import String.Extra as String
 import Utils.String
 
 

@@ -1,17 +1,17 @@
 module Generate.Objects exposing (generateFiles)
 
--- import Codegen.Common as Common
 import Dict
 import Elm
 import Elm.Annotation
+import Elm.Gen.GraphQL.Engine as Engine
+import Elm.Gen.Json.Decode as Json
 import Elm.Pattern
+import Generate.Common as Common
 import GraphQL.Schema
 import GraphQL.Schema.Object
 import GraphQL.Schema.Type exposing (Type(..))
 import String.Extra as String
 import Utils.String
-import Elm.Gen.GraphQL.Engine as GenEngine
-import Generate.Common as Common
 
 
 
@@ -30,14 +30,14 @@ import Generate.Common as Common
 objectToModule : GraphQL.Schema.Object.Object -> Elm.File
 objectToModule object =
     let
-        ( fieldTypesAndImpls ) =
+        fieldTypesAndImpls =
             object.fields
                 |> List.filter
                     (\field ->
                         List.member field.name [ "name", "slug", "id", "viewUrl", "parent" ]
                     )
                 |> List.foldl
-                    (\field ( accDecls ) ->
+                    (\field accDecls ->
                         let
                             implemented =
                                 implementField object.name
@@ -45,10 +45,9 @@ objectToModule object =
                                     field.type_
                                     UnwrappedValue
                         in
-                        ( ( field.name, implemented.annotation, implemented.expression ) :: accDecls
-                        )
+                        ( field.name, implemented.annotation, implemented.expression ) :: accDecls
                     )
-                    ( [] )
+                    []
 
         -- GQL.Query (Maybe value)
         objectTypeAnnotation =
@@ -67,7 +66,8 @@ objectToModule object =
     Elm.file (Elm.moduleName [ "TnGql", "Object", object.name ])
         [ objectDecl |> Elm.expose
         ]
-    
+
+
 type Wrapped
     = UnwrappedValue
     | InList Wrapped
@@ -97,10 +97,9 @@ implementField objectName fieldName fieldType wrapped =
                     fieldSignature objectName fieldType
             in
             { expression =
-                Elm.apply GenEngine.field
-                    [ Elm.string fieldName
-                    , decodeScalar scalarName wrapped
-                    ]
+                Engine.field
+                    (Elm.string fieldName)
+                    (decodeScalar scalarName wrapped)
             , annotation = signature.annotation
             }
 
@@ -110,25 +109,23 @@ implementField objectName fieldName fieldType wrapped =
                     fieldSignature objectName fieldType
             in
             { expression =
-                Elm.apply GenEngine.field
-                    [ Elm.string fieldName
-                    , Elm.valueFrom (Elm.moduleName [ "TnGql", "Enum", enumName]) "decoder"
-                    ]
+                Engine.field
+                    (Elm.string fieldName)
+                    (Elm.valueFrom (Elm.moduleName [ "TnGql", "Enum", enumName ]) "decoder")
             , annotation = signature.annotation
             }
 
         GraphQL.Schema.Type.Object nestedObjectName ->
             { expression =
                 Elm.lambda [ Elm.Pattern.var "selection_" ]
-                    (Elm.apply GenEngine.object
-                        [ Elm.string fieldName
-                        , wrapExpression wrapped (Elm.value "selection_")
-                        ]
+                    (Engine.object
+                        (Elm.string fieldName)
+                        (wrapExpression wrapped (Elm.value "selection_"))
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ Elm.Annotation.namedWith (Elm.moduleName ["GraphQL", "Engine"]) nestedObjectName [Elm.Annotation.var "data"] ]
-                    (Elm.Annotation.namedWith (Elm.moduleName ["GraphQL", "Engine"]) objectName [(wrapAnnotation wrapped (Elm.Annotation.var "data"))])
+                    [ Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) nestedObjectName [ Elm.Annotation.var "data" ] ]
+                    (Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) objectName [ wrapAnnotation wrapped (Elm.Annotation.var "data") ])
             }
 
         GraphQL.Schema.Type.Interface interfaceName ->
@@ -152,15 +149,14 @@ implementField objectName fieldName fieldType wrapped =
         GraphQL.Schema.Type.Union unionName ->
             { expression =
                 Elm.lambda [ Elm.Pattern.var "union_" ]
-                    (Elm.apply  GenEngine.object
-                        [ Elm.string fieldName
-                        , wrapExpression wrapped (Elm.value "union_")
-                        ]
+                    (Engine.object
+                        (Elm.string fieldName)
+                        (wrapExpression wrapped (Elm.value "union_"))
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ Elm.Annotation.namedWith (Elm.moduleName ["GraphQL", "Engine"]) unionName [Elm.Annotation.var "data"] ]
-                    (Elm.Annotation.namedWith (Elm.moduleName ["GraphQL", "Engine"]) objectName [(wrapAnnotation wrapped (Elm.Annotation.var "data"))])
+                    [ Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) unionName [ Elm.Annotation.var "data" ] ]
+                    (Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) objectName [ wrapAnnotation wrapped (Elm.Annotation.var "data") ])
             }
 
 
@@ -184,16 +180,13 @@ wrapExpression wrap exp =
             exp
 
         InList inner ->
-                (Elm.apply (Elm.valueFrom (Elm.moduleName ["Json", "Decode"]) "list")
-                    [ wrapExpression inner exp
-                    ]
-                )
+            Elm.apply (Elm.valueFrom (Elm.moduleName [ "Json", "Decode" ]) "list")
+                [ wrapExpression inner exp
+                ]
 
         InMaybe inner ->
-                (Elm.apply GenEngine.nullable
-                    [ wrapExpression inner exp
-                    ]
-                )
+            Engine.nullable
+                (wrapExpression inner exp)
 
 
 fieldSignature :
@@ -204,7 +197,7 @@ fieldSignature :
         }
 fieldSignature objectName fieldType =
     let
-        ( dataType ) =
+        dataType =
             Common.gqlTypeToElmTypeAnnotation fieldType Nothing
 
         typeAnnotation =
@@ -213,24 +206,32 @@ fieldSignature objectName fieldType =
     { annotation = typeAnnotation
     }
 
+
 decodeScalar : String -> Wrapped -> Elm.Expression
 decodeScalar scalarName nullable =
     let
         lowered =
             String.toLower scalarName
     in
-    if List.member lowered [ "string", "int", "float" ] then
-        Elm.valueFrom (Elm.moduleName [ "Json", "Decode" ]) (Utils.String.formatValue scalarName)
+    case lowered of
+        "string" ->
+            Json.string
 
-    else if lowered == "boolean" then
-        Elm.valueFrom (Elm.moduleName [ "Json", "Decode" ]) "bool"
+        "int" ->
+            Json.int
 
-    else if lowered == "id" then
-        GenEngine.decodeId
+        "float" ->
+            Json.float
 
-    else
-        Elm.valueFrom (Elm.moduleName [ "Scalar" ]) (Utils.String.formatValue scalarName)
-            |> Elm.get "decoder"
+        "id" ->
+            Engine.decodeId
+
+        "boolean" ->
+            Json.bool
+
+        _ ->
+            Elm.valueFrom (Elm.moduleName [ "Scalar" ]) (Utils.String.formatValue scalarName)
+                |> Elm.get "decoder"
 
 
 generateFiles : GraphQL.Schema.Schema -> List Elm.File
@@ -256,6 +257,7 @@ generateFiles graphQLSchema =
         masterObjectFile =
             Elm.file (Elm.moduleName [ "TnGql", "Object" ])
                 (phantomTypeDeclarations
-                    |> List.map Elm.expose)
+                    |> List.map Elm.expose
+                )
     in
     masterObjectFile :: objectFiles

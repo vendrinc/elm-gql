@@ -2,7 +2,7 @@ module Generate.Enums exposing (generateFiles)
 
 import Dict
 import Elm
-import Elm.Gen.Json.Decode
+import Elm.Gen.Json.Decode as Decode
 import Elm.Pattern
 import GraphQL.Schema
 import String.Extra as String
@@ -36,22 +36,20 @@ generateFiles graphQLSchema =
 
                     enumDecoder =
                         Elm.declaration "decoder"
-                            (Elm.Gen.Json.Decode.string
-                                |> Elm.pipe
-                                    (Elm.apply
-                                        Elm.Gen.Json.Decode.andThen
-                                        [ Elm.lambda [ Elm.Pattern.var "string" ]
+                            (Decode.string
+                                |> Decode.andThen
+                                    (\_ ->
+                                        Elm.lambda [ Elm.Pattern.var "string" ]
                                             (Elm.caseOf (Elm.value "string")
                                                 ((constructors
                                                     |> List.map
                                                         (\( name, _ ) ->
-                                                            ( Elm.Pattern.string name, Elm.apply Elm.Gen.Json.Decode.succeed [ Elm.value name ] )
+                                                            ( Elm.Pattern.string name, Decode.succeed (Elm.value name) )
                                                         )
                                                  )
-                                                    ++ [ ( Elm.Pattern.wildcard, Elm.apply Elm.Gen.Json.Decode.fail [ Elm.string "Invalid type" ] ) ]
+                                                    ++ [ ( Elm.Pattern.wildcard, Decode.fail (Elm.string "Invalid type") ) ]
                                                 )
                                             )
-                                        ]
                                     )
                             )
                 in
