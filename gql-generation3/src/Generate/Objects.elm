@@ -32,10 +32,10 @@ objectToModule object =
     let
         fieldTypesAndImpls =
             object.fields
-                |> List.filter
-                    (\field ->
-                        List.member field.name [ "name", "slug", "id", "viewUrl", "parent" ]
-                    )
+                --|> List.filter
+                --    (\field ->
+                --        List.member field.name [ "name", "slug", "id", "viewUrl", "parent" ]
+                --    )
                 |> List.foldl
                     (\field accDecls ->
                         let
@@ -124,8 +124,18 @@ implementField objectName fieldName fieldType wrapped =
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) nestedObjectName [ Elm.Annotation.var "data" ] ]
-                    (Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) objectName [ wrapAnnotation wrapped (Elm.Annotation.var "data") ])
+                    [ Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ])
+                        "Selection"
+                        [ Elm.Annotation.named (Elm.moduleName [ "TnGql", "Object" ]) nestedObjectName
+                        , Elm.Annotation.var "data"
+                        ]
+                    ]
+                    (Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ])
+                        "Selection"
+                        [ Elm.Annotation.named (Elm.moduleName [ "TnGql", "Object" ]) objectName
+                        , wrapAnnotation wrapped (Elm.Annotation.var "data")
+                        ]
+                    )
             }
 
         GraphQL.Schema.Type.Interface interfaceName ->
@@ -241,8 +251,8 @@ generateFiles graphQLSchema =
             graphQLSchema.objects
                 |> Dict.toList
                 |> List.map Tuple.second
-                |> List.filter (\object -> object.name == "App")
 
+        --|> List.filter (\object -> object.name == "App")
         objectFiles =
             objects
                 |> List.map objectToModule
