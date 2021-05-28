@@ -7,7 +7,7 @@ import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Json
 import Elm.Gen.Json.Encode as Encode
 import Elm.Pattern
-import Generate.Args
+import Generate.Args exposing (optionalMaker)
 import Generate.Common as Common
 import GraphQL.Schema
 import GraphQL.Schema.InputObject
@@ -82,8 +82,38 @@ inputObjectToDeclarations input =
                 |> List.map (\( name, typeAnnotation, _ ) -> ( name, typeAnnotation ))
                 |> Elm.Annotation.record
 
+        optionalTypeProof =
+            if hasOptionalArgs then
+                Just
+                    (Elm.customType input.name
+                        [ ( input.name, [] )
+                        ]
+                    )
+
+            else
+                Nothing
+
+        optionalConstructor =
+            if hasOptionalArgs then
+                Just
+                    (Generate.Args.optionalMaker input.name
+                        (List.filter
+                            (\field ->
+                                case field.type_ of
+                                    GraphQL.Schema.Type.Nullable innerType ->
+                                        True
+
+                                    _ ->
+                                        False
+                            )
+                            input.fields
+                        )
+                    )
+
+            else
+                Nothing
+
         inputDecl =
-            --if hasRequiredArgs && hasOptionalArgs then
             Elm.functionWith (Utils.String.formatValue input.name)
                 (List.filterMap identity
                     [ justIf hasRequiredArgs ( Elm.Annotation.string, Elm.Pattern.var "required" )
@@ -119,15 +149,14 @@ inputObjectToDeclarations input =
                     )
                     (Elm.string input.name)
                 )
-
-        --else
-        --    fieldTypesAndImpls
-        --        |> List.map (\( name, _, expression ) -> ( name, expression ))
-        --        |> Elm.record
-        --        |> Elm.declaration (String.decapitalize input.name)
     in
-    [ inputDecl |> Elm.expose
-    ]
+    List.filterMap identity
+        [ optionalTypeProof
+        , optionalConstructor
+        , inputDecl
+            |> Elm.expose
+            |> Just
+        ]
 
 
 justIf : Bool -> a -> Maybe a
