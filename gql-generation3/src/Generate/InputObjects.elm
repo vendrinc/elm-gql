@@ -5,7 +5,9 @@ import Elm
 import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Json
+import Elm.Gen.Json.Encode as Encode
 import Elm.Pattern
+import Generate.Args
 import Generate.Common as Common
 import GraphQL.Schema
 import GraphQL.Schema.InputObject
@@ -31,12 +33,36 @@ import Utils.String
 inputObjectToDeclarations : GraphQL.Schema.InputObject.InputObject -> List Elm.Declaration
 inputObjectToDeclarations input =
     let
+        ( required, optional ) =
+            List.partition
+                (\arg ->
+                    case arg.type_ of
+                        GraphQL.Schema.Type.Nullable innerType ->
+                            False
+
+                        _ ->
+                            True
+                )
+                input.fields
+
+        hasRequiredArgs =
+            case required of
+                [] ->
+                    False
+
+                _ ->
+                    True
+
+        hasOptionalArgs =
+            case optional of
+                [] ->
+                    False
+
+                _ ->
+                    True
+
         fieldTypesAndImpls =
             input.fields
-                --|> List.filter
-                --    (\field ->
-                --        List.member field.name [ "name", "slug", "id", "viewUrl", "parent" ]
-                --    )
                 |> List.foldl
                     (\field accDecls ->
                         let
@@ -56,18 +82,61 @@ inputObjectToDeclarations input =
                 |> List.map (\( name, typeAnnotation, _ ) -> ( name, typeAnnotation ))
                 |> Elm.Annotation.record
 
-        inputImplementation =
-            fieldTypesAndImpls
-                |> List.map (\( name, _, expression ) -> ( name, expression ))
-                |> Elm.record
-
         inputDecl =
-            Elm.declarationWith (String.decapitalize input.name)
-                inputTypeAnnotation
-                inputImplementation
+            --if hasRequiredArgs && hasOptionalArgs then
+            Elm.functionWith (Utils.String.formatValue input.name)
+                (List.filterMap identity
+                    [ justIf hasRequiredArgs ( Elm.Annotation.string, Elm.Pattern.var "required" )
+                    , justIf hasOptionalArgs ( Elm.Annotation.string, Elm.Pattern.var "optional" )
+                    ]
+                )
+                (Engine.arg
+                    (Encode.object <|
+                        if hasOptionalArgs && hasRequiredArgs then
+                            Elm.append
+                                (Elm.list
+                                    (required
+                                        |> List.map Generate.Args.prepareRequired
+                                    )
+                                )
+                                (Elm.apply
+                                    (Elm.valueFrom Engine.moduleName_ "encodeOptionals")
+                                    [ Elm.value "optional" ]
+                                )
+
+                        else if hasOptionalArgs then
+                            Elm.apply (Elm.valueFrom Engine.moduleName_ "encodeOptionals")
+                                [ Elm.value "optional" ]
+
+                        else if hasRequiredArgs then
+                            Elm.list
+                                (required
+                                    |> List.map Generate.Args.prepareRequired
+                                )
+
+                        else
+                            Elm.list []
+                    )
+                    (Elm.string input.name)
+                )
+
+        --else
+        --    fieldTypesAndImpls
+        --        |> List.map (\( name, _, expression ) -> ( name, expression ))
+        --        |> Elm.record
+        --        |> Elm.declaration (String.decapitalize input.name)
     in
     [ inputDecl |> Elm.expose
     ]
+
+
+justIf : Bool -> a -> Maybe a
+justIf condition val =
+    if condition then
+        Just val
+
+    else
+        Nothing
 
 
 type Wrapped

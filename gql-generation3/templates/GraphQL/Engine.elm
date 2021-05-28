@@ -8,6 +8,7 @@ module GraphQL.Engine exposing
     , queryString
     , Argument(..), maybeScalarEncode
     , Id, encodeId, decodeId
+    , encodeOptionals
     )
 
 {-|
@@ -30,12 +31,15 @@ module GraphQL.Engine exposing
 
 @docs Id, encodeId, decodeId
 
+@docs encodeOptionals
+
 -}
 
 import Dict exposing (Dict)
 import Http
 import Json.Decode as Json
 import Json.Encode as Encode
+import Set
 
 
 {-| -}
@@ -404,6 +408,23 @@ type Optional arg
 arg : Encode.Value -> String -> Argument
 arg val typename =
     ArgValue val typename
+
+
+encodeOptionals : List (Optional arg) -> List ( String, Argument )
+encodeOptionals opts =
+    List.foldl
+        (\(Optional optName argument) (( found, gathered ) as skip) ->
+            if Set.member optName found then
+                skip
+
+            else
+                ( Set.insert optName found
+                , ( optName, argument ) :: gathered
+                )
+        )
+        ( Set.empty, [] )
+        opts
+        |> Tuple.second
 
 
 {-|
