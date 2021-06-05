@@ -1,8 +1,8 @@
 module Generate.Operations exposing (Operation(..), generateFiles)
 
-import Dict
 import Elm
 import Elm.Annotation
+import Elm.Debug
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Encode as Encode
 import Elm.Pattern
@@ -114,10 +114,10 @@ queryToModule op queryOperation =
                                 |> List.map Generate.Args.prepareRequired
                             )
                         )
-                        (Elm.value "optional")
+                        (Engine.encodeOptionals (Elm.value "optional"))
 
                  else if hasOptionalArgs then
-                    Elm.value "optional"
+                    Engine.encodeOptionals (Elm.value "optional")
 
                  else if hasRequiredArgs then
                     Elm.list
@@ -217,12 +217,16 @@ typename op =
 
 generateFiles : Operation -> List GraphQL.Schema.Operation.Operation -> List Elm.File
 generateFiles op ops =
-    --List.filterMap
-    --    (\oper ->
-    --        if String.toLower oper.name == "App" then
-    --            Just (queryToModule op oper)
-    --
-    --        else
-    --            Nothing
-    --    )
-    List.map (queryToModule op) ops
+    List.filterMap
+        (\oper ->
+            if String.toLower oper.name == "app" then
+                Just (queryToModule op oper)
+
+            else
+                Nothing
+        )
+        ops
+
+
+
+--List.map (queryToModule op) ops

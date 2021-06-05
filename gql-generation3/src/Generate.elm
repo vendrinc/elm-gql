@@ -28,30 +28,30 @@ main =
                 case msg of
                     SchemaReceived (Ok schema) ->
                         let
-                            enumFiles =
-                                Generate.Enums.generateFiles schema
-
-                            objectFiles =
-                                Generate.Objects.generateFiles schema
-
-                            inputFiles =
-                                Generate.InputObjects.generateFiles schema
-
+                            --enumFiles =
+                            --    Generate.Enums.generateFiles schema
+                            --
+                            --objectFiles =
+                            --    Generate.Objects.generateFiles schema
+                            --
+                            --inputFiles =
+                            --    Generate.InputObjects.generateFiles schema
                             queryFiles =
                                 schema.queries
                                     |> Dict.toList
                                     |> List.map Tuple.second
                                     |> Generate.Operations.generateFiles Generate.Operations.Query
 
-                            mutationFiles =
-                                schema.mutations
-                                    |> Dict.toList
-                                    |> List.map Tuple.second
-                                    |> Generate.Operations.generateFiles Generate.Operations.Mutation
+                            --mutationFiles =
+                            --    schema.mutations
+                            --        |> Dict.toList
+                            --        |> List.map Tuple.second
+                            --        |> Generate.Operations.generateFiles Generate.Operations.Mutation
                         in
                         ( model
                         , Elm.Gen.files
-                            (List.map Elm.render (enumFiles ++ objectFiles ++ queryFiles ++ mutationFiles ++ inputFiles))
+                            --(List.map Elm.render (enumFiles ++ objectFiles ++ queryFiles ++ mutationFiles ++ inputFiles))
+                            (List.map Elm.render queryFiles)
                         )
 
                     SchemaReceived (Err err) ->
