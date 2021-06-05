@@ -1,7 +1,7 @@
 module Elm.Gen.Json.Encode exposing (array, bool, dict, encode, float, id_, int, list, moduleName_, null, object, set, string)
 
 import Elm
-import Elm.Annotation
+import Elm.Annotation as Type
 
 
 {-| The name of this module. -}
@@ -25,17 +25,167 @@ id_ :
     , dict : Elm.Expression
     }
 id_ =
-    { encode = Elm.valueFrom moduleName_ "encode"
-    , string = Elm.valueFrom moduleName_ "string"
-    , int = Elm.valueFrom moduleName_ "int"
-    , float = Elm.valueFrom moduleName_ "float"
-    , bool = Elm.valueFrom moduleName_ "bool"
-    , null = Elm.valueFrom moduleName_ "null"
-    , list = Elm.valueFrom moduleName_ "list"
-    , array = Elm.valueFrom moduleName_ "array"
-    , set = Elm.valueFrom moduleName_ "set"
-    , object = Elm.valueFrom moduleName_ "object"
-    , dict = Elm.valueFrom moduleName_ "dict"
+    { encode =
+        Elm.valueWith
+            moduleName_
+            "encode"
+            (Type.function
+                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Int" []
+                , Type.namedWith
+                    (Elm.moduleName [ "Json", "Encode" ])
+                    "Value"
+                    []
+                ]
+                (Type.namedWith (Elm.moduleName [ "String" ]) "String" [])
+            )
+    , string =
+        Elm.valueWith
+            moduleName_
+            "string"
+            (Type.function
+                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" [] ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+    , int =
+        Elm.valueWith
+            moduleName_
+            "int"
+            (Type.function
+                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Int" [] ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+    , float =
+        Elm.valueWith
+            moduleName_
+            "float"
+            (Type.function
+                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Float" [] ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+    , bool =
+        Elm.valueWith
+            moduleName_
+            "bool"
+            (Type.function
+                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Bool" [] ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+    , null =
+        Elm.valueWith
+            moduleName_
+            "null"
+            (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" [])
+    , list =
+        Elm.valueWith
+            moduleName_
+            "list"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        (Elm.moduleName [ "Json", "Encode" ])
+                        "Value"
+                        []
+                    )
+                , Type.namedWith
+                    (Elm.moduleName [ "List" ])
+                    "List"
+                    [ Type.var "a" ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+    , array =
+        Elm.valueWith
+            moduleName_
+            "array"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        (Elm.moduleName [ "Json", "Encode" ])
+                        "Value"
+                        []
+                    )
+                , Type.namedWith
+                    (Elm.moduleName [ "Array" ])
+                    "Array"
+                    [ Type.var "a" ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+    , set =
+        Elm.valueWith
+            moduleName_
+            "set"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        (Elm.moduleName [ "Json", "Encode" ])
+                        "Value"
+                        []
+                    )
+                , Type.namedWith
+                    (Elm.moduleName [ "Set" ])
+                    "Set"
+                    [ Type.var "a" ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+    , object =
+        Elm.valueWith
+            moduleName_
+            "object"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "List" ])
+                    "List"
+                    [ Type.tuple
+                        (Type.namedWith
+                            (Elm.moduleName [ "String" ])
+                            "String"
+                            []
+                        )
+                        (Type.namedWith
+                            (Elm.moduleName [ "Json", "Encode" ])
+                            "Value"
+                            []
+                        )
+                    ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+    , dict =
+        Elm.valueWith
+            moduleName_
+            "dict"
+            (Type.function
+                [ Type.function
+                    [ Type.var "k" ]
+                    (Type.namedWith (Elm.moduleName [ "String" ]) "String" [])
+                , Type.function
+                    [ Type.var "v" ]
+                    (Type.namedWith
+                        (Elm.moduleName [ "Json", "Encode" ])
+                        "Value"
+                        []
+                    )
+                , Type.namedWith
+                    (Elm.moduleName [ "Dict" ])
+                    "Dict"
+                    [ Type.var "k", Type.var "v" ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
     }
 
 
@@ -62,14 +212,28 @@ the amount of indentation in the resulting string.
 -}
 encode : Elm.Expression -> Elm.Expression -> Elm.Expression
 encode arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "encode") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "encode"
+            (Type.function
+                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Int" []
+                , Type.namedWith
+                    (Elm.moduleName [ "Json", "Encode" ])
+                    "Value"
+                    []
+                ]
+                (Type.namedWith (Elm.moduleName [ "String" ]) "String" [])
+            )
+        )
+        [ arg1, arg2 ]
 
 
 {-| Represents a JavaScript value.
 -}
-typeValue : { annotation : Elm.Annotation.Annotation }
+typeValue : { annotation : Type.Annotation }
 typeValue =
-    { annotation = Elm.Annotation.named moduleName_ "Value" }
+    { annotation = Type.named moduleName_ "Value" }
 
 
 {-| Turn a `String` into a JSON string.
@@ -82,7 +246,17 @@ typeValue =
 -}
 string : Elm.Expression -> Elm.Expression
 string arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "string") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "string"
+            (Type.function
+                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" [] ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
+        [ arg1 ]
 
 
 {-| Turn an `Int` into a JSON number.
@@ -95,7 +269,17 @@ string arg1 =
 -}
 int : Elm.Expression -> Elm.Expression
 int arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "int") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "int"
+            (Type.function
+                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Int" [] ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
+        [ arg1 ]
 
 
 {-| Turn a `Float` into a JSON number.
@@ -118,7 +302,17 @@ both as `null`.
 -}
 float : Elm.Expression -> Elm.Expression
 float arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "float") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "float"
+            (Type.function
+                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Float" [] ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
+        [ arg1 ]
 
 
 {-| Turn a `Bool` into a JSON boolean.
@@ -130,7 +324,17 @@ float arg1 =
 -}
 bool : Elm.Expression -> Elm.Expression
 bool arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "bool") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "bool"
+            (Type.function
+                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Bool" [] ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
+        [ arg1 ]
 
 
 {-| Create a JSON `null` value.
@@ -141,7 +345,10 @@ bool arg1 =
 -}
 null : Elm.Expression
 null =
-    Elm.valueFrom moduleName_ "null"
+    Elm.valueWith
+        moduleName_
+        "null"
+        (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" [])
 
 
 {-| Turn a `List` into a JSON array.
@@ -155,21 +362,84 @@ null =
 -}
 list : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 list arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "list") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "list"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        (Elm.moduleName [ "Json", "Encode" ])
+                        "Value"
+                        []
+                    )
+                , Type.namedWith
+                    (Elm.moduleName [ "List" ])
+                    "List"
+                    [ Type.var "a" ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| Turn an `Array` into a JSON array.
 -}
 array : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 array arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "array") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "array"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        (Elm.moduleName [ "Json", "Encode" ])
+                        "Value"
+                        []
+                    )
+                , Type.namedWith
+                    (Elm.moduleName [ "Array" ])
+                    "Array"
+                    [ Type.var "a" ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| Turn an `Set` into a JSON array.
 -}
 set : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 set arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "set") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "set"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        (Elm.moduleName [ "Json", "Encode" ])
+                        "Value"
+                        []
+                    )
+                , Type.namedWith
+                    (Elm.moduleName [ "Set" ])
+                    "Set"
+                    [ Type.var "a" ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| Create a JSON object.
@@ -187,7 +457,32 @@ set arg1 arg2 =
 -}
 object : Elm.Expression -> Elm.Expression
 object arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "object") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "object"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "List" ])
+                    "List"
+                    [ Type.tuple
+                        (Type.namedWith
+                            (Elm.moduleName [ "String" ])
+                            "String"
+                            []
+                        )
+                        (Type.namedWith
+                            (Elm.moduleName [ "Json", "Encode" ])
+                            "Value"
+                            []
+                        )
+                    ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
+        [ arg1 ]
 
 
 {-| Turn a `Dict` into a JSON object.
@@ -209,5 +504,27 @@ dict :
     -> Elm.Expression
 dict arg1 arg2 arg3 =
     Elm.apply
-        (Elm.valueFrom moduleName_ "dict")
+        (Elm.valueWith
+            moduleName_
+            "dict"
+            (Type.function
+                [ Type.function
+                    [ Type.var "k" ]
+                    (Type.namedWith (Elm.moduleName [ "String" ]) "String" [])
+                , Type.function
+                    [ Type.var "v" ]
+                    (Type.namedWith
+                        (Elm.moduleName [ "Json", "Encode" ])
+                        "Value"
+                        []
+                    )
+                , Type.namedWith
+                    (Elm.moduleName [ "Dict" ])
+                    "Dict"
+                    [ Type.var "k", Type.var "v" ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
         [ arg1 Elm.pass, arg2 Elm.pass, arg3 ]

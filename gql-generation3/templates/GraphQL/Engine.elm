@@ -410,6 +410,7 @@ arg val typename =
     ArgValue val typename
 
 
+{-| -}
 encodeOptionals : List (Optional arg) -> List ( String, Argument )
 encodeOptionals opts =
     List.foldl

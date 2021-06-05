@@ -1,6 +1,8 @@
 module Generate.Args exposing (Wrapped(..), encodeScalar, optionalMaker, prepareRequired)
 
 import Elm
+import Elm.Annotation
+import Elm.Debug
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Encode as Encode
 import Elm.Pattern
@@ -64,6 +66,49 @@ encodeScalar scalarName wrapped =
                                 |> Elm.get "encode"
                             )
                             [ val ]
+
+
+scalarType : Wrapped -> String -> Elm.Annotation.Annotation
+scalarType wrapped scalarName =
+    case wrapped of
+        InList inner ->
+            Elm.Annotation.list
+                (scalarType inner scalarName)
+
+        InMaybe inner ->
+            Debug.log "scalar maybe" <|
+                Elm.Annotation.maybe
+                    (scalarType inner scalarName)
+
+        UnwrappedValue ->
+            Debug.log "scalar inner" <|
+                let
+                    lowered =
+                        String.toLower scalarName
+                in
+                case lowered of
+                    "int" ->
+                        Elm.Annotation.int
+
+                    "float" ->
+                        Elm.Annotation.float
+
+                    "string" ->
+                        Elm.Annotation.string
+
+                    "boolean" ->
+                        Elm.Annotation.bool
+
+                    "id" ->
+                        --Engine.typeId.annotation
+                        Elm.Annotation.named
+                            Engine.moduleName_
+                            (Utils.String.formatTypename "id")
+
+                    _ ->
+                        Elm.Annotation.named
+                            (Elm.moduleName [ "Scalar" ])
+                            (Utils.String.formatTypename scalarName)
 
 
 prepareRequired :
@@ -133,7 +178,6 @@ createOptionalCreatorHelper :
                 , type_ : Type
             }
     -> List ( String, Elm.Expression )
-    -- -> List ( String, Elm.Annotation.Annotation )
     -> Elm.Declaration
 createOptionalCreatorHelper name options fields =
     case options of
@@ -151,7 +195,11 @@ createOptionalCreatorHelper name options fields =
             createOptionalCreatorHelper name
                 remain
                 (( arg.name
-                 , Elm.lambda [ Elm.Pattern.var "val" ]
+                 , Elm.lambdaWith
+                    [ ( Elm.Pattern.var "val"
+                      , implemented.annotation
+                      )
+                    ]
                     (implemented.expression
                      -- , Elm.string fieldName
                      -- , wrapExpression wrapped (Elm.val "val")
@@ -176,8 +224,7 @@ implementArgEncoder :
     -> Wrapped
     ->
         { expression : Elm.Expression
-
-        -- , annotation : Elm.TypeAnnotation
+        , annotation : Elm.Annotation.Annotation
         }
 implementArgEncoder objectName fieldName fieldType wrapped =
     case fieldType of
@@ -193,17 +240,21 @@ implementArgEncoder objectName fieldName fieldType wrapped =
             --         fieldSignature objectName fieldType
             -- in
             { expression =
-                Elm.apply (Elm.valueFrom (Elm.moduleName [ "GraphQL", "Engine" ]) "optional")
-                    [ Elm.string fieldName
-                    , Engine.arg
+                Engine.optional
+                    (Elm.string fieldName)
+                    (Engine.arg
                         (encodeScalar scalarName
                             wrapped
-                            (Elm.value "val")
+                            (Elm.valueWith (Elm.moduleName [])
+                                "val"
+                                (scalarType wrapped scalarName)
+                                |> Elm.Debug.annotation Debug.log "Inner"
+                            )
+                            |> Elm.Debug.annotation Debug.log "Encoded"
                         )
                         (Elm.string "TODO")
-                    ]
-
-            -- , annotation = signature.annotation
+                    )
+            , annotation = scalarType wrapped scalarName
             }
 
         GraphQL.Schema.Type.Enum enumName ->
@@ -215,8 +266,7 @@ implementArgEncoder objectName fieldName fieldType wrapped =
                 Engine.field
                     (Elm.string fieldName)
                     (Elm.valueFrom (Elm.moduleName [ "TnGql", "Enum", enumName ]) "decoder")
-
-            -- , annotation = signature.annotation
+            , annotation = Elm.Annotation.unit
             }
 
         GraphQL.Schema.Type.Object nestedObjectName ->
@@ -227,8 +277,8 @@ implementArgEncoder objectName fieldName fieldType wrapped =
                         (Elm.value "selection_")
                      -- , wrapExpression wrapped (Elm.val "selection_")
                     )
+            , annotation = Elm.Annotation.unit
 
-            -- , annotation =
             --     Elm.funAnn
             --         (Common.modules.engine.fns.selection nestedObjectName (Elm.typeVar "data"))
             --         (Common.modules.engine.fns.selection objectName (Elm.typeVar "data")
@@ -242,8 +292,7 @@ implementArgEncoder objectName fieldName fieldType wrapped =
             --         fieldSignature objectName fieldType
             -- in
             { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
-
-            -- , annotation = signature.annotation
+            , annotation = Elm.Annotation.string
             }
 
         GraphQL.Schema.Type.InputObject inputName ->
@@ -252,8 +301,7 @@ implementArgEncoder objectName fieldName fieldType wrapped =
             --         fieldSignature objectName fieldType
             -- in
             { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
-
-            -- , annotation = signature.annotation
+            , annotation = Elm.Annotation.string
             }
 
         GraphQL.Schema.Type.Union unionName ->
@@ -264,8 +312,8 @@ implementArgEncoder objectName fieldName fieldType wrapped =
                         (Elm.value "union_")
                      -- , wrapExpression wrapped (Elm.val "union_")
                     )
+            , annotation = Elm.Annotation.string
 
-            -- , annotation =
             --     Elm.funAnn
             --         (Common.modules.engine.fns.selectUnion unionName (Elm.typeVar "data"))
             --         (Common.modules.engine.fns.selection objectName (Elm.typeVar "data")
