@@ -187,8 +187,6 @@ createOptionalCreatorHelper name options fields =
 
         arg :: remain ->
             let
-                -- ( annotation, argumentTypeLinkage_ ) =
-                --     Common.gqlTypeToElmTypeAnnotation arg.type_ Nothing
                 implemented =
                     implementArgEncoder name arg.name arg.type_ UnwrappedValue
             in
@@ -200,21 +198,10 @@ createOptionalCreatorHelper name options fields =
                       , implemented.annotation
                       )
                     ]
-                    (implemented.expression
-                     -- , Elm.string fieldName
-                     -- , wrapExpression wrapped (Elm.val "val")
-                    )
+                    implemented.expression
                  )
                     :: fields
                 )
-
-
-
--- (( arg.name
---  , implemented.annotation
---  )
---     :: fieldAnnotations
--- )
 
 
 implementArgEncoder :
@@ -235,10 +222,11 @@ implementArgEncoder objectName fieldName fieldType wrapped =
             implementArgEncoder objectName fieldName newType (InList wrapped)
 
         GraphQL.Schema.Type.Scalar scalarName ->
-            -- let
-            --     signature =
-            --         fieldSignature objectName fieldType
-            -- in
+            let
+                anchor =
+                    Elm.Annotation.named (Elm.moduleName [ "TnGql", "Object" ])
+                        objectName
+            in
             { expression =
                 Engine.optional
                     (Elm.string fieldName)
@@ -248,20 +236,16 @@ implementArgEncoder objectName fieldName fieldType wrapped =
                             (Elm.valueWith (Elm.moduleName [])
                                 "val"
                                 (scalarType wrapped scalarName)
-                                |> Elm.Debug.annotation Debug.log "Inner"
                             )
-                            |> Elm.Debug.annotation Debug.log "Encoded"
                         )
                         (Elm.string "TODO")
                     )
+                    |> Elm.withAnnotation
+                        (Engine.typeOptional.annotation anchor)
             , annotation = scalarType wrapped scalarName
             }
 
         GraphQL.Schema.Type.Enum enumName ->
-            -- let
-            --     signature =
-            --         fieldSignature objectName fieldType
-            -- in
             { expression =
                 Engine.field
                     (Elm.string fieldName)
@@ -275,7 +259,6 @@ implementArgEncoder objectName fieldName fieldType wrapped =
                     (Engine.object
                         (Elm.string fieldName)
                         (Elm.value "selection_")
-                     -- , wrapExpression wrapped (Elm.val "selection_")
                     )
             , annotation = Elm.Annotation.unit
 
@@ -287,19 +270,11 @@ implementArgEncoder objectName fieldName fieldType wrapped =
             }
 
         GraphQL.Schema.Type.Interface interfaceName ->
-            -- let
-            --     signature =
-            --         fieldSignature objectName fieldType
-            -- in
             { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
             , annotation = Elm.Annotation.string
             }
 
         GraphQL.Schema.Type.InputObject inputName ->
-            -- let
-            --     signature =
-            --         fieldSignature objectName fieldType
-            -- in
             { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
             , annotation = Elm.Annotation.string
             }

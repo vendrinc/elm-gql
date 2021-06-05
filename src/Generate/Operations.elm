@@ -35,7 +35,9 @@ queryToModule op queryOperation =
             directory op
 
         returnType =
-            Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) "Selection" [ Elm.Annotation.var (typename op), Elm.Annotation.var "value" ]
+            Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ])
+                "Selection"
+                [ Elm.Annotation.var (typename op), Elm.Annotation.var "value" ]
 
         ( required, optional ) =
             List.partition
@@ -64,6 +66,10 @@ queryToModule op queryOperation =
 
                 _ ->
                     True
+
+        anchor =
+            Elm.Annotation.named (Elm.moduleName [ "TnGql", "Object" ])
+                (String.toSentenceCase queryOperation.name)
 
         optionalInputType =
             Elm.Annotation.list
@@ -114,10 +120,25 @@ queryToModule op queryOperation =
                                 |> List.map Generate.Args.prepareRequired
                             )
                         )
-                        (Engine.encodeOptionals (Elm.value "optional"))
+                        (Engine.encodeOptionals
+                            (Elm.valueWith
+                                (Elm.moduleName [])
+                                "optional"
+                                (Elm.Annotation.list
+                                    (Engine.typeOptional.annotation anchor)
+                                )
+                            )
+                        )
 
                  else if hasOptionalArgs then
-                    Engine.encodeOptionals (Elm.value "optional")
+                    Engine.encodeOptionals
+                        (Elm.valueWith
+                            (Elm.moduleName [])
+                            "optional"
+                            (Elm.Annotation.list
+                                (Engine.typeOptional.annotation anchor)
+                            )
+                        )
 
                  else if hasRequiredArgs then
                     Elm.list
@@ -129,14 +150,26 @@ queryToModule op queryOperation =
                     Elm.list []
                 )
                 (Elm.string queryOperation.name)
-                (Elm.value "selection")
+                (Elm.valueWith (Elm.moduleName [])
+                    "selection"
+                    (Engine.typeSelection.annotation anchor (Elm.Annotation.var "data"))
+                )
+                |> Elm.withAnnotation
+                    (Engine.typeSelection.annotation Engine.typeQuery.annotation (Elm.Annotation.var "data"))
 
         queryFunction =
             Elm.functionWith queryOperation.name
                 (List.filterMap identity
                     [ justIf hasRequiredArgs ( Elm.Annotation.string, Elm.Pattern.var "required" )
-                    , justIf hasOptionalArgs ( Elm.Annotation.string, Elm.Pattern.var "optional" )
-                    , Just ( Elm.Annotation.string, Elm.Pattern.var "selection" )
+                    , justIf hasOptionalArgs
+                        ( Elm.Annotation.list
+                            (Engine.typeOptional.annotation anchor)
+                        , Elm.Pattern.var "optional"
+                        )
+                    , Just
+                        ( Engine.typeSelection.annotation anchor (Elm.Annotation.var "data")
+                        , Elm.Pattern.var "selection"
+                        )
                     ]
                 )
                 expression
@@ -151,25 +184,6 @@ queryToModule op queryOperation =
             , Just queryFunction
             ]
         )
-
-
-
--- fieldSignature :
---     String
---     -> Type
---     ->
---         { annotation : Elm.Annotation.Annotation
---         }
--- fieldSignature objectName fieldType =
---     let
---         ( dataType ) =
---             Common.gqlTypeToElmTypeAnnotation fieldType Nothing
---         typeAnnotation =
---             Common.modules.engine.fns.selection objectName dataType
---     in
---     { annotation = typeAnnotation
---     }
---
 
 
 applyIf : Bool -> (c -> c) -> c -> c
