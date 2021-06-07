@@ -2,6 +2,7 @@ module Generate.Enums exposing (generateFiles)
 
 import Dict
 import Elm
+import Elm.Annotation
 import Elm.Gen.Json.Decode as Decode
 import Elm.Pattern
 import GraphQL.Schema
@@ -30,7 +31,13 @@ generateFiles graphQLSchema =
 
                     listOfValues =
                         constructors
-                            |> List.map (Tuple.first >> Elm.value)
+                            |> List.map
+                                (\( enumName, _ ) ->
+                                    Elm.valueWith
+                                        (Elm.moduleName [])
+                                        enumName
+                                        (Elm.Annotation.named (Elm.moduleName []) enumDefinition.name)
+                                )
                             |> Elm.list
                             |> Elm.declaration "list"
 
@@ -39,21 +46,24 @@ generateFiles graphQLSchema =
                             (Decode.string
                                 |> Decode.andThen
                                     (\_ ->
-                                        Elm.lambda [ Elm.Pattern.var "string" ]
-                                            (Elm.caseOf (Elm.value "string")
-                                                ((constructors
-                                                    |> List.map
-                                                        (\( name, _ ) ->
-                                                            ( Elm.Pattern.string name, Decode.succeed (Elm.value name) )
-                                                        )
-                                                 )
-                                                    ++ [ ( Elm.Pattern.wildcard, Decode.fail (Elm.string "Invalid type") ) ]
-                                                )
+                                        Elm.lambda "string"
+                                            Elm.Annotation.string
+                                            (\str ->
+                                                Elm.caseOf str
+                                                    ((constructors
+                                                        |> List.map
+                                                            (\( name, _ ) ->
+                                                                ( Elm.Pattern.string name, Decode.succeed (Elm.value name) )
+                                                            )
+                                                     )
+                                                        ++ [ ( Elm.Pattern.wildcard, Decode.fail (Elm.string "Invalid type") ) ]
+                                                    )
                                             )
                                     )
                             )
                 in
                 Elm.file (Elm.moduleName [ "TnGql", "Enum", enumDefinition.name ])
+                    ""
                     [ enumTypeDeclaration
                         |> Elm.expose
                     , listOfValues

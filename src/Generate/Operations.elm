@@ -179,6 +179,7 @@ queryToModule op queryOperation =
             [ "TnGql", dir, String.toSentenceCase queryOperation.name ]
     in
     Elm.file (Elm.moduleName moduleName)
+        ""
         (List.filterMap identity
             [ justIf hasOptionalArgs optionalMaker
             , Just queryFunction

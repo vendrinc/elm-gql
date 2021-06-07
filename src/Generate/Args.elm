@@ -76,39 +76,37 @@ scalarType wrapped scalarName =
                 (scalarType inner scalarName)
 
         InMaybe inner ->
-            Debug.log "scalar maybe" <|
-                Elm.Annotation.maybe
-                    (scalarType inner scalarName)
+            Elm.Annotation.maybe
+                (scalarType inner scalarName)
 
         UnwrappedValue ->
-            Debug.log "scalar inner" <|
-                let
-                    lowered =
-                        String.toLower scalarName
-                in
-                case lowered of
-                    "int" ->
-                        Elm.Annotation.int
+            let
+                lowered =
+                    String.toLower scalarName
+            in
+            case lowered of
+                "int" ->
+                    Elm.Annotation.int
 
-                    "float" ->
-                        Elm.Annotation.float
+                "float" ->
+                    Elm.Annotation.float
 
-                    "string" ->
-                        Elm.Annotation.string
+                "string" ->
+                    Elm.Annotation.string
 
-                    "boolean" ->
-                        Elm.Annotation.bool
+                "boolean" ->
+                    Elm.Annotation.bool
 
-                    "id" ->
-                        --Engine.typeId.annotation
-                        Elm.Annotation.named
-                            Engine.moduleName_
-                            (Utils.String.formatTypename "id")
+                "id" ->
+                    --Engine.typeId.annotation
+                    Elm.Annotation.named
+                        Engine.moduleName_
+                        (Utils.String.formatTypename "id")
 
-                    _ ->
-                        Elm.Annotation.named
-                            (Elm.moduleName [ "Scalar" ])
-                            (Utils.String.formatTypename scalarName)
+                _ ->
+                    Elm.Annotation.named
+                        (Elm.moduleName [ "Scalar" ])
+                        (Utils.String.formatTypename scalarName)
 
 
 prepareRequired :
@@ -255,10 +253,12 @@ implementArgEncoder objectName fieldName fieldType wrapped =
 
         GraphQL.Schema.Type.Object nestedObjectName ->
             { expression =
-                Elm.lambda [ Elm.Pattern.var "selection_" ]
-                    (Engine.object
-                        (Elm.string fieldName)
-                        (Elm.value "selection_")
+                Elm.lambda "selection_"
+                    Elm.Annotation.string
+                    (\sel ->
+                        Engine.object
+                            (Elm.string fieldName)
+                            sel
                     )
             , annotation = Elm.Annotation.unit
 
@@ -281,11 +281,12 @@ implementArgEncoder objectName fieldName fieldType wrapped =
 
         GraphQL.Schema.Type.Union unionName ->
             { expression =
-                Elm.lambda [ Elm.Pattern.var "union_" ]
-                    (Engine.object
-                        (Elm.string fieldName)
-                        (Elm.value "union_")
-                     -- , wrapExpression wrapped (Elm.val "union_")
+                Elm.lambda "union_"
+                    Elm.Annotation.string
+                    (\union ->
+                        Engine.object
+                            (Elm.string fieldName)
+                            union
                     )
             , annotation = Elm.Annotation.string
 

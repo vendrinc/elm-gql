@@ -64,6 +64,7 @@ objectToModule object =
             Elm.declarationWith (String.decapitalize object.name) objectTypeAnnotation objectImplementation
     in
     Elm.file (Elm.moduleName [ "TnGql", "Object", object.name ])
+        ""
         [ objectDecl |> Elm.expose
         ]
 
@@ -117,10 +118,17 @@ implementField objectName fieldName fieldType wrapped =
 
         GraphQL.Schema.Type.Object nestedObjectName ->
             { expression =
-                Elm.lambda [ Elm.Pattern.var "selection_" ]
-                    (Engine.object
-                        (Elm.string fieldName)
-                        (wrapExpression wrapped (Elm.value "selection_"))
+                Elm.lambda "selection_"
+                    (Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ])
+                        "Selection"
+                        [ Elm.Annotation.named (Elm.moduleName [ "TnGql", "Object" ]) nestedObjectName
+                        , Elm.Annotation.var "data"
+                        ]
+                    )
+                    (\sel ->
+                        Engine.object
+                            (Elm.string fieldName)
+                            (wrapExpression wrapped sel)
                     )
             , annotation =
                 Elm.Annotation.function
@@ -158,10 +166,12 @@ implementField objectName fieldName fieldType wrapped =
 
         GraphQL.Schema.Type.Union unionName ->
             { expression =
-                Elm.lambda [ Elm.Pattern.var "union_" ]
-                    (Engine.object
-                        (Elm.string fieldName)
-                        (wrapExpression wrapped (Elm.value "union_"))
+                Elm.lambda "union_"
+                    (Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) unionName [ Elm.Annotation.var "data" ])
+                    (\un ->
+                        Engine.object
+                            (Elm.string fieldName)
+                            (wrapExpression wrapped un)
                     )
             , annotation =
                 Elm.Annotation.function
@@ -266,6 +276,7 @@ generateFiles graphQLSchema =
 
         masterObjectFile =
             Elm.file (Elm.moduleName [ "TnGql", "Object" ])
+                "These are all the types we need to protect our API using phantom types."
                 (phantomTypeDeclarations
                     |> List.map Elm.expose
                 )
