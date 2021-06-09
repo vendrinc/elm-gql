@@ -1,18 +1,21 @@
 module Elm.Gen.GraphQL.Engine exposing (arg, decodeId, encodeId, encodeOptionals, enum, field, fieldWith, id_, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, typeArgument, typeId, typeMutation, typeOptional, typeQuery, typeSelection, union, with)
 
+{-| 
+
+
+-}
+
 import Elm
 import Elm.Annotation as Type
 
 
-{-| The name of this module.
--}
+{-| The name of this module. -}
 moduleName_ : Elm.Module
 moduleName_ =
     Elm.moduleName [ "GraphQL", "Engine" ]
 
 
-{-| Every value/function in this module in case you need to refer to it directly.
--}
+{-| Every value/function in this module in case you need to refer to it directly. -}
 id_ :
     { nullable : Elm.Expression
     , field : Elm.Expression
@@ -511,7 +514,8 @@ id_ =
                     "Maybe"
                     [ Type.var "a" ]
                 ]
-                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" [])
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
             )
     , encodeId =
         Elm.valueWith
@@ -523,7 +527,8 @@ id_ =
                     "Id"
                     []
                 ]
-                (Type.namedWith (Elm.moduleName [ "Json", "Decode" ]) "Value" [])
+                (Type.namedWith (Elm.moduleName [ "Json", "Decode" ]) "Value" []
+                )
             )
     , decodeId =
         Elm.valueWith
@@ -689,7 +694,8 @@ object arg1 arg2 =
 
 
 {-| -}
-objectWith : Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+objectWith :
+    Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
 objectWith arg1 arg2 arg3 =
     Elm.apply
         (Elm.valueWith
@@ -1224,7 +1230,8 @@ typeArgument =
 
 
 {-| -}
-maybeScalarEncode : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
+maybeScalarEncode :
+    (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 maybeScalarEncode arg1 arg2 =
     Elm.apply
         (Elm.valueWith
@@ -1243,7 +1250,8 @@ maybeScalarEncode arg1 arg2 =
                     "Maybe"
                     [ Type.var "a" ]
                 ]
-                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" [])
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
             )
         )
         [ arg1 Elm.pass, arg2 ]
@@ -1268,7 +1276,8 @@ encodeId arg1 =
                     "Id"
                     []
                 ]
-                (Type.namedWith (Elm.moduleName [ "Json", "Decode" ]) "Value" [])
+                (Type.namedWith (Elm.moduleName [ "Json", "Decode" ]) "Value" []
+                )
             )
         )
         [ arg1 ]

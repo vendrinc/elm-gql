@@ -14,7 +14,9 @@
     "build": "(cd elm-prefab; yarn install; yarn build; cd ..)",
     "generate": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm)",
     "test-generated": "(cd output ; elm make Main.elm)",
-    "elm-prefab": "node ./elm-prefab/dist/index.js"
+    "elm-prefab": "node ./elm-prefab/dist/index.js",
+    "generate-engine-docs": "cd templates ; elm-doc-preview --output engine-docs.json ; cd ..",
+    "gen-engine": "yarn generate-engine-docs; yarn elm-prefab install templates/engine-docs.json"
   },
   "repository": {
     "type": "git",
@@ -25,5 +27,8 @@
   "bugs": {
     "url": "https://github.com/ryannhg/elm-graphql/issues"
   },
-  "homepage": "https://github.com/ryannhg/elm-graphql#readme"
+  "homepage": "https://github.com/ryannhg/elm-graphql#readme",
+  "devDependencies": {
+    "elm-doc-preview": "^5.0.5"
+  }
 }
