@@ -15,29 +15,11 @@ import GraphQL.Schema.Type exposing (Type(..))
 import String.Extra as String
 
 
-
--- target
--- app : { slug : Maybe String, id : Maybe String } -> GraphQL.Engine.Selection TnGql.Object.App value -> GraphQL.Engine.Selection GraphQL.Engine.Query value
--- app =
---     \required selection ->
---     GraphQL.Engine.objectWith
---         [ ("slug", GraphQL.Engine.ArgValue (Maybe.map Json.Encode.string required.slug |> Maybe.withDefault Json.Encode.null) "string")
---         , ("id", GraphQL.Engine.ArgValue (Maybe.map Json.Encode.string required.id |> Maybe.withDefault Json.Encode.null) "string")
---         ]
---         "app"
---         selection
-
-
 queryToModule : Operation -> GraphQL.Schema.Operation.Operation -> Elm.File
 queryToModule op queryOperation =
     let
         dir =
             directory op
-
-        returnType =
-            Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ])
-                "Selection"
-                [ Elm.Annotation.var (typename op), Elm.Annotation.var "value" ]
 
         ( required, optional ) =
             List.partition
@@ -71,46 +53,10 @@ queryToModule op queryOperation =
             Elm.Annotation.named (Elm.moduleName [ "TnGql", "Object" ])
                 (String.toSentenceCase queryOperation.name)
 
-        optionalInputType =
-            Elm.Annotation.list
-                (Elm.Annotation.namedWith
-                    (Elm.moduleName [ "GraphQL", "Engine" ])
-                    "Optional"
-                    [ Elm.Annotation.named (Elm.moduleName [ "TnGql", "Object" ])
-                        (String.toSentenceCase queryOperation.name)
-                    ]
-                )
-
         optionalMaker =
             Generate.Args.optionalMaker queryOperation.name optional
                 |> Elm.expose
 
-        requiredInputType =
-            required
-                |> List.foldl
-                    (\argument argumentTypeAcc ->
-                        let
-                            argumentTypeAnnotation =
-                                Common.gqlTypeToElmTypeAnnotation argument.type_ Nothing
-                        in
-                        ( argument.name, argumentTypeAnnotation ) :: argumentTypeAcc
-                    )
-                    []
-                |> Elm.Annotation.record
-
-        -- ( type_ ) =
-        --     let
-        --         ( innerOperationType ) =
-        --             Common.gqlTypeToElmTypeAnnotation queryOperation.type_ Nothing
-        --         operationType =
-        --             Elm.Annotation.namedWith (Elm.moduleName ["GraphQL", "Engine"]) "Selection" [ innerOperationType, Elm.Annotation.var "value" ]
-        --     in
-        --     ( Elm.funAnn
-        --         operationType
-        --         returnType
-        --         |> applyIf hasOptionalArgs (Elm.funAnn optionalInputType)
-        --         |> applyIf hasRequiredArgs (Elm.funAnn requiredInputType)
-        --     )
         expression =
             Engine.objectWith
                 (if hasOptionalArgs && hasRequiredArgs then
@@ -160,7 +106,10 @@ queryToModule op queryOperation =
         queryFunction =
             Elm.functionWith queryOperation.name
                 (List.filterMap identity
-                    [ justIf hasRequiredArgs ( Elm.Annotation.string, Elm.Pattern.var "required" )
+                    [ justIf hasRequiredArgs
+                        ( Generate.Args.requiredAnnotation required
+                        , Elm.Pattern.var "required"
+                        )
                     , justIf hasOptionalArgs
                         ( Elm.Annotation.list
                             (Engine.typeOptional.annotation anchor)
@@ -232,16 +181,13 @@ typename op =
 
 generateFiles : Operation -> List GraphQL.Schema.Operation.Operation -> List Elm.File
 generateFiles op ops =
-    List.filterMap
-        (\oper ->
-            if String.toLower oper.name == "app" then
-                Just (queryToModule op oper)
-
-            else
-                Nothing
-        )
-        ops
-
-
-
---List.map (queryToModule op) ops
+    --List.filterMap
+    --    (\oper ->
+    --        if String.toLower oper.name == "app" then
+    --            Just (queryToModule op oper)
+    --
+    --        else
+    --            Nothing
+    --    )
+    --    ops
+    List.map (queryToModule op) ops

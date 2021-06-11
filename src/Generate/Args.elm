@@ -1,9 +1,10 @@
-module Generate.Args exposing (Wrapped(..), encodeScalar, optionalMaker, prepareRequired)
+module Generate.Args exposing (Wrapped(..), encodeScalar, optionalMaker, prepareRequired, requiredAnnotation)
 
 import Elm
 import Elm.Annotation
 import Elm.Debug
 import Elm.Gen.GraphQL.Engine as Engine
+import Elm.Gen.Json.Decode as Decode
 import Elm.Gen.Json.Encode as Encode
 import Elm.Pattern
 import GraphQL.Schema.Type exposing (Type(..))
@@ -68,6 +69,20 @@ encodeScalar scalarName wrapped =
                             [ val ]
 
 
+unwrapWith wrapped expression =
+    case wrapped of
+        InList inner ->
+            Elm.Annotation.list
+                (unwrapWith inner expression)
+
+        InMaybe inner ->
+            Elm.Annotation.maybe
+                (unwrapWith inner expression)
+
+        UnwrappedValue ->
+            expression
+
+
 scalarType : Wrapped -> String -> Elm.Annotation.Annotation
 scalarType wrapped scalarName =
     case wrapped of
@@ -98,7 +113,6 @@ scalarType wrapped scalarName =
                     Elm.Annotation.bool
 
                 "id" ->
-                    --Engine.typeId.annotation
                     Elm.Annotation.named
                         Engine.moduleName_
                         (Utils.String.formatTypename "id")
@@ -109,56 +123,71 @@ scalarType wrapped scalarName =
                         (Utils.String.formatTypename scalarName)
 
 
+requiredAnnotation : List { a | name : String, type_ : Type } -> Elm.Annotation.Annotation
+requiredAnnotation reqs =
+    Elm.Annotation.record
+        (List.map
+            (\field ->
+                ( field.name
+                , requiredAnnotationHelper field.type_ UnwrappedValue
+                )
+            )
+            reqs
+        )
+
+
+requiredAnnotationHelper : Type -> Wrapped -> Elm.Annotation.Annotation
+requiredAnnotationHelper type_ wrapped =
+    case type_ of
+        GraphQL.Schema.Type.Nullable newType ->
+            requiredAnnotationHelper newType (InMaybe wrapped)
+
+        GraphQL.Schema.Type.List_ newType ->
+            requiredAnnotationHelper newType (InList wrapped)
+
+        GraphQL.Schema.Type.Scalar scalarName ->
+            scalarType wrapped scalarName
+
+        GraphQL.Schema.Type.Enum enumName ->
+            Elm.Annotation.named (Elm.moduleName [ "TnGql", "Enum", enumName ]) enumName
+                |> unwrapWith wrapped
+
+        GraphQL.Schema.Type.Object nestedObjectName ->
+            Engine.typeSelection.annotation (Elm.Annotation.var nestedObjectName)
+                (Elm.Annotation.var "data")
+
+        GraphQL.Schema.Type.InputObject inputName ->
+            Engine.typeArgument.annotation
+                (Elm.Annotation.named Elm.local inputName)
+                |> unwrapWith wrapped
+
+        GraphQL.Schema.Type.Union unionName ->
+            -- Note, we need a discriminator instead of just `data`
+            Engine.typeSelection.annotation (Elm.Annotation.var unionName)
+                (Elm.Annotation.var "data")
+                |> unwrapWith wrapped
+
+        GraphQL.Schema.Type.Interface interfaceName ->
+            Elm.Annotation.unit
+
+
 prepareRequired :
     { a | name : String, type_ : Type }
     -> Elm.Expression
 prepareRequired argument =
     Elm.tuple
         (Elm.string argument.name)
-        (let
-            convert type__ =
-                case type__ of
-                    GraphQL.Schema.Type.Scalar scalarName ->
-                        Engine.arg
-                            (encodeScalar argument.name
-                                UnwrappedValue
-                                (Elm.get argument.name (Elm.value "required"))
-                            )
-                            (Elm.string scalarName)
-
-                    GraphQL.Schema.Type.Enum enumName ->
-                        --Elm.apply (Elm.valueFrom (Elm.moduleName [ "GraphQL", "Engine", "args" ]) "scalar")
-                        --    [ GenEngine.enum
-                        --    , Elm.valueFrom (Elm.moduleName [ "TnGql", "Enum", enumName ]) "decoder"
-                        --    , Elm.get argument.name (Elm.value "required")
-                        --    ]
-                        Elm.string "unimplemented"
-
-                    GraphQL.Schema.Type.InputObject inputObject ->
-                        Elm.apply (Elm.valueFrom (Elm.moduleName [ "GraphQL", "Engine", "args" ]) "scalar")
-                            [ Elm.valueFrom (Elm.moduleName [ "TnGql", "InputObject", inputObject ]) "decoder"
-                            , Elm.get argument.name (Elm.value "required")
-                            ]
-
-                    GraphQL.Schema.Type.Nullable innerType ->
-                        -- bugbug pretty sure the inner decoder
-                        -- needs to be instructed to handle null
-                        -- but I'm just glossing over that for now
-                        convert innerType
-
-                    GraphQL.Schema.Type.Object name ->
-                        Elm.string "unimplemented"
-
-                    GraphQL.Schema.Type.Union name ->
-                        Elm.string "unimplemented"
-
-                    GraphQL.Schema.Type.Interface name ->
-                        Elm.string "unimplemented"
-
-                    GraphQL.Schema.Type.List_ innerType ->
-                        Elm.string "unimplemented"
-         in
-         convert argument.type_
+        (encodeOptionalArg argument.type_
+            UnwrappedValue
+            (Elm.get argument.name (Elm.value "required")
+                |> Elm.withAnnotation
+                    (Engine.typeArgument.annotation
+                        (Elm.Annotation.named
+                            (Elm.moduleName [ "TnGql", "Input" ])
+                            argument.name
+                        )
+                    )
+            )
         )
 
 
@@ -186,113 +215,129 @@ createOptionalCreatorHelper name options fields =
         arg :: remain ->
             let
                 implemented =
-                    implementArgEncoder name arg.name arg.type_ UnwrappedValue
+                    encodeOptionalArg arg.type_
+                        UnwrappedValue
+                        (Elm.valueWith
+                            Elm.local
+                            "val"
+                            (requiredAnnotationHelper arg.type_ UnwrappedValue)
+                        )
+                        |> Elm.withAnnotation
+                            (Engine.typeArgument.annotation (Elm.Annotation.named Elm.local name))
+                        |> Engine.optional
+                            (Elm.string arg.name)
+                        |> Elm.withAnnotation
+                            (Engine.typeOptional.annotation
+                                (Elm.Annotation.named Elm.local
+                                    name
+                                )
+                            )
             in
             createOptionalCreatorHelper name
                 remain
                 (( arg.name
                  , Elm.lambdaWith
                     [ ( Elm.Pattern.var "val"
-                      , implemented.annotation
+                      , requiredAnnotationHelper arg.type_ UnwrappedValue
                       )
                     ]
-                    implemented.expression
+                    implemented
                  )
                     :: fields
                 )
 
 
-implementArgEncoder :
-    String
-    -> String
-    -> Type
+encodeOptionalArg :
+    Type
     -> Wrapped
-    ->
-        { expression : Elm.Expression
-        , annotation : Elm.Annotation.Annotation
-        }
-implementArgEncoder objectName fieldName fieldType wrapped =
+    -> Elm.Expression
+    -> Elm.Expression
+encodeOptionalArg fieldType wrapped val =
     case fieldType of
         GraphQL.Schema.Type.Nullable newType ->
-            implementArgEncoder objectName fieldName newType (InMaybe wrapped)
+            encodeOptionalArg newType (InMaybe wrapped) val
 
         GraphQL.Schema.Type.List_ newType ->
-            implementArgEncoder objectName fieldName newType (InList wrapped)
+            encodeOptionalArg newType (InList wrapped) val
 
         GraphQL.Schema.Type.Scalar scalarName ->
-            let
-                anchor =
-                    Elm.Annotation.named (Elm.moduleName [ "TnGql", "Object" ])
-                        objectName
-            in
-            { expression =
-                Engine.optional
-                    (Elm.string fieldName)
-                    (Engine.arg
-                        (encodeScalar scalarName
-                            wrapped
-                            (Elm.valueWith (Elm.moduleName [])
-                                "val"
-                                (scalarType wrapped scalarName)
-                            )
-                        )
-                        (Elm.string "TODO")
-                    )
-                    |> Elm.withAnnotation
-                        (Engine.typeOptional.annotation anchor)
-            , annotation = scalarType wrapped scalarName
-            }
+            Engine.arg
+                (encodeScalar scalarName
+                    wrapped
+                    val
+                )
+                (Elm.string "TODO?")
 
         GraphQL.Schema.Type.Enum enumName ->
-            { expression =
-                Engine.field
-                    (Elm.string fieldName)
-                    (Elm.valueFrom (Elm.moduleName [ "TnGql", "Enum", enumName ]) "decoder")
-            , annotation = Elm.Annotation.unit
-            }
-
-        GraphQL.Schema.Type.Object nestedObjectName ->
-            { expression =
-                Elm.lambda "selection_"
-                    Elm.Annotation.string
-                    (\sel ->
-                        Engine.object
-                            (Elm.string fieldName)
-                            sel
-                    )
-            , annotation = Elm.Annotation.unit
-
-            --     Elm.funAnn
-            --         (Common.modules.engine.fns.selection nestedObjectName (Elm.typeVar "data"))
-            --         (Common.modules.engine.fns.selection objectName (Elm.typeVar "data")
-            --          -- (wrapAnnotation wrapped (Elm.typeVar "data"))
-            --         )
-            }
-
-        GraphQL.Schema.Type.Interface interfaceName ->
-            { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
-            , annotation = Elm.Annotation.string
-            }
+            --This can either be
+            --     val -> Enum.encode val
+            --     val ->
+            --          Encode.list Enum.encode val
+            --     val ->
+            --          Engine.encodeMaybe Enum.encode val
+            --     or some stack
+            --     val ->
+            --          Encode.list (Encode.list Enum.encode) val
+            --
+            encodeWrapped wrapped
+                (\v ->
+                    Elm.apply
+                        (Elm.valueFrom (Elm.moduleName [ "TnGql", "Enum", enumName ]) "encode")
+                        [ v
+                        ]
+                )
+                val
 
         GraphQL.Schema.Type.InputObject inputName ->
-            { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
-            , annotation = Elm.Annotation.string
-            }
+            encodeWrapped wrapped
+                Engine.encodeArgument
+                val
 
         GraphQL.Schema.Type.Union unionName ->
-            { expression =
-                Elm.lambda "union_"
-                    Elm.Annotation.string
-                    (\union ->
-                        Engine.object
-                            (Elm.string fieldName)
-                            union
-                    )
-            , annotation = Elm.Annotation.string
+            Elm.string "Unions cant be nested in inputs"
 
-            --     Elm.funAnn
-            --         (Common.modules.engine.fns.selectUnion unionName (Elm.typeVar "data"))
-            --         (Common.modules.engine.fns.selection objectName (Elm.typeVar "data")
-            --          -- (wrapAnnotation wrapped (Elm.typeVar "data"))
-            --         )
-            }
+        GraphQL.Schema.Type.Object nestedObjectName ->
+            Elm.string "Objects cant be nested in inputs"
+
+        GraphQL.Schema.Type.Interface interfaceName ->
+            Elm.string "Interfaces cant be in inputs"
+
+
+encodeWrapped wrapper encoder val =
+    case wrapper of
+        UnwrappedValue ->
+            encoder val
+
+        InMaybe inner ->
+            encodeWrapped inner (Engine.maybeScalarEncode encoder) val
+
+        InList inner ->
+            encodeWrapped inner (Encode.list encoder) val
+
+
+wrapAnnotation : Wrapped -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
+wrapAnnotation wrap signature =
+    case wrap of
+        UnwrappedValue ->
+            signature
+
+        InList inner ->
+            Elm.Annotation.list (wrapAnnotation inner signature)
+
+        InMaybe inner ->
+            Elm.Annotation.maybe (wrapAnnotation inner signature)
+
+
+unwrapExpression : Wrapped -> Elm.Expression -> Elm.Expression
+unwrapExpression wrap exp =
+    case wrap of
+        UnwrappedValue ->
+            exp
+
+        InList inner ->
+            Decode.list
+                (unwrapExpression inner exp)
+
+        InMaybe inner ->
+            Engine.nullable
+                (unwrapExpression inner exp)
