@@ -1,4 +1,9 @@
-module Elm.Gen.Json.Decode exposing (andThen, array, at, bool, decodeString, decodeValue, dict, errorToString, fail, field, float, id_, index, int, keyValuePairs, lazy, list, map, map2, map3, map4, map5, map6, map7, map8, maybe, moduleName_, null, nullable, oneOf, oneOrMore, string, succeed, value)
+module Elm.Gen.Json.Decode exposing (aliasValue, andThen, array, at, bool, decodeString, decodeValue, dict, errorToString, fail, field, float, id_, index, int, keyValuePairs, lazy, list, map, map2, map3, map4, map5, map6, map7, map8, maybe, moduleName_, null, nullable, oneOf, oneOrMore, string, succeed, typeDecoder, typeError, value)
+
+{-| 
+
+
+-}
 
 import Elm
 import Elm.Annotation as Type
@@ -759,9 +764,8 @@ There is a whole section in `guide.elm-lang.org` about decoders, so [check it
 out](https://guide.elm-lang.org/interop/json.html) for a more comprehensive
 introduction!
 -}
-typeDecoder : { annotation : Type.Annotation }
 typeDecoder =
-    { annotation = Type.named moduleName_ "Decoder" }
+    { annotation = \arg0 -> Type.namedWith moduleName_ "Decoder" [ arg0 ] }
 
 
 {-| Decode a JSON string into an Elm `String`.
@@ -1378,35 +1382,44 @@ this to create more elaborate visualizations of a decoder problem. For example,
 you could show the entire JSON object and show the part causing the failure in
 red.
 -}
-typeError :
-    { annotation : Type.Annotation
-    , field : Elm.Expression
-    , index : Elm.Expression
-    , oneOf : Elm.Expression
-    , failure : Elm.Expression
-    }
 typeError =
     { annotation = Type.named moduleName_ "Error"
     , field =
-        Elm.valueWith
-            moduleName_
-            "Field"
-            (Type.namedWith (Elm.moduleName []) "Error" [])
+        \ar0 ar1 ->
+            Elm.apply
+                (Elm.valueWith
+                    moduleName_
+                    "Field"
+                    (Type.namedWith (Elm.moduleName []) "Error" [])
+                )
+                [ ar0, ar1 ]
     , index =
-        Elm.valueWith
-            moduleName_
-            "Index"
-            (Type.namedWith (Elm.moduleName []) "Error" [])
+        \ar0 ar1 ->
+            Elm.apply
+                (Elm.valueWith
+                    moduleName_
+                    "Index"
+                    (Type.namedWith (Elm.moduleName []) "Error" [])
+                )
+                [ ar0, ar1 ]
     , oneOf =
-        Elm.valueWith
-            moduleName_
-            "OneOf"
-            (Type.namedWith (Elm.moduleName []) "Error" [])
+        \ar0 ->
+            Elm.apply
+                (Elm.valueWith
+                    moduleName_
+                    "OneOf"
+                    (Type.namedWith (Elm.moduleName []) "Error" [])
+                )
+                [ ar0 ]
     , failure =
-        Elm.valueWith
-            moduleName_
-            "Failure"
-            (Type.namedWith (Elm.moduleName []) "Error" [])
+        \ar0 ar1 ->
+            Elm.apply
+                (Elm.valueWith
+                    moduleName_
+                    "Failure"
+                    (Type.namedWith (Elm.moduleName []) "Error" [])
+                )
+                [ ar0, ar1 ]
     }
 
 
