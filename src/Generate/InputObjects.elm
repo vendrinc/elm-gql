@@ -3,15 +3,10 @@ module Generate.InputObjects exposing (generateFiles)
 import Dict
 import Elm
 import Elm.Annotation
-import Elm.Debug
 import Elm.Gen.GraphQL.Engine as Engine
-import Elm.Gen.Json.Decode as Json
-import Elm.Gen.Json.Encode as Encode
-import Elm.Pattern
 import Generate.Args
 import GraphQL.Schema
 import GraphQL.Schema.InputObject
-import GraphQL.Schema.Object
 import GraphQL.Schema.Type exposing (Type(..))
 
 
@@ -147,8 +142,8 @@ justIf condition val =
         Nothing
 
 
-generateFiles : GraphQL.Schema.Schema -> List Elm.File
-generateFiles graphQLSchema =
+generateFiles : String -> GraphQL.Schema.Schema -> List Elm.File
+generateFiles namespace graphQLSchema =
     let
         objects =
             graphQLSchema.inputObjects
@@ -160,7 +155,7 @@ generateFiles graphQLSchema =
             objects
                 |> List.concatMap inputObjectToDeclarations
     in
-    [ Elm.file (Elm.moduleName [ "TnGql", "Input" ])
+    [ Elm.file (Elm.moduleName [ namespace, "Input" ])
         ""
         declarations
     ]

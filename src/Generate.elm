@@ -14,12 +14,12 @@ import GraphQL.Schema
 import Http
 
 
-main : Program {} () Msg
+main : Program {} { namespace : String } Msg
 main =
     Platform.worker
         { init =
             \json ->
-                ( ()
+                ( { namespace = "TnG" }
                 , GraphQL.Schema.get "https://api.blissfully.com/prod/graphql"
                     SchemaReceived
                 )
@@ -29,30 +29,30 @@ main =
                     SchemaReceived (Ok schema) ->
                         let
                             enumFiles =
-                                Generate.Enums.generateFiles schema
+                                Generate.Enums.generateFiles model.namespace schema
 
                             objectFiles =
-                                Generate.Objects.generateFiles schema
+                                Generate.Objects.generateFiles model.namespace schema
 
                             inputFiles =
-                                Generate.InputObjects.generateFiles schema
+                                Generate.InputObjects.generateFiles model.namespace schema
 
                             queryFiles =
                                 schema.queries
                                     |> Dict.toList
                                     |> List.map Tuple.second
-                                    |> Generate.Operations.generateFiles Generate.Operations.Query
+                                    |> Generate.Operations.generateFiles model.namespace Generate.Operations.Query
 
                             mutationFiles =
                                 schema.mutations
                                     |> Dict.toList
                                     |> List.map Tuple.second
-                                    |> Generate.Operations.generateFiles Generate.Operations.Mutation
+                                    |> Generate.Operations.generateFiles model.namespace Generate.Operations.Mutation
                         in
                         ( model
                         , Elm.Gen.files
                             (List.map Elm.render (enumFiles ++ objectFiles ++ queryFiles ++ mutationFiles ++ inputFiles))
-                          --(List.map Elm.render queryFiles)
+                          --(List.map Elm.render inputFiles)
                         )
 
                     SchemaReceived (Err err) ->

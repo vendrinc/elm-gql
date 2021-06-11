@@ -1,11 +1,7 @@
 module Generate.Common exposing (..)
 
-import Dict
 import Elm
 import Elm.Annotation
-import Elm.Pattern
-import GraphQL.Schema
-import GraphQL.Schema.Object
 import GraphQL.Schema.Type exposing (Type(..))
 import Utils.String
 

@@ -15,8 +15,8 @@ import GraphQL.Schema.Type exposing (Type(..))
 import String.Extra as String
 
 
-queryToModule : Operation -> GraphQL.Schema.Operation.Operation -> Elm.File
-queryToModule op queryOperation =
+queryToModule : String -> Operation -> GraphQL.Schema.Operation.Operation -> Elm.File
+queryToModule namespace op queryOperation =
     let
         dir =
             directory op
@@ -50,7 +50,7 @@ queryToModule op queryOperation =
                     True
 
         anchor =
-            Elm.Annotation.named (Elm.moduleName [ "TnGql", "Object" ])
+            Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ])
                 (String.toSentenceCase queryOperation.name)
 
         optionalMaker =
@@ -125,7 +125,7 @@ queryToModule op queryOperation =
                 |> Elm.expose
 
         moduleName =
-            [ "TnGql", dir, String.toSentenceCase queryOperation.name ]
+            [ namespace, dir, String.toSentenceCase queryOperation.name ]
     in
     Elm.file (Elm.moduleName moduleName)
         ""
@@ -179,8 +179,8 @@ typename op =
             "GraphQL.Engine.Mutation"
 
 
-generateFiles : Operation -> List GraphQL.Schema.Operation.Operation -> List Elm.File
-generateFiles op ops =
+generateFiles : String -> Operation -> List GraphQL.Schema.Operation.Operation -> List Elm.File
+generateFiles namespace op ops =
     --List.filterMap
     --    (\oper ->
     --        if String.toLower oper.name == "app" then
@@ -190,4 +190,4 @@ generateFiles op ops =
     --            Nothing
     --    )
     --    ops
-    List.map (queryToModule op) ops
+    List.map (queryToModule namespace op) ops

@@ -14,8 +14,8 @@ enumNameToConstructorName =
     String.toSentenceCase
 
 
-generateFiles : GraphQL.Schema.Schema -> List Elm.File
-generateFiles graphQLSchema =
+generateFiles : String -> GraphQL.Schema.Schema -> List Elm.File
+generateFiles namespace graphQLSchema =
     graphQLSchema.enums
         |> Dict.toList
         |> List.map
@@ -88,7 +88,7 @@ generateFiles graphQLSchema =
                                     )
                             )
                 in
-                Elm.file (Elm.moduleName [ "TnGql", "Enum", enumDefinition.name ])
+                Elm.file (Elm.moduleName [ namespace, "Enum", enumDefinition.name ])
                     ""
                     [ enumTypeDeclaration
                         |> Elm.expose
