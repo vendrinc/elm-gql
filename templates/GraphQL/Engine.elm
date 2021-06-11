@@ -8,7 +8,7 @@ module GraphQL.Engine exposing
     , queryString
     , Argument(..), maybeScalarEncode
     , Id, encodeId, decodeId
-    , encodeOptionals
+    , encodeOptionals, encodeInputObject, encodeArgument
     )
 
 {-|
@@ -31,7 +31,7 @@ module GraphQL.Engine exposing
 
 @docs Id, encodeId, decodeId
 
-@docs encodeOptionals
+@docs encodeOptionals, encodeInputObject, encodeArgument
 
 -}
 
@@ -197,7 +197,7 @@ object =
 
 
 {-| -}
-objectWith : List ( String, Argument ) -> String -> Selection source data -> Selection otherSource data
+objectWith : List ( String, Argument arg ) -> String -> Selection source data -> Selection otherSource data
 objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
     Selection <|
         Details
@@ -238,7 +238,7 @@ field =
 
 
 {-| -}
-fieldWith : List ( String, Argument ) -> String -> Json.Decoder data -> Selection source data
+fieldWith : List ( String, Argument arg ) -> String -> Json.Decoder data -> Selection source data
 fieldWith args name decoder =
     Selection <|
         Details
@@ -267,13 +267,13 @@ fieldWith args name decoder =
 
 
 applyContext :
-    List ( String, Argument )
+    List ( String, Argument arg )
     -> String
     -> Context
     ->
         { context : Context
         , aliasString : Maybe String
-        , args : List ( String, Argument )
+        , args : List ( String, Argument Free )
         }
 applyContext args name context =
     let
@@ -292,17 +292,17 @@ applyContext args name context =
     }
 
 
-captureArgs : List ( String, Argument ) -> Dict String Argument -> ( List ( String, Argument ), Dict String Argument )
+captureArgs : List ( String, Argument arg ) -> Dict String (Argument Free) -> ( List ( String, Argument Free ), Dict String (Argument Free) )
 captureArgs args context =
     case args of
         [] ->
-            ( args, context )
+            ( [], context )
 
         _ ->
             captureArgsHelper args context []
 
 
-captureArgsHelper : List ( String, Argument ) -> Dict String Argument -> List ( String, Argument ) -> ( List ( String, Argument ), Dict String Argument )
+captureArgsHelper : List ( String, Argument arg ) -> Dict String (Argument Free) -> List ( String, Argument Free ) -> ( List ( String, Argument Free ), Dict String (Argument Free) )
 captureArgsHelper args context alreadyPassed =
     case args of
         [] ->
@@ -314,12 +314,12 @@ captureArgsHelper args context alreadyPassed =
                     getValidVariableName name 0 context
 
                 newContext =
-                    Dict.insert varname value context
+                    Dict.insert varname (toFree value) context
             in
             captureArgsHelper remaining newContext (( name, Var varname ) :: alreadyPassed)
 
 
-getValidVariableName : String -> Int -> Dict String Argument -> String
+getValidVariableName : String -> Int -> Dict String (Argument Free) -> String
 getValidVariableName str index used =
     let
         attemptedName =
@@ -355,8 +355,22 @@ type Selection source selected
 
 type alias Context =
     { aliases : Dict String Int
-    , variables : Dict String Argument
+    , variables : Dict String (Argument Free)
     }
+
+
+type Free
+    = Free
+
+
+toFree : Argument thing -> Argument Free
+toFree argument =
+    case argument of
+        ArgValue json tag ->
+            ArgValue json tag
+
+        Var varname ->
+            Var varname
 
 
 empty : Context
@@ -380,7 +394,7 @@ type Details selected
 
 type Field
     = --    name   alias          args                        children
-      Field String (Maybe String) (List ( String, Argument )) (List Field)
+      Field String (Maybe String) (List ( String, Argument Free )) (List Field)
       --        ...on FragmentName
     | Fragment String (List Field)
 
@@ -393,25 +407,55 @@ type Field
 But we can define anything else in terms of these:
 
 -}
-type Argument
+type Argument obj
     = ArgValue Encode.Value String
     | Var String
 
 
 {-| -}
 type Optional arg
-    = Optional String Argument
+    = Optional String (Argument arg)
 
 
 {-| The encoded value and the name of the expected type for this argument
 -}
-arg : Encode.Value -> String -> Argument
+arg : Encode.Value -> String -> Argument obj
 arg val typename =
     ArgValue val typename
 
 
 {-| -}
-encodeOptionals : List (Optional arg) -> List ( String, Argument )
+encodeInputObject : List ( String, Argument obj ) -> String -> Argument input
+encodeInputObject fields typeName =
+    ArgValue
+        (fields
+            |> List.map
+                (\( name, argVal ) ->
+                    case argVal of
+                        ArgValue val _ ->
+                            ( name, val )
+
+                        Var varName ->
+                            ( name, Encode.string varName )
+                )
+            |> Encode.object
+        )
+        typeName
+
+
+{-| -}
+encodeArgument : Argument obj -> Encode.Value
+encodeArgument argVal =
+    case argVal of
+        ArgValue val _ ->
+            val
+
+        Var varName ->
+            Encode.string varName
+
+
+{-| -}
+encodeOptionals : List (Optional arg) -> List ( String, Argument arg )
 encodeOptionals opts =
     List.foldl
         (\(Optional optName argument) (( found, gathered ) as skip) ->
@@ -433,7 +477,7 @@ encodeOptionals opts =
     Encode the nullability in the argument itself.
 
 -}
-optional : String -> Argument -> Optional arg
+optional : String -> Argument arg -> Optional arg
 optional =
     Optional
 
@@ -577,7 +621,7 @@ mutation sel config =
 body : Selection source data -> Http.Body
 body q =
     let
-        variables : Dict String Argument
+        variables : Dict String (Argument Free)
         variables =
             (getContext q).variables
 
@@ -588,7 +632,7 @@ body q =
                 |> List.map (Tuple.mapSecond toValue)
                 |> Encode.object
 
-        toValue : Argument -> Json.Value
+        toValue : Argument arg -> Json.Value
         toValue arg_ =
             case arg_ of
                 ArgValue value str ->
@@ -647,7 +691,7 @@ queryString (Selection (Details gql _)) =
         ++ "}"
 
 
-renderParameterValues : Dict String Argument -> String
+renderParameterValues : Dict String (Argument arg) -> String
 renderParameterValues dict =
     let
         list =
@@ -661,7 +705,7 @@ renderParameterValues dict =
             "{" ++ renderParameterValuesHelper list "" ++ "}"
 
 
-renderParameterValuesHelper : List ( String, Argument ) -> String -> String
+renderParameterValuesHelper : List ( String, Argument arg ) -> String -> String
 renderParameterValuesHelper args rendered =
     case args of
         [] ->
@@ -680,7 +724,7 @@ renderParameterValuesHelper args rendered =
             renderParameterValuesHelper remaining (rendered ++ comma ++ "\"" ++ name ++ "\" :" ++ argToString value)
 
 
-renderParameters : Dict String Argument -> String
+renderParameters : Dict String (Argument arg) -> String
 renderParameters dict =
     let
         list =
@@ -694,7 +738,7 @@ renderParameters dict =
             "(" ++ renderParametersHelper list "" ++ ")"
 
 
-renderParametersHelper : List ( String, Argument ) -> String -> String
+renderParametersHelper : List ( String, Argument arg ) -> String -> String
 renderParametersHelper args rendered =
     case args of
         [] ->
@@ -758,7 +802,7 @@ renderField myField =
             aliasString ++ name ++ argString ++ selection
 
 
-renderArgs : List ( String, Argument ) -> String -> String
+renderArgs : List ( String, Argument arg ) -> String -> String
 renderArgs args rendered =
     case args of
         [] ->
@@ -772,7 +816,7 @@ renderArgs args rendered =
                 renderArgs remaining (rendered ++ ", " ++ name ++ ": " ++ argToString top)
 
 
-argToString : Argument -> String
+argToString : Argument arg -> String
 argToString argument =
     case argument of
         ArgValue json typename ->
@@ -782,7 +826,7 @@ argToString argument =
             "$" ++ str
 
 
-argToTypeString : Argument -> String
+argToTypeString : Argument arg -> String
 argToTypeString argument =
     case argument of
         ArgValue v typename ->

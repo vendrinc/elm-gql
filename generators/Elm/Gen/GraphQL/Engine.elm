@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, decodeId, encodeId, encodeOptionals, enum, field, fieldWith, id_, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, typeArgument, typeId, typeMutation, typeOptional, typeQuery, typeSelection, union, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, decodeId, encodeArgument, encodeId, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, typeArgument, typeId, typeMutation, typeOptional, typeQuery, typeSelection, union, with)
 
 {-| 
 
@@ -39,6 +39,8 @@ id_ :
     , encodeId : Elm.Expression
     , decodeId : Elm.Expression
     , encodeOptionals : Elm.Expression
+    , encodeInputObject : Elm.Expression
+    , encodeArgument : Elm.Expression
     }
 id_ =
     { nullable =
@@ -96,7 +98,7 @@ id_ =
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
-                            []
+                            [ Type.var "arg" ]
                         )
                     ]
                 , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
@@ -145,7 +147,7 @@ id_ =
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
-                            []
+                            [ Type.var "arg" ]
                         )
                     ]
                 , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
@@ -341,7 +343,7 @@ id_ =
                 (Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Argument"
-                    []
+                    [ Type.var "obj" ]
                 )
             )
     , optional =
@@ -353,7 +355,7 @@ id_ =
                 , Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Argument"
-                    []
+                    [ Type.var "arg" ]
                 ]
                 (Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
@@ -569,9 +571,50 @@ id_ =
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
-                            []
+                            [ Type.var "arg" ]
                         )
                     ]
+                )
+            )
+    , encodeInputObject =
+        Elm.valueWith
+            moduleName_
+            "encodeInputObject"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "List" ])
+                    "List"
+                    [ Type.tuple
+                        (Type.namedWith
+                            (Elm.moduleName [ "String" ])
+                            "String"
+                            []
+                        )
+                        (Type.namedWith
+                            (Elm.moduleName [ "GraphQL", "Engine" ])
+                            "Argument"
+                            [ Type.var "obj" ]
+                        )
+                    ]
+                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Argument"
+                    [ Type.var "input" ]
+                )
+            )
+    , encodeArgument =
+        Elm.valueWith
+            moduleName_
+            "encodeArgument"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Argument"
+                    [ Type.var "obj" ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
                 )
             )
     }
@@ -650,7 +693,7 @@ fieldWith arg1 arg2 arg3 =
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
-                            []
+                            [ Type.var "arg" ]
                         )
                     ]
                 , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
@@ -714,7 +757,7 @@ objectWith arg1 arg2 arg3 =
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
-                            []
+                            [ Type.var "arg" ]
                         )
                     ]
                 , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
@@ -989,7 +1032,7 @@ arg arg1 arg2 =
                 (Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Argument"
-                    []
+                    [ Type.var "obj" ]
                 )
             )
         )
@@ -1017,7 +1060,7 @@ optional arg1 arg2 =
                 , Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Argument"
-                    []
+                    [ Type.var "arg" ]
                 ]
                 (Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
@@ -1207,14 +1250,18 @@ But we can define anything else in terms of these:
 
 -}
 typeArgument =
-    { annotation = Type.named moduleName_ "Argument"
+    { annotation = \arg0 -> Type.namedWith moduleName_ "Argument" [ arg0 ]
     , argValue =
         \ar0 ar1 ->
             Elm.apply
                 (Elm.valueWith
                     moduleName_
                     "ArgValue"
-                    (Type.namedWith (Elm.moduleName []) "Argument" [])
+                    (Type.namedWith
+                        (Elm.moduleName [])
+                        "Argument"
+                        [ Type.var "obj" ]
+                    )
                 )
                 [ ar0, ar1 ]
     , var =
@@ -1223,7 +1270,11 @@ typeArgument =
                 (Elm.valueWith
                     moduleName_
                     "Var"
-                    (Type.namedWith (Elm.moduleName []) "Argument" [])
+                    (Type.namedWith
+                        (Elm.moduleName [])
+                        "Argument"
+                        [ Type.var "obj" ]
+                    )
                 )
                 [ ar0 ]
     }
@@ -1325,9 +1376,64 @@ encodeOptionals arg1 =
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
-                            []
+                            [ Type.var "arg" ]
                         )
                     ]
+                )
+            )
+        )
+        [ arg1 ]
+
+
+{-| -}
+encodeInputObject : Elm.Expression -> Elm.Expression -> Elm.Expression
+encodeInputObject arg1 arg2 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "encodeInputObject"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "List" ])
+                    "List"
+                    [ Type.tuple
+                        (Type.namedWith
+                            (Elm.moduleName [ "String" ])
+                            "String"
+                            []
+                        )
+                        (Type.namedWith
+                            (Elm.moduleName [ "GraphQL", "Engine" ])
+                            "Argument"
+                            [ Type.var "obj" ]
+                        )
+                    ]
+                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Argument"
+                    [ Type.var "input" ]
+                )
+            )
+        )
+        [ arg1, arg2 ]
+
+
+{-| -}
+encodeArgument : Elm.Expression -> Elm.Expression
+encodeArgument arg1 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "encodeArgument"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Argument"
+                    [ Type.var "obj" ]
+                ]
+                (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
                 )
             )
         )
