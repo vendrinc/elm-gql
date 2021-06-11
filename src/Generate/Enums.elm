@@ -4,6 +4,7 @@ import Dict
 import Elm
 import Elm.Annotation
 import Elm.Gen.Json.Decode as Decode
+import Elm.Gen.Json.Encode as Encode
 import Elm.Pattern
 import GraphQL.Schema
 import String.Extra as String
@@ -36,7 +37,7 @@ generateFiles graphQLSchema =
                                     Elm.valueWith
                                         (Elm.moduleName [])
                                         enumName
-                                        (Elm.Annotation.named (Elm.moduleName []) enumDefinition.name)
+                                        (Elm.Annotation.named Elm.local enumDefinition.name)
                                 )
                             |> Elm.list
                             |> Elm.declaration "list"
@@ -53,11 +54,36 @@ generateFiles graphQLSchema =
                                                     ((constructors
                                                         |> List.map
                                                             (\( name, _ ) ->
-                                                                ( Elm.Pattern.string name, Decode.succeed (Elm.value name) )
+                                                                ( Elm.Pattern.string name
+                                                                , Decode.succeed
+                                                                    (Elm.valueWith Elm.local
+                                                                        name
+                                                                        (Elm.Annotation.named Elm.local enumDefinition.name)
+                                                                    )
+                                                                )
                                                             )
                                                      )
                                                         ++ [ ( Elm.Pattern.wildcard, Decode.fail (Elm.string "Invalid type") ) ]
                                                     )
+                                            )
+                                    )
+                                |> Elm.withAnnotation
+                                    (Decode.typeDecoder.annotation
+                                        (Elm.Annotation.named Elm.local enumDefinition.name)
+                                    )
+                            )
+
+                    enumEncoder =
+                        Elm.fn "encode"
+                            ( "val", Elm.Annotation.named Elm.local enumDefinition.name )
+                            (\val ->
+                                Elm.caseOf val
+                                    (enumDefinition.values
+                                        |> List.map
+                                            (\variant ->
+                                                ( Elm.Pattern.named (enumNameToConstructorName variant.name) []
+                                                , Encode.string (Elm.string variant.name)
+                                                )
                                             )
                                     )
                             )
@@ -69,5 +95,6 @@ generateFiles graphQLSchema =
                     , listOfValues
                         |> Elm.expose
                     , enumDecoder
+                    , enumEncoder
                     ]
             )
