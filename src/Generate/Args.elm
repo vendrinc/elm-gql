@@ -123,33 +123,33 @@ scalarType wrapped scalarName =
                         (Utils.String.formatTypename scalarName)
 
 
-requiredAnnotation : List { a | name : String, type_ : Type } -> Elm.Annotation.Annotation
-requiredAnnotation reqs =
+requiredAnnotation : String -> List { a | name : String, type_ : Type } -> Elm.Annotation.Annotation
+requiredAnnotation namespace reqs =
     Elm.Annotation.record
         (List.map
             (\field ->
                 ( field.name
-                , requiredAnnotationHelper field.type_ UnwrappedValue
+                , requiredAnnotationHelper namespace field.type_ UnwrappedValue
                 )
             )
             reqs
         )
 
 
-requiredAnnotationHelper : Type -> Wrapped -> Elm.Annotation.Annotation
-requiredAnnotationHelper type_ wrapped =
+requiredAnnotationHelper : String -> Type -> Wrapped -> Elm.Annotation.Annotation
+requiredAnnotationHelper namespace type_ wrapped =
     case type_ of
         GraphQL.Schema.Type.Nullable newType ->
-            requiredAnnotationHelper newType (InMaybe wrapped)
+            requiredAnnotationHelper namespace newType (InMaybe wrapped)
 
         GraphQL.Schema.Type.List_ newType ->
-            requiredAnnotationHelper newType (InList wrapped)
+            requiredAnnotationHelper namespace newType (InList wrapped)
 
         GraphQL.Schema.Type.Scalar scalarName ->
             scalarType wrapped scalarName
 
         GraphQL.Schema.Type.Enum enumName ->
-            Elm.Annotation.named (Elm.moduleName [ "TnGql", "Enum", enumName ]) enumName
+            Elm.Annotation.named (Elm.moduleName [ namespace, "Enum", enumName ]) enumName
                 |> unwrapWith wrapped
 
         GraphQL.Schema.Type.Object nestedObjectName ->
@@ -172,18 +172,20 @@ requiredAnnotationHelper type_ wrapped =
 
 
 prepareRequired :
-    { a | name : String, type_ : Type }
+    String
+    -> { a | name : String, type_ : Type }
     -> Elm.Expression
-prepareRequired argument =
+prepareRequired namespace argument =
     Elm.tuple
         (Elm.string argument.name)
-        (encodeOptionalArg argument.type_
+        (encodeOptionalArg namespace
+            argument.type_
             UnwrappedValue
             (Elm.get argument.name (Elm.value "required")
                 |> Elm.withAnnotation
                     (Engine.typeArgument.annotation
                         (Elm.Annotation.named
-                            (Elm.moduleName [ "TnGql", "Input" ])
+                            (Elm.moduleName [ namespace, "Input" ])
                             argument.name
                         )
                     )
@@ -191,12 +193,13 @@ prepareRequired argument =
         )
 
 
-optionalMaker name options =
-    createOptionalCreatorHelper name options []
+optionalMaker namespace name options =
+    createOptionalCreatorHelper namespace name options []
 
 
 createOptionalCreatorHelper :
     String
+    -> String
     ->
         List
             { field
@@ -206,7 +209,7 @@ createOptionalCreatorHelper :
             }
     -> List ( String, Elm.Expression )
     -> Elm.Declaration
-createOptionalCreatorHelper name options fields =
+createOptionalCreatorHelper namespace name options fields =
     case options of
         [] ->
             Elm.declaration (Utils.String.formatValue (name ++ "Options"))
@@ -215,12 +218,13 @@ createOptionalCreatorHelper name options fields =
         arg :: remain ->
             let
                 implemented =
-                    encodeOptionalArg arg.type_
+                    encodeOptionalArg namespace
+                        arg.type_
                         UnwrappedValue
                         (Elm.valueWith
                             Elm.local
                             "val"
-                            (requiredAnnotationHelper arg.type_ UnwrappedValue)
+                            (requiredAnnotationHelper namespace arg.type_ UnwrappedValue)
                         )
                         |> Elm.withAnnotation
                             (Engine.typeArgument.annotation (Elm.Annotation.named Elm.local name))
@@ -228,17 +232,19 @@ createOptionalCreatorHelper name options fields =
                             (Elm.string arg.name)
                         |> Elm.withAnnotation
                             (Engine.typeOptional.annotation
-                                (Elm.Annotation.named Elm.local
+                                (Elm.Annotation.named
+                                    (Elm.moduleName [ namespace, "Object" ])
                                     name
                                 )
                             )
             in
-            createOptionalCreatorHelper name
+            createOptionalCreatorHelper namespace
+                name
                 remain
                 (( arg.name
                  , Elm.lambdaWith
                     [ ( Elm.Pattern.var "val"
-                      , requiredAnnotationHelper arg.type_ UnwrappedValue
+                      , requiredAnnotationHelper namespace arg.type_ UnwrappedValue
                       )
                     ]
                     implemented
@@ -248,17 +254,18 @@ createOptionalCreatorHelper name options fields =
 
 
 encodeOptionalArg :
-    Type
+    String
+    -> Type
     -> Wrapped
     -> Elm.Expression
     -> Elm.Expression
-encodeOptionalArg fieldType wrapped val =
+encodeOptionalArg namespace fieldType wrapped val =
     case fieldType of
         GraphQL.Schema.Type.Nullable newType ->
-            encodeOptionalArg newType (InMaybe wrapped) val
+            encodeOptionalArg namespace newType (InMaybe wrapped) val
 
         GraphQL.Schema.Type.List_ newType ->
-            encodeOptionalArg newType (InList wrapped) val
+            encodeOptionalArg namespace newType (InList wrapped) val
 
         GraphQL.Schema.Type.Scalar scalarName ->
             Engine.arg
@@ -282,7 +289,7 @@ encodeOptionalArg fieldType wrapped val =
             encodeWrapped wrapped
                 (\v ->
                     Elm.apply
-                        (Elm.valueFrom (Elm.moduleName [ "TnGql", "Enum", enumName ]) "encode")
+                        (Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ]) "encode")
                         [ v
                         ]
                 )

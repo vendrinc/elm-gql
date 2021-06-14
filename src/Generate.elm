@@ -5,7 +5,6 @@ module Generate exposing (main)
 import Dict
 import Elm
 import Elm.Gen
-import Elm.Pattern as Pattern
 import Generate.Enums
 import Generate.InputObjects
 import Generate.Objects
@@ -52,7 +51,6 @@ main =
                         ( model
                         , Elm.Gen.files
                             (List.map Elm.render (enumFiles ++ objectFiles ++ queryFiles ++ mutationFiles ++ inputFiles))
-                          --(List.map Elm.render inputFiles)
                         )
 
                     SchemaReceived (Err err) ->

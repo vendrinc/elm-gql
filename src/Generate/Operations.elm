@@ -5,6 +5,7 @@ import Elm.Annotation
 import Elm.Debug
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Encode as Encode
+import Elm.Gen.List
 import Elm.Pattern
 import Generate.Args
 import Generate.Common as Common
@@ -54,16 +55,16 @@ queryToModule namespace op queryOperation =
                 (String.toSentenceCase queryOperation.name)
 
         optionalMaker =
-            Generate.Args.optionalMaker queryOperation.name optional
+            Generate.Args.optionalMaker namespace queryOperation.name optional
                 |> Elm.expose
 
         expression =
             Engine.objectWith
                 (if hasOptionalArgs && hasRequiredArgs then
-                    Elm.append
+                    Elm.Gen.List.append
                         (Elm.list
                             (required
-                                |> List.map Generate.Args.prepareRequired
+                                |> List.map (Generate.Args.prepareRequired namespace)
                             )
                         )
                         (Engine.encodeOptionals
@@ -89,7 +90,7 @@ queryToModule namespace op queryOperation =
                  else if hasRequiredArgs then
                     Elm.list
                         (required
-                            |> List.map Generate.Args.prepareRequired
+                            |> List.map (Generate.Args.prepareRequired namespace)
                         )
 
                  else
@@ -107,7 +108,7 @@ queryToModule namespace op queryOperation =
             Elm.functionWith queryOperation.name
                 (List.filterMap identity
                     [ justIf hasRequiredArgs
-                        ( Generate.Args.requiredAnnotation required
+                        ( Generate.Args.requiredAnnotation namespace required
                         , Elm.Pattern.var "required"
                         )
                     , justIf hasOptionalArgs

@@ -6,8 +6,8 @@ import GraphQL.Schema.Type exposing (Type(..))
 import Utils.String
 
 
-gqlTypeToElmTypeAnnotation : GraphQL.Schema.Type.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
-gqlTypeToElmTypeAnnotation gqlType maybeAppliedToTypes =
+gqlTypeToElmTypeAnnotation : String -> GraphQL.Schema.Type.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
+gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
     let
         appliedToTypes =
             Maybe.withDefault [] maybeAppliedToTypes
@@ -36,30 +36,30 @@ gqlTypeToElmTypeAnnotation gqlType maybeAppliedToTypes =
                         appliedToTypes
 
         Enum enumName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "Enum" ]) enumName appliedToTypes
+            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Enum", enumName ]) enumName appliedToTypes
 
         List_ listElementType ->
             let
                 innerType =
-                    gqlTypeToElmTypeAnnotation listElementType maybeAppliedToTypes
+                    gqlTypeToElmTypeAnnotation namespace listElementType maybeAppliedToTypes
             in
             Elm.Annotation.list innerType
 
         Nullable nonNullType ->
             let
                 innerType =
-                    gqlTypeToElmTypeAnnotation nonNullType maybeAppliedToTypes
+                    gqlTypeToElmTypeAnnotation namespace nonNullType maybeAppliedToTypes
             in
             Elm.Annotation.maybe innerType
 
         InputObject inputObjectName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "InputObject" ]) inputObjectName appliedToTypes
+            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "InputObject" ]) inputObjectName appliedToTypes
 
         Object objectName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "Object" ]) objectName appliedToTypes
+            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Object" ]) objectName appliedToTypes
 
         Union unionName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "Union" ]) unionName appliedToTypes
+            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Union" ]) unionName appliedToTypes
 
         Interface interfaceName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "Interface" ]) interfaceName appliedToTypes
+            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Interface" ]) interfaceName appliedToTypes

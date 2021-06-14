@@ -91,10 +91,12 @@ generateFiles namespace graphQLSchema =
                 Elm.file (Elm.moduleName [ namespace, "Enum", enumDefinition.name ])
                     ""
                     [ enumTypeDeclaration
-                        |> Elm.expose
+                        |> Elm.exposeConstructor
                     , listOfValues
                         |> Elm.expose
                     , enumDecoder
+                        |> Elm.expose
                     , enumEncoder
+                        |> Elm.expose
                     ]
             )

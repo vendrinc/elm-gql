@@ -4,14 +4,15 @@ import Dict
 import Elm
 import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
+import Elm.Gen.List
 import Generate.Args
 import GraphQL.Schema
 import GraphQL.Schema.InputObject
 import GraphQL.Schema.Type exposing (Type(..))
 
 
-inputObjectToDeclarations : GraphQL.Schema.InputObject.InputObject -> List Elm.Declaration
-inputObjectToDeclarations input =
+inputObjectToDeclarations : String -> GraphQL.Schema.InputObject.InputObject -> List Elm.Declaration
+inputObjectToDeclarations namespace input =
     let
         ( required, optional ) =
             List.partition
@@ -56,7 +57,8 @@ inputObjectToDeclarations input =
         optionalConstructor =
             if hasOptionalArgs then
                 Just
-                    (Generate.Args.optionalMaker input.name
+                    (Generate.Args.optionalMaker namespace
+                        input.name
                         optional
                         |> Elm.expose
                     )
@@ -74,14 +76,14 @@ inputObjectToDeclarations input =
 
                 ( True, True ) ->
                     Elm.fn2 input.name
-                        ( "required", Generate.Args.requiredAnnotation required )
+                        ( "required", Generate.Args.requiredAnnotation namespace required )
                         ( "optional", Elm.Annotation.string )
                         (\req opt ->
                             Engine.encodeInputObject
-                                (Elm.append
+                                (Elm.Gen.List.append
                                     (Elm.list
                                         (required
-                                            |> List.map Generate.Args.prepareRequired
+                                            |> List.map (Generate.Args.prepareRequired namespace)
                                         )
                                     )
                                     (Engine.encodeOptionals
@@ -93,12 +95,12 @@ inputObjectToDeclarations input =
 
                 ( True, False ) ->
                     Elm.fn input.name
-                        ( "required", Generate.Args.requiredAnnotation required )
+                        ( "required", Generate.Args.requiredAnnotation namespace required )
                         (\req ->
                             Engine.encodeInputObject
                                 (Elm.list
                                     (required
-                                        |> List.map Generate.Args.prepareRequired
+                                        |> List.map (Generate.Args.prepareRequired namespace)
                                     )
                                 )
                                 (Elm.string input.name)
@@ -126,10 +128,10 @@ inputObjectToDeclarations input =
     in
     List.filterMap identity
         [ optionalTypeProof
-        , optionalConstructor
         , inputDecl
             |> Elm.expose
             |> Just
+        , optionalConstructor
         ]
 
 
@@ -153,7 +155,7 @@ generateFiles namespace graphQLSchema =
         --|> List.filter (\object -> String.toLower object.name == "setassignedappid")
         declarations =
             objects
-                |> List.concatMap inputObjectToDeclarations
+                |> List.concatMap (inputObjectToDeclarations namespace)
     in
     [ Elm.file (Elm.moduleName [ namespace, "Input" ])
         ""

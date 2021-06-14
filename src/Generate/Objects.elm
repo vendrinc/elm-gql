@@ -84,7 +84,7 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Type.Scalar scalarName ->
             let
                 signature =
-                    fieldSignature objectName fieldType
+                    fieldSignature namespace objectName fieldType
             in
             { expression =
                 Engine.field
@@ -96,7 +96,7 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Type.Enum enumName ->
             let
                 signature =
-                    fieldSignature objectName fieldType
+                    fieldSignature namespace objectName fieldType
             in
             { expression =
                 Engine.field
@@ -108,11 +108,9 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Type.Object nestedObjectName ->
             { expression =
                 Elm.lambda "selection_"
-                    (Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ])
-                        "Selection"
-                        [ Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) nestedObjectName
-                        , Elm.Annotation.var "data"
-                        ]
+                    (Engine.typeSelection.annotation
+                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) nestedObjectName)
+                        (Elm.Annotation.var "data")
                     )
                     (\sel ->
                         Engine.object
@@ -121,24 +119,20 @@ implementField namespace objectName fieldName fieldType wrapped =
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ])
-                        "Selection"
-                        [ Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) nestedObjectName
-                        , Elm.Annotation.var "data"
-                        ]
+                    [ Engine.typeSelection.annotation
+                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) nestedObjectName)
+                        (Elm.Annotation.var "data")
                     ]
-                    (Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ])
-                        "Selection"
-                        [ Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) objectName
-                        , wrapAnnotation wrapped (Elm.Annotation.var "data")
-                        ]
+                    (Engine.typeSelection.annotation
+                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) objectName)
+                        (Elm.Annotation.var "data")
                     )
             }
 
         GraphQL.Schema.Type.Interface interfaceName ->
             let
                 signature =
-                    fieldSignature objectName fieldType
+                    fieldSignature namespace objectName fieldType
             in
             { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
             , annotation = signature.annotation
@@ -147,7 +141,7 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Type.InputObject inputName ->
             let
                 signature =
-                    fieldSignature objectName fieldType
+                    fieldSignature namespace objectName fieldType
             in
             { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
             , annotation = signature.annotation
@@ -156,7 +150,12 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Type.Union unionName ->
             { expression =
                 Elm.lambda "union_"
-                    (Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) unionName [ Elm.Annotation.var "data" ])
+                    (Engine.typeSelection.annotation
+                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) unionName)
+                        (Elm.Annotation.var
+                            "data"
+                        )
+                    )
                     (\un ->
                         Engine.object
                             (Elm.string fieldName)
@@ -164,8 +163,18 @@ implementField namespace objectName fieldName fieldType wrapped =
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) unionName [ Elm.Annotation.var "data" ] ]
-                    (Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) objectName [ wrapAnnotation wrapped (Elm.Annotation.var "data") ])
+                    [ Engine.typeSelection.annotation
+                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) unionName)
+                        (Elm.Annotation.var
+                            "data"
+                        )
+                    ]
+                    (Engine.typeSelection.annotation
+                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) objectName)
+                        (Elm.Annotation.var
+                            "data"
+                        )
+                    )
             }
 
 
@@ -200,17 +209,20 @@ wrapExpression wrap exp =
 
 fieldSignature :
     String
+    -> String
     -> Type
     ->
         { annotation : Elm.Annotation.Annotation
         }
-fieldSignature objectName fieldType =
+fieldSignature namespace objectName fieldType =
     let
         dataType =
-            Common.gqlTypeToElmTypeAnnotation fieldType Nothing
+            Common.gqlTypeToElmTypeAnnotation namespace fieldType Nothing
 
         typeAnnotation =
-            Elm.Annotation.namedWith (Elm.moduleName [ "TnGql", "Object" ]) objectName [ dataType ]
+            Engine.typeSelection.annotation
+                (Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Object" ]) objectName [])
+                dataType
     in
     { annotation = typeAnnotation
     }

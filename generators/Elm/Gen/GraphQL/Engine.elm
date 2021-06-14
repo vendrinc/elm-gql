@@ -57,10 +57,7 @@ id_ =
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Selection"
                     [ Type.var "source"
-                    , Type.namedWith
-                        (Elm.moduleName [ "Maybe" ])
-                        "Maybe"
-                        [ Type.var "data" ]
+                    , Type.namedWith Elm.local "Maybe" [ Type.var "data" ]
                     ]
                 )
             )
@@ -69,7 +66,7 @@ id_ =
             moduleName_
             "field"
             (Type.function
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                [ Type.namedWith Elm.local "String" []
                 , Type.namedWith
                     (Elm.moduleName [ "Json", "Decode" ])
                     "Decoder"
@@ -87,21 +84,17 @@ id_ =
             "fieldWith"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
                             [ Type.var "arg" ]
                         )
                     ]
-                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                , Type.namedWith Elm.local "String" []
                 , Type.namedWith
                     (Elm.moduleName [ "Json", "Decode" ])
                     "Decoder"
@@ -118,7 +111,7 @@ id_ =
             moduleName_
             "object"
             (Type.function
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                [ Type.namedWith Elm.local "String" []
                 , Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Selection"
@@ -136,21 +129,17 @@ id_ =
             "objectWith"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
                             [ Type.var "arg" ]
                         )
                     ]
-                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                , Type.namedWith Elm.local "String" []
                 , Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Selection"
@@ -168,14 +157,10 @@ id_ =
             "enum"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.var "item")
                     ]
                 ]
@@ -191,25 +176,17 @@ id_ =
             "maybeEnum"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.var "item")
                     ]
                 ]
                 (Type.namedWith
                     (Elm.moduleName [ "Json", "Decode" ])
                     "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Maybe" ])
-                        "Maybe"
-                        [ Type.var "item" ]
-                    ]
+                    [ Type.namedWith Elm.local "Maybe" [ Type.var "item" ] ]
                 )
             )
     , union =
@@ -218,14 +195,10 @@ id_ =
             "union"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Selection"
@@ -338,7 +311,7 @@ id_ =
                     (Elm.moduleName [ "Json", "Encode" ])
                     "Value"
                     []
-                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                , Type.namedWith Elm.local "String" []
                 ]
                 (Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
@@ -351,7 +324,7 @@ id_ =
             moduleName_
             "optional"
             (Type.function
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                [ Type.namedWith Elm.local "String" []
                 , Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Argument"
@@ -380,7 +353,7 @@ id_ =
                 , Type.record
                     [ ( "headers"
                       , Type.namedWith
-                            (Elm.moduleName [ "List" ])
+                            Elm.local
                             "List"
                             [ Type.namedWith
                                 (Elm.moduleName [ "Http" ])
@@ -388,28 +361,18 @@ id_ =
                                 []
                             ]
                       )
-                    , ( "url"
-                      , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
-                      )
+                    , ( "url", Type.namedWith Elm.local "String" [] )
                     , ( "timeout"
                       , Type.namedWith
-                            (Elm.moduleName [ "Maybe" ])
+                            Elm.local
                             "Maybe"
-                            [ Type.namedWith
-                                (Elm.moduleName [ "Basics" ])
-                                "Float"
-                                []
-                            ]
+                            [ Type.namedWith Elm.local "Float" [] ]
                       )
                     , ( "tracker"
                       , Type.namedWith
-                            (Elm.moduleName [ "Maybe" ])
+                            Elm.local
                             "Maybe"
-                            [ Type.namedWith
-                                (Elm.moduleName [ "String" ])
-                                "String"
-                                []
-                            ]
+                            [ Type.namedWith Elm.local "String" [] ]
                       )
                     ]
                 ]
@@ -442,7 +405,7 @@ id_ =
                 , Type.record
                     [ ( "headers"
                       , Type.namedWith
-                            (Elm.moduleName [ "List" ])
+                            Elm.local
                             "List"
                             [ Type.namedWith
                                 (Elm.moduleName [ "Http" ])
@@ -450,28 +413,18 @@ id_ =
                                 []
                             ]
                       )
-                    , ( "url"
-                      , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
-                      )
+                    , ( "url", Type.namedWith Elm.local "String" [] )
                     , ( "timeout"
                       , Type.namedWith
-                            (Elm.moduleName [ "Maybe" ])
+                            Elm.local
                             "Maybe"
-                            [ Type.namedWith
-                                (Elm.moduleName [ "Basics" ])
-                                "Float"
-                                []
-                            ]
+                            [ Type.namedWith Elm.local "Float" [] ]
                       )
                     , ( "tracker"
                       , Type.namedWith
-                            (Elm.moduleName [ "Maybe" ])
+                            Elm.local
                             "Maybe"
-                            [ Type.namedWith
-                                (Elm.moduleName [ "String" ])
-                                "String"
-                                []
-                            ]
+                            [ Type.namedWith Elm.local "String" [] ]
                       )
                     ]
                 ]
@@ -497,7 +450,7 @@ id_ =
                     "Selection"
                     [ Type.var "source", Type.var "data" ]
                 ]
-                (Type.namedWith (Elm.moduleName [ "String" ]) "String" [])
+                (Type.namedWith Elm.local "String" [])
             )
     , maybeScalarEncode =
         Elm.valueWith
@@ -511,10 +464,7 @@ id_ =
                         "Value"
                         []
                     )
-                , Type.namedWith
-                    (Elm.moduleName [ "Maybe" ])
-                    "Maybe"
-                    [ Type.var "a" ]
+                , Type.namedWith Elm.local "Maybe" [ Type.var "a" ]
                 ]
                 (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
                 )
@@ -551,7 +501,7 @@ id_ =
             "encodeOptionals"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.namedWith
                         (Elm.moduleName [ "GraphQL", "Engine" ])
@@ -560,14 +510,10 @@ id_ =
                     ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
@@ -582,21 +528,17 @@ id_ =
             "encodeInputObject"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
                             [ Type.var "obj" ]
                         )
                     ]
-                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                , Type.namedWith Elm.local "String" []
                 ]
                 (Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
@@ -638,10 +580,7 @@ nullable arg1 =
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Selection"
                     [ Type.var "source"
-                    , Type.namedWith
-                        (Elm.moduleName [ "Maybe" ])
-                        "Maybe"
-                        [ Type.var "data" ]
+                    , Type.namedWith Elm.local "Maybe" [ Type.var "data" ]
                     ]
                 )
             )
@@ -657,7 +596,7 @@ field arg1 arg2 =
             moduleName_
             "field"
             (Type.function
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                [ Type.namedWith Elm.local "String" []
                 , Type.namedWith
                     (Elm.moduleName [ "Json", "Decode" ])
                     "Decoder"
@@ -682,21 +621,17 @@ fieldWith arg1 arg2 arg3 =
             "fieldWith"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
                             [ Type.var "arg" ]
                         )
                     ]
-                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                , Type.namedWith Elm.local "String" []
                 , Type.namedWith
                     (Elm.moduleName [ "Json", "Decode" ])
                     "Decoder"
@@ -720,7 +655,7 @@ object arg1 arg2 =
             moduleName_
             "object"
             (Type.function
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                [ Type.namedWith Elm.local "String" []
                 , Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Selection"
@@ -746,21 +681,17 @@ objectWith arg1 arg2 arg3 =
             "objectWith"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
                             [ Type.var "arg" ]
                         )
                     ]
-                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                , Type.namedWith Elm.local "String" []
                 , Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Selection"
@@ -785,14 +716,10 @@ enum arg1 =
             "enum"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.var "item")
                     ]
                 ]
@@ -815,25 +742,17 @@ maybeEnum arg1 =
             "maybeEnum"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.var "item")
                     ]
                 ]
                 (Type.namedWith
                     (Elm.moduleName [ "Json", "Decode" ])
                     "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Maybe" ])
-                        "Maybe"
-                        [ Type.var "item" ]
-                    ]
+                    [ Type.namedWith Elm.local "Maybe" [ Type.var "item" ] ]
                 )
             )
         )
@@ -849,14 +768,10 @@ union arg1 =
             "union"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Selection"
@@ -1027,7 +942,7 @@ arg arg1 arg2 =
                     (Elm.moduleName [ "Json", "Encode" ])
                     "Value"
                     []
-                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                , Type.namedWith Elm.local "String" []
                 ]
                 (Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
@@ -1056,7 +971,7 @@ optional arg1 arg2 =
             moduleName_
             "optional"
             (Type.function
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                [ Type.namedWith Elm.local "String" []
                 , Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Argument"
@@ -1098,7 +1013,7 @@ query arg1 arg2 =
                 , Type.record
                     [ ( "headers"
                       , Type.namedWith
-                            (Elm.moduleName [ "List" ])
+                            Elm.local
                             "List"
                             [ Type.namedWith
                                 (Elm.moduleName [ "Http" ])
@@ -1106,28 +1021,18 @@ query arg1 arg2 =
                                 []
                             ]
                       )
-                    , ( "url"
-                      , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
-                      )
+                    , ( "url", Type.namedWith Elm.local "String" [] )
                     , ( "timeout"
                       , Type.namedWith
-                            (Elm.moduleName [ "Maybe" ])
+                            Elm.local
                             "Maybe"
-                            [ Type.namedWith
-                                (Elm.moduleName [ "Basics" ])
-                                "Float"
-                                []
-                            ]
+                            [ Type.namedWith Elm.local "Float" [] ]
                       )
                     , ( "tracker"
                       , Type.namedWith
-                            (Elm.moduleName [ "Maybe" ])
+                            Elm.local
                             "Maybe"
-                            [ Type.namedWith
-                                (Elm.moduleName [ "String" ])
-                                "String"
-                                []
-                            ]
+                            [ Type.namedWith Elm.local "String" [] ]
                       )
                     ]
                 ]
@@ -1173,7 +1078,7 @@ mutation arg1 arg2 =
                 , Type.record
                     [ ( "headers"
                       , Type.namedWith
-                            (Elm.moduleName [ "List" ])
+                            Elm.local
                             "List"
                             [ Type.namedWith
                                 (Elm.moduleName [ "Http" ])
@@ -1181,28 +1086,18 @@ mutation arg1 arg2 =
                                 []
                             ]
                       )
-                    , ( "url"
-                      , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
-                      )
+                    , ( "url", Type.namedWith Elm.local "String" [] )
                     , ( "timeout"
                       , Type.namedWith
-                            (Elm.moduleName [ "Maybe" ])
+                            Elm.local
                             "Maybe"
-                            [ Type.namedWith
-                                (Elm.moduleName [ "Basics" ])
-                                "Float"
-                                []
-                            ]
+                            [ Type.namedWith Elm.local "Float" [] ]
                       )
                     , ( "tracker"
                       , Type.namedWith
-                            (Elm.moduleName [ "Maybe" ])
+                            Elm.local
                             "Maybe"
-                            [ Type.namedWith
-                                (Elm.moduleName [ "String" ])
-                                "String"
-                                []
-                            ]
+                            [ Type.namedWith Elm.local "String" [] ]
                       )
                     ]
                 ]
@@ -1235,7 +1130,7 @@ queryString arg1 =
                     "Selection"
                     [ Type.var "source", Type.var "data" ]
                 ]
-                (Type.namedWith (Elm.moduleName [ "String" ]) "String" [])
+                (Type.namedWith Elm.local "String" [])
             )
         )
         [ arg1 ]
@@ -1296,10 +1191,7 @@ maybeScalarEncode arg1 arg2 =
                         "Value"
                         []
                     )
-                , Type.namedWith
-                    (Elm.moduleName [ "Maybe" ])
-                    "Maybe"
-                    [ Type.var "a" ]
+                , Type.namedWith Elm.local "Maybe" [ Type.var "a" ]
                 ]
                 (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
                 )
@@ -1356,7 +1248,7 @@ encodeOptionals arg1 =
             "encodeOptionals"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.namedWith
                         (Elm.moduleName [ "GraphQL", "Engine" ])
@@ -1365,14 +1257,10 @@ encodeOptionals arg1 =
                     ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
@@ -1394,21 +1282,17 @@ encodeInputObject arg1 arg2 =
             "encodeInputObject"
             (Type.function
                 [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
+                    Elm.local
                     "List"
                     [ Type.tuple
-                        (Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        )
+                        (Type.namedWith Elm.local "String" [])
                         (Type.namedWith
                             (Elm.moduleName [ "GraphQL", "Engine" ])
                             "Argument"
                             [ Type.var "obj" ]
                         )
                     ]
-                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                , Type.namedWith Elm.local "String" []
                 ]
                 (Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])

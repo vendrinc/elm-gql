@@ -4,9 +4,9 @@ import Browser
 import GraphQL.Engine as GQL
 import Html exposing (Html)
 import Http
-import TnGql.Object
-import TnGql.Object.App
-import TnGql.Queries.App
+import TnG.Object
+import TnG.Object.App
+import TnG.Queries.App
 
 
 main : Program () Model Msg
@@ -77,7 +77,7 @@ type alias App =
 
 appQuery : GQL.Selection GQL.Query App
 appQuery =
-    TnGql.Queries.App.app
+    TnG.Queries.App.app
         { slug = Just "blissfully"
         , id = Nothing
         }
