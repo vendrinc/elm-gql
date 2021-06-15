@@ -21,7 +21,8 @@ objectToModule namespace object =
             object.fields
                 --|> List.filter
                 --    (\field ->
-                --        List.member field.name [ "name", "slug", "id", "viewUrl", "parent" ]
+                --        --List.member field.name [ "name", "slug", "id", "viewUrl", "parent" ]
+                --        List.member field.name [ "parent" ]
                 --    )
                 |> List.foldl
                     (\field accDecls ->
@@ -125,7 +126,11 @@ implementField namespace objectName fieldName fieldType wrapped =
                     ]
                     (Engine.typeSelection.annotation
                         (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) objectName)
-                        (Elm.Annotation.var "data")
+                        (wrapAnnotation wrapped
+                            (Elm.Annotation.var
+                                "data"
+                            )
+                        )
                     )
             }
 
@@ -171,8 +176,10 @@ implementField namespace objectName fieldName fieldType wrapped =
                     ]
                     (Engine.typeSelection.annotation
                         (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) objectName)
-                        (Elm.Annotation.var
-                            "data"
+                        (wrapAnnotation wrapped
+                            (Elm.Annotation.var
+                                "data"
+                            )
                         )
                     )
             }
@@ -198,9 +205,8 @@ wrapExpression wrap exp =
             exp
 
         InList inner ->
-            Elm.apply (Elm.valueFrom (Elm.moduleName [ "Json", "Decode" ]) "list")
-                [ wrapExpression inner exp
-                ]
+            Engine.list
+                (wrapExpression inner exp)
 
         InMaybe inner ->
             Engine.nullable
@@ -275,10 +281,20 @@ generateFiles namespace graphQLSchema =
                         Elm.customType object.name [ ( object.name, [] ) ]
                     )
 
+        unionTypeDeclarations =
+            graphQLSchema.unions
+                |> Dict.toList
+                |> List.map
+                    (\( _, union ) ->
+                        Elm.customType union.name [ ( union.name, [] ) ]
+                    )
+
         masterObjectFile =
             Elm.file (Elm.moduleName [ namespace, "Object" ])
                 "These are all the types we need to protect our API using phantom types."
-                (phantomTypeDeclarations
+                ((phantomTypeDeclarations
+                    ++ unionTypeDeclarations
+                 )
                     |> List.map Elm.expose
                 )
     in

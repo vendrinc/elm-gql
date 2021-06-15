@@ -1,5 +1,5 @@
 module GraphQL.Engine exposing
-    ( nullable, field, fieldWith, object, objectWith
+    ( nullable, list, field, fieldWith, object, objectWith
     , enum, maybeEnum
     , union
     , Selection, select, with, map, map2, recover
@@ -9,11 +9,12 @@ module GraphQL.Engine exposing
     , Argument(..), maybeScalarEncode
     , Id, encodeId, decodeId
     , encodeOptionals, encodeInputObject, encodeArgument
+    , unsafe
     )
 
 {-|
 
-@docs nullable, field, fieldWith, object, objectWith
+@docs nullable, list, field, fieldWith, object, objectWith
 
 @docs enum, maybeEnum
 
@@ -32,6 +33,8 @@ module GraphQL.Engine exposing
 @docs Id, encodeId, decodeId
 
 @docs encodeOptionals, encodeInputObject, encodeArgument
+
+@docs unsafe
 
 -}
 
@@ -186,6 +189,24 @@ nullable (Selection (Details toFieldsGql toFieldsDecoder)) =
                     [ Json.map Just fieldsDecoder
                     , Json.succeed Nothing
                     ]
+                )
+            )
+
+
+{-| Used in generated code to handle maybes
+-}
+list : Selection source data -> Selection source (List data)
+list (Selection (Details toFieldsGql toFieldsDecoder)) =
+    Selection <|
+        Details
+            toFieldsGql
+            (\context ->
+                let
+                    ( fieldContext, fieldsDecoder ) =
+                        toFieldsDecoder context
+                in
+                ( fieldContext
+                , Json.list fieldsDecoder
                 )
             )
 
@@ -357,6 +378,12 @@ type alias Context =
     { aliases : Dict String Int
     , variables : Dict String (Argument Free)
     }
+
+
+{-| -}
+unsafe : Selection source selected -> Selection unsafe selected
+unsafe (Selection deets) =
+    Selection deets
 
 
 type Free
@@ -694,15 +721,15 @@ queryString (Selection (Details gql _)) =
 renderParameterValues : Dict String (Argument arg) -> String
 renderParameterValues dict =
     let
-        list =
+        listParam =
             Dict.toList dict
     in
-    case list of
+    case listParam of
         [] ->
             ""
 
         _ ->
-            "{" ++ renderParameterValuesHelper list "" ++ "}"
+            "{" ++ renderParameterValuesHelper listParam "" ++ "}"
 
 
 renderParameterValuesHelper : List ( String, Argument arg ) -> String -> String
@@ -727,15 +754,15 @@ renderParameterValuesHelper args rendered =
 renderParameters : Dict String (Argument arg) -> String
 renderParameters dict =
     let
-        list =
+        paramList =
             Dict.toList dict
     in
-    case list of
+    case paramList of
         [] ->
             ""
 
         _ ->
-            "(" ++ renderParametersHelper list "" ++ ")"
+            "(" ++ renderParametersHelper paramList "" ++ ")"
 
 
 renderParametersHelper : List ( String, Argument arg ) -> String -> String

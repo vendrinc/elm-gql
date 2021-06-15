@@ -7,6 +7,7 @@ import Http
 import TnG.Object
 import TnG.Object.App
 import TnG.Queries.App
+import TnG.Unions
 
 
 main : Program () Model Msg
@@ -78,14 +79,13 @@ type alias App =
 appQuery : GQL.Selection GQL.Query App
 appQuery =
     TnG.Queries.App.app
-        { slug = Just "blissfully"
-        , id = Nothing
-        }
+        [ TnG.Queries.App.appOptions.slug (Just "blissfully")
+        ]
         app
 
 
-app : GQL.Selection TnGql.Object.App App
+app : GQL.Selection TnG.Object.App App
 app =
     GQL.select App
-        |> GQL.with TnGql.Object.App.app.slug
-        |> GQL.with TnGql.Object.App.app.name
+        |> GQL.with TnG.Object.App.app.slug
+        |> GQL.with TnG.Object.App.app.name

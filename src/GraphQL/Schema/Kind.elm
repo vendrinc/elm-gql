@@ -2,9 +2,11 @@ module GraphQL.Schema.Kind exposing
     ( Kind(..)
     , decoder
     , nameOf
+    , toString
     )
 
 import Json.Decode as Json
+
 
 type Kind
     = Object String
@@ -70,6 +72,7 @@ toString kind =
 
         Interface name_ ->
             name_
+
 
 nameOf : Kind -> String
 nameOf kind =

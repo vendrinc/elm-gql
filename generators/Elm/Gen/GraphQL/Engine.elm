@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, decodeId, encodeArgument, encodeId, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, typeArgument, typeId, typeMutation, typeOptional, typeQuery, typeSelection, union, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, decodeId, encodeArgument, encodeId, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, typeArgument, typeId, typeMutation, typeOptional, typeQuery, typeSelection, union, unsafe, with)
 
 {-| 
 
@@ -18,6 +18,7 @@ moduleName_ =
 {-| Every value/function in this module in case you need to refer to it directly. -}
 id_ :
     { nullable : Elm.Expression
+    , list : Elm.Expression
     , field : Elm.Expression
     , fieldWith : Elm.Expression
     , object : Elm.Expression
@@ -41,6 +42,7 @@ id_ :
     , encodeOptionals : Elm.Expression
     , encodeInputObject : Elm.Expression
     , encodeArgument : Elm.Expression
+    , unsafe : Elm.Expression
     }
 id_ =
     { nullable =
@@ -58,6 +60,24 @@ id_ =
                     "Selection"
                     [ Type.var "source"
                     , Type.namedWith Elm.local "Maybe" [ Type.var "data" ]
+                    ]
+                )
+            )
+    , list =
+        Elm.valueWith
+            moduleName_
+            "list"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Selection"
+                    [ Type.var "source", Type.var "data" ]
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Selection"
+                    [ Type.var "source"
+                    , Type.namedWith Elm.local "List" [ Type.var "data" ]
                     ]
                 )
             )
@@ -559,6 +579,22 @@ id_ =
                 (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
                 )
             )
+    , unsafe =
+        Elm.valueWith
+            moduleName_
+            "unsafe"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Selection"
+                    [ Type.var "source", Type.var "selected" ]
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Selection"
+                    [ Type.var "unsafe", Type.var "selected" ]
+                )
+            )
     }
 
 
@@ -581,6 +617,32 @@ nullable arg1 =
                     "Selection"
                     [ Type.var "source"
                     , Type.namedWith Elm.local "Maybe" [ Type.var "data" ]
+                    ]
+                )
+            )
+        )
+        [ arg1 ]
+
+
+{-| Used in generated code to handle maybes
+-}
+list : Elm.Expression -> Elm.Expression
+list arg1 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "list"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Selection"
+                    [ Type.var "source", Type.var "data" ]
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Selection"
+                    [ Type.var "source"
+                    , Type.namedWith Elm.local "List" [ Type.var "data" ]
                     ]
                 )
             )
@@ -1318,6 +1380,29 @@ encodeArgument arg1 =
                     [ Type.var "obj" ]
                 ]
                 (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
+        [ arg1 ]
+
+
+{-| -}
+unsafe : Elm.Expression -> Elm.Expression
+unsafe arg1 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "unsafe"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Selection"
+                    [ Type.var "source", Type.var "selected" ]
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Selection"
+                    [ Type.var "unsafe", Type.var "selected" ]
                 )
             )
         )
