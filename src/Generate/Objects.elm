@@ -61,10 +61,11 @@ objectToModule namespace object =
     --Elm.file (Elm.moduleName [ namespace, "Object", object.name ])
     --    ""
     --    [
-    objectDecl |> Elm.expose
+    objectDecl
 
 
 
+--|> Elm.expose
 --]
 
 
@@ -397,62 +398,70 @@ generateFiles namespace graphQLSchema =
                             (Elm.Annotation.named Elm.local (name ++ "_"))
                             (Elm.Annotation.var "data")
                         )
-                        |> Elm.expose
                     , Elm.customType (name ++ "_") [ ( name, [] ) ]
-                        |> Elm.expose
                     ]
                 )
                 names
 
         engineAliases =
-            List.map Elm.expose
-                [ Elm.declaration "select"
-                    (Elm.valueFrom
-                        Engine.moduleName_
-                        "select"
-                    )
-                , Elm.declaration "with"
-                    (Elm.valueFrom
-                        Engine.moduleName_
-                        "with"
-                    )
-                , Elm.declaration "map"
-                    (Elm.valueFrom
-                        Engine.moduleName_
-                        "map"
-                    )
-                , Elm.declaration "map2"
-                    (Elm.valueFrom
-                        Engine.moduleName_
-                        "map2"
-                    )
-                , Elm.declaration "recover"
-                    (Elm.valueFrom
-                        Engine.moduleName_
-                        "recover"
-                    )
-                , Elm.aliasWith "Id"
-                    []
-                    (Elm.Annotation.named Engine.moduleName_ "Id")
-                    |> Elm.expose
-                , Elm.declaration "query"
-                    (Elm.valueFrom
-                        Engine.moduleName_
-                        "query"
-                    )
-                , Elm.declaration "mutation"
-                    (Elm.valueFrom
-                        Engine.moduleName_
-                        "mutation"
-                    )
-                ]
+            --List.map Elm.expose
+            [ Elm.declaration "select"
+                (Elm.valueFrom
+                    Engine.moduleName_
+                    "select"
+                )
+            , Elm.declaration "with"
+                (Elm.valueFrom
+                    Engine.moduleName_
+                    "with"
+                )
+            , Elm.declaration "map"
+                (Elm.valueFrom
+                    Engine.moduleName_
+                    "map"
+                )
+            , Elm.declaration "map2"
+                (Elm.valueFrom
+                    Engine.moduleName_
+                    "map2"
+                )
+            , Elm.declaration "recover"
+                (Elm.valueFrom
+                    Engine.moduleName_
+                    "recover"
+                )
+            , Elm.aliasWith "Id"
+                []
+                (Elm.Annotation.named Engine.moduleName_ "Id")
+            , Elm.aliasWith "Query"
+                [ "data" ]
+                (Engine.typeSelection.annotation
+                    Engine.typeQuery.annotation
+                    (Elm.Annotation.var "data")
+                )
+            , Elm.declaration "query"
+                (Elm.valueFrom
+                    Engine.moduleName_
+                    "query"
+                )
+            , Elm.aliasWith "Mutation"
+                [ "data" ]
+                (Engine.typeSelection.annotation
+                    Engine.typeMutation.annotation
+                    (Elm.Annotation.var "data")
+                )
+            , Elm.declaration "mutation"
+                (Elm.valueFrom
+                    Engine.moduleName_
+                    "mutation"
+                )
+            ]
 
         masterObjectFile =
             Elm.file (Elm.moduleName [ namespace ])
                 ""
-                --engineAliases
-                --++
-                (renderedObjects
+                (engineAliases
+                    ++ renderedObjects
                     ++ helpers
                 )
     in

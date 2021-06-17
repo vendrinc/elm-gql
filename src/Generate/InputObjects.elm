@@ -2,9 +2,6 @@ module Generate.InputObjects exposing (generateFiles)
 
 import Dict
 import Elm
-import Elm.Annotation
-import Elm.Gen.GraphQL.Engine as Engine
-import Elm.Gen.List
 import Generate.Args
 import GraphQL.Schema
 import GraphQL.Schema.InputObject
@@ -52,6 +49,7 @@ inputObjectToDeclarations namespace schema input =
                 input.name
                 input.fields
                 (Object input.name)
+                (Debug.todo "This needs to be an input objects")
     in
     List.filterMap identity
         [ inputDecl

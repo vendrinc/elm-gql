@@ -1,7 +1,6 @@
 module Main exposing (main)
 
 import Browser
-import GraphQL.Engine as GQL
 import Html exposing (Html)
 import Http
 import TnG
@@ -32,7 +31,7 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { result = Nothing }
-    , GQL.query appQuery
+    , TnG.query appQuery
         { url = "https://api.blissfully.com/prod/graphql"
         , headers =
             [ Http.header "Authorization" "nice try, aaron"
@@ -76,7 +75,7 @@ type alias App =
     }
 
 
-appQuery : GQL.Selection GQL.Query App
+appQuery : TnG.Query App
 appQuery =
     TnG.Queries.App.app
         [ TnG.Queries.App.appOptions.slug (Just "blissfully")
@@ -86,6 +85,6 @@ appQuery =
 
 app : TnG.App App
 app =
-    GQL.select App
-        |> GQL.with TnG.app.slug
-        |> GQL.with TnG.app.name
+    TnG.select App
+        |> TnG.with TnG.app.slug
+        |> TnG.with TnG.app.name

@@ -5,6 +5,7 @@ module Generate exposing (main)
 import Dict
 import Elm
 import Elm.Gen
+import Generate.Args
 import Generate.Enums
 import Generate.InputObjects
 import Generate.Objects
@@ -37,18 +38,25 @@ main =
                             objectFiles =
                                 Generate.Objects.generateFiles model.namespace schema
 
-                            inputFiles =
-                                Generate.InputObjects.generateFiles model.namespace schema
-
+                            --inputFiles =
+                            --    Generate.InputObjects.generateFiles model.namespace schema
                             queryFiles =
-                                Generate.Operations.generateFiles model.namespace Generate.Operations.Query schema
+                                Generate.Operations.generateFiles model.namespace Generate.Args.Query schema
 
                             mutationFiles =
-                                Generate.Operations.generateFiles model.namespace Generate.Operations.Mutation schema
+                                Generate.Operations.generateFiles model.namespace Generate.Args.Mutation schema
                         in
                         ( model
                         , Elm.Gen.files
-                            (List.map Elm.render (unionFiles ++ enumFiles ++ objectFiles ++ queryFiles ++ mutationFiles ++ inputFiles))
+                            (List.map Elm.render
+                                (unionFiles
+                                    ++ enumFiles
+                                    ++ objectFiles
+                                    ++ queryFiles
+                                    ++ mutationFiles
+                                 --++ inputFiles
+                                )
+                            )
                         )
 
                     SchemaReceived (Err err) ->

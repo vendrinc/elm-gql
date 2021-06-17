@@ -1,4 +1,4 @@
-module Generate.Operations exposing (Operation(..), generateFiles)
+module Generate.Operations exposing (generateFiles)
 
 import Dict
 import Elm
@@ -8,7 +8,7 @@ import GraphQL.Schema.Operation
 import String.Extra as String
 
 
-queryToModule : String -> Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation.Operation -> Elm.File
+queryToModule : String -> Generate.Args.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation.Operation -> Elm.File
 queryToModule namespace op schema operation =
     let
         dir =
@@ -26,6 +26,7 @@ queryToModule namespace op schema operation =
                 operation.name
                 operation.arguments
                 operation.type_
+                op
     in
     Elm.file
         (Elm.moduleName
@@ -38,22 +39,17 @@ queryToModule namespace op schema operation =
         (queryFunction :: allOptionalMakers)
 
 
-type Operation
-    = Query
-    | Mutation
-
-
-directory : Operation -> String
+directory : Generate.Args.Operation -> String
 directory op =
     case op of
-        Query ->
+        Generate.Args.Query ->
             "Queries"
 
-        Mutation ->
+        Generate.Args.Mutation ->
             "Mutations"
 
 
-generateFiles : String -> Operation -> GraphQL.Schema.Schema -> List Elm.File
+generateFiles : String -> Generate.Args.Operation -> GraphQL.Schema.Schema -> List Elm.File
 generateFiles namespace op schema =
     --List.filterMap
     --    (\oper ->
@@ -65,7 +61,7 @@ generateFiles namespace op schema =
     --    )
     --    ops
     case op of
-        Mutation ->
+        Generate.Args.Mutation ->
             schema.mutations
                 |> Dict.toList
                 |> List.map
@@ -82,7 +78,7 @@ generateFiles namespace op schema =
                     )
 
         --[]
-        Query ->
+        Generate.Args.Query ->
             schema.queries
                 |> Dict.toList
                 |> List.map

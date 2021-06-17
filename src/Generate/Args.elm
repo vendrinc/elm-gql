@@ -1,5 +1,6 @@
 module Generate.Args exposing
-    ( createBuilder
+    ( Operation(..)
+    , createBuilder
     , optionalMaker
     , prepareRequired
     , recursiveOptionalMaker
@@ -1016,6 +1017,20 @@ unwrapExpression wrap exp =
 {- CREATE BUILDER -}
 
 
+type Operation
+    = Query
+    | Mutation
+
+
+operationToString op =
+    case op of
+        Query ->
+            "Query"
+
+        Mutation ->
+            "Mutation"
+
+
 createBuilder :
     String
     -> GraphQL.Schema.Schema
@@ -1028,8 +1043,9 @@ createBuilder :
                 , type_ : Type
             }
     -> Type
+    -> Operation
     -> Elm.Declaration
-createBuilder namespace schema name arguments returnType =
+createBuilder namespace schema name arguments returnType operation =
     let
         ( required, optional ) =
             splitRequired
@@ -1050,9 +1066,6 @@ createBuilder namespace schema name arguments returnType =
 
                 _ ->
                     True
-
-        anchor =
-            Generate.Common.gqlTypeToElmTypeAnnotation namespace returnType Nothing
 
         expression =
             Engine.objectWith
@@ -1095,14 +1108,17 @@ createBuilder namespace schema name arguments returnType =
                 (Elm.string name)
                 (Elm.valueWith (Elm.moduleName [])
                     "selection"
-                    --Engine.typeSelection.annotation anchor (Elm.Annotation.var "data")
                     (Generate.Common.selection namespace
                         (GraphQL.Schema.Type.toString returnType)
                         (Elm.Annotation.var "data")
                     )
                 )
                 |> Elm.withAnnotation
-                    (Engine.typeSelection.annotation Engine.typeQuery.annotation (Elm.Annotation.var "data"))
+                    --(Engine.typeSelection.annotation Engine.typeQuery.annotation (Elm.Annotation.var "data"))
+                    (Generate.Common.selection namespace
+                        (operationToString operation)
+                        (Elm.Annotation.var "data")
+                    )
     in
     Elm.functionWith name
         (List.filterMap identity
@@ -1116,8 +1132,7 @@ createBuilder namespace schema name arguments returnType =
                 , Elm.Pattern.var "optional"
                 )
             , Just
-                ( --Engine.typeSelection.annotation anchor (Elm.Annotation.var "data")
-                  Generate.Common.selection namespace
+                ( Generate.Common.selection namespace
                     (GraphQL.Schema.Type.toString returnType)
                     (Elm.Annotation.var "data")
                 , Elm.Pattern.var "selection"
