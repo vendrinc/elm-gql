@@ -41,16 +41,10 @@ main =
                                 Generate.InputObjects.generateFiles model.namespace schema
 
                             queryFiles =
-                                schema.queries
-                                    |> Dict.toList
-                                    |> List.map Tuple.second
-                                    |> Generate.Operations.generateFiles model.namespace Generate.Operations.Query
+                                Generate.Operations.generateFiles model.namespace Generate.Operations.Query schema
 
                             mutationFiles =
-                                schema.mutations
-                                    |> Dict.toList
-                                    |> List.map Tuple.second
-                                    |> Generate.Operations.generateFiles model.namespace Generate.Operations.Mutation
+                                Generate.Operations.generateFiles model.namespace Generate.Operations.Mutation schema
                         in
                         ( model
                         , Elm.Gen.files

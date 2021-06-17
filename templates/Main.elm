@@ -4,6 +4,7 @@ import Browser
 import GraphQL.Engine as GQL
 import Html exposing (Html)
 import Http
+import TnG.Mutations.UpdateLicense
 import TnG.Object
 import TnG.Object.App
 import TnG.Queries.App

@@ -289,11 +289,20 @@ generateFiles namespace graphQLSchema =
                         Elm.customType union.name [ ( union.name, [] ) ]
                     )
 
+        inputTypeDeclarations =
+            graphQLSchema.inputObjects
+                |> Dict.toList
+                |> List.map
+                    (\( _, union ) ->
+                        Elm.customType union.name [ ( union.name, [] ) ]
+                    )
+
         masterObjectFile =
             Elm.file (Elm.moduleName [ namespace, "Object" ])
                 "These are all the types we need to protect our API using phantom types."
                 ((phantomTypeDeclarations
                     ++ unionTypeDeclarations
+                    ++ inputTypeDeclarations
                  )
                     |> List.map Elm.expose
                 )

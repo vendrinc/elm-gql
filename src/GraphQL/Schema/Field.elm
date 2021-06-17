@@ -10,8 +10,7 @@ import Utils.Json
 type alias Field =
     { name : String
     , description : Maybe String
-
-    -- , arguments : List Argument
+    , arguments : List Argument
     , type_ : Type
     , permissions : List Permission
     }
@@ -19,9 +18,10 @@ type alias Field =
 
 decoder : Json.Decoder Field
 decoder =
-    Json.map4 Field
+    Json.map5 Field
         (Json.field "name" Json.string)
         (Json.field "description" (Json.maybe Utils.Json.nonEmptyString))
-        -- (Json.field "args" (Json.list GraphQL.Schema.Argument.decoder))
+        --(Json.field "args" (Json.list GraphQL.Schema.Argument.decoder))
+        (Json.succeed [])
         (Json.field "type" Type.decoder)
         Permission.decoder
