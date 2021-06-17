@@ -14,7 +14,10 @@ import String.Extra as String
 import Utils.String
 
 
-objectToModule : String -> GraphQL.Schema.Object.Object -> Elm.File
+
+--objectToModule : String -> GraphQL.Schema.Object.Object -> Elm.File
+
+
 objectToModule namespace object =
     let
         fieldTypesAndImpls =
@@ -41,21 +44,37 @@ objectToModule namespace object =
 
         objectTypeAnnotation =
             fieldTypesAndImpls
-                |> List.map (\( name, typeAnnotation, _ ) -> ( name, typeAnnotation ))
+                |> List.map
+                    (\( name, typeAnnotation, _ ) ->
+                        ( formatName name, typeAnnotation )
+                    )
                 |> Elm.Annotation.record
 
         objectImplementation =
             fieldTypesAndImpls
-                |> List.map (\( name, _, expression ) -> ( name, expression ))
+                |> List.map (\( name, _, expression ) -> ( formatName name, expression ))
                 |> Elm.record
 
         objectDecl =
             Elm.declarationWith (String.decapitalize object.name) objectTypeAnnotation objectImplementation
     in
-    Elm.file (Elm.moduleName [ namespace, "Object", object.name ])
-        ""
-        [ objectDecl |> Elm.expose
-        ]
+    --Elm.file (Elm.moduleName [ namespace, "Object", object.name ])
+    --    ""
+    --    [
+    objectDecl |> Elm.expose
+
+
+
+--]
+
+
+formatName str =
+    case str of
+        "_" ->
+            "underscore"
+
+        _ ->
+            str
 
 
 type Wrapped
@@ -110,7 +129,7 @@ implementField namespace objectName fieldName fieldType wrapped =
             { expression =
                 Elm.lambda "selection_"
                     (Engine.typeSelection.annotation
-                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) nestedObjectName)
+                        (Common.local namespace nestedObjectName)
                         (Elm.Annotation.var "data")
                     )
                     (\sel ->
@@ -121,11 +140,11 @@ implementField namespace objectName fieldName fieldType wrapped =
             , annotation =
                 Elm.Annotation.function
                     [ Engine.typeSelection.annotation
-                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) nestedObjectName)
+                        (Common.local namespace nestedObjectName)
                         (Elm.Annotation.var "data")
                     ]
                     (Engine.typeSelection.annotation
-                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) objectName)
+                        (Common.local namespace objectName)
                         (wrapAnnotation wrapped
                             (Elm.Annotation.var
                                 "data"
@@ -135,12 +154,38 @@ implementField namespace objectName fieldName fieldType wrapped =
             }
 
         GraphQL.Schema.Type.Interface interfaceName ->
-            let
-                signature =
-                    fieldSignature namespace objectName fieldType
-            in
-            { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
-            , annotation = signature.annotation
+            --let
+            --    signature =
+            --        fieldSignature namespace objectName fieldType
+            --in
+            --{ expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
+            --, annotation = signature.annotation
+            --}
+            { expression =
+                Elm.lambda "selection_"
+                    (Engine.typeSelection.annotation
+                        (Common.local namespace interfaceName)
+                        (Elm.Annotation.var "data")
+                    )
+                    (\sel ->
+                        Engine.object
+                            (Elm.string fieldName)
+                            (wrapExpression wrapped sel)
+                    )
+            , annotation =
+                Elm.Annotation.function
+                    [ Engine.typeSelection.annotation
+                        (Common.local namespace interfaceName)
+                        (Elm.Annotation.var "data")
+                    ]
+                    (Engine.typeSelection.annotation
+                        (Common.local namespace objectName)
+                        (wrapAnnotation wrapped
+                            (Elm.Annotation.var
+                                "data"
+                            )
+                        )
+                    )
             }
 
         GraphQL.Schema.Type.InputObject inputName ->
@@ -156,7 +201,7 @@ implementField namespace objectName fieldName fieldType wrapped =
             { expression =
                 Elm.lambda "union_"
                     (Engine.typeSelection.annotation
-                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) unionName)
+                        (Common.local namespace unionName)
                         (Elm.Annotation.var
                             "data"
                         )
@@ -169,13 +214,13 @@ implementField namespace objectName fieldName fieldType wrapped =
             , annotation =
                 Elm.Annotation.function
                     [ Engine.typeSelection.annotation
-                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) unionName)
+                        (Common.local namespace unionName)
                         (Elm.Annotation.var
                             "data"
                         )
                     ]
                     (Engine.typeSelection.annotation
-                        (Elm.Annotation.named (Elm.moduleName [ namespace, "Object" ]) objectName)
+                        (Common.local namespace objectName)
                         (wrapAnnotation wrapped
                             (Elm.Annotation.var
                                 "data"
@@ -223,11 +268,11 @@ fieldSignature :
 fieldSignature namespace objectName fieldType =
     let
         dataType =
-            Common.gqlTypeToElmTypeAnnotation namespace fieldType Nothing
+            Common.localAnnotation namespace fieldType Nothing
 
         typeAnnotation =
             Engine.typeSelection.annotation
-                (Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Object" ]) objectName [])
+                (Common.local namespace objectName)
                 dataType
     in
     { annotation = typeAnnotation
@@ -269,16 +314,21 @@ generateFiles namespace graphQLSchema =
                 |> Dict.toList
                 |> List.map Tuple.second
 
-        --|> List.filter (\object -> object.name == "App")
-        objectFiles =
-            objects
-                |> List.map (objectToModule namespace)
+        interfaces =
+            graphQLSchema.interfaces
+                |> Dict.toList
+                |> List.map Tuple.second
+
+        renderedObjects =
+            List.map (objectToModule namespace) objects
+                ++ List.map (objectToModule namespace) interfaces
 
         phantomTypeDeclarations =
             objects
                 |> List.map
                     (\object ->
                         Elm.customType object.name [ ( object.name, [] ) ]
+                            |> Elm.expose
                     )
 
         unionTypeDeclarations =
@@ -287,6 +337,7 @@ generateFiles namespace graphQLSchema =
                 |> List.map
                     (\( _, union ) ->
                         Elm.customType union.name [ ( union.name, [] ) ]
+                            |> Elm.expose
                     )
 
         inputTypeDeclarations =
@@ -295,16 +346,30 @@ generateFiles namespace graphQLSchema =
                 |> List.map
                     (\( _, union ) ->
                         Elm.customType union.name [ ( union.name, [] ) ]
+                            |> Elm.expose
+                    )
+
+        interfaceTypeDeclarations =
+            graphQLSchema.interfaces
+                |> Dict.toList
+                |> List.map
+                    (\( _, union ) ->
+                        Elm.customType union.name [ ( union.name, [] ) ]
+                            |> Elm.expose
                     )
 
         masterObjectFile =
-            Elm.file (Elm.moduleName [ namespace, "Object" ])
+            Elm.file (Elm.moduleName [ namespace ])
                 "These are all the types we need to protect our API using phantom types."
-                ((phantomTypeDeclarations
+                (renderedObjects
+                    ++ phantomTypeDeclarations
                     ++ unionTypeDeclarations
                     ++ inputTypeDeclarations
-                 )
-                    |> List.map Elm.expose
+                    ++ interfaceTypeDeclarations
                 )
     in
-    masterObjectFile :: objectFiles
+    [ masterObjectFile ]
+
+
+
+--:: objectFiles

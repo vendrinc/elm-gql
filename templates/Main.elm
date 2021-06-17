@@ -4,9 +4,8 @@ import Browser
 import GraphQL.Engine as GQL
 import Html exposing (Html)
 import Http
+import TnG
 import TnG.Mutations.UpdateLicense
-import TnG.Object
-import TnG.Object.App
 import TnG.Queries.App
 import TnG.Unions
 
@@ -85,8 +84,8 @@ appQuery =
         app
 
 
-app : GQL.Selection TnG.Object.App App
+app : GQL.Selection TnG.App App
 app =
     GQL.select App
-        |> GQL.with TnG.Object.App.app.slug
-        |> GQL.with TnG.Object.App.app.name
+        |> GQL.with TnG.app.slug
+        |> GQL.with TnG.app.name

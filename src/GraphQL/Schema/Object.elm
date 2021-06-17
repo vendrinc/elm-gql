@@ -22,6 +22,7 @@ decoder =
         (Json.field "fields" (Json.list Field.decoder))
         (Json.field "interfaces" (Json.list interface))
 
+
 interface : Json.Decoder Kind
 interface =
     Json.field "name" Json.string

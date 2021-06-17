@@ -562,17 +562,11 @@ annotations =
     { optional =
         \namespace name ->
             Engine.typeOptional.annotation
-                (Elm.Annotation.named
-                    (Elm.moduleName [ namespace, "Object" ])
-                    name
-                )
+                (Generate.Common.ref namespace name)
     , arg =
         \namespace name ->
             Engine.typeArgument.annotation
-                (Elm.Annotation.named
-                    (Elm.moduleName [ namespace, "Object" ])
-                    name
-                )
+                (Generate.Common.ref namespace name)
     }
 
 

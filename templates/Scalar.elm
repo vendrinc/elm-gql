@@ -1,4 +1,30 @@
-module Scalar exposing (SurveyId, Url, ViewId, url)
+module Scalar exposing
+    ( Codec
+    , ColumnId(..)
+    , DateTime
+    , Id(..)
+    , Iso4217(..)
+    , Json(..)
+    , Markdown(..)
+    , Never(..)
+    , PageCursor(..)
+    , Presence(..)
+    , RawCodec
+    , SurveyId(..)
+    , Url
+    , ViewId(..)
+    , columnId
+    , dateTime
+    , iso4217
+    , json
+    , markdown
+    , never
+    , pageCursor
+    , presence
+    , surveyId
+    , url
+    , viewId
+    )
 
 import GraphQL.Engine as Engine
 import Iso8601
@@ -32,7 +58,7 @@ url =
 
 dateTime =
     { encode = Iso8601.encode
-    , decode = Iso8601.decoder
+    , decoder = Iso8601.decoder
     }
 
 

@@ -6,6 +6,14 @@ import GraphQL.Schema.Type exposing (Type(..))
 import Utils.String
 
 
+ref namespace name =
+    Elm.Annotation.named (Elm.moduleName [ namespace ]) name
+
+
+local namespace name =
+    Elm.Annotation.named Elm.local name
+
+
 gqlTypeToElmTypeAnnotation : String -> GraphQL.Schema.Type.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
 gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
     let
@@ -53,13 +61,72 @@ gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
             Elm.Annotation.maybe innerType
 
         InputObject inputObjectName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "InputObject" ]) inputObjectName appliedToTypes
+            ref namespace inputObjectName
 
         Object objectName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Object" ]) objectName appliedToTypes
+            ref namespace objectName
 
         Union unionName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Union" ]) unionName appliedToTypes
+            ref namespace unionName
 
         Interface interfaceName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Interface" ]) interfaceName appliedToTypes
+            ref namespace interfaceName
+
+
+localAnnotation : String -> GraphQL.Schema.Type.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
+localAnnotation namespace gqlType maybeAppliedToTypes =
+    let
+        appliedToTypes =
+            Maybe.withDefault [] maybeAppliedToTypes
+    in
+    case gqlType of
+        Scalar scalarName ->
+            case String.toLower scalarName of
+                "string" ->
+                    Elm.Annotation.string
+
+                "int" ->
+                    Elm.Annotation.int
+
+                "float" ->
+                    Elm.Annotation.float
+
+                "boolean" ->
+                    Elm.Annotation.bool
+
+                "id" ->
+                    Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) "Id" appliedToTypes
+
+                _ ->
+                    Elm.Annotation.namedWith (Elm.moduleName [ "Scalar" ])
+                        (Utils.String.formatTypename scalarName)
+                        appliedToTypes
+
+        Enum enumName ->
+            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Enum", enumName ]) enumName appliedToTypes
+
+        List_ listElementType ->
+            let
+                innerType =
+                    gqlTypeToElmTypeAnnotation namespace listElementType maybeAppliedToTypes
+            in
+            Elm.Annotation.list innerType
+
+        Nullable nonNullType ->
+            let
+                innerType =
+                    gqlTypeToElmTypeAnnotation namespace nonNullType maybeAppliedToTypes
+            in
+            Elm.Annotation.maybe innerType
+
+        InputObject inputObjectName ->
+            local namespace inputObjectName
+
+        Object objectName ->
+            local namespace objectName
+
+        Union unionName ->
+            local namespace unionName
+
+        Interface interfaceName ->
+            local namespace interfaceName
