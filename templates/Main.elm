@@ -84,7 +84,7 @@ appQuery =
         app
 
 
-app : GQL.Selection TnG.App App
+app : TnG.App App
 app =
     GQL.select App
         |> GQL.with TnG.app.slug

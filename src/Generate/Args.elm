@@ -231,8 +231,8 @@ requiredAnnotationRecursiveHelper namespace schema type_ wrapped =
                 |> unwrapWith wrapped
 
         GraphQL.Schema.Type.Object nestedObjectName ->
-            Engine.typeSelection.annotation
-                (Elm.Annotation.var nestedObjectName)
+            Generate.Common.selection namespace
+                nestedObjectName
                 (Elm.Annotation.var "data")
 
         GraphQL.Schema.Type.InputObject inputName ->
@@ -327,7 +327,8 @@ requiredAnnotationHelper namespace type_ wrapped =
                 |> unwrapWith wrapped
 
         GraphQL.Schema.Type.Object nestedObjectName ->
-            Engine.typeSelection.annotation (Elm.Annotation.var nestedObjectName)
+            Generate.Common.selection namespace
+                nestedObjectName
                 (Elm.Annotation.var "data")
 
         GraphQL.Schema.Type.InputObject inputName ->
@@ -336,7 +337,8 @@ requiredAnnotationHelper namespace type_ wrapped =
 
         GraphQL.Schema.Type.Union unionName ->
             -- Note, we need a discriminator instead of just `data`
-            Engine.typeSelection.annotation (Elm.Annotation.var unionName)
+            Generate.Common.selection namespace
+                unionName
                 (Elm.Annotation.var "data")
                 |> unwrapWith wrapped
 
@@ -562,11 +564,11 @@ annotations =
     { optional =
         \namespace name ->
             Engine.typeOptional.annotation
-                (Generate.Common.ref namespace name)
+                (Generate.Common.ref namespace (name ++ "_"))
     , arg =
         \namespace name ->
             Engine.typeArgument.annotation
-                (Generate.Common.ref namespace name)
+                (Generate.Common.ref namespace (name ++ "_"))
     }
 
 
@@ -1093,7 +1095,11 @@ createBuilder namespace schema name arguments returnType =
                 (Elm.string name)
                 (Elm.valueWith (Elm.moduleName [])
                     "selection"
-                    (Engine.typeSelection.annotation anchor (Elm.Annotation.var "data"))
+                    --Engine.typeSelection.annotation anchor (Elm.Annotation.var "data")
+                    (Generate.Common.selection namespace
+                        (GraphQL.Schema.Type.toString returnType)
+                        (Elm.Annotation.var "data")
+                    )
                 )
                 |> Elm.withAnnotation
                     (Engine.typeSelection.annotation Engine.typeQuery.annotation (Elm.Annotation.var "data"))
@@ -1110,7 +1116,10 @@ createBuilder namespace schema name arguments returnType =
                 , Elm.Pattern.var "optional"
                 )
             , Just
-                ( Engine.typeSelection.annotation anchor (Elm.Annotation.var "data")
+                ( --Engine.typeSelection.annotation anchor (Elm.Annotation.var "data")
+                  Generate.Common.selection namespace
+                    (GraphQL.Schema.Type.toString returnType)
+                    (Elm.Annotation.var "data")
                 , Elm.Pattern.var "selection"
                 )
             ]

@@ -2,8 +2,23 @@ module Generate.Common exposing (..)
 
 import Elm
 import Elm.Annotation
+import Elm.Gen.GraphQL.Engine as Engine
 import GraphQL.Schema.Type exposing (Type(..))
 import Utils.String
+
+
+selection namespace name data =
+    Elm.Annotation.namedWith
+        (Elm.moduleName [ namespace ])
+        name
+        [ data ]
+
+
+selectionLocal namespace name data =
+    Elm.Annotation.namedWith
+        Elm.local
+        name
+        [ data ]
 
 
 ref namespace name =

@@ -28,11 +28,14 @@ generateFiles namespace graphQLSchema =
                                 (List.map
                                     (\var ->
                                         ( GraphQL.Schema.Kind.toString var.kind
-                                        , Engine.typeSelection.annotation
-                                            (Common.ref
-                                                namespace
-                                                (GraphQL.Schema.Kind.toString var.kind)
-                                            )
+                                        , --Engine.typeSelection.annotation
+                                          --    (Common.ref
+                                          --        namespace
+                                          --        (GraphQL.Schema.Kind.toString var.kind)
+                                          --    )
+                                          --    (Elm.Annotation.var "data")
+                                          Common.selection namespace
+                                            (GraphQL.Schema.Kind.toString var.kind)
                                             (Elm.Annotation.var "data")
                                         )
                                     )
@@ -55,11 +58,15 @@ generateFiles namespace graphQLSchema =
                                         )
                                     )
                                     |> Elm.withAnnotation
-                                        (Engine.typeSelection.annotation
-                                            (Common.ref
-                                                namespace
-                                                unionDefinition.name
-                                            )
+                                        --(Engine.typeSelection.annotation
+                                        --    (Common.ref
+                                        --        namespace
+                                        --        unionDefinition.name
+                                        --    )
+                                        --    (Elm.Annotation.var "data")
+                                        --)
+                                        (Common.selection namespace
+                                            unionDefinition.name
                                             (Elm.Annotation.var "data")
                                         )
                             )
