@@ -78,7 +78,7 @@ type alias App =
 appQuery : TnG.Query App
 appQuery =
     TnG.Queries.App.app
-        [ TnG.Queries.App.appOptions.slug (Just "blissfully")
+        [ TnG.Queries.App.slug (Just "blissfully")
         ]
         app
 

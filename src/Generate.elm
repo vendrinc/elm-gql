@@ -38,8 +38,9 @@ main =
                             objectFiles =
                                 Generate.Objects.generateFiles model.namespace schema
 
-                            --inputFiles =
-                            --    Generate.InputObjects.generateFiles model.namespace schema
+                            inputFiles =
+                                Generate.InputObjects.generateFiles model.namespace schema
+
                             queryFiles =
                                 Generate.Operations.generateFiles model.namespace Generate.Args.Query schema
 
@@ -54,7 +55,7 @@ main =
                                     ++ objectFiles
                                     ++ queryFiles
                                     ++ mutationFiles
-                                 --++ inputFiles
+                                    ++ inputFiles
                                 )
                             )
                         )

@@ -2,6 +2,8 @@ module Generate.InputObjects exposing (generateFiles)
 
 import Dict
 import Elm
+import Elm.Annotation
+import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Args
 import GraphQL.Schema
 import GraphQL.Schema.InputObject
@@ -10,6 +12,17 @@ import GraphQL.Schema.Type exposing (Type(..))
 
 inputObjectToDeclarations : String -> GraphQL.Schema.Schema -> GraphQL.Schema.InputObject.InputObject -> List Elm.Declaration
 inputObjectToDeclarations namespace schema input =
+    [ Generate.Args.createInput namespace
+        schema
+        input.name
+        input.fields
+        (Object input.name)
+        |> Elm.expose
+    ]
+
+
+inputObjectToOptionalBuilders : String -> GraphQL.Schema.Schema -> GraphQL.Schema.InputObject.InputObject -> List Elm.File
+inputObjectToOptionalBuilders namespace schema input =
     let
         ( required, optional ) =
             List.partition
@@ -31,32 +44,28 @@ inputObjectToDeclarations namespace schema input =
                 _ ->
                     True
 
-        optionalConstructor =
-            if hasOptionalArgs then
-                Just
-                    (Generate.Args.optionalMaker namespace
+        optionalTypeAlias =
+            Elm.aliasWith "Optional"
+                []
+                (Engine.typeOptional.annotation
+                    (Elm.Annotation.named (Elm.moduleName [ namespace ])
                         input.name
-                        optional
-                        |> Elm.expose
                     )
-
-            else
-                Nothing
-
-        inputDecl =
-            Generate.Args.createBuilder namespace
-                schema
-                input.name
-                input.fields
-                (Object input.name)
-                (Debug.todo "This needs to be an input objects")
+                )
+                |> Elm.expose
     in
-    List.filterMap identity
-        [ inputDecl
-            |> Elm.expose
-            |> Just
-        , optionalConstructor
+    if hasOptionalArgs then
+        [ Elm.file (Elm.moduleName [ namespace, input.name ])
+            ""
+            (optionalTypeAlias
+                :: Generate.Args.optionalMakerTopLevel namespace
+                    input.name
+                    optional
+            )
         ]
+
+    else
+        []
 
 
 generateFiles : String -> GraphQL.Schema.Schema -> List Elm.File
@@ -71,8 +80,12 @@ generateFiles namespace schema =
         declarations =
             objects
                 |> List.concatMap (inputObjectToDeclarations namespace schema)
+
+        optionalFiles =
+            objects
+                |> List.concatMap (inputObjectToOptionalBuilders namespace schema)
     in
-    [ Elm.file (Elm.moduleName [ namespace, "Input" ])
+    Elm.file (Elm.moduleName [ namespace, "Input" ])
         ""
         declarations
-    ]
+        :: optionalFiles

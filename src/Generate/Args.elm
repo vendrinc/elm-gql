@@ -1,7 +1,10 @@
 module Generate.Args exposing
     ( Operation(..)
     , createBuilder
+    , createInput
+    , isOptional
     , optionalMaker
+    , optionalMakerTopLevel
     , prepareRequired
     , recursiveOptionalMaker
     , requiredAnnotation
@@ -564,12 +567,25 @@ optionalMakerExhaustive namespace schema name options =
 annotations =
     { optional =
         \namespace name ->
-            Engine.typeOptional.annotation
-                (Generate.Common.ref namespace (name ++ "_"))
+            --Engine.typeOptional.annotation
+            --    (Generate.Common.ref namespace (name ++ "_"))
+            Elm.Annotation.namedWith
+                (Elm.moduleName [ namespace, name ])
+                "Optional"
+                []
+    , localOptional =
+        \namespace name ->
+            --Engine.typeOptional.annotation
+            --    (Generate.Common.ref namespace (name ++ "_"))
+            Elm.Annotation.namedWith
+                Elm.local
+                "Optional"
+                []
     , arg =
         \namespace name ->
-            Engine.typeArgument.annotation
-                (Generate.Common.ref namespace (name ++ "_"))
+            --Engine.typeArgument.annotation
+            --    (Generate.Common.ref namespace (name ++ "_"))
+            Generate.Common.ref namespace name
     }
 
 
@@ -602,7 +618,6 @@ createOptionalCreatorHelperExhaustive namespace schema name options fields =
                         (Elm.valueWith
                             Elm.local
                             "val"
-                            --(requiredAnnotationHelper namespace arg.type_ UnwrappedValue)
                             (requiredAnnotationRecursiveHelper namespace schema arg.type_ UnwrappedValue)
                         )
                         |> Elm.withAnnotation
@@ -619,14 +634,79 @@ createOptionalCreatorHelperExhaustive namespace schema name options fields =
                 (( arg.name
                  , Elm.lambdaWith
                     [ ( Elm.Pattern.var "val"
-                      , -- This decides whether to have the arguments inline or not.
-                        -- i.e. { arg: String} -> Argument
-                        -- vs   Argument Object -> Argument
-                        --if isInnerOptional schema arg then
-                        --    requiredAnnotationHelper namespace arg.type_ UnwrappedValue
-                        --
-                        --else
-                        requiredAnnotationRecursiveHelper namespace schema arg.type_ UnwrappedValue
+                      , requiredAnnotationRecursiveHelper namespace schema arg.type_ UnwrappedValue
+                      )
+                    ]
+                    implemented
+                 )
+                    :: fields
+                )
+
+
+optionalMakerTopLevel :
+    String
+    -> String
+    ->
+        List
+            { fieldOrArg
+                | name : String
+                , type_ : Type
+                , description : Maybe String
+            }
+    -> List Elm.Declaration
+optionalMakerTopLevel namespace name options =
+    createOptionalCreatorTopLevelHelper namespace name options []
+
+
+createOptionalCreatorTopLevelHelper :
+    String
+    -> String
+    ->
+        List
+            { field
+                | name : String
+                , description : Maybe String
+                , type_ : Type
+            }
+    -> List ( String, Elm.Expression )
+    -> List Elm.Declaration
+createOptionalCreatorTopLevelHelper namespace name options fields =
+    case options of
+        [] ->
+            List.map
+                (\( fieldname, field ) ->
+                    Elm.declaration fieldname field
+                        |> Elm.expose
+                )
+                fields
+
+        --Elm.declaration (Utils.String.formatValue (name ++ "Options"))
+        --    (Elm.record fields)
+        arg :: remain ->
+            let
+                implemented =
+                    encodeInput namespace
+                        arg.type_
+                        UnwrappedValue
+                        (Elm.valueWith
+                            Elm.local
+                            "val"
+                            (requiredAnnotationHelper namespace arg.type_ UnwrappedValue)
+                        )
+                        |> Elm.withAnnotation
+                            (annotations.arg namespace name)
+                        |> Engine.optional
+                            (Elm.string arg.name)
+                        |> Elm.withAnnotation
+                            (annotations.localOptional namespace name)
+            in
+            createOptionalCreatorTopLevelHelper namespace
+                name
+                remain
+                (( arg.name
+                 , Elm.lambdaWith
+                    [ ( Elm.Pattern.var "val"
+                      , requiredAnnotationHelper namespace arg.type_ UnwrappedValue
                       )
                     ]
                     implemented
@@ -684,7 +764,7 @@ createOptionalCreatorHelper namespace name options fields =
                         |> Engine.optional
                             (Elm.string arg.name)
                         |> Elm.withAnnotation
-                            (annotations.optional namespace name)
+                            (annotations.localOptional namespace name)
             in
             createOptionalCreatorHelper namespace
                 name
@@ -1081,7 +1161,7 @@ createBuilder namespace schema name arguments returnType operation =
                                 (Elm.moduleName [])
                                 "optional"
                                 (Elm.Annotation.list
-                                    (annotations.optional namespace name)
+                                    (annotations.localOptional namespace name)
                                 )
                             )
                         )
@@ -1092,7 +1172,7 @@ createBuilder namespace schema name arguments returnType operation =
                             (Elm.moduleName [])
                             "optional"
                             (Elm.Annotation.list
-                                (annotations.optional namespace name)
+                                (annotations.localOptional namespace name)
                             )
                         )
 
@@ -1128,7 +1208,7 @@ createBuilder namespace schema name arguments returnType operation =
                 )
             , justIf hasOptionalArgs
                 ( Elm.Annotation.list
-                    (annotations.optional namespace name)
+                    (annotations.localOptional namespace name)
                 , Elm.Pattern.var "optional"
                 )
             , Just
@@ -1136,6 +1216,114 @@ createBuilder namespace schema name arguments returnType operation =
                     (GraphQL.Schema.Type.toString returnType)
                     (Elm.Annotation.var "data")
                 , Elm.Pattern.var "selection"
+                )
+            ]
+        )
+        expression
+        |> Elm.expose
+
+
+createInput :
+    String
+    -> GraphQL.Schema.Schema
+    -> String
+    ->
+        List
+            { fieldOrArg
+                | name : String.String
+                , description : Maybe String.String
+                , type_ : Type
+            }
+    -> Type
+    -> Elm.Declaration
+createInput namespace schema name arguments returnType =
+    let
+        ( required, optional ) =
+            splitRequired
+                arguments
+
+        hasRequiredArgs =
+            case required of
+                [] ->
+                    False
+
+                _ ->
+                    True
+
+        hasOptionalArgs =
+            case optional of
+                [] ->
+                    False
+
+                _ ->
+                    True
+
+        expression =
+            Engine.encodeInputObject
+                (if hasOptionalArgs && hasRequiredArgs then
+                    Elm.Gen.List.append
+                        (Elm.list
+                            (required
+                                |> List.map (prepareRequiredRecursive namespace schema)
+                            )
+                        )
+                        (Engine.encodeOptionals
+                            (Elm.valueWith
+                                (Elm.moduleName [])
+                                "optional"
+                                (Elm.Annotation.list
+                                    (annotations.optional namespace name)
+                                )
+                            )
+                        )
+
+                 else if hasOptionalArgs then
+                    Engine.encodeOptionals
+                        (Elm.valueWith
+                            (Elm.moduleName [])
+                            "optional"
+                            (Elm.Annotation.list
+                                (annotations.optional namespace name)
+                            )
+                        )
+
+                 else if hasRequiredArgs then
+                    Elm.list
+                        (required
+                            |> List.map (prepareRequiredRecursive namespace schema)
+                        )
+
+                 else
+                    Elm.list []
+                )
+                (Elm.string name)
+                |> Elm.withAnnotation
+                    --(Engine.typeSelection.annotation Engine.typeQuery.annotation (Elm.Annotation.var "data"))
+                    --(Elm.Annotation.namedWith
+                    --    (Elm.moduleName [ namespace ])
+                    --    name
+                    --    []
+                    --)
+                    --(Generate.Common.ref namespace name)
+                    (annotations.arg namespace name)
+
+        --|> Elm.withAnnotation
+        --    --(Engine.typeSelection.annotation Engine.typeQuery.annotation (Elm.Annotation.var "data"))
+        --    (Generate.Common.selection namespace
+        --        (operationToString operation)
+        --        (Elm.Annotation.var "data")
+        --    )
+    in
+    Elm.functionWith name
+        (List.filterMap identity
+            [ justIf hasRequiredArgs
+                ( recursiveRequiredAnnotation namespace schema required
+                , Elm.Pattern.var "required"
+                )
+            , justIf hasOptionalArgs
+                ( Elm.Annotation.list
+                    (annotations.optional namespace name)
+                , Elm.Pattern.var "optional"
                 )
             ]
         )

@@ -2,10 +2,66 @@ module Generate.Operations exposing (generateFiles)
 
 import Dict
 import Elm
+import Elm.Annotation
+import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Args
 import GraphQL.Schema
 import GraphQL.Schema.Operation
 import String.Extra as String
+
+
+
+{-
+
+
+
+   myProtectedField @PermisionReqed Int
+
+
+
+   onDirective
+        (\directivename ->
+            if directivename == Permissions then
+                jfkldasjflkda
+
+           else
+            Nothing
+
+        )
+    --Elm.Expression
+
+
+    onGeneration
+        (\
+              -> OneOf
+        )
+
+
+
+   updateLicesne
+       { input =
+           { id = myId
+           , actions =
+               [ updateLicenseAction
+                   [ updateLicenseActionOptions.setNotes
+                       (Just
+                           ( setLicenseNote
+                               [ setLicenseNotesOptions.notes (Just "My notes")
+                               ]
+                           )
+                       )
+                   ]
+               ]
+           }
+       }
+
+
+
+
+
+
+
+-}
 
 
 queryToModule : String -> Generate.Args.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation.Operation -> Elm.File
@@ -27,6 +83,27 @@ queryToModule namespace op schema operation =
                 operation.arguments
                 operation.type_
                 op
+
+        optionalHelpers =
+            if List.any Generate.Args.isOptional operation.arguments then
+                let
+                    topLevelAlias =
+                        Elm.aliasWith "Optional"
+                            []
+                            (Engine.typeOptional.annotation
+                                (Elm.Annotation.named (Elm.moduleName [ namespace ])
+                                    (operation.name ++ "_")
+                                )
+                            )
+                            |> Elm.expose
+                in
+                topLevelAlias
+                    :: Generate.Args.optionalMakerTopLevel namespace
+                        operation.name
+                        (List.filter Generate.Args.isOptional operation.arguments)
+
+            else
+                []
     in
     Elm.file
         (Elm.moduleName
@@ -36,7 +113,11 @@ queryToModule namespace op schema operation =
             ]
         )
         ""
-        (queryFunction :: allOptionalMakers)
+        (queryFunction :: optionalHelpers)
+
+
+
+--:: allOptionalMakers)
 
 
 directory : Generate.Args.Operation -> String

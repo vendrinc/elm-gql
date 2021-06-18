@@ -386,8 +386,20 @@ generateFiles namespace graphQLSchema =
         names =
             phantomTypeDeclarations
                 ++ unionTypeDeclarations
-                ++ inputTypeDeclarations
                 ++ interfaceTypeDeclarations
+
+        inputHelpers =
+            List.concatMap
+                (\name ->
+                    [ Elm.aliasWith name
+                        []
+                        (Engine.typeArgument.annotation
+                            (Elm.Annotation.named Elm.local (name ++ "_"))
+                        )
+                    , Elm.customType (name ++ "_") [ ( name, [] ) ]
+                    ]
+                )
+                inputTypeDeclarations
 
         helpers =
             List.concatMap
@@ -463,6 +475,7 @@ generateFiles namespace graphQLSchema =
                 (engineAliases
                     ++ renderedObjects
                     ++ helpers
+                    ++ inputHelpers
                 )
     in
     [ masterObjectFile ]
