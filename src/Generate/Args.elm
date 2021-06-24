@@ -1419,9 +1419,12 @@ createBuilderExample namespace schema name arguments returnType operation =
             name
         )
         arguments
+        (Just
+            (Elm.value ("select" ++ GraphQL.Schema.Type.toString returnType))
+        )
 
 
-createExample namespace schema set name base fields =
+createExample namespace schema set name base fields maybeReturn =
     let
         ( required, optional ) =
             splitRequired
@@ -1463,6 +1466,7 @@ createExample namespace schema set name base fields =
         (List.filterMap identity
             [ requiredArgs
             , optionalArgs
+            , maybeReturn
             ]
         )
 
@@ -1501,6 +1505,7 @@ prepareOptionalArgsExample namespace schema called parentName fields calledType 
                 typeString =
                     GraphQL.Schema.Type.toString field.type_
             in
+            -- if we don't limit examples by type, then the code generation seems to hang or takea huge amount of time
             if Set.member typeString calledType then
                 prepareOptionalArgsExample namespace
                     schema
@@ -1529,7 +1534,6 @@ prepareOptionalArgsExample namespace schema called parentName fields calledType 
                             )
                             [ Elm.maybe
                                 (Just
-                                    --(Elm.string (Debug.toString unnullifiedType))
                                     (requiredArgsExampleHelper
                                         namespace
                                         schema
@@ -1649,6 +1653,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
                                         (Utils.String.formatValue inputName)
                                     )
                                     input.fields
+                                    Nothing
                                     |> wrapExpression wrapped
 
         GraphQL.Schema.Type.Union unionName ->
