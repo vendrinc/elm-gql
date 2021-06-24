@@ -84,6 +84,14 @@ queryToModule namespace op schema operation =
                 operation.type_
                 op
 
+        example =
+            Generate.Args.createBuilderExample namespace
+                schema
+                operation.name
+                operation.arguments
+                operation.type_
+                op
+
         optionalHelpers =
             if List.any Generate.Args.isOptional operation.arguments then
                 let
@@ -112,12 +120,8 @@ queryToModule namespace op schema operation =
             , String.toSentenceCase operation.name
             ]
         )
-        ""
+        ("\n\nExample usage:\n\n" ++ Elm.expressionToString example)
         (queryFunction :: optionalHelpers)
-
-
-
---:: allOptionalMakers)
 
 
 directory : Generate.Args.Operation -> String

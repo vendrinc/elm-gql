@@ -76,7 +76,6 @@ generateFiles namespace schema =
                 |> Dict.toList
                 |> List.map Tuple.second
 
-        --|> List.filter (\object -> String.toLower object.name == "setassignedappid")
         declarations =
             objects
                 |> List.concatMap (inputObjectToDeclarations namespace schema)
