@@ -15,12 +15,12 @@ import GraphQL.Schema
 import Http
 
 
-main : Program {} { namespace : String } Msg
+main : Program { namespace : String } { namespace : String } Msg
 main =
     Platform.worker
         { init =
-            \json ->
-                ( { namespace = "TnG" }
+            \flags ->
+                ( flags
                 , GraphQL.Schema.get "https://api.blissfully.com/prod/graphql"
                     SchemaReceived
                 )

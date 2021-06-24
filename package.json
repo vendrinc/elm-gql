@@ -14,6 +14,7 @@
     "build": "(cd elm-prefab; yarn install; yarn build; cd ..)",
     "generate": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm)",
     "gen-test": "yarn generate ; cd output ; elm make Main.elm",
+    "test-args": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm --output=./output2 --flags-from=api-config.json)",
     "test-generated": "(cd output ; elm make Main.elm)",
     "elm-prefab": "node ./elm-prefab/dist/index.js",
     "generate-engine-docs": "cd templates ; rm -rf elm-stuff ; elm-doc-preview --output engine-docs.json ; cd ..",
