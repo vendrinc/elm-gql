@@ -657,48 +657,32 @@ createOptionalCreatorTopLevelHelper :
                 , description : Maybe String
                 , type_ : Type
             }
-    -> List ( String, Elm.Expression )
+    -> List Elm.Declaration
     -> List Elm.Declaration
 createOptionalCreatorTopLevelHelper namespace name options fields =
     case options of
         [] ->
-            List.map
-                (\( fieldname, field ) ->
-                    Elm.declaration fieldname field
-                        |> Elm.expose
-                )
-                fields
+            fields
 
-        --Elm.declaration (Utils.String.formatValue (name ++ "Options"))
-        --    (Elm.record fields)
         arg :: remain ->
-            let
-                implemented =
-                    encodeInput namespace
-                        arg.type_
-                        UnwrappedValue
-                        (Elm.valueWith
-                            Elm.local
-                            "val"
-                            (requiredAnnotationHelper namespace arg.type_ UnwrappedValue)
-                        )
-                        |> Elm.withAnnotation
-                            (annotations.arg namespace name)
-                        |> Engine.optional
-                            (Elm.string arg.name)
-                        |> Elm.withAnnotation
-                            (annotations.localOptional namespace name)
-            in
             createOptionalCreatorTopLevelHelper namespace
                 name
                 remain
-                (( arg.name
-                 , Elm.lambdaWith
-                    [ ( Elm.Pattern.var "val"
-                      , requiredAnnotationHelper namespace arg.type_ UnwrappedValue
-                      )
-                    ]
-                    implemented
+                ((Elm.fn arg.name
+                    ( "val", requiredAnnotationHelper namespace arg.type_ UnwrappedValue )
+                    (\val ->
+                        encodeInput namespace
+                            arg.type_
+                            UnwrappedValue
+                            val
+                            |> Elm.withAnnotation
+                                (annotations.arg namespace name)
+                            |> Engine.optional
+                                (Elm.string arg.name)
+                            |> Elm.withAnnotation
+                                (annotations.localOptional namespace name)
+                    )
+                    |> Elm.expose
                  )
                     :: fields
                 )

@@ -12,7 +12,7 @@
     "pull": "git submodule init && git submodule update --remote",
     "clean": "rm -rf ./output",
     "build": "(cd elm-prefab; yarn install; yarn build; cd ..)",
-    "generate": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm)",
+    "generate": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm  --flags='{\"namespace\": \"TnG\"}')",
     "gen-test": "yarn generate ; cd output ; elm make Main.elm",
     "test-args": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm --output=./output2 --flags-from=api-config.json)",
     "test-generated": "(cd output ; elm make Main.elm)",
