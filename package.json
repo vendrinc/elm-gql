@@ -25,7 +25,7 @@
     "url": "git+https://github.com/ryannhg/elm-graphql.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "BSD-3",
   "bugs": {
     "url": "https://github.com/ryannhg/elm-graphql/issues"
   },
