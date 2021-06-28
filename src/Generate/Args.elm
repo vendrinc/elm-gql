@@ -1328,62 +1328,6 @@ createBuilderExample :
     -> Operation
     -> Elm.Expression
 createBuilderExample namespace schema name arguments returnType operation =
-    --let
-    --    ( required, optional ) =
-    --        splitRequired
-    --            arguments
-    --
-    --    hasRequiredArgs =
-    --        case required of
-    --            [] ->
-    --                False
-    --
-    --            _ ->
-    --                True
-    --
-    --    hasOptionalArgs =
-    --        case optional of
-    --            [] ->
-    --                False
-    --
-    --            _ ->
-    --                True
-    --
-    --    requiredArgs =
-    --        if hasRequiredArgs then
-    --            Just
-    --                (requiredArgsExample namespace schema required)
-    --
-    --        else
-    --            Nothing
-    --
-    --    optionalArgs =
-    --        if hasOptionalArgs then
-    --            Nothing
-    --
-    --        else
-    --            Nothing
-    --in
-    --Elm.apply
-    --    (Elm.valueFrom
-    --        (Elm.moduleName
-    --            [ namespace
-    --            , case operation of
-    --                Mutation ->
-    --                    "Mutations"
-    --
-    --                Query ->
-    --                    "Query"
-    --            , String.Extra.toSentenceCase name
-    --            ]
-    --        )
-    --        name
-    --    )
-    --    (List.filterMap identity
-    --        [ requiredArgs
-    --        , optionalArgs
-    --        ]
-    --    )
     createExample namespace
         schema
         Set.empty
@@ -1408,7 +1352,7 @@ createBuilderExample namespace schema name arguments returnType operation =
         )
 
 
-createExample namespace schema set name base fields maybeReturn =
+createExample namespace schema called name base fields maybeReturn =
     let
         ( required, optional ) =
             splitRequired
@@ -1433,14 +1377,24 @@ createExample namespace schema set name base fields maybeReturn =
         requiredArgs =
             if hasRequiredArgs then
                 Just
-                    (requiredArgsExample namespace schema set required)
+                    (requiredArgsExample namespace schema called required)
 
             else
                 Nothing
 
         optionalArgs =
             if hasOptionalArgs then
-                Just (optionalArgsExample namespace schema set name optional)
+                Just
+                    (optionalArgsExample
+                        namespace
+                        schema
+                        called
+                        name
+                        optional
+                        (maybeReturn /= Nothing)
+                        Set.empty
+                        []
+                    )
 
             else
                 Nothing
@@ -1459,27 +1413,13 @@ optionalArgsExample :
     String
     -> GraphQL.Schema.Schema
     -> Set String
-    -> String
-    ->
-        List
-            { fieldOrArg
-                | name : String.String
-                , description : Maybe String.String
-                , type_ : Type
-            }
+    -> String.String
+    -> List { a | type_ : Type, name : String.String }
+    -> Bool
+    -> Set String
+    -> List Elm.Expression
     -> Elm.Expression
-optionalArgsExample namespace schema called parentName opts =
-    prepareOptionalArgsExample
-        namespace
-        schema
-        called
-        parentName
-        opts
-        Set.empty
-        []
-
-
-prepareOptionalArgsExample namespace schema called parentName fields calledType prepared =
+optionalArgsExample namespace schema called parentName fields isTopLevel calledType prepared =
     case fields of
         [] ->
             Elm.list (List.reverse prepared)
@@ -1491,21 +1431,30 @@ prepareOptionalArgsExample namespace schema called parentName fields calledType 
             in
             -- if we don't limit examples by type, then the code generation seems to hang or takea huge amount of time
             if Set.member typeString calledType then
-                prepareOptionalArgsExample namespace
+                optionalArgsExample namespace
                     schema
                     called
                     parentName
                     remaining
+                    isTopLevel
                     calledType
                     prepared
 
             else
                 let
                     optionalModule =
-                        Elm.moduleName
-                            [ namespace
-                            , Utils.String.formatTypename parentName
-                            ]
+                        if isTopLevel then
+                            Elm.moduleName
+                                [ namespace
+                                , "Query"
+                                , Utils.String.formatTypename parentName
+                                ]
+
+                        else
+                            Elm.moduleName
+                                [ namespace
+                                , Utils.String.formatTypename parentName
+                                ]
 
                     unnullifiedType =
                         denullable field.type_
@@ -1528,11 +1477,12 @@ prepareOptionalArgsExample namespace schema called parentName fields calledType 
                                 )
                             ]
                 in
-                prepareOptionalArgsExample namespace
+                optionalArgsExample namespace
                     schema
                     called
                     parentName
                     remaining
+                    isTopLevel
                     (Set.insert typeString calledType)
                     (prep :: prepared)
 

@@ -120,7 +120,11 @@ queryToModule namespace op schema operation =
             , String.toSentenceCase operation.name
             ]
         )
-        ("\n\nExample usage:\n\n" ++ Elm.expressionToString example)
+        ("\n\nExample usage:\n\n"
+            ++ Elm.expressionImportsToString example
+            ++ "\n\n\n"
+            ++ Elm.expressionToString example
+        )
         (queryFunction :: optionalHelpers)
 
 
