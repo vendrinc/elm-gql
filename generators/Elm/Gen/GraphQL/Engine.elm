@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, decodeId, encodeArgument, encodeId, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, typeArgument, typeId, typeMutation, typeOptional, typeQuery, typeSelection, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, decodeId, decodeNullable, encodeArgument, encodeId, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, typeArgument, typeId, typeMutation, typeOptional, typeQuery, typeSelection, union, unsafe, with)
 
 {-| 
 
@@ -42,6 +42,7 @@ id_ :
     , encodeOptionals : Elm.Expression
     , encodeInputObject : Elm.Expression
     , encodeArgument : Elm.Expression
+    , decodeNullable : Elm.Expression
     , unsafe : Elm.Expression
     }
 id_ =
@@ -577,6 +578,22 @@ id_ =
                     [ Type.var "obj" ]
                 ]
                 (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+    , decodeNullable =
+        Elm.valueWith
+            moduleName_
+            "decodeNullable"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "Json", "Decode" ])
+                    "Decoder"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "Json", "Decode" ])
+                    "Decoder"
+                    [ Type.namedWith Elm.local "Maybe" [ Type.var "data" ] ]
                 )
             )
     , unsafe =
@@ -1380,6 +1397,29 @@ encodeArgument arg1 =
                     [ Type.var "obj" ]
                 ]
                 (Type.namedWith (Elm.moduleName [ "Json", "Encode" ]) "Value" []
+                )
+            )
+        )
+        [ arg1 ]
+
+
+{-| -}
+decodeNullable : Elm.Expression -> Elm.Expression
+decodeNullable arg1 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "decodeNullable"
+            (Type.function
+                [ Type.namedWith
+                    (Elm.moduleName [ "Json", "Decode" ])
+                    "Decoder"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "Json", "Decode" ])
+                    "Decoder"
+                    [ Type.namedWith Elm.local "Maybe" [ Type.var "data" ] ]
                 )
             )
         )

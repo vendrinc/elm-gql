@@ -9,6 +9,7 @@ module GraphQL.Engine exposing
     , Argument(..), maybeScalarEncode
     , Id, encodeId, decodeId
     , encodeOptionals, encodeInputObject, encodeArgument
+    , decodeNullable
     , unsafe
     )
 
@@ -34,6 +35,7 @@ module GraphQL.Engine exposing
 
 @docs encodeOptionals, encodeInputObject, encodeArgument
 
+@docs decodeNullable
 @docs unsafe
 
 -}
@@ -869,3 +871,12 @@ maybeScalarEncode encoder maybeA =
     maybeA
         |> Maybe.map encoder
         |> Maybe.withDefault Encode.null
+
+
+{-| -}
+decodeNullable : Json.Decoder data -> Json.Decoder (Maybe data)
+decodeNullable decoder =
+    Json.oneOf
+        [ Json.map Just decoder
+        , Json.succeed Nothing
+        ]
