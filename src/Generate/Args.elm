@@ -1538,7 +1538,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
                 |> wrapExpression wrapped
 
         GraphQL.Schema.Type.Enum enumName ->
-            enumExample schema enumName
+            enumExample namespace schema enumName
 
         GraphQL.Schema.Type.Object nestedObjectName ->
             Elm.value ("select" ++ String.Extra.toSentenceCase nestedObjectName)
@@ -1598,7 +1598,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
             Elm.unit
 
 
-enumExample schema enumName =
+enumExample namespace schema enumName =
     case Dict.get enumName schema.enums of
         Nothing ->
             Elm.value enumName
@@ -1609,7 +1609,8 @@ enumExample schema enumName =
                     Elm.value enumName
 
                 top :: _ ->
-                    Elm.value (Utils.String.formatTypename top.name)
+                    Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ])
+                        (Utils.String.formatTypename top.name)
 
 
 wrapExpression wrapper exp =
