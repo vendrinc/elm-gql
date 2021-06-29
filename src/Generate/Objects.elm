@@ -416,7 +416,6 @@ generateFiles namespace graphQLSchema =
                 names
 
         engineAliases =
-            --List.map Elm.expose
             [ Elm.declaration "select"
                 (Elm.valueFrom
                     Engine.moduleName_
@@ -441,6 +440,14 @@ generateFiles namespace graphQLSchema =
                 (Elm.valueFrom
                     Engine.moduleName_
                     "recover"
+                )
+            , Elm.aliasWith "Selection"
+                [ "source"
+                , "data"
+                ]
+                (Engine.typeSelection.annotation
+                    (Elm.Annotation.var "source")
+                    (Elm.Annotation.var "data")
                 )
             , Elm.aliasWith "Id"
                 []
