@@ -1051,21 +1051,6 @@ wrapAnnotation wrap signature =
             Elm.Annotation.maybe (wrapAnnotation inner signature)
 
 
-unwrapExpression : Wrapped -> Elm.Expression -> Elm.Expression
-unwrapExpression wrap exp =
-    case wrap of
-        UnwrappedValue ->
-            exp
-
-        InList inner ->
-            Decode.list
-                (unwrapExpression inner exp)
-
-        InMaybe inner ->
-            Engine.nullable
-                (unwrapExpression inner exp)
-
-
 
 {- CREATE BUILDER -}
 
@@ -1168,7 +1153,6 @@ createBuilder namespace schema name arguments returnType operation =
                     )
                 )
                 |> Elm.withAnnotation
-                    --(Engine.typeSelection.annotation Engine.typeQuery.annotation (Elm.Annotation.var "data"))
                     (Generate.Common.selection namespace
                         (operationToString operation)
                         (Elm.Annotation.var "data")
@@ -1539,13 +1523,16 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
 
         GraphQL.Schema.Type.Enum enumName ->
             enumExample namespace schema enumName
+                |> wrapExpression wrapped
 
         GraphQL.Schema.Type.Object nestedObjectName ->
             Elm.value ("select" ++ String.Extra.toSentenceCase nestedObjectName)
+                |> wrapExpression wrapped
 
         GraphQL.Schema.Type.InputObject inputName ->
             if Set.member inputName called then
                 Elm.value ("additional" ++ inputName)
+                    |> wrapExpression wrapped
 
             else
                 case Dict.get inputName schema.inputObjects of

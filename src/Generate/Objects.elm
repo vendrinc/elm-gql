@@ -105,7 +105,7 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Type.Scalar scalarName ->
             let
                 signature =
-                    fieldSignature namespace objectName fieldType
+                    fieldSignature namespace objectName wrapped fieldType
             in
             { expression =
                 Engine.field
@@ -117,12 +117,14 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Type.Enum enumName ->
             let
                 signature =
-                    fieldSignature namespace objectName fieldType
+                    fieldSignature namespace objectName wrapped fieldType
             in
             { expression =
                 Engine.field
                     (Elm.string fieldName)
-                    (Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ]) "decoder")
+                    (Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ]) "decoder"
+                        |> decodeWrapper wrapped
+                    )
             , annotation = signature.annotation
             }
 
@@ -214,7 +216,7 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Type.InputObject inputName ->
             let
                 signature =
-                    fieldSignature namespace objectName fieldType
+                    fieldSignature namespace objectName wrapped fieldType
             in
             { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
             , annotation = signature.annotation
@@ -295,14 +297,16 @@ wrapExpression wrap exp =
 fieldSignature :
     String
     -> String
+    -> Wrapped
     -> Type
     ->
         { annotation : Elm.Annotation.Annotation
         }
-fieldSignature namespace objectName fieldType =
+fieldSignature namespace objectName wrapped fieldType =
     let
         dataType =
             Common.localAnnotation namespace fieldType Nothing
+                |> wrapAnnotation wrapped
 
         typeAnnotation =
             --Engine.typeSelection.annotation
@@ -317,30 +321,48 @@ fieldSignature namespace objectName fieldType =
 
 
 decodeScalar : String -> Wrapped -> Elm.Expression
-decodeScalar scalarName nullable =
+decodeScalar scalarName wrapped =
     let
         lowered =
             String.toLower scalarName
+
+        decoder =
+            case lowered of
+                "string" ->
+                    Json.string
+
+                "int" ->
+                    Json.int
+
+                "float" ->
+                    Json.float
+
+                "id" ->
+                    Engine.decodeId
+
+                "boolean" ->
+                    Json.bool
+
+                _ ->
+                    Elm.valueFrom (Elm.moduleName [ "Scalar" ]) (Utils.String.formatValue scalarName)
+                        |> Elm.get "decoder"
     in
-    case lowered of
-        "string" ->
-            Json.string
+    decodeWrapper wrapped decoder
 
-        "int" ->
-            Json.int
 
-        "float" ->
-            Json.float
+decodeWrapper : Wrapped -> Elm.Expression -> Elm.Expression
+decodeWrapper wrap exp =
+    case wrap of
+        UnwrappedValue ->
+            exp
 
-        "id" ->
-            Engine.decodeId
+        InList inner ->
+            Json.list
+                (decodeWrapper inner exp)
 
-        "boolean" ->
-            Json.bool
-
-        _ ->
-            Elm.valueFrom (Elm.moduleName [ "Scalar" ]) (Utils.String.formatValue scalarName)
-                |> Elm.get "decoder"
+        InMaybe inner ->
+            Engine.decodeNullable
+                (decodeWrapper inner exp)
 
 
 generateFiles : String -> GraphQL.Schema.Schema -> List Elm.File
