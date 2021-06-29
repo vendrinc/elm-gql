@@ -268,7 +268,7 @@ requiredAnnotationRecursiveHelper namespace schema type_ wrapped =
                                 (List.map
                                     (\field ->
                                         ( field.name
-                                        , requiredAnnotationRecursiveHelper inputName
+                                        , requiredAnnotationRecursiveHelper namespace
                                             schema
                                             field.type_
                                             UnwrappedValue
@@ -1075,6 +1075,7 @@ type Operation
     | Mutation
 
 
+operationToString : Operation -> String.String
 operationToString op =
     case op of
         Query ->
@@ -1340,7 +1341,7 @@ createBuilderExample namespace schema name arguments returnType operation =
                         "Mutations"
 
                     Query ->
-                        "Query"
+                        "Queries"
                 , String.Extra.toSentenceCase name
                 ]
             )
@@ -1446,7 +1447,7 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
                         if isTopLevel then
                             Elm.moduleName
                                 [ namespace
-                                , "Query"
+                                , "Queries"
                                 , Utils.String.formatTypename parentName
                                 ]
 
