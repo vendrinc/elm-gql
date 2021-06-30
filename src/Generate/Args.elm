@@ -361,7 +361,7 @@ prepareRequired namespace argument =
         (Elm.string argument.name)
         (encodeInput namespace
             argument.type_
-            UnwrappedValue
+            (getWrap argument.type_)
             (Elm.get argument.name (Elm.value "required")
                 |> Elm.withAnnotation
                     (annotations.arg namespace argument.name)
@@ -686,7 +686,7 @@ createOptionalCreatorTopLevelHelper namespace name options fields =
                     (\val ->
                         encodeInput namespace
                             arg.type_
-                            UnwrappedValue
+                            (getWrap arg.type_)
                             val
                             |> Elm.withAnnotation
                                 (annotations.arg namespace name)
@@ -739,7 +739,7 @@ createOptionalCreatorHelper namespace name options fields =
                 implemented =
                     encodeInput namespace
                         arg.type_
-                        UnwrappedValue
+                        (getWrap arg.type_)
                         (Elm.valueWith
                             Elm.local
                             "val"
@@ -776,10 +776,10 @@ encodeInput :
 encodeInput namespace fieldType wrapped val =
     case fieldType of
         GraphQL.Schema.Type.Nullable newType ->
-            encodeInput namespace newType (InMaybe wrapped) val
+            encodeInput namespace newType wrapped val
 
         GraphQL.Schema.Type.List_ newType ->
-            encodeInput namespace newType (InList wrapped) val
+            encodeInput namespace newType wrapped val
 
         GraphQL.Schema.Type.Scalar scalarName ->
             Engine.arg
@@ -801,7 +801,7 @@ encodeInput namespace fieldType wrapped val =
             --          Encode.list (Encode.list Enum.encode) val
             --
             Engine.arg
-                (encodeWrapped wrapped
+                (encodeWrappedInverted wrapped
                     (\v ->
                         Elm.apply
                             (Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ]) "encode")
@@ -814,7 +814,7 @@ encodeInput namespace fieldType wrapped val =
 
         GraphQL.Schema.Type.InputObject inputName ->
             Engine.arg
-                (encodeWrapped wrapped
+                (encodeWrappedInverted wrapped
                     Engine.encodeArgument
                     val
                 )
@@ -1049,6 +1049,18 @@ encodeWrapped wrapper encoder val =
 
         InList inner ->
             encodeWrapped inner (Encode.list encoder) val
+
+
+encodeWrappedInverted wrapper encoder val =
+    case wrapper of
+        UnwrappedValue ->
+            encoder val
+
+        InMaybe inner ->
+            Engine.maybeScalarEncode (encodeWrapped inner encoder) val
+
+        InList inner ->
+            Encode.list (encodeWrapped inner encoder) val
 
 
 wrapAnnotation : Wrapped -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
