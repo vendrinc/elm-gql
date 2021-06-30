@@ -296,21 +296,34 @@ requiredAnnotation namespace reqs =
         (List.map
             (\field ->
                 ( field.name
-                , requiredAnnotationHelper namespace field.type_ UnwrappedValue
+                , requiredAnnotationHelper namespace field.type_ (getWrap field.type_)
                 )
             )
             reqs
         )
 
 
+getWrap : Type -> Wrapped
+getWrap type_ =
+    case type_ of
+        GraphQL.Schema.Type.Nullable newType ->
+            InMaybe (getWrap newType)
+
+        GraphQL.Schema.Type.List_ newType ->
+            InList (getWrap newType)
+
+        _ ->
+            UnwrappedValue
+
+
 requiredAnnotationHelper : String -> Type -> Wrapped -> Elm.Annotation.Annotation
 requiredAnnotationHelper namespace type_ wrapped =
     case type_ of
         GraphQL.Schema.Type.Nullable newType ->
-            requiredAnnotationHelper namespace newType (InMaybe wrapped)
+            requiredAnnotationHelper namespace newType wrapped
 
         GraphQL.Schema.Type.List_ newType ->
-            requiredAnnotationHelper namespace newType (InList wrapped)
+            requiredAnnotationHelper namespace newType wrapped
 
         GraphQL.Schema.Type.Scalar scalarName ->
             scalarType wrapped scalarName
@@ -669,7 +682,7 @@ createOptionalCreatorTopLevelHelper namespace name options fields =
                 name
                 remain
                 ((Elm.fn arg.name
-                    ( "val", requiredAnnotationHelper namespace arg.type_ UnwrappedValue )
+                    ( "val", requiredAnnotationHelper namespace arg.type_ (getWrap arg.type_) )
                     (\val ->
                         encodeInput namespace
                             arg.type_
@@ -730,7 +743,7 @@ createOptionalCreatorHelper namespace name options fields =
                         (Elm.valueWith
                             Elm.local
                             "val"
-                            (requiredAnnotationHelper namespace arg.type_ UnwrappedValue)
+                            (requiredAnnotationHelper namespace arg.type_ (getWrap arg.type_))
                         )
                         |> Elm.withAnnotation
                             (annotations.arg namespace name)
@@ -745,7 +758,7 @@ createOptionalCreatorHelper namespace name options fields =
                 (( arg.name
                  , Elm.lambdaWith
                     [ ( Elm.Pattern.var "val"
-                      , requiredAnnotationHelper namespace arg.type_ UnwrappedValue
+                      , requiredAnnotationHelper namespace arg.type_ (getWrap arg.type_)
                       )
                     ]
                     implemented
