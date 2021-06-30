@@ -309,9 +309,6 @@ fieldSignature namespace objectName wrapped fieldType =
                 |> wrapAnnotation wrapped
 
         typeAnnotation =
-            --Engine.typeSelection.annotation
-            --    (Common.local namespace objectName)
-            --    dataType
             Common.selectionLocal namespace
                 objectName
                 dataType

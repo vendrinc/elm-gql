@@ -140,44 +140,19 @@ directory op =
 
 generateFiles : String -> Generate.Args.Operation -> GraphQL.Schema.Schema -> List Elm.File
 generateFiles namespace op schema =
-    --List.filterMap
-    --    (\oper ->
-    --        if String.toLower oper.name == "app" then
-    --            Just (queryToModule op oper)
-    --
-    --        else
-    --            Nothing
-    --    )
-    --    ops
     case op of
         Generate.Args.Mutation ->
             schema.mutations
                 |> Dict.toList
                 |> List.map
                     (\( _, oper ) ->
-                        --if oper.name == "updateLicense" then
-                        --    let
-                        --        _ =
-                        --            Debug.log "OPERATION" oper
-                        --    in
-                        --    Just
                         queryToModule namespace op schema oper
-                     --else
-                     --    Nothing
                     )
 
-        --[]
         Generate.Args.Query ->
             schema.queries
                 |> Dict.toList
                 |> List.map
                     (\( _, oper ) ->
-                        --if String.toLower oper.name == "app" then
                         queryToModule namespace op schema oper
-                     --else
-                     --    Nothing
                     )
-
-
-
---[]
