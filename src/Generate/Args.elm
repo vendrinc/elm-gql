@@ -774,7 +774,7 @@ encodeInput :
     -> Elm.Expression
     -> Elm.Expression
 encodeInput namespace fieldType wrapped val =
-    case Debug.log "FIELD" fieldType of
+    case fieldType of
         GraphQL.Schema.Type.Nullable newType ->
             encodeInput namespace newType wrapped val
 
