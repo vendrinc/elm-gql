@@ -774,7 +774,7 @@ encodeInput :
     -> Elm.Expression
     -> Elm.Expression
 encodeInput namespace fieldType wrapped val =
-    case fieldType of
+    case Debug.log "FIELD" fieldType of
         GraphQL.Schema.Type.Nullable newType ->
             encodeInput namespace newType wrapped val
 
@@ -1034,11 +1034,11 @@ encodeWrappedArgument wrapper encoder val =
             encodeWrappedArgument inner encoder val
 
 
-{-|
-
-    Uses Engine.maybeScalarEncode to
-
--}
+encodeWrapped :
+    Wrapped
+    -> (Elm.Expression -> Elm.Expression)
+    -> Elm.Expression
+    -> Elm.Expression
 encodeWrapped wrapper encoder val =
     case wrapper of
         UnwrappedValue ->
@@ -1051,16 +1051,21 @@ encodeWrapped wrapper encoder val =
             encodeWrapped inner (Encode.list encoder) val
 
 
+encodeWrappedInverted :
+    Wrapped
+    -> (Elm.Expression -> Elm.Expression)
+    -> Elm.Expression
+    -> Elm.Expression
 encodeWrappedInverted wrapper encoder val =
     case wrapper of
         UnwrappedValue ->
             encoder val
 
         InMaybe inner ->
-            Engine.maybeScalarEncode (encodeWrapped inner encoder) val
+            Engine.maybeScalarEncode (encodeWrappedInverted inner encoder) val
 
         InList inner ->
-            Encode.list (encodeWrapped inner encoder) val
+            Encode.list (encodeWrappedInverted inner encoder) val
 
 
 wrapAnnotation : Wrapped -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
