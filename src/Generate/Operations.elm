@@ -100,7 +100,13 @@ queryToModule namespace op schema operation =
                             []
                             (Engine.typeOptional.annotation
                                 (Elm.Annotation.named (Elm.moduleName [ namespace ])
-                                    (operation.name ++ "_")
+                                    (case op of
+                                        Generate.Args.Query ->
+                                            operation.name ++ "_Option"
+
+                                        Generate.Args.Mutation ->
+                                            operation.name ++ "_MutOption"
+                                    )
                                 )
                             )
                             |> Elm.expose

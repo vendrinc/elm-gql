@@ -402,10 +402,33 @@ generateFiles namespace graphQLSchema =
                 |> List.map
                     (Tuple.second >> .name)
 
+        queryOptionNames =
+            graphQLSchema.queries
+                |> Dict.toList
+                |> List.map
+                    -- we add `Query` to the name here because we don't want to clash with objects of the same name.
+                    -- Such as the app query vs the App object
+                    (\( _, q ) ->
+                        q.name ++ "_Option"
+                    )
+
+        mutationOptionNames =
+            graphQLSchema.mutations
+                |> Dict.toList
+                |> List.map
+                    -- same note as above for queries
+                    (\( _, q ) ->
+                        q.name ++ "_MutOption"
+                    )
+
         names =
             phantomTypeDeclarations
                 ++ unionTypeDeclarations
                 ++ interfaceTypeDeclarations
+
+        optionNames =
+            queryOptionNames
+                ++ mutationOptionNames
 
         inputHelpers =
             List.concatMap
@@ -419,8 +442,13 @@ generateFiles namespace graphQLSchema =
                     ]
                 )
                 inputTypeDeclarations
+                ++ List.map
+                    (\name ->
+                        Elm.customType name [ ( name, [] ) ]
+                    )
+                    optionNames
 
-        helpers =
+        proofsAndAliases =
             List.concatMap
                 (\name ->
                     [ Elm.aliasWith name
@@ -434,7 +462,7 @@ generateFiles namespace graphQLSchema =
                 )
                 names
 
-        engineAliases =
+        engine =
             [ Elm.declaration "select"
                 (Elm.valueFrom
                     Engine.moduleName_
@@ -494,17 +522,15 @@ generateFiles namespace graphQLSchema =
                     "mutation"
                 )
             ]
-
-        masterObjectFile =
-            Elm.file (Elm.moduleName [ namespace ])
-                ""
-                (engineAliases
-                    ++ renderedObjects
-                    ++ helpers
-                    ++ inputHelpers
-                )
     in
-    [ masterObjectFile ]
+    [ Elm.file (Elm.moduleName [ namespace ])
+        ""
+        (engine
+            ++ renderedObjects
+            ++ proofsAndAliases
+            ++ inputHelpers
+        )
+    ]
 
 
 
