@@ -1014,6 +1014,7 @@ wrapGet wrapped selector val =
                     Engine.arg Encode.null "Actual type"
 
 -}
+encodeWrappedArgument : Wrapped -> (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 encodeWrappedArgument wrapper encoder val =
     case wrapper of
         UnwrappedValue ->
@@ -1030,8 +1031,17 @@ encodeWrappedArgument wrapper encoder val =
                 ]
 
         InList inner ->
-            -- TODO!!!
-            encodeWrappedArgument inner encoder val
+            Elm.Gen.List.map 
+                (\v ->
+                    Elm.lambda "inner"
+                        Elm.Annotation.unit
+                        (\within ->
+                            encodeWrappedArgument inner encoder within
+                        )
+                )
+                val
+                |> Engine.argList
+            
 
 
 encodeWrapped :

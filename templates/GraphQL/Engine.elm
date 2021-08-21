@@ -3,7 +3,7 @@ module GraphQL.Engine exposing
     , enum, maybeEnum
     , union
     , Selection, select, with, map, map2, recover
-    , arg, Optional, optional
+    , arg, argList, Optional, optional
     , Query, query, Mutation, mutation
     , queryString
     , Argument(..), maybeScalarEncode
@@ -23,7 +23,7 @@ module GraphQL.Engine exposing
 
 @docs Selection, select, with, map, map2, recover
 
-@docs arg, Optional, optional
+@docs arg, argList, Optional, optional
 
 @docs Query, query, Mutation, mutation
 
@@ -452,6 +452,23 @@ arg : Encode.Value -> String -> Argument obj
 arg val typename =
     ArgValue val typename
 
+
+{-| -}
+argList : List (Argument obj) -> Argument input
+argList fields =
+    ArgValue
+        (fields
+            |> Encode.list
+                (\( argVal ) ->
+                    case argVal of
+                        ArgValue val _ ->
+                            (  val )
+
+                        Var varName ->
+                            (  Encode.string varName )
+                )
+        )
+        ("[PLACEHOLDER!]!")
 
 {-| -}
 encodeInputObject : List ( String, Argument obj ) -> String -> Argument input
