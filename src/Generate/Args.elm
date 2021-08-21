@@ -906,7 +906,7 @@ encodeInputExhaustive schema namespace fieldType wrapped val =
                                     (Elm.string input.name)
 
                             many ->
-                                encodeWrappedArgument wrapped
+                                encodeWrappedArgument (Utils.String.formatValue input.name) wrapped
                                     (\v ->
                                         let
                                             requiredVals =
@@ -1014,16 +1014,19 @@ wrapGet wrapped selector val =
                     Engine.arg Encode.null "Actual type"
 
 -}
-encodeWrappedArgument : Wrapped -> (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
-encodeWrappedArgument wrapper encoder val =
+encodeWrappedArgument : String -> Wrapped -> (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
+encodeWrappedArgument inputName wrapper encoder val =
     case wrapper of
         UnwrappedValue ->
             encoder val
 
         InMaybe inner ->
+            let
+                valName = (addCount inner inputName)
+            in
             Elm.caseOf val
                 [ ( Elm.Pattern.named "Just" [ Elm.Pattern.var "item" ]
-                  , encodeWrappedArgument inner encoder (Elm.value "item")
+                  , encodeWrappedArgument valName inner encoder (Elm.value "item")
                   )
                 , ( Elm.Pattern.named "Nothing" []
                   , Engine.arg Encode.null (Elm.string "Unknown")
@@ -1031,17 +1034,35 @@ encodeWrappedArgument wrapper encoder val =
                 ]
 
         InList inner ->
+            let
+                valName = (addCount inner inputName)
+            in
             Elm.Gen.List.map 
                 (\v ->
-                    Elm.lambda "inner"
+                    Elm.lambda valName
                         Elm.Annotation.unit
                         (\within ->
-                            encodeWrappedArgument inner encoder within
+                            encodeWrappedArgument valName inner encoder within
                         )
                 )
                 val
                 |> Engine.argList
             
+
+addCount : Wrapped -> String -> String
+addCount wrapped str =
+    str ++ (String.fromInt (countRemainingDepth wrapped 1))
+
+
+countRemainingDepth : Wrapped -> Int -> Int
+countRemainingDepth wrapped i =
+    case wrapped of
+        UnwrappedValue ->
+            i
+        InMaybe inner ->
+            countRemainingDepth inner (i + 1)
+        InList inner ->
+            countRemainingDepth inner (i + 1)
 
 
 encodeWrapped :
