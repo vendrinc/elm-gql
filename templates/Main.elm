@@ -4,6 +4,7 @@ import Browser
 import Html exposing (Html)
 import Http
 import TnG
+import TnG.Input
 import TnG.Mutations.UpdateLicense
 import TnG.Queries.App
 import TnG.Unions
@@ -21,7 +22,6 @@ main =
 
 
 -- INIT
-
 
 type alias Model =
     { result : Maybe (Result Http.Error App)
