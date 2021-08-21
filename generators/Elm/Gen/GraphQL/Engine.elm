@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, decodeId, decodeNullable, encodeArgument, encodeId, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, typeArgument, typeId, typeMutation, typeOptional, typeQuery, typeSelection, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, argList, decodeId, decodeNullable, encodeArgument, encodeId, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, typeArgument, typeId, typeMutation, typeOptional, typeQuery, typeSelection, union, unsafe, with)
 
 {-| 
 
@@ -32,6 +32,7 @@ id_ :
     , map2 : Elm.Expression
     , recover : Elm.Expression
     , arg : Elm.Expression
+    , argList : Elm.Expression
     , optional : Elm.Expression
     , query : Elm.Expression
     , mutation : Elm.Expression
@@ -338,6 +339,26 @@ id_ =
                     (Elm.moduleName [ "GraphQL", "Engine" ])
                     "Argument"
                     [ Type.var "obj" ]
+                )
+            )
+    , argList =
+        Elm.valueWith
+            moduleName_
+            "argList"
+            (Type.function
+                [ Type.namedWith
+                    Elm.local
+                    "List"
+                    [ Type.namedWith
+                        (Elm.moduleName [ "GraphQL", "Engine" ])
+                        "Argument"
+                        [ Type.var "obj" ]
+                    ]
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Argument"
+                    [ Type.var "input" ]
                 )
             )
     , optional =
@@ -1031,6 +1052,33 @@ arg arg1 arg2 =
             )
         )
         [ arg1, arg2 ]
+
+
+{-| -}
+argList : Elm.Expression -> Elm.Expression
+argList arg1 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "argList"
+            (Type.function
+                [ Type.namedWith
+                    Elm.local
+                    "List"
+                    [ Type.namedWith
+                        (Elm.moduleName [ "GraphQL", "Engine" ])
+                        "Argument"
+                        [ Type.var "obj" ]
+                    ]
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Argument"
+                    [ Type.var "input" ]
+                )
+            )
+        )
+        [ arg1 ]
 
 
 {-| -}
