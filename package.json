@@ -8,28 +8,28 @@
     "example": "examples"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "pull": "git submodule init && git submodule update --remote",
+    
+    "prefab:pull": "git submodule update --init --recursive",
+    "elm-prefab": "node ./elm-prefab/dist/index.js",
     "clean": "rm -rf ./output",
     "build": "(cd elm-prefab; yarn install; yarn build; cd ..)",
-    "generate": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm  --flags='{\"namespace\": \"TnG\"}')",
-    "gen-test": "yarn generate ; cd output ; elm make Main.elm",
-    "test-args": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm --output=./output2 --flags-from=api-config.json)",
-    "test-generated": "(cd output ; elm make Main.elm)",
-    "elm-prefab": "node ./elm-prefab/dist/index.js",
-    "generate-engine-docs": "cd templates ; rm -rf elm-stuff ; elm-doc-preview --output engine-docs.json ; cd ..",
-    "gen-engine": "yarn generate-engine-docs; yarn elm-prefab install templates/engine-docs.json"
+
+    "test:generate-api": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm  --flags='{\"namespace\": \"TnG\"}')",
+    "test:api": "yarn test:generate-api ; cd output ; elm make Main.elm",
+    
+    "generate:engine-bindings": "yarn generate-engine-docs; yarn elm-prefab install templates/engine-docs.json",
+    "generate:engine-docs": "cd templates ; rm -rf elm-stuff ; elm-doc-preview --output engine-docs.json ; cd .."
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ryannhg/elm-graphql.git"
+    "url": "git+https://github.com/Blissfully/elm-gql.git"
   },
   "author": "",
   "license": "BSD-3",
   "bugs": {
-    "url": "https://github.com/ryannhg/elm-graphql/issues"
+    "url": "https://github.com/Blissfully/elm-gql/issues"
   },
-  "homepage": "https://github.com/ryannhg/elm-graphql#readme",
+  "homepage": "https://github.com/Blissfully/elm-gql#readme",
   "devDependencies": {
     "elm-doc-preview": "^5.0.5"
   }
