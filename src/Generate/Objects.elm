@@ -135,10 +135,6 @@ implementField namespace objectName fieldName fieldType wrapped =
                         nestedObjectName
                         (Elm.Annotation.var "data")
                     )
-                    --(Engine.typeSelection.annotation
-                    --    (Common.local namespace nestedObjectName)
-                    --    (Elm.Annotation.var "data")
-                    --)
                     (\sel ->
                         Engine.object
                             (Elm.string fieldName)
@@ -146,21 +142,12 @@ implementField namespace objectName fieldName fieldType wrapped =
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ --Engine.typeSelection.annotation
-                      --    (Common.local namespace nestedObjectName)
-                      --    (Elm.Annotation.var "data")
+                    [ 
                       Common.selectionLocal namespace
                         nestedObjectName
                         (Elm.Annotation.var "data")
                     ]
-                    --(Engine.typeSelection.annotation
-                    --    (Common.local namespace objectName)
-                    --    (wrapAnnotation wrapped
-                    --        (Elm.Annotation.var
-                    --            "data"
-                    --        )
-                    --    )
-                    --)
+                   
                     (Common.selectionLocal namespace
                         objectName
                         (wrapAnnotation wrapped (Elm.Annotation.var "data"))
@@ -168,19 +155,10 @@ implementField namespace objectName fieldName fieldType wrapped =
             }
 
         GraphQL.Schema.Type.Interface interfaceName ->
-            --let
-            --    signature =
-            --        fieldSignature namespace objectName fieldType
-            --in
-            --{ expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
-            --, annotation = signature.annotation
-            --}
+            
             { expression =
                 Elm.lambda "selection_"
-                    --(Engine.typeSelection.annotation
-                    --    (Common.local namespace interfaceName)
-                    --    (Elm.Annotation.var "data")
-                    --)
+                    
                     (Common.selectionLocal namespace
                         interfaceName
                         (Elm.Annotation.var "data")
@@ -192,21 +170,12 @@ implementField namespace objectName fieldName fieldType wrapped =
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ --Engine.typeSelection.annotation
-                      --    (Common.local namespace interfaceName)
-                      --    (Elm.Annotation.var "data")
+                    [ 
                       Common.selectionLocal namespace
                         interfaceName
                         (Elm.Annotation.var "data")
                     ]
-                    --(Engine.typeSelection.annotation
-                    --    (Common.local namespace objectName)
-                    --    (wrapAnnotation wrapped
-                    --        (Elm.Annotation.var
-                    --            "data"
-                    --        )
-                    --    )
-                    --)
+                    
                     (Common.selectionLocal namespace
                         objectName
                         (wrapAnnotation wrapped (Elm.Annotation.var "data"))
@@ -218,19 +187,14 @@ implementField namespace objectName fieldName fieldType wrapped =
                 signature =
                     fieldSignature namespace objectName wrapped fieldType
             in
-            { expression = Elm.string ("unimplemented: " ++ Debug.toString fieldType)
+            { expression = Elm.string ("unimplemented: " ++ inputName)
             , annotation = signature.annotation
             }
 
         GraphQL.Schema.Type.Union unionName ->
             { expression =
                 Elm.lambda "union_"
-                    --(Engine.typeSelection.annotation
-                    --    (Common.local namespace unionName)
-                    --    (Elm.Annotation.var
-                    --        "data"
-                    --    )
-                    --)
+                   
                     (Common.selectionLocal namespace
                         unionName
                         (Elm.Annotation.var "data")
@@ -242,23 +206,12 @@ implementField namespace objectName fieldName fieldType wrapped =
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ --Engine.typeSelection.annotation
-                      --    (Common.local namespace unionName)
-                      --    (Elm.Annotation.var
-                      --        "data"
-                      --    )
+                    [ 
                       Common.selectionLocal namespace
                         unionName
                         (Elm.Annotation.var "data")
                     ]
-                    --(Engine.typeSelection.annotation
-                    --    (Common.local namespace objectName)
-                    --    (wrapAnnotation wrapped
-                    --        (Elm.Annotation.var
-                    --            "data"
-                    --        )
-                    --    )
-                    --)
+                   
                     (Common.selectionLocal namespace
                         objectName
                         (wrapAnnotation wrapped (Elm.Annotation.var "data"))
