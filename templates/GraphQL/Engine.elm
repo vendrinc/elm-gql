@@ -611,7 +611,8 @@ type Mutation
 query :
     Selection Query value
     ->
-        { headers : List Http.Header
+        { name : Maybe String
+        , headers : List Http.Header
         , url : String
         , timeout : Maybe Float
         , tracker : Maybe String
@@ -622,7 +623,7 @@ query sel config =
         { method = "POST"
         , headers = config.headers
         , url = config.url
-        , body = body sel
+        , body = body "query" config.name sel
         , expect = expect identity sel
         , timeout = config.timeout
         , tracker = config.tracker
@@ -633,7 +634,8 @@ query sel config =
 mutation :
     Selection Mutation msg
     ->
-        { headers : List Http.Header
+        { name : Maybe String
+        , headers : List Http.Header
         , url : String
         , timeout : Maybe Float
         , tracker : Maybe String
@@ -644,7 +646,7 @@ mutation sel config =
         { method = "POST"
         , headers = config.headers
         , url = config.url
-        , body = body sel
+        , body = body "mutation" config.name sel
         , expect = expect identity sel
         , timeout = config.timeout
         , tracker = config.tracker
@@ -664,8 +666,8 @@ mutation sel config =
         }
 
 -}
-body : Selection source data -> Http.Body
-body q =
+body : String -> Maybe String -> Selection source data -> Http.Body
+body operation maybeName q =
     let
         variables : Dict String (Argument Free)
         variables =
@@ -689,10 +691,12 @@ body q =
     in
     Http.jsonBody
         (Encode.object
-            [ ( "operationName", Encode.string "MyQuery" )
-            , ( "query", Encode.string (queryString q) )
-            , ( "variables", encodedVariables )
-            ]
+            (List.filterMap identity 
+                [ Maybe.map (\name -> ( "operationName", Encode.string name )) maybeName
+                , Just ( operation, Encode.string (queryString operation maybeName q) )
+                , Just ( "variables", encodedVariables )
+                ]
+            )
         )
 
 
@@ -716,21 +720,16 @@ expect toMsg (Selection (Details gql toDecoder)) =
 
 
 {-| -}
-queryString : Selection source data -> String
-queryString (Selection (Details gql _)) =
+queryString : String -> Maybe String -> Selection source data -> String
+queryString operation queryName (Selection (Details gql _)) =
     let
         ( context, fields ) =
             gql empty
 
-        operation =
-            "query"
-
-        queryName =
-            "MyQuery"
     in
     operation
         ++ " "
-        ++ queryName
+        ++ (Maybe.withDefault "" queryName)
         ++ renderParameters context.variables
         ++ "{"
         ++ fieldsToQueryString fields ""
