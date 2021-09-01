@@ -15,13 +15,14 @@ import GraphQL.Schema
 import Http
 
 
-main : Program { namespace : String } { namespace : String } Msg
+main : Program { schema: String, namespace : String } { schema: String, namespace : String } Msg
 main =
     Platform.worker
         { init =
             \flags ->
                 ( flags
-                , GraphQL.Schema.get "https://api.blissfully.com/prod/graphql"
+                , GraphQL.Schema.get    
+                    flags.schema
                     SchemaReceived
                 )
         , update =
