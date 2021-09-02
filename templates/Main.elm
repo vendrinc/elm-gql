@@ -32,7 +32,8 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     ( { result = Nothing }
     , TnG.query appQuery
-        { url = "https://api.blissfully.com/prod/graphql"
+        { name = Nothing
+        , url = "https://api.blissfully.com/prod/graphql"
         , headers =
             [ Http.header "Authorization" "nice try, aaron"
             ]
