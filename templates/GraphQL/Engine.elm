@@ -7,7 +7,7 @@ module GraphQL.Engine exposing
     , Query, query, Mutation, mutation
     , queryString
     , Argument(..), maybeScalarEncode
-    , Id, encodeId, decodeId
+    , Id(..), encodeId, decodeId
     , encodeOptionals, encodeInputObject, encodeArgument
     , decodeNullable
     , unsafe
@@ -815,9 +815,9 @@ renderField : Field -> String
 renderField myField =
     case myField of
         Fragment name fields ->
-            ".. on "
+            "... on "
                 ++ name
-                ++ "{"
+                ++ "{ __typename\n"
                 ++ fieldsToQueryString fields ""
                 ++ "}"
 
