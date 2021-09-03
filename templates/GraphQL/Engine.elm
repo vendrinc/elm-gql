@@ -98,8 +98,19 @@ union options =
                                 let
                                     ( newContext, fields ) =
                                         fragQuery currentContext
+
+
+                                    nonEmptyFields =
+                                        case fields of
+                                            [] ->
+                                                -- we're already selecting typename at the root.
+                                                -- this is just so we don't have an empty set of brackets
+                                                [ Field "__typename" Nothing [] [] ]
+
+                                            _ ->
+                                                fields
                                 in
-                                ( Fragment name fields :: frags
+                                ( Fragment name nonEmptyFields :: frags
                                 , newContext
                                 )
                             )
