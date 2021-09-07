@@ -110,11 +110,18 @@ queryToModule namespace op schema operation =
                                 )
                             )
                             |> Elm.expose
+                    optional =
+                        List.filter Generate.Args.isOptional operation.arguments
                 in
                 topLevelAlias
                     :: Generate.Args.optionalMakerTopLevel namespace
                         operation.name
-                        (List.filter Generate.Args.isOptional operation.arguments)
+                        (optional)
+                    ++ [ Generate.Args.nullsRecord namespace operation.name optional
+                            |> Elm.declaration "null"
+                
+
+                        ]
 
             else
                 []

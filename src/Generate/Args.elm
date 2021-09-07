@@ -8,7 +8,7 @@ module Generate.Args exposing
     , optionalMakerTopLevel
     , prepareRequired
     , recursiveOptionalMaker
-    , requiredAnnotation, Wrapped(..), getWrap
+    , requiredAnnotation, Wrapped(..), getWrap, nullsRecord
     )
 
 import Dict
@@ -562,6 +562,11 @@ optionalMakerExhaustive namespace schema name options =
         []
 
 
+annotations : 
+    { optional : String -> String -> Elm.Annotation.Annotation
+    , localOptional : a -> b -> Elm.Annotation.Annotation
+    , arg : String -> String -> Elm.Annotation.Annotation
+    }
 annotations =
     { optional =
         \namespace name ->
@@ -579,7 +584,7 @@ annotations =
                 []
     , arg =
         \namespace name ->
-           
+
             Generate.Common.ref namespace name
     }
 
@@ -636,6 +641,46 @@ createOptionalCreatorHelperExhaustive namespace schema name options fields =
                  )
                     :: fields
                 )
+
+
+{-|
+    Creates a `nulls` record that looks like 
+
+
+    null =
+        { fieldOne
+        , fieldTwo
+        }
+
+
+
+-}
+nullsRecord :  String
+    -> String
+    ->
+        List
+            { fieldOrArg
+                | name : String
+                , type_ : Type
+                , description : Maybe String
+            }
+    -> Elm.Expression
+nullsRecord namespace name fields =
+    Elm.record
+        (List.map 
+            (\field ->
+                ( field.name 
+                , Engine.arg (Encode.null) (Elm.string (inputTypeToString field.type_))
+                    |> Engine.optional
+                        (Elm.string field.name)
+                    |> Elm.withAnnotation
+                        (annotations.localOptional namespace name)
+                    
+                )
+            )
+            fields 
+        )
+        
 
 
 optionalMakerTopLevel :
@@ -811,7 +856,7 @@ encodeInput namespace fieldType wrapped val =
                     Engine.encodeArgument
                     val
                 )
-                (Elm.string inputName)
+                (Elm.string (inputTypeWrappedToString wrapped inputName))
 
         GraphQL.Schema.Type.Union unionName ->
             Elm.string "Unions cant be nested in inputs"
@@ -822,6 +867,45 @@ encodeInput namespace fieldType wrapped val =
         GraphQL.Schema.Type.Interface interfaceName ->
             Elm.string "Interfaces cant be in inputs"
 
+
+inputTypeWrappedToString : Wrapped -> String -> String
+inputTypeWrappedToString wrapped base =
+    case wrapped of
+        UnwrappedValue ->
+            base
+
+        InList inner ->
+            "[" ++ inputTypeWrappedToString inner base  ++ "]"
+        
+        InMaybe inner ->
+            inputTypeWrappedToString inner base
+
+inputTypeToString : Type -> String
+inputTypeToString type_ =
+    case type_ of
+        GraphQL.Schema.Type.Nullable newType ->
+            inputTypeToString newType
+
+        GraphQL.Schema.Type.List_ newType ->
+            "[" ++ inputTypeToString newType  ++ "]"
+
+        GraphQL.Schema.Type.Scalar scalarName ->
+            scalarName
+
+        GraphQL.Schema.Type.Enum enumName ->
+           enumName
+
+        GraphQL.Schema.Type.InputObject inputName ->
+            inputName
+
+        GraphQL.Schema.Type.Union unionName ->
+            "Unions cant be nested in inputs"
+
+        GraphQL.Schema.Type.Object nestedObjectName ->
+            "Objects cant be nested in inputs"
+
+        GraphQL.Schema.Type.Interface interfaceName ->
+            "Interfaces cant be in inputs"
 
 encodeInputExhaustive :
     GraphQL.Schema.Schema

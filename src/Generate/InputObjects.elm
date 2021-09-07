@@ -58,10 +58,17 @@ inputObjectToOptionalBuilders namespace schema input =
         [ Elm.file (Elm.moduleName [ namespace, input.name ])
             ""
             (optionalTypeAlias
+            
                 :: Generate.Args.optionalMakerTopLevel namespace
                     input.name
                     optional
-            )
+                ++ 
+                    [ Generate.Args.nullsRecord namespace input.name optional
+                        |> Elm.declaration "null"
+                
+                    ]
+            
+            )   
         ]
 
     else
