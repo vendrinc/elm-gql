@@ -716,16 +716,25 @@ createOptionalCreatorTopLevelHelper namespace name options fields =
             fields
 
         arg :: remain ->
+            let
+                
+                wrapping =
+                    case getWrap arg.type_ of
+                        InMaybe inner ->
+                            inner
+                        otherwise ->
+                            otherwise
+            in
             createOptionalCreatorTopLevelHelper namespace
                 name
                 remain
                 ((Elm.fn arg.name
-                    ( "val", requiredAnnotationHelper namespace arg.type_ (getWrap arg.type_) )
+                    ( "val", requiredAnnotationHelper namespace arg.type_ wrapping )
                     (\val ->
                         encodeInput namespace
                             arg.type_
-                            (getWrap arg.type_)
-                            val
+                            wrapping
+                            (val)
                             |> Elm.withAnnotation
                                 (annotations.arg namespace name)
                             |> Engine.optional
