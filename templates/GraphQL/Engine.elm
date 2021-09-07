@@ -4,7 +4,7 @@ module GraphQL.Engine exposing
     , union
     , Selection, select, with, map, map2, recover
     , arg, argList, Optional, optional
-    , Query, query, Mutation, mutation
+    , Query, query, Mutation, mutation, Error(..)
     , queryString
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeInputObject, encodeArgument
@@ -24,7 +24,7 @@ module GraphQL.Engine exposing
 
 @docs arg, argList, Optional, optional
 
-@docs Query, query, Mutation, mutation
+@docs Query, query, Mutation, mutation, Error
 
 @docs queryString
 
@@ -609,7 +609,7 @@ query :
         , timeout : Maybe Float
         , tracker : Maybe String
         }
-    -> Cmd (Result Http.Error value)
+    -> Cmd (Result Error value)
 query sel config =
     Http.request
         { method = "POST"
@@ -632,7 +632,7 @@ mutation :
         , timeout : Maybe Float
         , tracker : Maybe String
         }
-    -> Cmd (Result Http.Error msg)
+    -> Cmd (Result Error msg)
 mutation sel config =
     Http.request
         { method = "POST"
@@ -702,13 +702,62 @@ getContext (Selection (Details gql _)) =
 
 
 {-| -}
-expect : (Result Http.Error data -> msg) -> Selection source data -> Http.Expect msg
+expect : (Result Error data -> msg) -> Selection source data -> Http.Expect msg
 expect toMsg (Selection (Details gql toDecoder)) =
     let
         ( context, decoder ) =
             toDecoder empty
     in
-    Http.expectJson toMsg (Json.field "data" decoder)
+    Http.expectStringResponse toMsg <| 
+        \response ->
+            case response of
+                Http.BadUrl_ url ->
+                    Err (BadUrl url)
+
+                Http.Timeout_ ->
+                    Err Timeout
+
+                Http.NetworkError_ ->
+                    Err NetworkError
+
+                Http.BadStatus_ metadata responseBody ->
+                    Err 
+                        (BadStatus 
+                            { status = metadata.statusCode
+                            , responseBody = responseBody
+                            }
+                        )
+
+                Http.GoodStatus_ metadata responseBody ->
+                    case Json.decodeString (Json.field "data" decoder) responseBody of
+                        Ok value ->
+                            Ok value
+
+                        Err err ->
+                            Err 
+                                (BadBody 
+                                    { responseBody = responseBody
+                                    , decodingError = Json.errorToString err
+                                    }
+                                ) 
+
+
+
+
+
+type Error
+    = BadUrl String
+    | Timeout
+    | NetworkError
+    | BadStatus 
+        { status : Int
+        , responseBody : String 
+        }
+    | BadBody 
+        { decodingError : String
+        , responseBody : String
+        }
+
 
 
 {-| -}

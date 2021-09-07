@@ -8,6 +8,7 @@ import TnG.Input
 import TnG.Mutations.UpdateLicense
 import TnG.Queries.App
 import TnG.Unions
+import GraphQL.Engine as GQL exposing (Error)
 
 
 main : Program () Model Msg
@@ -24,7 +25,7 @@ main =
 -- INIT
 
 type alias Model =
-    { result : Maybe (Result Http.Error App)
+    { result : Maybe (Result GQL.Error App)
     }
 
 
@@ -49,7 +50,7 @@ init _ =
 
 
 type Msg
-    = GotStuff (Result Http.Error App)
+    = GotStuff (Result GQL.Error App)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
