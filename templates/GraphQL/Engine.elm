@@ -7,7 +7,6 @@ module GraphQL.Engine exposing
     , Query, query, Mutation, mutation
     , queryString
     , Argument(..), maybeScalarEncode
-    , Id(..), encodeId, decodeId
     , encodeOptionals, encodeInputObject, encodeArgument
     , decodeNullable
     , unsafe
@@ -31,8 +30,6 @@ module GraphQL.Engine exposing
 
 @docs Argument, maybeScalarEncode
 
-@docs Id, encodeId, decodeId
-
 @docs encodeOptionals, encodeInputObject, encodeArgument
 
 @docs decodeNullable
@@ -47,22 +44,6 @@ import Json.Encode as Encode
 import Set
 
 
-{-| -}
-type Id
-    = Id String
-
-
-{-| -}
-encodeId : Id -> Json.Value
-encodeId (Id str) =
-    Encode.string str
-
-
-{-| -}
-decodeId : Json.Decoder Id
-decodeId =
-    Json.map Id
-        Json.string
 
 
 {-| -}
@@ -828,7 +809,7 @@ renderField myField =
         Fragment name fields ->
             "... on "
                 ++ name
-                ++ "{ __typename\n"
+                ++ "{"
                 ++ fieldsToQueryString fields ""
                 ++ "}"
 

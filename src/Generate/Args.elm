@@ -8,7 +8,7 @@ module Generate.Args exposing
     , optionalMakerTopLevel
     , prepareRequired
     , recursiveOptionalMaker
-    , requiredAnnotation
+    , requiredAnnotation, Wrapped(..), getWrap
     )
 
 import Dict
@@ -75,8 +75,6 @@ encodeScalar scalarName wrapped =
                 "boolean" ->
                     Encode.bool
 
-                "id" ->
-                    Engine.encodeId
 
                 _ ->
                     \val ->
@@ -135,23 +133,20 @@ scalarType wrapped scalarName =
                 "boolean" ->
                     Elm.Annotation.bool
 
-                "id" ->
-                    Elm.Annotation.named
-                        Engine.moduleName_
-                        (Utils.String.formatTypename "id")
-
                 _ ->
                     Elm.Annotation.named
                         (Elm.moduleName [ "Scalar" ])
                         (Utils.String.formatTypename scalarName)
 
 
+splitRequired : List { a | type_ : Type } -> (List { a | type_ : Type }, List { a | type_ : Type })
 splitRequired args =
     List.partition
         (not << isOptional)
         args
 
 
+denullable : Type -> Type
 denullable type_ =
     case type_ of
         GraphQL.Schema.Type.Nullable inner ->
@@ -161,6 +156,7 @@ denullable type_ =
             type_
 
 
+isOptional : { a | type_ : Type } -> Bool
 isOptional arg =
     case arg.type_ of
         GraphQL.Schema.Type.Nullable _ ->
@@ -569,24 +565,21 @@ optionalMakerExhaustive namespace schema name options =
 annotations =
     { optional =
         \namespace name ->
-            --Engine.typeOptional.annotation
-            --    (Generate.Common.ref namespace (name ++ "_"))
+            
             Elm.Annotation.namedWith
                 (Elm.moduleName [ namespace, name ])
                 "Optional"
                 []
     , localOptional =
         \namespace name ->
-            --Engine.typeOptional.annotation
-            --    (Generate.Common.ref namespace (name ++ "_"))
+           
             Elm.Annotation.namedWith
                 Elm.local
                 "Optional"
                 []
     , arg =
         \namespace name ->
-            --Engine.typeArgument.annotation
-            --    (Generate.Common.ref namespace (name ++ "_"))
+           
             Generate.Common.ref namespace name
     }
 
@@ -965,6 +958,7 @@ encodeInputExhaustive schema namespace fieldType wrapped val =
             val
 
 -}
+wrapGet : Wrapped -> String -> Elm.Expression -> Elm.Expression
 wrapGet wrapped selector val =
     case wrapped of
         UnwrappedValue ->
@@ -1646,6 +1640,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
             Elm.unit
 
 
+enumExample : String -> GraphQL.Schema.Schema -> String -> Elm.Expression
 enumExample namespace schema enumName =
     case Dict.get enumName schema.enums of
         Nothing ->
@@ -1661,6 +1656,7 @@ enumExample namespace schema enumName =
                         (Utils.String.formatTypename top.name)
 
 
+wrapExpression : Wrapped -> Elm.Expression -> Elm.Expression
 wrapExpression wrapper exp =
     case wrapper of
         InList inner ->

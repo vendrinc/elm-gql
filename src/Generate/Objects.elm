@@ -7,26 +7,25 @@ import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Json
 import Elm.Pattern
 import Generate.Common as Common
+import Generate.Args as Args exposing (Wrapped(..))
 import GraphQL.Schema
 import GraphQL.Schema.Object
 import GraphQL.Schema.Type exposing (Type(..))
+import GraphQL.Schema.Field as Field exposing (Field)
 import String.Extra as String
 import Utils.String
 
 
 
---objectToModule : String -> GraphQL.Schema.Object.Object -> Elm.File
 
-
+objectToModule : String 
+    -- this can be objects oir interfaces
+    -> { a | fields : List Field, name : String } 
+    -> Elm.Declaration
 objectToModule namespace object =
     let
         fieldTypesAndImpls =
             object.fields
-                --|> List.filter
-                --    (\field ->
-                --        --List.member field.name [ "name", "slug", "id", "viewUrl", "parent" ]
-                --        List.member field.name [ "parent" ]
-                --    )
                 |> List.foldl
                     (\field accDecls ->
                         let
@@ -36,7 +35,7 @@ objectToModule namespace object =
                                     object.name
                                     field.name
                                     field.type_
-                                    UnwrappedValue
+                                    (Args.getWrap field.type_)
                         in
                         ( field.name, implemented.annotation, implemented.expression ) :: accDecls
                     )
@@ -54,21 +53,15 @@ objectToModule namespace object =
             fieldTypesAndImpls
                 |> List.map (\( name, _, expression ) -> ( formatName name, expression ))
                 |> Elm.record
-
-        objectDecl =
-            Elm.declarationWith (String.decapitalize object.name) objectTypeAnnotation objectImplementation
+            
     in
-    --Elm.file (Elm.moduleName [ namespace, "Object", object.name ])
-    --    ""
-    --    [
-    objectDecl
+    Elm.declarationWith (String.decapitalize object.name) objectTypeAnnotation objectImplementation
 
 
 
---|> Elm.expose
---]
 
 
+formatName : String -> String
 formatName str =
     case str of
         "_" ->
@@ -77,11 +70,6 @@ formatName str =
         _ ->
             str
 
-
-type Wrapped
-    = UnwrappedValue
-    | InList Wrapped
-    | InMaybe Wrapped
 
 
 implementField :
@@ -97,10 +85,10 @@ implementField :
 implementField namespace objectName fieldName fieldType wrapped =
     case fieldType of
         GraphQL.Schema.Type.Nullable newType ->
-            implementField namespace objectName fieldName newType (InMaybe wrapped)
+            implementField namespace objectName fieldName newType wrapped
 
         GraphQL.Schema.Type.List_ newType ->
-            implementField namespace objectName fieldName newType (InList wrapped)
+            implementField namespace objectName fieldName newType wrapped
 
         GraphQL.Schema.Type.Scalar scalarName ->
             let
@@ -155,7 +143,6 @@ implementField namespace objectName fieldName fieldType wrapped =
             }
 
         GraphQL.Schema.Type.Interface interfaceName ->
-            
             { expression =
                 Elm.lambda "selection_"
                     
@@ -234,7 +221,7 @@ wrapAnnotation wrap signature =
 
 wrapExpression : Wrapped -> Elm.Expression -> Elm.Expression
 wrapExpression wrap exp =
-    case wrap of
+    case  wrap of
         UnwrappedValue ->
             exp
 
@@ -287,8 +274,6 @@ decodeScalar scalarName wrapped =
                 "float" ->
                     Json.float
 
-                "id" ->
-                    Engine.decodeId
 
                 "boolean" ->
                     Json.bool
@@ -449,9 +434,6 @@ generateFiles namespace graphQLSchema =
                     (Elm.Annotation.var "source")
                     (Elm.Annotation.var "data")
                 )
-            , Elm.aliasWith "Id"
-                []
-                (Elm.Annotation.named Engine.moduleName_ "Id")
             , Elm.aliasWith "Query"
                 [ "data" ]
                 (Engine.typeSelection.annotation

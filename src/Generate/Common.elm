@@ -50,9 +50,6 @@ gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
                 "boolean" ->
                     Elm.Annotation.bool
 
-                "id" ->
-                    Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) "Id" appliedToTypes
-
                 _ ->
                     Elm.Annotation.namedWith (Elm.moduleName [ "Scalar" ])
                         (Utils.String.formatTypename scalarName)
@@ -108,9 +105,6 @@ localAnnotation namespace gqlType maybeAppliedToTypes =
 
                 "boolean" ->
                     Elm.Annotation.bool
-
-                "id" ->
-                    Elm.Annotation.namedWith (Elm.moduleName [ "GraphQL", "Engine" ]) "Id" appliedToTypes
 
                 _ ->
                     Elm.Annotation.namedWith (Elm.moduleName [ "Scalar" ])

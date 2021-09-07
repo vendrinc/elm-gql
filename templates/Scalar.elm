@@ -24,6 +24,7 @@ module Scalar exposing
     , surveyId
     , url
     , viewId
+    , id
     )
 
 import GraphQL.Engine as Engine
@@ -53,6 +54,11 @@ url =
                         Just successfulUrl ->
                             Decode.succeed successfulUrl
                 )
+    }
+
+id =
+    { encode = \(Id raw) -> Encode.string raw
+    , decoder = Decode.string |> Decode.map Id
     }
 
 
