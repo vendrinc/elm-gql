@@ -84,15 +84,16 @@ generateFiles namespace schema =
                 |> Dict.toList
                 |> List.map Tuple.second
 
-        declarations =
-            objects
-                |> List.concatMap (inputObjectToDeclarations namespace schema)
+        -- declarations =
+        --     objects
+        --         |> List.concatMap (inputObjectToDeclarations namespace schema)
 
         optionalFiles =
             objects
                 |> List.concatMap (inputObjectToOptionalBuilders namespace schema)
     in
-    Elm.file (Elm.moduleName [ namespace, "Input" ])
-        ""
-        declarations
-        :: optionalFiles
+    -- Elm.file (Elm.moduleName [ namespace, "Input" ])
+        -- ""
+        -- declarations
+        -- ::
+         optionalFiles

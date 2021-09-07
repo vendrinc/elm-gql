@@ -4,7 +4,6 @@ import Browser
 import Html exposing (Html)
 import Http
 import TnG
-import TnG.Input
 import TnG.Mutations.UpdateLicense
 import TnG.Queries.App
 import TnG.Unions
