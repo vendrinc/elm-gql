@@ -1,14 +1,17 @@
 module Generate.Args exposing
     ( Operation(..)
+    , Wrapped(..)
     , createBuilder
     , createBuilderExample
     , createInput
+    , getWrap
     , isOptional
+    , nullsRecord
     , optionalMaker
     , optionsRecursive
     , prepareRequired
     , recursiveOptionalMaker
-    , requiredAnnotation, Wrapped(..), getWrap, nullsRecord
+    , requiredAnnotation
     )
 
 import Dict
@@ -35,6 +38,11 @@ type Wrapped
     = UnwrappedValue
     | InList Wrapped
     | InMaybe Wrapped
+
+
+embeddedOptionsFieldName : String
+embeddedOptionsFieldName =
+    "with_"
 
 
 {-|
@@ -74,7 +82,6 @@ encodeScalar scalarName wrapped =
 
                 "boolean" ->
                     Encode.bool
-
 
                 _ ->
                     \val ->
@@ -139,7 +146,7 @@ scalarType wrapped scalarName =
                         (Utils.String.formatTypename scalarName)
 
 
-splitRequired : List { a | type_ : Type } -> (List { a | type_ : Type }, List { a | type_ : Type })
+splitRequired : List { a | type_ : Type } -> ( List { a | type_ : Type }, List { a | type_ : Type } )
 splitRequired args =
     List.partition
         (not << isOptional)
@@ -271,7 +278,7 @@ requiredAnnotationRecursiveHelper namespace schema type_ wrapped =
                                         )
                                     )
                                     required
-                                    ++ [ ( "optional"
+                                    ++ [ ( embeddedOptionsFieldName
                                          , annotations.optional namespace inputName
                                             |> Elm.Annotation.list
                                          )
@@ -417,7 +424,7 @@ recursiveOptionalMaker namespace schema name args =
         (\options ->
             List.filterMap identity
                 [ Elm.fn options.namespace
-                    ( "optional"
+                    ( embeddedOptionsFieldName
                     , Elm.Annotation.list
                         (annotations.optional namespace options.namespace)
                     )
@@ -562,29 +569,34 @@ optionalMakerExhaustive namespace schema name options =
         []
 
 
-annotations : 
+annotations :
     { optional : String -> String -> Elm.Annotation.Annotation
+    , safeOptional : String -> String -> Elm.Annotation.Annotation
     , localOptional : a -> b -> Elm.Annotation.Annotation
     , arg : String -> String -> Elm.Annotation.Annotation
     }
 annotations =
     { optional =
         \namespace name ->
-            
             Elm.Annotation.namedWith
                 (Elm.moduleName [ namespace, name ])
                 "Optional"
                 []
+    , safeOptional =
+        \namespace name ->
+            Engine.typeOptional.annotation
+                (Elm.Annotation.named (Elm.moduleName [ namespace ])
+                    name
+                )
+
     , localOptional =
         \namespace name ->
-           
             Elm.Annotation.namedWith
                 Elm.local
                 "Optional"
                 []
     , arg =
         \namespace name ->
-
             Generate.Common.ref namespace name
     }
 
@@ -644,7 +656,8 @@ createOptionalCreatorHelperExhaustive namespace schema name options fields =
 
 
 {-|
-    Creates a `nulls` record that looks like 
+
+    Creates a `nulls` record that looks like
 
 
     null =
@@ -652,10 +665,9 @@ createOptionalCreatorHelperExhaustive namespace schema name options fields =
         , fieldTwo
         }
 
-
-
 -}
-nullsRecord :  String
+nullsRecord :
+    String
     -> String
     ->
         List
@@ -667,20 +679,19 @@ nullsRecord :  String
     -> Elm.Expression
 nullsRecord namespace name fields =
     Elm.record
-        (List.map 
+        (List.map
             (\field ->
-                ( field.name 
-                , Engine.arg (Encode.null) (Elm.string (inputTypeToString field.type_))
+                ( field.name
+                , Engine.arg Encode.null (Elm.string (inputTypeToString field.type_))
                     |> Engine.optional
                         (Elm.string field.name)
                     |> Elm.withAnnotation
                         (annotations.localOptional namespace name)
-                    
                 )
             )
-            fields 
+            fields
         )
-        
+
 
 {-|
 
@@ -688,11 +699,11 @@ nullsRecord namespace name fields =
 
     Instead of making you do it yourself.
 
-
 -}
 optionsRecursive :
-    String ->
-    GraphQL.Schema.Schema -> String
+    String
+    -> GraphQL.Schema.Schema
+    -> String
     ->
         List
             { fieldOrArg
@@ -701,13 +712,13 @@ optionsRecursive :
                 , description : Maybe String
             }
     -> List Elm.Declaration
-optionsRecursive namespace schema  name options =
+optionsRecursive namespace schema name options =
     optionsRecursiveHelper namespace schema name options []
 
 
 optionsRecursiveHelper :
     String
-    -> GraphQL.Schema.Schema 
+    -> GraphQL.Schema.Schema
     -> String
     ->
         List
@@ -725,7 +736,6 @@ optionsRecursiveHelper namespace schema name options fields =
 
         arg :: remain ->
             let
-                
                 wrapping =
                     case getWrap arg.type_ of
                         InMaybe inner ->
@@ -734,16 +744,17 @@ optionsRecursiveHelper namespace schema name options fields =
                         otherwise ->
                             otherwise
             in
-            optionsRecursiveHelper namespace schema
+            optionsRecursiveHelper namespace
+                schema
                 name
                 remain
                 ((Elm.fn arg.name
                     ( "val"
                     , inputAnnotationRecursive namespace schema arg.type_ wrapping
-                      
                     )
                     (\val ->
-                        encodeInputRecursive  namespace schema
+                        encodeInputRecursive namespace
+                            schema
                             arg.type_
                             wrapping
                             val
@@ -760,8 +771,7 @@ optionsRecursiveHelper namespace schema name options fields =
                 )
 
 
-
-inputAnnotationRecursive : String -> GraphQL.Schema.Schema  -> Type -> Wrapped -> Elm.Annotation.Annotation
+inputAnnotationRecursive : String -> GraphQL.Schema.Schema -> Type -> Wrapped -> Elm.Annotation.Annotation
 inputAnnotationRecursive namespace schema type_ wrapped =
     case type_ of
         GraphQL.Schema.Type.Nullable newType ->
@@ -777,9 +787,8 @@ inputAnnotationRecursive namespace schema type_ wrapped =
             Elm.Annotation.named (Elm.moduleName [ namespace, "Enum", enumName ]) enumName
                 |> unwrapWith wrapped
 
-       
         GraphQL.Schema.Type.InputObject inputName ->
-             case Dict.get inputName schema.inputObjects of
+            case Dict.get inputName schema.inputObjects of
                 Nothing ->
                     annotations.arg namespace inputName
                         |> unwrapWith wrapped
@@ -795,8 +804,7 @@ inputAnnotationRecursive namespace schema type_ wrapped =
                                 (List.map
                                     (\field ->
                                         ( field.name
-                                        ,   inputAnnotationRecursive namespace schema field.type_ (getWrap field.type_)
-
+                                        , inputAnnotationRecursive namespace schema field.type_ (getWrap field.type_)
                                         )
                                     )
                                     input.fields
@@ -804,7 +812,10 @@ inputAnnotationRecursive namespace schema type_ wrapped =
                                 |> unwrapWith wrapped
 
                         ( [], optional ) ->
-                            annotations.arg namespace inputName
+                            -- annotations.arg namespace inputName
+                            --     |> unwrapWith wrapped
+                            annotations.safeOptional namespace inputName
+                                |> Elm.Annotation.list
                                 |> unwrapWith wrapped
 
                         ( required, optional ) ->
@@ -816,14 +827,13 @@ inputAnnotationRecursive namespace schema type_ wrapped =
                                         )
                                     )
                                     required
-                                    ++ [ ( "optional"
+                                    ++ [ ( embeddedOptionsFieldName
                                          , annotations.optional namespace inputName
                                             |> Elm.Annotation.list
                                          )
                                        ]
                                 )
                                 |> unwrapWith wrapped
-
 
         GraphQL.Schema.Type.Object nestedObjectName ->
             -- not used as input
@@ -844,12 +854,9 @@ inputAnnotationRecursive namespace schema type_ wrapped =
             Elm.Annotation.unit
 
 
-
-
-
 encodeInputRecursive :
     String
-    -> GraphQL.Schema.Schema 
+    -> GraphQL.Schema.Schema
     -> Type
     -> Wrapped
     -> Elm.Expression
@@ -894,36 +901,28 @@ encodeInputRecursive namespace schema fieldType wrapped val =
                 (Elm.string enumName)
 
         GraphQL.Schema.Type.InputObject inputName ->
-             case Dict.get inputName schema.inputObjects of
+            case Dict.get inputName schema.inputObjects of
                 Nothing ->
                     Engine.arg
-                        (encodeWrappedInverted wrapped
-                            Engine.encodeArgument
-                            val
-                        )
+                        (encodeInputObjectArg inputName wrapped val 0)
                         (Elm.string inputName)
 
                 Just input ->
                     if List.all isOptional input.fields then
                         Engine.arg
-                            (encodeWrappedInverted wrapped
-                                Engine.encodeArgument
-                                val
-                            )
+                            (encodeInputObjectArg inputName wrapped val 0)
                             (Elm.string inputName)
 
                     else
                         case input.fields of
                             [] ->
                                 Engine.arg
-                                    (encodeWrappedInverted wrapped
-                                        Engine.encodeArgument
-                                        val
-                                    )
-                                    (Elm.string input.name)
+                                    (encodeInputObjectArg inputName wrapped val 0)
+                                    (Elm.string inputName)
 
                             many ->
-                                encodeWrappedArgument (Utils.String.formatValue input.name) wrapped
+                                encodeWrappedArgument (Utils.String.formatValue input.name)
+                                    wrapped
                                     (\v ->
                                         let
                                             requiredVals =
@@ -941,7 +940,7 @@ encodeInputRecursive namespace schema fieldType wrapped val =
                                                 Elm.Gen.List.append
                                                     requiredVals
                                                     (Engine.encodeOptionals
-                                                        (Elm.get "optional" v)
+                                                        (Elm.get embeddedOptionsFieldName v)
                                                     )
 
                                              else
@@ -961,70 +960,39 @@ encodeInputRecursive namespace schema fieldType wrapped val =
             Elm.string "Interfaces cant be in inputs"
 
 
+encodeInputObjectArg : String -> Wrapped -> Elm.Expression -> Int -> Elm.Expression
+encodeInputObjectArg inputName wrapper val level =
+    case wrapper of
+        UnwrappedValue ->
+            -- encoder val
+            Engine.encodeInputObject
+                (Engine.encodeOptionals
+                    val
+                )
+                (Elm.string inputName)
+                |> Engine.encodeArgument
 
--- optionalMakerTopLevel :
---     String
---     -> String
---     ->
---         List
---             { fieldOrArg
---                 | name : String
---                 , type_ : Type
---                 , description : Maybe String
---             }
---     -> List Elm.Declaration
--- optionalMakerTopLevel namespace name options =
---     createOptionalCreatorTopLevelHelper namespace name options []
+        InMaybe inner ->
+            Engine.maybeScalarEncode
+                (\_ ->
+                    Elm.lambda ("o" ++ String.fromInt level)
+                        Elm.Annotation.unit
+                        (\o ->
+                            encodeInputObjectArg inputName inner o (level + 1)
+                        )
+                )
+                val
 
-
--- createOptionalCreatorTopLevelHelper :
---     String
---     -> String
---     ->
---         List
---             { field
---                 | name : String
---                 , description : Maybe String
---                 , type_ : Type
---             }
---     -> List Elm.Declaration
---     -> List Elm.Declaration
--- createOptionalCreatorTopLevelHelper namespace name options fields =
---     case options of
---         [] ->
---             fields
-
---         arg :: remain ->
---             let
-                
---                 wrapping =
---                     case getWrap arg.type_ of
---                         InMaybe inner ->
---                             inner
---                         otherwise ->
---                             otherwise
---             in
---             createOptionalCreatorTopLevelHelper namespace
---                 name
---                 remain
---                 ((Elm.fn arg.name
---                     ( "val", requiredAnnotationHelper namespace arg.type_ wrapping )
---                     (\val ->
---                         encodeInput namespace
---                             arg.type_
---                             wrapping
---                             (val)
---                             |> Elm.withAnnotation
---                                 (annotations.arg namespace name)
---                             |> Engine.optional
---                                 (Elm.string arg.name)
---                             |> Elm.withAnnotation
---                                 (annotations.localOptional namespace name)
---                     )
---                     |> Elm.expose
---                  )
---                     :: fields
---                 )
+        InList inner ->
+            Encode.list
+                (\_ ->
+                    Elm.lambda ("o" ++ String.fromInt level)
+                        Elm.Annotation.unit
+                        (\o ->
+                            encodeInputObjectArg inputName inner o (level + 1)
+                        )
+                )
+                val
 
 
 optionalMaker :
@@ -1163,10 +1131,11 @@ inputTypeWrappedToString wrapped base =
             base
 
         InList inner ->
-            "[" ++ inputTypeWrappedToString inner base  ++ "]"
-        
+            "[" ++ inputTypeWrappedToString inner base ++ "]"
+
         InMaybe inner ->
             inputTypeWrappedToString inner base
+
 
 inputTypeToString : Type -> String
 inputTypeToString type_ =
@@ -1175,13 +1144,13 @@ inputTypeToString type_ =
             inputTypeToString newType
 
         GraphQL.Schema.Type.List_ newType ->
-            "[" ++ inputTypeToString newType  ++ "]"
+            "[" ++ inputTypeToString newType ++ "]"
 
         GraphQL.Schema.Type.Scalar scalarName ->
             scalarName
 
         GraphQL.Schema.Type.Enum enumName ->
-           enumName
+            enumName
 
         GraphQL.Schema.Type.InputObject inputName ->
             inputName
@@ -1194,6 +1163,7 @@ inputTypeToString type_ =
 
         GraphQL.Schema.Type.Interface interfaceName ->
             "Interfaces cant be in inputs"
+
 
 encodeInputExhaustive :
     GraphQL.Schema.Schema
@@ -1271,7 +1241,8 @@ encodeInputExhaustive schema namespace fieldType wrapped val =
                                     (Elm.string input.name)
 
                             many ->
-                                encodeWrappedArgument (Utils.String.formatValue input.name) wrapped
+                                encodeWrappedArgument (Utils.String.formatValue input.name)
+                                    wrapped
                                     (\v ->
                                         let
                                             requiredVals =
@@ -1294,7 +1265,7 @@ encodeInputExhaustive schema namespace fieldType wrapped val =
                                                 Elm.Gen.List.append
                                                     requiredVals
                                                     (Engine.encodeOptionals
-                                                        (Elm.get "optional" v)
+                                                        (Elm.get embeddedOptionsFieldName v)
                                                     )
 
                                              else
@@ -1388,7 +1359,8 @@ encodeWrappedArgument inputName wrapper encoder val =
 
         InMaybe inner ->
             let
-                valName = (addCount inner inputName)
+                valName =
+                    addCount inner inputName
             in
             Elm.caseOf val
                 [ ( Elm.Pattern.named "Just" [ Elm.Pattern.var "item" ]
@@ -1401,9 +1373,10 @@ encodeWrappedArgument inputName wrapper encoder val =
 
         InList inner ->
             let
-                valName = addCount inner inputName
+                valName =
+                    addCount inner inputName
             in
-            Elm.Gen.List.map 
+            Elm.Gen.List.map
                 (\v ->
                     Elm.lambda valName
                         Elm.Annotation.unit
@@ -1413,11 +1386,11 @@ encodeWrappedArgument inputName wrapper encoder val =
                 )
                 val
                 |> Engine.argList
-            
+
 
 addCount : Wrapped -> String -> String
 addCount wrapped str =
-    str ++ (String.fromInt (countRemainingDepth wrapped 1))
+    str ++ String.fromInt (countRemainingDepth wrapped 1)
 
 
 countRemainingDepth : Wrapped -> Int -> Int
@@ -1425,10 +1398,13 @@ countRemainingDepth wrapped i =
     case wrapped of
         UnwrappedValue ->
             i
+
         InMaybe inner ->
             countRemainingDepth inner (i + 1)
+
         InList inner ->
             countRemainingDepth inner (i + 1)
+
 
 
 encodeWrapped :
@@ -1545,7 +1521,7 @@ createBuilder namespace schema name arguments returnType operation =
                         (Engine.encodeOptionals
                             (Elm.valueWith
                                 (Elm.moduleName [])
-                                "optional"
+                                embeddedOptionsFieldName
                                 (Elm.Annotation.list
                                     (annotations.localOptional namespace name)
                                 )
@@ -1556,7 +1532,7 @@ createBuilder namespace schema name arguments returnType operation =
                     Engine.encodeOptionals
                         (Elm.valueWith
                             (Elm.moduleName [])
-                            "optional"
+                            embeddedOptionsFieldName
                             (Elm.Annotation.list
                                 (annotations.localOptional namespace name)
                             )
@@ -1594,7 +1570,7 @@ createBuilder namespace schema name arguments returnType operation =
             , justIf hasOptionalArgs
                 ( Elm.Annotation.list
                     (annotations.localOptional namespace name)
-                , Elm.Pattern.var "optional"
+                , Elm.Pattern.var embeddedOptionsFieldName
                 )
             , Just
                 ( Generate.Common.selection namespace
@@ -1655,7 +1631,7 @@ createInput namespace schema name arguments returnType =
                         (Engine.encodeOptionals
                             (Elm.valueWith
                                 (Elm.moduleName [])
-                                "optional"
+                                embeddedOptionsFieldName
                                 (Elm.Annotation.list
                                     (annotations.optional namespace name)
                                 )
@@ -1666,7 +1642,7 @@ createInput namespace schema name arguments returnType =
                     Engine.encodeOptionals
                         (Elm.valueWith
                             (Elm.moduleName [])
-                            "optional"
+                            embeddedOptionsFieldName
                             (Elm.Annotation.list
                                 (annotations.optional namespace name)
                             )
@@ -1683,21 +1659,7 @@ createInput namespace schema name arguments returnType =
                 )
                 (Elm.string name)
                 |> Elm.withAnnotation
-                    --(Engine.typeSelection.annotation Engine.typeQuery.annotation (Elm.Annotation.var "data"))
-                    --(Elm.Annotation.namedWith
-                    --    (Elm.moduleName [ namespace ])
-                    --    name
-                    --    []
-                    --)
-                    --(Generate.Common.ref namespace name)
                     (annotations.arg namespace name)
-
-        --|> Elm.withAnnotation
-        --    --(Engine.typeSelection.annotation Engine.typeQuery.annotation (Elm.Annotation.var "data"))
-        --    (Generate.Common.selection namespace
-        --        (operationToString operation)
-        --        (Elm.Annotation.var "data")
-        --    )
     in
     Elm.functionWith name
         (List.filterMap identity
@@ -1708,7 +1670,7 @@ createInput namespace schema name arguments returnType =
             , justIf hasOptionalArgs
                 ( Elm.Annotation.list
                     (annotations.optional namespace name)
-                , Elm.Pattern.var "optional"
+                , Elm.Pattern.var embeddedOptionsFieldName
                 )
             ]
         )
