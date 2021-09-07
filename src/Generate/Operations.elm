@@ -114,11 +114,12 @@ queryToModule namespace op schema operation =
                         List.filter Generate.Args.isOptional operation.arguments
                 in
                 topLevelAlias
-                    :: Generate.Args.optionalMakerTopLevel namespace
+                    :: Generate.Args.optionsRecursive namespace schema
                         operation.name
                         (optional)
                     ++ [ Generate.Args.nullsRecord namespace operation.name optional
                             |> Elm.declaration "null"
+                            |> Elm.expose
                 
 
                         ]

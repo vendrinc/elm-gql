@@ -5,7 +5,7 @@ module Generate.Args exposing
     , createInput
     , isOptional
     , optionalMaker
-    , optionalMakerTopLevel
+    , optionsRecursive
     , prepareRequired
     , recursiveOptionalMaker
     , requiredAnnotation, Wrapped(..), getWrap, nullsRecord
@@ -682,10 +682,17 @@ nullsRecord namespace name fields =
         )
         
 
+{-|
 
-optionalMakerTopLevel :
-    String
-    -> String
+    The `recursive` part means it's going to jump into the schema in order to figure out how to encode the various inputs
+
+    Instead of making you do it yourself.
+
+
+-}
+optionsRecursive :
+    String ->
+    GraphQL.Schema.Schema -> String
     ->
         List
             { fieldOrArg
@@ -694,12 +701,13 @@ optionalMakerTopLevel :
                 , description : Maybe String
             }
     -> List Elm.Declaration
-optionalMakerTopLevel namespace name options =
-    createOptionalCreatorTopLevelHelper namespace name options []
+optionsRecursive namespace schema  name options =
+    optionsRecursiveHelper namespace schema name options []
 
 
-createOptionalCreatorTopLevelHelper :
+optionsRecursiveHelper :
     String
+    -> GraphQL.Schema.Schema 
     -> String
     ->
         List
@@ -710,7 +718,7 @@ createOptionalCreatorTopLevelHelper :
             }
     -> List Elm.Declaration
     -> List Elm.Declaration
-createOptionalCreatorTopLevelHelper namespace name options fields =
+optionsRecursiveHelper namespace schema name options fields =
     case options of
         [] ->
             fields
@@ -722,19 +730,23 @@ createOptionalCreatorTopLevelHelper namespace name options fields =
                     case getWrap arg.type_ of
                         InMaybe inner ->
                             inner
+
                         otherwise ->
                             otherwise
             in
-            createOptionalCreatorTopLevelHelper namespace
+            optionsRecursiveHelper namespace schema
                 name
                 remain
                 ((Elm.fn arg.name
-                    ( "val", requiredAnnotationHelper namespace arg.type_ wrapping )
+                    ( "val"
+                    , inputAnnotationRecursive namespace schema arg.type_ wrapping
+                      
+                    )
                     (\val ->
-                        encodeInput namespace
+                        encodeInputRecursive  namespace schema
                             arg.type_
                             wrapping
-                            (val)
+                            val
                             |> Elm.withAnnotation
                                 (annotations.arg namespace name)
                             |> Engine.optional
@@ -746,6 +758,273 @@ createOptionalCreatorTopLevelHelper namespace name options fields =
                  )
                     :: fields
                 )
+
+
+
+inputAnnotationRecursive : String -> GraphQL.Schema.Schema  -> Type -> Wrapped -> Elm.Annotation.Annotation
+inputAnnotationRecursive namespace schema type_ wrapped =
+    case type_ of
+        GraphQL.Schema.Type.Nullable newType ->
+            inputAnnotationRecursive namespace schema newType wrapped
+
+        GraphQL.Schema.Type.List_ newType ->
+            inputAnnotationRecursive namespace schema newType wrapped
+
+        GraphQL.Schema.Type.Scalar scalarName ->
+            scalarType wrapped scalarName
+
+        GraphQL.Schema.Type.Enum enumName ->
+            Elm.Annotation.named (Elm.moduleName [ namespace, "Enum", enumName ]) enumName
+                |> unwrapWith wrapped
+
+       
+        GraphQL.Schema.Type.InputObject inputName ->
+             case Dict.get inputName schema.inputObjects of
+                Nothing ->
+                    annotations.arg namespace inputName
+                        |> unwrapWith wrapped
+
+                Just input ->
+                    case splitRequired input.fields of
+                        ( [], [] ) ->
+                            annotations.arg namespace inputName
+                                |> unwrapWith wrapped
+
+                        ( required, [] ) ->
+                            Elm.Annotation.record
+                                (List.map
+                                    (\field ->
+                                        ( field.name
+                                        ,   inputAnnotationRecursive namespace schema field.type_ (getWrap field.type_)
+
+                                        )
+                                    )
+                                    input.fields
+                                )
+                                |> unwrapWith wrapped
+
+                        ( [], optional ) ->
+                            annotations.arg namespace inputName
+                                |> unwrapWith wrapped
+
+                        ( required, optional ) ->
+                            Elm.Annotation.record
+                                (List.map
+                                    (\field ->
+                                        ( field.name
+                                        , inputAnnotationRecursive namespace schema field.type_ (getWrap field.type_)
+                                        )
+                                    )
+                                    required
+                                    ++ [ ( "optional"
+                                         , annotations.optional namespace inputName
+                                            |> Elm.Annotation.list
+                                         )
+                                       ]
+                                )
+                                |> unwrapWith wrapped
+
+
+        GraphQL.Schema.Type.Object nestedObjectName ->
+            -- not used as input
+            Generate.Common.selection namespace
+                nestedObjectName
+                (Elm.Annotation.var "data")
+
+        GraphQL.Schema.Type.Union unionName ->
+            -- not used as input
+            -- Note, we need a discriminator instead of just `data`
+            Generate.Common.selection namespace
+                unionName
+                (Elm.Annotation.var "data")
+                |> unwrapWith wrapped
+
+        GraphQL.Schema.Type.Interface interfaceName ->
+            -- not used as input
+            Elm.Annotation.unit
+
+
+
+
+
+encodeInputRecursive :
+    String
+    -> GraphQL.Schema.Schema 
+    -> Type
+    -> Wrapped
+    -> Elm.Expression
+    -> Elm.Expression
+encodeInputRecursive namespace schema fieldType wrapped val =
+    case fieldType of
+        GraphQL.Schema.Type.Nullable newType ->
+            encodeInputRecursive namespace schema newType wrapped val
+
+        GraphQL.Schema.Type.List_ newType ->
+            encodeInputRecursive namespace schema newType wrapped val
+
+        GraphQL.Schema.Type.Scalar scalarName ->
+            Engine.arg
+                (encodeScalar scalarName
+                    wrapped
+                    val
+                )
+                (Elm.string scalarName)
+
+        GraphQL.Schema.Type.Enum enumName ->
+            --This can either be
+            --     val -> Enum.encode val
+            --     val ->
+            --          Encode.list Enum.encode val
+            --     val ->
+            --          Engine.encodeMaybe Enum.encode val
+            --     or some stack
+            --     val ->
+            --          Encode.list (Encode.list Enum.encode) val
+            --
+            Engine.arg
+                (encodeWrappedInverted wrapped
+                    (\v ->
+                        Elm.apply
+                            (Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ]) "encode")
+                            [ v
+                            ]
+                    )
+                    val
+                )
+                (Elm.string enumName)
+
+        GraphQL.Schema.Type.InputObject inputName ->
+             case Dict.get inputName schema.inputObjects of
+                Nothing ->
+                    Engine.arg
+                        (encodeWrappedInverted wrapped
+                            Engine.encodeArgument
+                            val
+                        )
+                        (Elm.string inputName)
+
+                Just input ->
+                    if List.all isOptional input.fields then
+                        Engine.arg
+                            (encodeWrappedInverted wrapped
+                                Engine.encodeArgument
+                                val
+                            )
+                            (Elm.string inputName)
+
+                    else
+                        case input.fields of
+                            [] ->
+                                Engine.arg
+                                    (encodeWrappedInverted wrapped
+                                        Engine.encodeArgument
+                                        val
+                                    )
+                                    (Elm.string input.name)
+
+                            many ->
+                                encodeWrappedArgument (Utils.String.formatValue input.name) wrapped
+                                    (\v ->
+                                        let
+                                            requiredVals =
+                                                List.map
+                                                    (\field ->
+                                                        Elm.tuple
+                                                            (Elm.string field.name)
+                                                            (encodeInputRecursive namespace schema field.type_ (getWrap field.type_) (Elm.get field.name v))
+                                                    )
+                                                    (List.filter (not << isOptional) many)
+                                                    |> Elm.list
+                                        in
+                                        Engine.encodeInputObject
+                                            (if List.any isOptional input.fields then
+                                                Elm.Gen.List.append
+                                                    requiredVals
+                                                    (Engine.encodeOptionals
+                                                        (Elm.get "optional" v)
+                                                    )
+
+                                             else
+                                                requiredVals
+                                            )
+                                            (Elm.string input.name)
+                                    )
+                                    val
+
+        GraphQL.Schema.Type.Union unionName ->
+            Elm.string "Unions cant be nested in inputs"
+
+        GraphQL.Schema.Type.Object nestedObjectName ->
+            Elm.string "Objects cant be nested in inputs"
+
+        GraphQL.Schema.Type.Interface interfaceName ->
+            Elm.string "Interfaces cant be in inputs"
+
+
+
+-- optionalMakerTopLevel :
+--     String
+--     -> String
+--     ->
+--         List
+--             { fieldOrArg
+--                 | name : String
+--                 , type_ : Type
+--                 , description : Maybe String
+--             }
+--     -> List Elm.Declaration
+-- optionalMakerTopLevel namespace name options =
+--     createOptionalCreatorTopLevelHelper namespace name options []
+
+
+-- createOptionalCreatorTopLevelHelper :
+--     String
+--     -> String
+--     ->
+--         List
+--             { field
+--                 | name : String
+--                 , description : Maybe String
+--                 , type_ : Type
+--             }
+--     -> List Elm.Declaration
+--     -> List Elm.Declaration
+-- createOptionalCreatorTopLevelHelper namespace name options fields =
+--     case options of
+--         [] ->
+--             fields
+
+--         arg :: remain ->
+--             let
+                
+--                 wrapping =
+--                     case getWrap arg.type_ of
+--                         InMaybe inner ->
+--                             inner
+--                         otherwise ->
+--                             otherwise
+--             in
+--             createOptionalCreatorTopLevelHelper namespace
+--                 name
+--                 remain
+--                 ((Elm.fn arg.name
+--                     ( "val", requiredAnnotationHelper namespace arg.type_ wrapping )
+--                     (\val ->
+--                         encodeInput namespace
+--                             arg.type_
+--                             wrapping
+--                             (val)
+--                             |> Elm.withAnnotation
+--                                 (annotations.arg namespace name)
+--                             |> Engine.optional
+--                                 (Elm.string arg.name)
+--                             |> Elm.withAnnotation
+--                                 (annotations.localOptional namespace name)
+--                     )
+--                     |> Elm.expose
+--                  )
+--                     :: fields
+--                 )
 
 
 optionalMaker :
@@ -1122,7 +1401,7 @@ encodeWrappedArgument inputName wrapper encoder val =
 
         InList inner ->
             let
-                valName = (addCount inner inputName)
+                valName = addCount inner inputName
             in
             Elm.Gen.List.map 
                 (\v ->

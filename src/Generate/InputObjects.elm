@@ -59,12 +59,13 @@ inputObjectToOptionalBuilders namespace schema input =
             ""
             (optionalTypeAlias
             
-                :: Generate.Args.optionalMakerTopLevel namespace
+                :: Generate.Args.optionsRecursive namespace schema
                     input.name
                     optional
                 ++ 
                     [ Generate.Args.nullsRecord namespace input.name optional
                         |> Elm.declaration "null"
+                        |> Elm.expose
                 
                     ]
             
