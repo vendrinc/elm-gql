@@ -421,6 +421,11 @@ generateFiles namespace graphQLSchema =
                     Engine.moduleName_
                     "map2"
                 )
+            , Elm.declaration "list"
+                (Elm.valueFrom
+                    Engine.moduleName_
+                    "list"
+                )
             , Elm.declaration "recover"
                 (Elm.valueFrom
                     Engine.moduleName_
