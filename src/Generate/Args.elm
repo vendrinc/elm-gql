@@ -384,15 +384,7 @@ prepareRequiredRecursive namespace schema argument =
             namespace
             argument.type_
             UnwrappedValue
-            (Elm.get argument.name (Elm.value "required")
-             --|> Elm.withAnnotation
-             --    (Engine.typeArgument.annotation
-             --        (Elm.Annotation.named
-             --            (Elm.moduleName [ namespace, "Input" ])
-             --            argument.name
-             --        )
-             --    )
-            )
+            (Elm.get argument.name (Elm.value "required"))
         )
 
 
@@ -588,7 +580,6 @@ annotations =
                 (Elm.Annotation.named (Elm.moduleName [ namespace ])
                     name
                 )
-
     , localOptional =
         \namespace name ->
             Elm.Annotation.namedWith
@@ -1406,7 +1397,6 @@ countRemainingDepth wrapped i =
             countRemainingDepth inner (i + 1)
 
 
-
 encodeWrapped :
     Wrapped
     -> (Elm.Expression -> Elm.Expression)
@@ -1726,6 +1716,19 @@ createBuilderExample namespace schema name arguments returnType operation =
         )
 
 
+createExample :
+    String
+    -> GraphQL.Schema.Schema
+    -> Set String
+    -> String
+    -> Elm.Expression
+    -> List  { fieldOrArg
+            | description : Maybe String.String
+            , name : String.String
+            , type_ : Type
+        }
+    -> Maybe Elm.Expression
+    -> Elm.Expression
 createExample namespace schema called name base fields maybeReturn =
     let
         ( required, optional ) =
@@ -1839,16 +1842,12 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
                                 optionalModule
                                 (Utils.String.formatValue field.name)
                             )
-                            [ Elm.maybe
-                                (Just
-                                    (requiredArgsExampleHelper
-                                        namespace
-                                        schema
-                                        called
-                                        unnullifiedType
-                                        UnwrappedValue
-                                    )
-                                )
+                            [ requiredArgsExampleHelper
+                                namespace
+                                schema
+                                called
+                                unnullifiedType
+                                UnwrappedValue
                             ]
                 in
                 optionalArgsExample namespace
