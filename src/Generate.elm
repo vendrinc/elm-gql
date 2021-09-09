@@ -10,6 +10,7 @@ import Generate.Enums
 import Generate.InputObjects
 import Generate.Objects
 import Generate.Operations
+import Generate.Paged
 import Generate.Unions
 import GraphQL.Schema
 import Http
@@ -27,7 +28,6 @@ main =
         { init =
             \flags ->
                 let
-                    
                     decoded =
                         Json.Decode.decodeValue flagsDecoder flags
                 in
@@ -37,7 +37,7 @@ main =
                           , input = InputError
                           , namespace = "Api"
                           }
-                        , Elm.Gen.error  ("Error decoding flags!")
+                        , Elm.Gen.error "Error decoding flags!"
                         )
 
                     Ok input ->
@@ -47,7 +47,7 @@ main =
                                   , input = InputError
                                   , namespace = "Api"
                                   }
-                                , Elm.Gen.error ("Error decoding flags!")
+                                , Elm.Gen.error "Error decoding flags!"
                                 )
 
                             SchemaInline schema ->
@@ -103,6 +103,9 @@ generateSchema namespace schema =
 
         mutationFiles =
             Generate.Operations.generateFiles namespace Generate.Args.Mutation schema
+
+        -- _ =
+        --     Generate.Paged.generate namespace schema
     in
     Elm.Gen.files
         (List.map Elm.render
@@ -128,7 +131,7 @@ flagsDecoder =
             )
             (Json.Decode.field "namespace" Json.Decode.string)
             (Json.Decode.field "schema" Json.Decode.string)
-        ,  Json.Decode.map SchemaInline GraphQL.Schema.decoder
+        , Json.Decode.map SchemaInline GraphQL.Schema.decoder
         ]
 
 
