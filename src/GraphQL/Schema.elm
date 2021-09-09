@@ -58,9 +58,10 @@ type alias Mutation =
     Operation
 
 
+
 decoder : Json.Decoder Schema
 decoder =
-    Json.at [ "data", "__schema" ]
+    Json.field "__schema"
         (namesDecoder
             |> Json.andThen grabTypes
         )
@@ -196,7 +197,7 @@ get url toMsg =
 
                 )
         , expect =
-            Http.expectJson toMsg decoder
+            Http.expectJson toMsg (Json.field "data" decoder)
 
         }
 

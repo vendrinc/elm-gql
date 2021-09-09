@@ -27,6 +27,7 @@ main =
         { init =
             \flags ->
                 let
+                    
                     decoded =
                         Json.Decode.decodeValue flagsDecoder flags
                 in
@@ -36,7 +37,7 @@ main =
                           , input = InputError
                           , namespace = "Api"
                           }
-                        , Elm.Gen.error "Error decoding flags!"
+                        , Elm.Gen.error (Debug.toString err)
                         )
 
                     Ok input ->
@@ -46,7 +47,7 @@ main =
                                   , input = InputError
                                   , namespace = "Api"
                                   }
-                                , Elm.Gen.error "Error decoding flags!"
+                                , Elm.Gen.error ("Error decoding flags!" ++ Debug.toString input)
                                 )
 
                             SchemaInline schema ->
@@ -127,8 +128,7 @@ flagsDecoder =
             )
             (Json.Decode.field "namespace" Json.Decode.string)
             (Json.Decode.field "schema" Json.Decode.string)
-        , Json.Decode.map SchemaInline GraphQL.Schema.decoder
-        , Json.Decode.succeed InputError
+        ,  Json.Decode.map SchemaInline GraphQL.Schema.decoder
         ]
 
 
