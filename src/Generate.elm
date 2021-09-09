@@ -13,52 +13,65 @@ import Generate.Operations
 import Generate.Unions
 import GraphQL.Schema
 import Http
+import Json.Decode
+import Json.Encode
 
 
-main : Program { schema: String, namespace : String } { schema: String, namespace : String } Msg
+main :
+    Program
+        Json.Encode.Value
+        Model
+        Msg
 main =
     Platform.worker
         { init =
             \flags ->
-                ( flags
-                , GraphQL.Schema.get    
-                    flags.schema
-                    SchemaReceived
-                )
+                let
+                    decoded =
+                        Json.Decode.decodeValue flagsDecoder flags
+                in
+                case decoded of
+                    Err err ->
+                        ( { flags = flags
+                          , input = InputError
+                          , namespace = "Api"
+                          }
+                        , Elm.Gen.error "Error decoding flags!"
+                        )
+
+                    Ok input ->
+                        case input of
+                            InputError ->
+                                ( { flags = flags
+                                  , input = InputError
+                                  , namespace = "Api"
+                                  }
+                                , Elm.Gen.error "Error decoding flags!"
+                                )
+
+                            SchemaInline schema ->
+                                ( { flags = flags
+                                  , input = input
+                                  , namespace = "Api"
+                                  }
+                                , generateSchema "Api" schema
+                                )
+
+                            SchemaGet details ->
+                                ( { flags = flags
+                                  , input = input
+                                  , namespace = details.namespace
+                                  }
+                                , GraphQL.Schema.get
+                                    details.schema
+                                    SchemaReceived
+                                )
         , update =
             \msg model ->
                 case msg of
                     SchemaReceived (Ok schema) ->
-                        let
-                            enumFiles =
-                                Generate.Enums.generateFiles model.namespace schema
-
-                            unionFiles =
-                                Generate.Unions.generateFiles model.namespace schema
-
-                            objectFiles =
-                                Generate.Objects.generateFiles model.namespace schema
-
-                            inputFiles =
-                                Generate.InputObjects.generateFiles model.namespace schema
-
-                            queryFiles =
-                                Generate.Operations.generateFiles model.namespace Generate.Args.Query schema
-
-                            mutationFiles =
-                                Generate.Operations.generateFiles model.namespace Generate.Args.Mutation schema
-                        in
                         ( model
-                        , Elm.Gen.files
-                            (List.map Elm.render
-                                (unionFiles
-                                    ++ enumFiles
-                                    ++ objectFiles
-                                    ++ queryFiles
-                                    ++ mutationFiles
-                                    ++ inputFiles
-                                )
-                            )
+                        , generateSchema model.namespace schema
                         )
 
                     SchemaReceived (Err err) ->
@@ -69,9 +82,74 @@ main =
         }
 
 
+generateSchema : String -> GraphQL.Schema.Schema -> Cmd msg
+generateSchema namespace schema =
+    let
+        enumFiles =
+            Generate.Enums.generateFiles namespace schema
+
+        unionFiles =
+            Generate.Unions.generateFiles namespace schema
+
+        objectFiles =
+            Generate.Objects.generateFiles namespace schema
+
+        inputFiles =
+            Generate.InputObjects.generateFiles namespace schema
+
+        queryFiles =
+            Generate.Operations.generateFiles namespace Generate.Args.Query schema
+
+        mutationFiles =
+            Generate.Operations.generateFiles namespace Generate.Args.Mutation schema
+    in
+    Elm.Gen.files
+        (List.map Elm.render
+            (unionFiles
+                ++ enumFiles
+                ++ objectFiles
+                ++ queryFiles
+                ++ mutationFiles
+                ++ inputFiles
+            )
+        )
+
+
+flagsDecoder : Json.Decode.Decoder Input
+flagsDecoder =
+    Json.Decode.oneOf
+        [ Json.Decode.map2
+            (\namespace schemaUrl ->
+                SchemaGet
+                    { schema = schemaUrl
+                    , namespace = namespace
+                    }
+            )
+            (Json.Decode.field "namespace" Json.Decode.string)
+            (Json.Decode.field "schema" Json.Decode.string)
+        , Json.Decode.map SchemaInline GraphQL.Schema.decoder
+        , Json.Decode.succeed InputError
+        ]
+
+
+type alias Model =
+    { flags : Json.Encode.Value
+    , input : Input
+    , namespace : String
+    }
+
+
+type Input
+    = SchemaInline GraphQL.Schema.Schema
+    | SchemaGet
+        { schema : String
+        , namespace : String
+        }
+    | InputError
+
+
 type Msg
     = SchemaReceived (Result Http.Error GraphQL.Schema.Schema)
-
 
 
 httpErrorToString : Http.Error -> String
@@ -80,14 +158,14 @@ httpErrorToString err =
         Http.BadUrl msg ->
             "Bad Url: " ++ msg
 
-        Http.Timeout ->  
+        Http.Timeout ->
             "Timeout"
 
-        Http.NetworkError -> 
+        Http.NetworkError ->
             "Network Error"
 
-        Http.BadStatus status ->    
+        Http.BadStatus status ->
             "Bad Status: " ++ String.fromInt status
 
-        Http.BadBody msg ->   
+        Http.BadBody msg ->
             "Bad Body: " ++ msg
