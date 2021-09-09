@@ -718,8 +718,14 @@ mutation sel config =
 
 -}
 body : String -> Maybe String -> Selection source data -> Http.Body
-body operation maybeName q =
+body operation maybeUnformattedName q =
     let
+
+        maybeName =
+            maybeUnformattedName
+                |> Maybe.map 
+                    sanitizeOperationName
+
         variables : Dict String (Argument Free)
         variables =
             (getContext q).variables
@@ -749,6 +755,26 @@ body operation maybeName q =
                 ]
             )
         )
+
+
+{-|
+    Operation names need to be formatted in a certain way.
+
+    This is maybe too restrictive, but this keeps everything as [a-zA-Z0-9] and _
+
+    None mathcing characters will be transformed to _.
+-}
+sanitizeOperationName : String -> String
+sanitizeOperationName input =
+    String.toList input 
+        |> List.map 
+            (\c ->
+                if Char.isAlphaNum c || c == '_' then
+                    c
+                else
+                    '_'
+            )
+        |> String.fromList
 
 
 getContext : Selection source selected -> Context
