@@ -205,6 +205,7 @@ list (Selection (Details toFieldsGql toFieldsDecoder)) =
             )
 
 
+
 {-| -}
 object : String -> Selection source data -> Selection otherSource data
 object =
@@ -538,6 +539,11 @@ select data =
 with : Selection source a -> Selection source (a -> b) -> Selection source b
 with =
     map2 (|>)
+
+
+
+
+
 
 
 {-| -}
