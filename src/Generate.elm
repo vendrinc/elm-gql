@@ -37,7 +37,7 @@ main =
                           , input = InputError
                           , namespace = "Api"
                           }
-                        , Elm.Gen.error (Debug.toString err)
+                        , Elm.Gen.error  ("Error decoding flags!")
                         )
 
                     Ok input ->
@@ -47,7 +47,7 @@ main =
                                   , input = InputError
                                   , namespace = "Api"
                                   }
-                                , Elm.Gen.error ("Error decoding flags!" ++ Debug.toString input)
+                                , Elm.Gen.error ("Error decoding flags!")
                                 )
 
                             SchemaInline schema ->
