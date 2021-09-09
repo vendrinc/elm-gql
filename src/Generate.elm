@@ -62,10 +62,32 @@ main =
                         )
 
                     SchemaReceived (Err err) ->
-                        ( model, Elm.Gen.error "Something went wrong with retriving the scheam" )
+                        ( model
+                        , Elm.Gen.error ("Something went wrong with retrieving the schema.\n\n    " ++ httpErrorToString err)
+                        )
         , subscriptions = \_ -> Sub.none
         }
 
 
 type Msg
     = SchemaReceived (Result Http.Error GraphQL.Schema.Schema)
+
+
+
+httpErrorToString : Http.Error -> String
+httpErrorToString err =
+    case err of
+        Http.BadUrl msg ->
+            "Bad Url: " ++ msg
+
+        Http.Timeout ->  
+            "Timeout"
+
+        Http.NetworkError -> 
+            "Network Error"
+
+        Http.BadStatus status ->    
+            "Bad Status: " ++ String.fromInt status
+
+        Http.BadBody msg ->   
+            "Bad Body: " ++ msg
