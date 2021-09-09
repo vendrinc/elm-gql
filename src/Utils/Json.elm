@@ -33,8 +33,8 @@ filterHidden decoder_ =
             else
                 Json.map Just decoder_
     in
-    Json.maybe
-        (Json.field "directives" (Json.dict Json.value)
+    Json.oneOf 
+        [ Json.field "directives" (Json.dict Json.value)
             |> Json.andThen filterByDirectives
-        )
-        |> Json.map (Maybe.andThen identity)
+        , Json.map Just decoder_
+        ]
