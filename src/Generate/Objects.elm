@@ -421,10 +421,10 @@ generateFiles namespace graphQLSchema =
                     Engine.moduleName_
                     "map2"
                 )
-            , Elm.declaration "list"
+            , Elm.declaration "batch"
                 (Elm.valueFrom
                     Engine.moduleName_
-                    "list"
+                    "batch"
                 )
             , Elm.declaration "recover"
                 (Elm.valueFrom

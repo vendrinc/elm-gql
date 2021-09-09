@@ -1,5 +1,5 @@
 module GraphQL.Engine exposing
-    ( nullable, list, field, fieldWith, object, objectWith
+    ( batch, nullable, list, field, fieldWith, object, objectWith
     , enum, maybeEnum
     , union
     , Selection, select, with, map, map2, recover
@@ -13,6 +13,7 @@ module GraphQL.Engine exposing
     )
 
 {-|
+@docs batch
 
 @docs nullable, list, field, fieldWith, object, objectWith
 
@@ -43,6 +44,58 @@ import Json.Decode as Json
 import Json.Encode as Encode
 import Set
 
+
+
+
+{-| Batch a number of selection sets together!
+-}
+batch : List (Selection source data) -> Selection source (List data)
+batch selections =
+    Selection <|
+        Details
+            (\context ->
+            
+                List.foldl 
+                    (\(Selection (Details toFieldsGql _)) (ctxt, fields)  ->
+                        let
+                            (newCtxt, newFields)
+                                = toFieldsGql ctxt
+
+                        in
+                         ( newCtxt
+                         , fields ++ newFields
+                         )
+                    
+                    )
+                    (context, [])
+                    selections
+            )
+            (\context ->
+                List.foldl 
+                    (\(Selection (Details _ toItemDecoder)) (ctxt, cursorFieldsDecoder)  ->
+                        let
+                            (newCtxt, itemDecoder)
+                                = toItemDecoder ctxt
+
+                        in
+                         ( newCtxt
+                         , cursorFieldsDecoder 
+                            |> Json.andThen
+                                (\existingList ->
+                                    Json.map 
+                                        (\item -> 
+                                            item :: existingList
+                                        ) 
+                                        itemDecoder
+
+                                )
+                                
+                         )
+                    
+                    )
+                    (context, Json.succeed [])
+                    selections
+            )
 
 
 
