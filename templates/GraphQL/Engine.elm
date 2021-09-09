@@ -801,7 +801,7 @@ expect toMsg (Selection (Details gql toDecoder)) =
                                 ) 
 
 
-
+{-|-}
 type Error
     = BadUrl String
     | Timeout
