@@ -1,5 +1,4 @@
-
-port module Elm.Gen exposing (File, error, files)
+port module Elm.Gen exposing (File, error, files, info)
 
 import Json.Encode as Json
 
@@ -18,17 +17,38 @@ encodeFile file =
         ]
 
 
+{-|
+
+     Provide the list of files to be generated.
+     These files will be generated and the script will end.
+
+-}
 files : List File -> Cmd msg
 files list =
     onSuccessSend (List.map encodeFile list)
 
 
-error : String -> Cmd msg
+{-|
+
+     Report an error.  The script will end
+
+-}
+error : { title : String, description : String } -> Cmd msg
 error err =
     onFailureSend err
+
+
+{-| Report some info. The script will continue to run.
+-}
+info : String -> Cmd msg
+info err =
+    onInfoSend err
 
 
 port onSuccessSend : List Json.Value -> Cmd msg
 
 
-port onFailureSend : String -> Cmd msg
+port onFailureSend : { title : String, description : String } -> Cmd msg
+
+
+port onInfoSend : String -> Cmd msg

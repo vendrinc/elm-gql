@@ -37,7 +37,10 @@ main =
                           , input = InputError
                           , namespace = "Api"
                           }
-                        , Elm.Gen.error "Error decoding flags!"
+                        , Elm.Gen.error
+                            { title = "Error decoding flags"
+                            , description = Json.Decode.errorToString err
+                            }
                         )
 
                     Ok input ->
@@ -47,7 +50,10 @@ main =
                                   , input = InputError
                                   , namespace = "Api"
                                   }
-                                , Elm.Gen.error "Error decoding flags!"
+                                , Elm.Gen.error 
+                                    { title = "Error decoding flags"
+                                    , description = ""
+                                    }
                                 )
 
                             SchemaInline schema ->
@@ -77,7 +83,11 @@ main =
 
                     SchemaReceived (Err err) ->
                         ( model
-                        , Elm.Gen.error ("Something went wrong with retrieving the schema.\n\n    " ++ httpErrorToString err)
+                        , Elm.Gen.error
+                            { title = "Error retieving schema"
+                            , description =
+                                "Something went wrong with retrieving the schema.\n\n    " ++ httpErrorToString err
+                            }
                         )
         , subscriptions = \_ -> Sub.none
         }
