@@ -1,25 +1,47 @@
 module GraphQL.Operations.AST exposing (..)
 
 
-type alias Variable =
-    { name : Name
+type alias Document =
+    { definitions : List Definition
     }
 
 
-type Name
-    = Name String
+type Definition
+    = Fragment FragmentDetails
+    | Operation OperationDetails
 
 
-type Value
-    = StringValue String
-    | IntValue Int
-    | FloatValue Float
-    | BoolValue Bool
-    | NullValue
-    | EnumValue Name
-    | VariableValue Variable
-    | ObjectValue (List ( Name, Value ))
-    | ListValue (List Value)
+type alias FragmentDetails =
+    { name : Name
+    , typeCondition : Name
+    , directives : List Directive
+    , selectionSet : List Selection
+    }
+
+
+type alias OperationDetails =
+    { operationType : OperationType
+    , name : Maybe Name
+    , variableDefinitions : List VariableDefinition
+    , directives : List Directive
+    , selectionSet : List Selection
+    }
+
+type OperationType
+    = Query
+    | Mutation
+
+
+type alias VariableDefinition =
+    { variable : Variable
+    , type_ : Type
+    , defaultValue : Maybe Value
+    }
+
+
+type alias Variable =
+    { name : Name
+    }
 
 
 type Selection
@@ -27,13 +49,42 @@ type Selection
     | FragmentSpreadSelection FragmentSpread
     | InlineFragmentSelection InlineFragment
 
+type alias FragmentSpread =
+    { name : Name
+    , directives : List Directive
+    }
+
+
+type alias InlineFragment =
+    { tag : Name
+    , directives : List Directive
+    , selection : List Selection
+    }
+
+
+
+type Name
+    = Name String
+
+
+type Value
+    = Str String
+    | Integer Int
+    | Decimal Float
+    | Boolean Bool
+    | Null
+    | Enum Name
+    | Var Variable
+    | Object (List ( Name, Value ))
+    | ListValue (List Value)
+
 
 type alias Field =
     { alias_ : Maybe Name
     , name : Name
     , arguments : List Argument
     , directives : List Directive
-    , selectionSet : List Selection
+    , selection : List Selection
     }
 
 
@@ -49,74 +100,10 @@ type alias Directive =
     }
 
 
-type alias FragmentSpread =
-    { name : Name
-    , directives : List Directive
-    }
-
-
-type alias InlineFragment =
-    { typeCondition : NamedType
-    , directives : List Directive
-    , selectionSet : List Selection
-    }
-
-
-type alias NamedType =
-    { name : Name
-    }
-
-
-type alias ListType =
-    { type_ : Type
-    }
-
-
-type NonNullType
-    = NamedNonNull NamedType
-    | ListNonNull ListType
-
 
 type Type
-    = NamedTypeType NamedType
-    | ListTypeType ListType
-    | NonNullTypeType NonNullType
+    = Type_ Name
+    | List_ Type
+    | Nullable Type
 
 
-type alias Fragment =
-    { name : Name
-    , typeCondition : NamedType
-    , directives : List Directive
-    , selectionSet : List Selection
-    }
-
-
-type OperationType
-    = Query
-    | Mutation
-
-
-type alias Operation =
-    { operationType : OperationType
-    , name : Maybe Name
-    , variableDefinitions : List VariableDefinition
-    , directives : List Directive
-    , selectionSet : List Selection
-    }
-
-
-type alias VariableDefinition =
-    { variable : Variable
-    , type_ : Type
-    , defaultValue : Maybe Value
-    }
-
-
-type Definition
-    = FragmentDefinition Fragment
-    | OperationDefinition Operation
-
-
-type alias Document =
-    { definitions : List Definition
-    }

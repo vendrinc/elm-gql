@@ -100,24 +100,24 @@ variable =
 boolValue : Parser AST.Value
 boolValue =
     Parser.oneOf
-        [ Parser.map (\_ -> AST.BoolValue True) (keyword "true")
-        , Parser.map (\_ -> AST.BoolValue False) (keyword "false")
+        [ Parser.map (\_ -> AST.Boolean True) (keyword "true")
+        , Parser.map (\_ -> AST.Boolean False) (keyword "false")
         ]
 
 
 floatValue : Parser AST.Value
 floatValue =
-    Parser.map AST.FloatValue Parser.float
+    Parser.map AST.Decimal Parser.float
 
 
 intValue : Parser AST.Value
 intValue =
-    Parser.map AST.IntValue Parser.int
+    Parser.map AST.Integer Parser.int
 
 
 stringValue : Parser AST.Value
 stringValue =
-    succeed AST.StringValue
+    succeed AST.Str
         |. symbol "\""
         |= Parser.getChompedString (Parser.chompIf (\c -> c /= chars.cr && c /= '\n' && c /= '"'))
         |. symbol "\""
@@ -125,7 +125,7 @@ stringValue =
 
 enumValue : Parser AST.Value
 enumValue =
-    Parser.map AST.EnumValue name
+    Parser.map AST.Enum name
 
 
 listValue : (() -> Parser AST.Value) -> Parser AST.Value
@@ -153,7 +153,7 @@ kvp_ valueParser =
 
 objectValue : (() -> Parser AST.Value) -> Parser AST.Value
 objectValue valueParser =
-    Parser.map AST.ObjectValue <|
+    Parser.map AST.Object <|
         Parser.sequence
             { start = "{"
             , separator = ""
@@ -166,7 +166,7 @@ objectValue valueParser =
 
 nullValue : Parser AST.Value
 nullValue =
-    Parser.map (\_ -> AST.NullValue) <| keyword "null"
+    Parser.map (\_ -> AST.Null) <| keyword "null"
 
 
 value : Parser AST.Value
@@ -177,7 +177,7 @@ value =
         , floatValue
         , stringValue
         , enumValue
-        , Parser.map AST.VariableValue variable
+        , Parser.map AST.Var variable
         , listValue (\() -> value)
         , objectValue (\() -> value)
         ]
@@ -193,7 +193,6 @@ braces itemParser =
         |. Parser.symbol "{"
         |. ws
         |= Parser.loop [] (loopItems itemParser)
-        -- andThen (\n -> curlySeqHelp itemParser [ n ]) itemParser
         |. ws
         |. Parser.symbol "}"
 
@@ -204,20 +203,6 @@ loopItems contentParser items =
             [ Parser.map (\d -> d :: items) contentParser
             , Parser.map (\_ -> items) ws
             ]
-
-
-
--- curlySeqHelp itemParser revItems =
---     Parser.oneOf
---         [ nextItem itemParser
---             |> andThen (\n -> curlySeqHelp itemParser (n :: revItems))
---         , succeed (List.reverse revItems)
---         ]
--- nextItem item =
---     delayedCommit ws <|
---         succeed identity
---             |. ws
---             |= item
 
 
 selectionSet : Parser (List AST.Selection)
@@ -319,7 +304,7 @@ field_ selectionSetParser =
             , name = foundName
             , arguments = args
             , directives = dirs
-            , selectionSet = sels
+            , selection = sels
             }
         )
         |= aliasedName
@@ -336,13 +321,12 @@ inlineOrSpread_ selectionSetParser =
     Parser.succeed identity
         |. Parser.symbol "..."
         |. ws
-        |= -- delayedCommit (symbol "..." |. ws) <|
-           Parser.oneOf
+        |= Parser.oneOf
             [ Parser.map AST.InlineFragmentSelection <|
                 Parser.succeed AST.InlineFragment
                     |. Parser.keyword "on"
                     |. ws
-                    |= Parser.map AST.NamedType name
+                    |= name
                     |. ws
                     |= directives
                     |. ws
@@ -363,16 +347,16 @@ selection_ selectionSetParser =
         ]
 
 
-fragment : Parser AST.Fragment
+fragment : Parser AST.FragmentDetails
 fragment =
-    succeed AST.Fragment
+    succeed AST.FragmentDetails
         |. keyword "fragment"
         |. ws
         |= name
         |. ws
         |. keyword "on"
         |. ws
-        |= Parser.map AST.NamedType name
+        |= name
         |. ws
         |= directives
         |. ws
@@ -407,14 +391,9 @@ defaultValue =
         ]
 
 
-namedType : Parser AST.NamedType
-namedType =
-    Parser.map AST.NamedType name
-
-
-listType : (() -> Parser AST.Type) -> Parser AST.ListType
+listType : (() -> Parser AST.Type) -> Parser AST.Type
 listType typeParser =
-    succeed AST.ListType
+    succeed identity
         |. symbol "["
         |. ws
         |= lazy typeParser
@@ -422,20 +401,25 @@ listType typeParser =
         |. symbol "]"
 
 
-nonNullType : (() -> Parser AST.Type) -> Parser AST.NonNullType
-nonNullType typeParser =
-    succeed identity
-        |= oneOf [ Parser.map AST.NamedNonNull namedType, Parser.map AST.ListNonNull (listType typeParser) ]
-        |. symbol "!"
-
-
 type_ : Parser AST.Type
 type_ =
-    oneOf
-        [ Parser.map AST.NamedTypeType namedType
-        , Parser.map AST.ListTypeType (listType (\_ -> type_))
-        , Parser.map AST.NonNullTypeType (nonNullType (\_ -> type_))
-        ]
+    Parser.succeed
+        (\base isRequired ->
+            if isRequired then
+                base
+
+            else
+                AST.Nullable base
+        )
+        |= Parser.oneOf
+            [ Parser.map AST.Type_ name
+            , Parser.map AST.List_ (listType (\_ -> type_))
+            ]
+        |= Parser.oneOf
+            [ Parser.succeed True
+                |. Parser.symbol "!"
+            , Parser.succeed False
+            ]
 
 
 variableDefinition : Parser AST.VariableDefinition
@@ -465,9 +449,9 @@ variableDefinitions =
         ]
 
 
-operation : Parser AST.Operation
+operation : Parser AST.OperationDetails
 operation =
-    Parser.succeed AST.Operation
+    Parser.succeed AST.OperationDetails
         |= operationType
         |. ws
         |= nameOpt
@@ -482,8 +466,8 @@ operation =
 definition : Parser AST.Definition
 definition =
     Parser.oneOf
-        [ Parser.map AST.FragmentDefinition fragment
-        , Parser.map AST.OperationDefinition operation
+        [ Parser.map AST.Fragment fragment
+        , Parser.map AST.Operation operation
         ]
 
 
