@@ -6,10 +6,6 @@ import Parser exposing (..)
 import Set exposing (Set)
 
 
-
--- import Parser.LanguageKit as Parser
-
-
 multiOr : List (a -> Bool) -> a -> Bool
 multiOr conds val =
     List.foldl
@@ -45,7 +41,6 @@ keywords =
         , "mutation"
         , "on"
         , "fragment"
-        , "type"
         , "true"
         , "false"
         , "null"
@@ -59,13 +54,13 @@ ignoreChars =
         , '\n'
         , chars.cr
 
-        --
         -- , '\xFEFF'
         , ' '
         , ','
         ]
 
 
+chars : { cr : Char }
 chars =
     { cr =
         Char.fromCode 0x0D
@@ -188,15 +183,6 @@ kvp =
     kvp_ (\() -> value)
 
 
-braces itemParser =
-    Parser.succeed identity
-        |. Parser.symbol "{"
-        |. ws
-        |= Parser.loop [] (loopItems itemParser)
-        |. ws
-        |. Parser.symbol "}"
-
-
 loopItems contentParser items =
     ifProgress List.reverse <|
         Parser.oneOf
@@ -207,12 +193,68 @@ loopItems contentParser items =
 
 selectionSet : Parser (List AST.Selection)
 selectionSet =
-    braces <|
-        Parser.lazy
-            (\() ->
-                selection_
-                    (\() -> selectionSet)
+    Parser.succeed identity
+        |. Parser.symbol "{"
+        |. ws
+        |= Parser.loop []
+            (loopItems
+                (Parser.lazy
+                    (\() ->
+                        Parser.oneOf
+                            [ Parser.map AST.Field field_
+                            , inlineOrSpread_
+                            ]
+                    )
+                )
             )
+        |. ws
+        |. Parser.symbol "}"
+
+
+inlineOrSpread_ : Parser AST.Selection
+inlineOrSpread_ =
+    Parser.succeed identity
+        |. Parser.symbol "..."
+        |. ws
+        |= Parser.oneOf
+            [ Parser.map AST.InlineFragmentSelection <|
+                Parser.succeed AST.InlineFragment
+                    |. Parser.keyword "on"
+                    |. ws
+                    |= name
+                    |. ws
+                    |= directives
+                    |. ws
+                    |= selectionSet
+            , Parser.map AST.FragmentSpreadSelection <|
+                Parser.succeed AST.FragmentSpread
+                    |= name
+                    |. ws
+                    |= directives
+            ]
+
+
+field_ : Parser AST.FieldDetails
+field_ =
+    succeed
+        (\( alias_, foundName ) args dirs sels ->
+            { alias_ = alias_
+            , name = foundName
+            , arguments = args
+            , directives = dirs
+            , selection = sels
+            }
+        )
+        |= aliasedName
+        |. ws
+        |= argumentsOpt
+        |. ws
+        |= directives
+        |. ws
+        |= Parser.oneOf
+            [ selectionSet
+            , Parser.succeed []
+            ]
 
 
 aliasedName : Parser ( Maybe AST.Name, AST.Name )
@@ -272,7 +314,6 @@ directive =
 
 directives : Parser (List AST.Directive)
 directives =
-    -- repeat zeroOrMore (directive |. ws)
     Parser.loop []
         directivesHelper
 
@@ -288,63 +329,13 @@ directivesHelper dirs =
             ]
 
 
-selectionSetOpt_ : (() -> Parser (List AST.Selection)) -> Parser (List AST.Selection)
-selectionSetOpt_ selectionSetParser =
-    oneOf
-        [ lazy selectionSetParser
-        , Parser.succeed []
-        ]
 
-
-field_ : (() -> Parser (List AST.Selection)) -> Parser AST.Field
-field_ selectionSetParser =
-    succeed
-        (\( alias_, foundName ) args dirs sels ->
-            { alias_ = alias_
-            , name = foundName
-            , arguments = args
-            , directives = dirs
-            , selection = sels
-            }
-        )
-        |= aliasedName
-        |. ws
-        |= argumentsOpt
-        |. ws
-        |= directives
-        |. ws
-        |= selectionSetOpt_ selectionSetParser
-
-
-inlineOrSpread_ : (() -> Parser (List AST.Selection)) -> Parser AST.Selection
-inlineOrSpread_ selectionSetParser =
-    Parser.succeed identity
-        |. Parser.symbol "..."
-        |. ws
-        |= Parser.oneOf
-            [ Parser.map AST.InlineFragmentSelection <|
-                Parser.succeed AST.InlineFragment
-                    |. Parser.keyword "on"
-                    |. ws
-                    |= name
-                    |. ws
-                    |= directives
-                    |. ws
-                    |= Parser.lazy selectionSetParser
-            , Parser.map AST.FragmentSpreadSelection <|
-                Parser.succeed AST.FragmentSpread
-                    |= name
-                    |. ws
-                    |= directives
-            ]
-
-
-selection_ : (() -> Parser (List AST.Selection)) -> Parser AST.Selection
-selection_ selectionSetParser =
-    oneOf
-        [ Parser.map AST.FieldSelection (field_ selectionSetParser)
-        , inlineOrSpread_ selectionSetParser
-        ]
+-- selectionSetOpt_ : Parser (List AST.Selection)
+-- selectionSetOpt_ =
+--     Parser.oneOf
+--         [ selectionSet
+--         , Parser.succeed []
+--         ]
 
 
 fragment : Parser AST.FragmentDetails

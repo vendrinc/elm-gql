@@ -45,7 +45,7 @@ type alias Variable =
 
 
 type Selection
-    = FieldSelection Field
+    = Field FieldDetails
     | FragmentSpreadSelection FragmentSpread
     | InlineFragmentSelection InlineFragment
 
@@ -79,7 +79,7 @@ type Value
     | ListValue (List Value)
 
 
-type alias Field =
+type alias FieldDetails =
     { alias_ : Maybe Name
     , name : Name
     , arguments : List Argument
