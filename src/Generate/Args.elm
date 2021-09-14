@@ -2,16 +2,14 @@ module Generate.Args exposing
     ( Operation(..)
     , Wrapped(..)
     , createBuilder
-    , createBuilderExample
     , createInput
     , getWrap
     , isOptional
     , nullsRecord
     , optionalMaker
     , optionsRecursive
-    , prepareRequired
     , recursiveOptionalMaker
-    , requiredAnnotation
+    , splitRequired
     )
 
 import Dict
@@ -43,6 +41,7 @@ type Wrapped
 embeddedOptionsFieldName : String
 embeddedOptionsFieldName =
     "with_"
+
 
 
 {-|
@@ -293,18 +292,6 @@ requiredAnnotationRecursiveHelper namespace schema type_ wrapped =
             Elm.Annotation.unit
 
 
-requiredAnnotation : String -> List { a | name : String, type_ : Type } -> Elm.Annotation.Annotation
-requiredAnnotation namespace reqs =
-    Elm.Annotation.record
-        (List.map
-            (\field ->
-                ( field.name
-                , requiredAnnotationHelper namespace field.type_ (getWrap field.type_)
-                )
-            )
-            reqs
-        )
-
 
 getWrap : Type -> Wrapped
 getWrap type_ =
@@ -353,23 +340,6 @@ requiredAnnotationHelper namespace type_ wrapped =
 
         GraphQL.Schema.Type.Interface interfaceName ->
             Elm.Annotation.unit
-
-
-prepareRequired :
-    String
-    -> { a | name : String, type_ : Type }
-    -> Elm.Expression
-prepareRequired namespace argument =
-    Elm.tuple
-        (Elm.string argument.name)
-        (encodeInput namespace
-            argument.type_
-            (getWrap argument.type_)
-            (Elm.get argument.name (Elm.value "required")
-                |> Elm.withAnnotation
-                    (annotations.arg namespace argument.name)
-            )
-        )
 
 
 prepareRequiredRecursive :
@@ -1431,18 +1401,6 @@ encodeWrappedInverted wrapper encoder val =
             Encode.list (encodeWrappedInverted inner encoder) val
 
 
-wrapAnnotation : Wrapped -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
-wrapAnnotation wrap signature =
-    case wrap of
-        UnwrappedValue ->
-            signature
-
-        InList inner ->
-            Elm.Annotation.list (wrapAnnotation inner signature)
-
-        InMaybe inner ->
-            Elm.Annotation.maybe (wrapAnnotation inner signature)
-
 
 
 {- CREATE BUILDER -}
@@ -1675,353 +1633,3 @@ justIf condition val =
 
     else
         Nothing
-
-
-createBuilderExample :
-    String
-    -> GraphQL.Schema.Schema
-    -> String
-    ->
-        List
-            { fieldOrArg
-                | name : String.String
-                , description : Maybe String.String
-                , type_ : Type
-            }
-    -> Type
-    -> Operation
-    -> Elm.Expression
-createBuilderExample namespace schema name arguments returnType operation =
-    createExample namespace
-        schema
-        Set.empty
-        name
-        (Elm.valueFrom
-            (Elm.moduleName
-                [ namespace
-                , case operation of
-                    Mutation ->
-                        "Mutations"
-
-                    Query ->
-                        "Queries"
-                , String.Extra.toSentenceCase name
-                ]
-            )
-            name
-        )
-        arguments
-        (Just
-            (Elm.value ("select" ++ GraphQL.Schema.Type.toString returnType))
-        )
-
-
-createExample :
-    String
-    -> GraphQL.Schema.Schema
-    -> Set String
-    -> String
-    -> Elm.Expression
-    -> List  { fieldOrArg
-            | description : Maybe String.String
-            , name : String.String
-            , type_ : Type
-        }
-    -> Maybe Elm.Expression
-    -> Elm.Expression
-createExample namespace schema called name base fields maybeReturn =
-    let
-        ( required, optional ) =
-            splitRequired
-                fields
-
-        hasRequiredArgs =
-            case required of
-                [] ->
-                    False
-
-                _ ->
-                    True
-
-        hasOptionalArgs =
-            case optional of
-                [] ->
-                    False
-
-                _ ->
-                    True
-
-        requiredArgs =
-            if hasRequiredArgs then
-                Just
-                    (requiredArgsExample namespace schema called required)
-
-            else
-                Nothing
-
-        optionalArgs =
-            if hasOptionalArgs then
-                Just
-                    (optionalArgsExample
-                        namespace
-                        schema
-                        called
-                        name
-                        optional
-                        (maybeReturn /= Nothing)
-                        Set.empty
-                        []
-                    )
-
-            else
-                Nothing
-    in
-    Elm.apply
-        base
-        (List.filterMap identity
-            [ requiredArgs
-            , optionalArgs
-            , maybeReturn
-            ]
-        )
-
-
-optionalArgsExample :
-    String
-    -> GraphQL.Schema.Schema
-    -> Set String
-    -> String.String
-    -> List { a | type_ : Type, name : String.String }
-    -> Bool
-    -> Set String
-    -> List Elm.Expression
-    -> Elm.Expression
-optionalArgsExample namespace schema called parentName fields isTopLevel calledType prepared =
-    case fields of
-        [] ->
-            Elm.list (List.reverse prepared)
-
-        field :: remaining ->
-            let
-                typeString =
-                    GraphQL.Schema.Type.toString field.type_
-            in
-            -- if we don't limit examples by type, then the code generation seems to hang or takea huge amount of time
-            if Set.member typeString calledType then
-                optionalArgsExample namespace
-                    schema
-                    called
-                    parentName
-                    remaining
-                    isTopLevel
-                    calledType
-                    prepared
-
-            else
-                let
-                    optionalModule =
-                        if isTopLevel then
-                            Elm.moduleName
-                                [ namespace
-                                , "Queries"
-                                , Utils.String.formatTypename parentName
-                                ]
-
-                        else
-                            Elm.moduleName
-                                [ namespace
-                                , Utils.String.formatTypename parentName
-                                ]
-
-                    unnullifiedType =
-                        denullable field.type_
-
-                    prep =
-                        Elm.apply
-                            (Elm.valueFrom
-                                optionalModule
-                                (Utils.String.formatValue field.name)
-                            )
-                            [ requiredArgsExampleHelper
-                                namespace
-                                schema
-                                called
-                                unnullifiedType
-                                UnwrappedValue
-                            ]
-                in
-                optionalArgsExample namespace
-                    schema
-                    called
-                    parentName
-                    remaining
-                    isTopLevel
-                    (Set.insert typeString calledType)
-                    (prep :: prepared)
-
-
-{-| -}
-requiredArgsExample :
-    String
-    -> GraphQL.Schema.Schema
-    -> Set String
-    ->
-        List
-            { fieldOrArg
-                | name : String.String
-                , description : Maybe String.String
-                , type_ : Type
-            }
-    -> Elm.Expression
-requiredArgsExample namespace schema called reqs =
-    Elm.record
-        (List.map
-            (\field ->
-                ( field.name
-                , requiredArgsExampleHelper
-                    namespace
-                    schema
-                    called
-                    field.type_
-                    UnwrappedValue
-                )
-            )
-            reqs
-        )
-
-
-requiredArgsExampleHelper :
-    String
-    -> GraphQL.Schema.Schema
-    -> Set String
-    -> Type
-    -> Wrapped
-    -> Elm.Expression
-requiredArgsExampleHelper namespace schema called type_ wrapped =
-    case type_ of
-        GraphQL.Schema.Type.Nullable newType ->
-            requiredArgsExampleHelper namespace schema called newType (InMaybe wrapped)
-
-        GraphQL.Schema.Type.List_ newType ->
-            requiredArgsExampleHelper namespace schema called newType (InList wrapped)
-
-        GraphQL.Schema.Type.Scalar scalarName ->
-            scalarExample scalarName
-                |> wrapExpression wrapped
-
-        GraphQL.Schema.Type.Enum enumName ->
-            enumExample namespace schema enumName
-                |> wrapExpression wrapped
-
-        GraphQL.Schema.Type.Object nestedObjectName ->
-            Elm.value ("select" ++ String.Extra.toSentenceCase nestedObjectName)
-                |> wrapExpression wrapped
-
-        GraphQL.Schema.Type.InputObject inputName ->
-            if Set.member inputName called then
-                Elm.value ("additional" ++ inputName)
-                    |> wrapExpression wrapped
-
-            else
-                case Dict.get inputName schema.inputObjects of
-                    Nothing ->
-                        Elm.value inputName
-
-                    Just input ->
-                        let
-                            newCalled =
-                                Set.insert inputName called
-                        in
-                        case splitRequired input.fields of
-                            ( required, [] ) ->
-                                Elm.record
-                                    (List.map
-                                        (\field ->
-                                            ( field.name
-                                            , requiredArgsExampleHelper namespace
-                                                schema
-                                                newCalled
-                                                field.type_
-                                                UnwrappedValue
-                                            )
-                                        )
-                                        required
-                                    )
-                                    |> wrapExpression wrapped
-
-                            otherwise ->
-                                createExample namespace
-                                    schema
-                                    newCalled
-                                    inputName
-                                    (Elm.valueFrom
-                                        (Elm.moduleName
-                                            [ namespace
-                                            , "Input"
-                                            ]
-                                        )
-                                        (Utils.String.formatValue inputName)
-                                    )
-                                    input.fields
-                                    Nothing
-                                    |> wrapExpression wrapped
-
-        GraphQL.Schema.Type.Union unionName ->
-            Elm.unit
-
-        GraphQL.Schema.Type.Interface interfaceName ->
-            Elm.unit
-
-
-enumExample : String -> GraphQL.Schema.Schema -> String -> Elm.Expression
-enumExample namespace schema enumName =
-    case Dict.get enumName schema.enums of
-        Nothing ->
-            Elm.value enumName
-
-        Just enum ->
-            case enum.values of
-                [] ->
-                    Elm.value enumName
-
-                top :: _ ->
-                    Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ])
-                        (Utils.String.formatTypename top.name)
-
-
-wrapExpression : Wrapped -> Elm.Expression -> Elm.Expression
-wrapExpression wrapper exp =
-    case wrapper of
-        InList inner ->
-            Elm.list
-                [ wrapExpression inner exp
-                ]
-
-        InMaybe inner ->
-            Elm.maybe
-                (Just (wrapExpression inner exp))
-
-        UnwrappedValue ->
-            exp
-
-
-scalarExample : String -> Elm.Expression
-scalarExample scalarName =
-    case String.toLower scalarName of
-        "int" ->
-            Elm.int 10
-
-        "float" ->
-            Elm.float 10
-
-        "string" ->
-            Elm.string "Example..."
-
-        "boolean" ->
-            Elm.bool True
-
-        "id" ->
-            Elm.value "id"
-
-        _ ->
-            Elm.value (Utils.String.formatValue scalarName)
