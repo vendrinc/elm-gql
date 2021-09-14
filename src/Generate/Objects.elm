@@ -7,7 +7,8 @@ import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Json
 import Elm.Pattern
 import Generate.Common as Common
-import Generate.Args as Args exposing (Wrapped(..))
+import Generate.Args as Args
+import Generate.Input as Input exposing (Wrapped(..))
 import GraphQL.Schema
 import GraphQL.Schema.Object
 import GraphQL.Schema.Type exposing (Type(..))
@@ -35,7 +36,7 @@ objectToModule namespace object =
                                     object.name
                                     field.name
                                     field.type_
-                                    (Args.getWrap field.type_)
+                                    (Input.getWrap field.type_)
                         in
                         ( field.name, implemented.annotation, implemented.expression ) :: accDecls
                     )

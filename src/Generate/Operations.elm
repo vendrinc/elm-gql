@@ -5,64 +5,12 @@ import Elm
 import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Args
+import Generate.Example
+import Generate.Input
 import GraphQL.Schema
 import GraphQL.Schema.Operation
 import String.Extra as String
-
-
-
-{-
-
-
-
-   myProtectedField @PermisionReqed Int
-
-
-
-   onDirective
-        (\directivename ->
-            if directivename == Permissions then
-                jfkldasjflkda
-
-           else
-            Nothing
-
-        )
-    --Elm.Expression
-
-
-    onGeneration
-        (\
-              -> OneOf
-        )
-
-
-
-   updateLicesne
-       { input =
-           { id = myId
-           , actions =
-               [ updateLicenseAction
-                   [ updateLicenseActionOptions.setNotes
-                       (Just
-                           ( setLicenseNote
-                               [ setLicenseNotesOptions.notes (Just "My notes")
-                               ]
-                           )
-                       )
-                   ]
-               ]
-           }
-       }
-
-
-
-
-
-
-
--}
-
+import Generate.Input
 
 queryToModule : String -> Generate.Args.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation.Operation -> Elm.File
 queryToModule namespace op schema operation =
@@ -70,12 +18,7 @@ queryToModule namespace op schema operation =
         dir =
             directory op
 
-        allOptionalMakers =
-            Generate.Args.recursiveOptionalMaker namespace
-                schema
-                operation.name
-                operation.arguments
-
+    
         queryFunction =
             Generate.Args.createBuilder namespace
                 schema
@@ -85,15 +28,21 @@ queryToModule namespace op schema operation =
                 op
 
         example =
-            Generate.Args.createBuilderExample namespace
+            Generate.Example.example namespace
                 schema
                 operation.name
                 operation.arguments
                 operation.type_
-                op
+                (case op of
+                    Generate.Args.Query ->
+                        Generate.Input.Query
+
+                    Generate.Args.Mutation ->
+                        Generate.Input.Mutation
+                )
 
         optionalHelpers =
-            if List.any Generate.Args.isOptional operation.arguments then
+            if List.any Generate.Input.isOptional operation.arguments then
                 let
                     topLevelAlias =
                         Elm.aliasWith "Optional"
@@ -110,19 +59,19 @@ queryToModule namespace op schema operation =
                                 )
                             )
                             |> Elm.expose
+
                     optional =
-                        List.filter Generate.Args.isOptional operation.arguments
+                        List.filter Generate.Input.isOptional operation.arguments
                 in
                 topLevelAlias
-                    :: Generate.Args.optionsRecursive namespace schema
+                    :: Generate.Args.optionsRecursive namespace
+                        schema
                         operation.name
-                        (optional)
+                        optional
                     ++ [ Generate.Args.nullsRecord namespace operation.name optional
                             |> Elm.declaration "null"
                             |> Elm.expose
-                
-
-                        ]
+                       ]
 
             else
                 []

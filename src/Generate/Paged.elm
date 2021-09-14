@@ -14,7 +14,8 @@ import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Json
 import Elm.Pattern
-import Generate.Args as Args exposing (Wrapped(..))
+import Generate.Args as Args
+import Generate.Input exposing (Wrapped(..))
 import Generate.Common as Common
 import GraphQL.Schema
 import GraphQL.Schema.Field as Field exposing (Field)
