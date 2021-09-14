@@ -5,6 +5,7 @@ import Elm
 import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Args
+import Generate.Input as Input
 import Generate.Example
 import Generate.Input
 import GraphQL.Schema
@@ -12,7 +13,7 @@ import GraphQL.Schema.Operation
 import String.Extra as String
 import Generate.Input
 
-queryToModule : String -> Generate.Args.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation.Operation -> Elm.File
+queryToModule : String -> Input.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation.Operation -> Elm.File
 queryToModule namespace op schema operation =
     let
         dir =
@@ -33,13 +34,7 @@ queryToModule namespace op schema operation =
                 operation.name
                 operation.arguments
                 operation.type_
-                (case op of
-                    Generate.Args.Query ->
-                        Generate.Input.Query
-
-                    Generate.Args.Mutation ->
-                        Generate.Input.Mutation
-                )
+                op
 
         optionalHelpers =
             if List.any Generate.Input.isOptional operation.arguments then
@@ -50,10 +45,10 @@ queryToModule namespace op schema operation =
                             (Engine.typeOptional.annotation
                                 (Elm.Annotation.named (Elm.moduleName [ namespace ])
                                     (case op of
-                                        Generate.Args.Query ->
+                                        Input.Query ->
                                             operation.name ++ "_Option"
 
-                                        Generate.Args.Mutation ->
+                                        Input.Mutation ->
                                             operation.name ++ "_MutOption"
                                     )
                                 )
@@ -91,20 +86,20 @@ queryToModule namespace op schema operation =
         (queryFunction :: optionalHelpers)
 
 
-directory : Generate.Args.Operation -> String
+directory : Input.Operation -> String
 directory op =
     case op of
-        Generate.Args.Query ->
+        Input.Query ->
             "Queries"
 
-        Generate.Args.Mutation ->
+        Input.Mutation ->
             "Mutations"
 
 
-generateFiles : String -> Generate.Args.Operation -> GraphQL.Schema.Schema -> List Elm.File
+generateFiles : String -> Input.Operation -> GraphQL.Schema.Schema -> List Elm.File
 generateFiles namespace op schema =
     case op of
-        Generate.Args.Mutation ->
+        Input.Mutation ->
             schema.mutations
                 |> Dict.toList
                 |> List.map
@@ -112,7 +107,7 @@ generateFiles namespace op schema =
                         queryToModule namespace op schema oper
                     )
 
-        Generate.Args.Query ->
+        Input.Query ->
             schema.queries
                 |> Dict.toList
                 |> List.map

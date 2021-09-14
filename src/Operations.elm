@@ -12,13 +12,15 @@ import Generate.Objects
 import Generate.Operations
 import Generate.Paged
 import Generate.Unions
+import GraphQL.Operations.AST as AST
+import GraphQL.Operations.Generate
+import GraphQL.Operations.Parse
+import GraphQL.Operations.Validate
 import GraphQL.Schema
 import Http
 import Json.Decode
 import Json.Encode
-import GraphQL.Operations.Parse
-import GraphQL.Operations.AST as AST
-import GraphQL.Operations.Validate
+
 
 main :
     Program
@@ -52,7 +54,7 @@ main =
                                   , input = InputError
                                   , namespace = "Api"
                                   }
-                                , Elm.Gen.error 
+                                , Elm.Gen.error
                                     { title = "Error decoding flags"
                                     , description = ""
                                     }
@@ -99,29 +101,24 @@ parseAndValidateQuery : String -> GraphQL.Schema.Schema -> String -> Cmd msg
 parseAndValidateQuery namespace schema queryStr =
     case GraphQL.Operations.Parse.parse queryStr of
         Err err ->
-            Elm.Gen.error 
+            Elm.Gen.error
                 { title = "Malformed query"
                 , description =
                     Debug.toString err
                 }
 
-
         Ok query ->
-            case GraphQL.Operations.Validate.validate schema query of
+            case GraphQL.Operations.Generate.generate schema query ["Ops", "Test"] of
                 Err validationError ->
-                     Elm.Gen.error 
+                    Elm.Gen.error
                         { title = "Invalid query"
                         , description =
                             List.map GraphQL.Operations.Validate.errorToString validationError
                                 |> String.join "\n\n    "
                         }
 
-                Ok validated ->
-                    Elm.Gen.files 
-                        [
-
-                        ]
-
+                Ok files ->
+                    Elm.Gen.files (List.map Elm.render files)
 
 
 flagsDecoder : Json.Decode.Decoder Input
@@ -180,7 +177,8 @@ httpErrorToString err =
 
 
 dashboardQuery : String
-dashboardQuery = """query Dashboard($filter:PersonAppRelationshipFilter, $filter1:PersonAppRelationshipFilter, $filter10:TicketFilter, $filter11:TicketFilter, $filter12:WorkflowFilter, $filter13:WorkflowFilter, $filter14:WorkflowFilter, $filter15:WorkflowFilter, $filter16:PeopleFilter, $filter2:AuditLogEventsFilter, $filter3:ServiceEntityRelationshipFilter, $filter4:ServiceEntityRelationshipFilter, $filter5:ServiceEntityRelationshipFilter, $filter6:AuditLogEventsFilter, $filter7:AuditLogEventsFilter, $filter8:TransactionFilter, $filter9:TransactionFilter, $first:Int, $first1:Int, $first2:Int, $first3:Int, $first4:Int, $orderBy:EntityPropertySortInput, $orderBy1:EntityPropertySortInput, $orderBy2:EntityPropertySortInput, $orderBy3:EntityPropertySortInput){personAppRelationships(filter: $filter){totalEdges}
+dashboardQuery =
+    """query Dashboard($filter:PersonAppRelationshipFilter, $filter1:PersonAppRelationshipFilter, $filter10:TicketFilter, $filter11:TicketFilter, $filter12:WorkflowFilter, $filter13:WorkflowFilter, $filter14:WorkflowFilter, $filter15:WorkflowFilter, $filter16:PeopleFilter, $filter2:AuditLogEventsFilter, $filter3:ServiceEntityRelationshipFilter, $filter4:ServiceEntityRelationshipFilter, $filter5:ServiceEntityRelationshipFilter, $filter6:AuditLogEventsFilter, $filter7:AuditLogEventsFilter, $filter8:TransactionFilter, $filter9:TransactionFilter, $first:Int, $first1:Int, $first2:Int, $first3:Int, $first4:Int, $orderBy:EntityPropertySortInput, $orderBy1:EntityPropertySortInput, $orderBy2:EntityPropertySortInput, $orderBy3:EntityPropertySortInput){personAppRelationships(filter: $filter){totalEdges}
 personAppRelationships1:personAppRelationships(filter: $filter1){totalEdges}
 auditLogEvents(first: $first, filter: $filter2){totalEdges
 pageInfo{endCursor

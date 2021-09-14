@@ -7,6 +7,7 @@ import Elm
 import Elm.Gen
 import Generate.Args
 import Generate.Enums
+import Generate.Input as Input
 import Generate.InputObjects
 import Generate.Objects
 import Generate.Operations
@@ -109,10 +110,10 @@ generateSchema namespace schema =
             Generate.InputObjects.generateFiles namespace schema
 
         queryFiles =
-            Generate.Operations.generateFiles namespace Generate.Args.Query schema
+            Generate.Operations.generateFiles namespace Input.Query schema
 
         mutationFiles =
-            Generate.Operations.generateFiles namespace Generate.Args.Mutation schema
+            Generate.Operations.generateFiles namespace Input.Mutation schema
 
         -- _ =
         --     Generate.Paged.generate namespace schema

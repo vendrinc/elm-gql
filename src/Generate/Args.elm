@@ -1,6 +1,5 @@
 module Generate.Args exposing
-    ( Operation(..)
-    , createBuilder
+    ( createBuilder
     , nullsRecord
     , optionsRecursive
     )
@@ -1164,21 +1163,13 @@ encodeWrappedInverted wrapper encoder val =
 {- CREATE BUILDER -}
 
 
-type Operation
-    = Query
-    | Mutation
 
 
-operationToString : Operation -> String.String
-operationToString op =
-    case op of
-        Query ->
-            "Query"
-
-        Mutation ->
-            "Mutation"
+{-|
 
 
+
+-}
 createBuilder :
     String
     -> GraphQL.Schema.Schema
@@ -1191,7 +1182,7 @@ createBuilder :
                 , type_ : Type
             }
     -> Type
-    -> Operation
+    -> Input.Operation
     -> Elm.Declaration
 createBuilder namespace schema name arguments returnType operation =
     let
@@ -1263,7 +1254,7 @@ createBuilder namespace schema name arguments returnType operation =
                 )
                 |> Elm.withAnnotation
                     (Generate.Common.selection namespace
-                        (operationToString operation)
+                        (Input.operationToString operation)
                         (Elm.Annotation.var "data")
                     )
     in
