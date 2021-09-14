@@ -14,10 +14,12 @@
     "clean": "rm -rf ./output",
     "build": "(cd elm-prefab; yarn install; yarn build; cd ..)",
 
-    "test:generate-api": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm  --flags-from=./examples/playground/example-config.json)",
+    "test:generate-api": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm  --debug --flags-from=./examples/playground/example-config.json)",
+    "test:operations": "(node ./elm-prefab/dist/index.js src/Operations.elm  --debug --flags-from=./examples/playground/example-config.json)",
     "test:api": "yarn test:generate-api ; cd output ; elm make Main.elm",
     
-    "generate:engine-bindings": "yarn generate-engine-docs; yarn elm-prefab install templates/engine-docs.json",
+    
+    "generate:engine-bindings": "yarn generate:engine-docs; yarn elm-prefab install templates/engine-docs.json",
     "generate:engine-docs": "cd templates ; rm -rf elm-stuff ; elm-doc-preview --output engine-docs.json ; cd .."
   },
   "repository": {

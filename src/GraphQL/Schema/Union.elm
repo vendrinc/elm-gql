@@ -1,4 +1,4 @@
-module GraphQL.Schema.Union exposing (Union, decoder)
+module GraphQL.Schema.Union exposing (Union, decoder, Variant)
 
 import GraphQL.Schema.Kind as Kind exposing (Kind)
 import Json.Decode as Json

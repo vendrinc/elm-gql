@@ -24,7 +24,7 @@ type alias OperationDetails =
     , name : Maybe Name
     , variableDefinitions : List VariableDefinition
     , directives : List Directive
-    , selectionSet : List Selection
+    , fields : List Selection
     }
 
 type OperationType
@@ -66,6 +66,10 @@ type alias InlineFragment =
 type Name
     = Name String
 
+
+nameToString : Name -> String
+nameToString (Name str) =
+    str
 
 type Value
     = Str String

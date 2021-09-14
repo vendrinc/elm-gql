@@ -236,7 +236,7 @@ inlineOrSpread_ =
 
 field_ : Parser AST.FieldDetails
 field_ =
-    succeed
+    Parser.succeed
         (\( alias_, foundName ) args dirs sels ->
             { alias_ = alias_
             , name = foundName
@@ -261,7 +261,7 @@ aliasedName : Parser ( Maybe AST.Name, AST.Name )
 aliasedName =
     Parser.succeed
         (\nameOrAlias maybeActualName ->
-            case maybeActualName of
+            case  maybeActualName of
                 Nothing ->
                     ( Nothing, nameOrAlias )
 
