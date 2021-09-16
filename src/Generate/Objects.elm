@@ -56,7 +56,10 @@ objectToModule namespace object =
                 |> Elm.record
             
     in
-    Elm.declarationWith (String.decapitalize object.name) objectTypeAnnotation objectImplementation
+    Elm.declaration (String.decapitalize object.name) 
+        (objectImplementation
+            |> Elm.withAnnotation objectTypeAnnotation
+        )
 
 
 
@@ -464,8 +467,7 @@ generateFiles namespace graphQLSchema =
                 )
             ]
     in
-    [ Elm.file (Elm.moduleName [ namespace ])
-        ""
+    [ Elm.file [ namespace ]
         (engine
             ++ renderedObjects
             ++ proofsAndAliases

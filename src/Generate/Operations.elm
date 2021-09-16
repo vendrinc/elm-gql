@@ -5,13 +5,12 @@ import Elm
 import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Args
-import Generate.Input as Input
 import Generate.Example
-import Generate.Input
+import Generate.Input as Input
 import GraphQL.Schema
 import GraphQL.Schema.Operation
 import String.Extra as String
-import Generate.Input
+
 
 queryToModule : String -> Input.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation.Operation -> Elm.File
 queryToModule namespace op schema operation =
@@ -19,7 +18,6 @@ queryToModule namespace op schema operation =
         dir =
             directory op
 
-    
         queryFunction =
             Generate.Args.createBuilder namespace
                 schema
@@ -37,7 +35,7 @@ queryToModule namespace op schema operation =
                 op
 
         optionalHelpers =
-            if List.any Generate.Input.isOptional operation.arguments then
+            if List.any Input.isOptional operation.arguments then
                 let
                     topLevelAlias =
                         Elm.aliasWith "Optional"
@@ -56,7 +54,7 @@ queryToModule namespace op schema operation =
                             |> Elm.expose
 
                     optional =
-                        List.filter Generate.Input.isOptional operation.arguments
+                        List.filter Input.isOptional operation.arguments
                 in
                 topLevelAlias
                     :: Generate.Args.optionsRecursive namespace
@@ -72,18 +70,17 @@ queryToModule namespace op schema operation =
                 []
     in
     Elm.file
-        (Elm.moduleName
-            [ namespace
-            , dir
-            , String.toSentenceCase operation.name
-            ]
-        )
-        ("\n\nExample usage:\n\n"
-            ++ Elm.expressionImportsToString example
-            ++ "\n\n\n"
-            ++ Elm.expressionToString example
-        )
+        [ namespace
+        , dir
+        , String.toSentenceCase operation.name
+        ]
         (queryFunction :: optionalHelpers)
+        |> Elm.withModuleComment
+            ("\n\nExample usage:\n\n"
+                ++ Elm.expressionImportsToString example
+                ++ "\n\n\n"
+                ++ Elm.expressionToString example
+            )
 
 
 directory : Input.Operation -> String

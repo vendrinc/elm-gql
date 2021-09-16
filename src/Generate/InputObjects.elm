@@ -44,8 +44,7 @@ inputObjectToOptionalBuilders namespace schema input =
                 |> Elm.expose
     in
     if hasOptionalArgs then
-        [ Elm.file (Elm.moduleName [ namespace, input.name ])
-            ""
+        [ Elm.file [ namespace, input.name ]
             (optionalTypeAlias
                 :: Generate.Args.optionsRecursive namespace
                     schema

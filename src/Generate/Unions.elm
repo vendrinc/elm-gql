@@ -28,8 +28,7 @@ generateFiles namespace graphQLSchema =
                                 (List.map
                                     (\var ->
                                         ( GraphQL.Schema.Kind.toString var.kind
-                                        , 
-                                          Common.selection namespace
+                                        , Common.selection namespace
                                             (GraphQL.Schema.Kind.toString var.kind)
                                             (Elm.Annotation.var "data")
                                         )
@@ -53,7 +52,6 @@ generateFiles namespace graphQLSchema =
                                         )
                                     )
                                     |> Elm.withAnnotation
-                                        
                                         (Common.selection namespace
                                             unionDefinition.name
                                             (Elm.Annotation.var "data")
@@ -64,6 +62,5 @@ generateFiles namespace graphQLSchema =
                     |> Elm.expose
                 ]
             )
-        |> Elm.file (Elm.moduleName [ namespace, "Unions" ])
-            ""
+        |> Elm.file [ namespace, "Unions" ]
         |> List.singleton
