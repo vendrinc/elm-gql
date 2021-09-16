@@ -154,137 +154,12 @@ recursiveRequiredAnnotation namespace schema reqs =
         (List.map
             (\field ->
                 ( field.name
-                , requiredAnnotationRecursiveHelper
-                    namespace
-                    schema
-                    field.type_
-                    Input.UnwrappedValue
+                , inputAnnotationRecursive namespace schema field.type_ (Input.getWrap field.type_)
                 )
             )
             reqs
         )
 
-
-requiredAnnotationRecursiveHelper :
-    String
-    -> GraphQL.Schema.Schema
-    -> Type
-    -> Input.Wrapped
-    -> Elm.Annotation.Annotation
-requiredAnnotationRecursiveHelper namespace schema type_ wrapped =
-    case type_ of
-        GraphQL.Schema.Type.Nullable newType ->
-            requiredAnnotationRecursiveHelper namespace schema newType (Input.InMaybe wrapped)
-
-        GraphQL.Schema.Type.List_ newType ->
-            requiredAnnotationRecursiveHelper namespace schema newType (Input.InList wrapped)
-
-        GraphQL.Schema.Type.Scalar scalarName ->
-            scalarType wrapped scalarName
-
-        GraphQL.Schema.Type.Enum enumName ->
-            Elm.Annotation.named
-                (Elm.moduleName [ namespace, "Enum", enumName ])
-                enumName
-                |> unwrapWith wrapped
-
-        GraphQL.Schema.Type.Object nestedObjectName ->
-            Generate.Common.selection namespace
-                nestedObjectName
-                (Elm.Annotation.var "data")
-
-        GraphQL.Schema.Type.InputObject inputName ->
-            case Dict.get inputName schema.inputObjects of
-                Nothing ->
-                    annotations.arg namespace inputName
-                        |> unwrapWith wrapped
-
-                Just input ->
-                    case Input.splitRequired input.fields of
-                        ( [], [] ) ->
-                            annotations.arg namespace inputName
-                                |> unwrapWith wrapped
-
-                        ( required, [] ) ->
-                            Elm.Annotation.record
-                                (List.map
-                                    (\field ->
-                                        ( field.name
-                                        , requiredAnnotationRecursiveHelper namespace
-                                            schema
-                                            field.type_
-                                            Input.UnwrappedValue
-                                        )
-                                    )
-                                    input.fields
-                                )
-                                |> unwrapWith wrapped
-
-                        ( [], optional ) ->
-                            annotations.arg namespace inputName
-                                |> unwrapWith wrapped
-
-                        ( required, optional ) ->
-                            Elm.Annotation.record
-                                (List.map
-                                    (\field ->
-                                        ( field.name
-                                        , requiredAnnotationRecursiveHelper namespace
-                                            schema
-                                            field.type_
-                                            Input.UnwrappedValue
-                                        )
-                                    )
-                                    required
-                                    ++ [ ( embeddedOptionsFieldName
-                                         , annotations.optional namespace inputName
-                                            |> Elm.Annotation.list
-                                         )
-                                       ]
-                                )
-                                |> unwrapWith wrapped
-
-        GraphQL.Schema.Type.Union unionName ->
-            Elm.Annotation.unit
-
-        GraphQL.Schema.Type.Interface interfaceName ->
-            Elm.Annotation.unit
-
-
-requiredAnnotationHelper : String -> Type -> Input.Wrapped -> Elm.Annotation.Annotation
-requiredAnnotationHelper namespace type_ wrapped =
-    case type_ of
-        GraphQL.Schema.Type.Nullable newType ->
-            requiredAnnotationHelper namespace newType wrapped
-
-        GraphQL.Schema.Type.List_ newType ->
-            requiredAnnotationHelper namespace newType wrapped
-
-        GraphQL.Schema.Type.Scalar scalarName ->
-            scalarType wrapped scalarName
-
-        GraphQL.Schema.Type.Enum enumName ->
-            Elm.Annotation.named (Elm.moduleName [ namespace, "Enum", enumName ]) enumName
-                |> unwrapWith wrapped
-
-        GraphQL.Schema.Type.Object nestedObjectName ->
-            Generate.Common.selection namespace
-                nestedObjectName
-                (Elm.Annotation.var "data")
-
-        GraphQL.Schema.Type.InputObject inputName ->
-            annotations.arg namespace inputName
-                |> unwrapWith wrapped
-
-        GraphQL.Schema.Type.Union unionName ->
-            -- Note, we need a discriminator instead of just `data`
-            Generate.Common.selection namespace
-                unionName
-                (Elm.Annotation.var "data")
-                |> unwrapWith wrapped
-
-        GraphQL.Schema.Type.Interface interfaceName ->
-            Elm.Annotation.unit
 
 
 prepareRequiredRecursive :
@@ -295,8 +170,9 @@ prepareRequiredRecursive :
 prepareRequiredRecursive namespace schema argument =
     Elm.tuple
         (Elm.string argument.name)
-        (encodeInputExhaustive schema
+        (encodeInputRecursive
             namespace
+            schema
             argument.type_
             Input.UnwrappedValue
             (Elm.get argument.name (Elm.value "required"))
@@ -884,124 +760,6 @@ inputTypeToString type_ =
             "Interfaces cant be in inputs"
 
 
-encodeInputExhaustive :
-    GraphQL.Schema.Schema
-    -> String
-    -> Type
-    -> Input.Wrapped
-    -> Elm.Expression
-    -> Elm.Expression
-encodeInputExhaustive schema namespace fieldType wrapped val =
-    case fieldType of
-        GraphQL.Schema.Type.Nullable newType ->
-            encodeInputExhaustive schema namespace newType (Input.InMaybe wrapped) val
-
-        GraphQL.Schema.Type.List_ newType ->
-            encodeInputExhaustive schema namespace newType (Input.InList wrapped) val
-
-        GraphQL.Schema.Type.Scalar scalarName ->
-            Engine.arg
-                (encodeScalar scalarName
-                    wrapped
-                    val
-                )
-                (Elm.string scalarName)
-
-        GraphQL.Schema.Type.Enum enumName ->
-            --This can either be
-            --     val -> Enum.encode val
-            --     val ->
-            --          Encode.list Enum.encode val
-            --     val ->
-            --          Engine.encodeMaybe Enum.encode val
-            --     or some stack
-            --     val ->
-            --          Encode.list (Encode.list Enum.encode) val
-            --
-            Engine.arg
-                (encodeWrapped wrapped
-                    (\v ->
-                        Elm.apply
-                            (Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ]) "encode")
-                            [ v
-                            ]
-                    )
-                    val
-                )
-                (Elm.string enumName)
-
-        GraphQL.Schema.Type.InputObject inputName ->
-            case Dict.get inputName schema.inputObjects of
-                Nothing ->
-                    Engine.arg
-                        (encodeWrapped wrapped
-                            Engine.encodeArgument
-                            val
-                        )
-                        (Elm.string inputName)
-
-                Just input ->
-                    if List.all Input.isOptional input.fields then
-                        Engine.arg
-                            (encodeWrapped wrapped
-                                Engine.encodeArgument
-                                val
-                            )
-                            (Elm.string inputName)
-
-                    else
-                        case input.fields of
-                            [] ->
-                                Engine.arg
-                                    (encodeWrapped wrapped
-                                        Engine.encodeArgument
-                                        val
-                                    )
-                                    (Elm.string input.name)
-
-                            many ->
-                                encodeWrappedArgument (Utils.String.formatValue input.name)
-                                    wrapped
-                                    (\v ->
-                                        let
-                                            requiredVals =
-                                                List.map
-                                                    (\field ->
-                                                        Elm.tuple
-                                                            (Elm.string field.name)
-                                                            (encodeInputExhaustive schema
-                                                                namespace
-                                                                field.type_
-                                                                Input.UnwrappedValue
-                                                                (Elm.get field.name v)
-                                                            )
-                                                    )
-                                                    (List.filter (not << Input.isOptional) many)
-                                                    |> Elm.list
-                                        in
-                                        Engine.encodeInputObject
-                                            (if List.any Input.isOptional input.fields then
-                                                Elm.Gen.List.append
-                                                    requiredVals
-                                                    (Engine.encodeOptionals
-                                                        (Elm.get embeddedOptionsFieldName v)
-                                                    )
-
-                                             else
-                                                requiredVals
-                                            )
-                                            (Elm.string input.name)
-                                    )
-                                    val
-
-        GraphQL.Schema.Type.Union unionName ->
-            Elm.string "Unions cant be nested in inputs"
-
-        GraphQL.Schema.Type.Object nestedObjectName ->
-            Elm.string "Objects cant be nested in inputs"
-
-        GraphQL.Schema.Type.Interface interfaceName ->
-            Elm.string "Interfaces cant be in inputs"
 
 
 {-|
@@ -1163,13 +921,7 @@ encodeWrappedInverted wrapper encoder val =
 {- CREATE BUILDER -}
 
 
-
-
-{-|
-
-
-
--}
+{-| -}
 createBuilder :
     String
     -> GraphQL.Schema.Schema
@@ -1206,43 +958,31 @@ createBuilder namespace schema name arguments returnType operation =
                 _ ->
                     True
 
+        requiredArgs =
+            Elm.list
+                (required
+                    |> List.map (prepareRequiredRecursive namespace schema)
+                )
+
+        optionalArgs =
+            if hasOptionalArgs then
+                Engine.encodeOptionals
+                    (Elm.valueWith
+                        (Elm.moduleName [])
+                        embeddedOptionsFieldName
+                        (Elm.Annotation.list
+                            (annotations.localOptional namespace name)
+                        )
+                    )
+
+            else
+                Elm.list []
+
         expression =
             Engine.objectWith
-                (if hasOptionalArgs && hasRequiredArgs then
-                    Elm.Gen.List.append
-                        (Elm.list
-                            (required
-                                |> List.map (prepareRequiredRecursive namespace schema)
-                            )
-                        )
-                        (Engine.encodeOptionals
-                            (Elm.valueWith
-                                (Elm.moduleName [])
-                                embeddedOptionsFieldName
-                                (Elm.Annotation.list
-                                    (annotations.localOptional namespace name)
-                                )
-                            )
-                        )
-
-                 else if hasOptionalArgs then
-                    Engine.encodeOptionals
-                        (Elm.valueWith
-                            (Elm.moduleName [])
-                            embeddedOptionsFieldName
-                            (Elm.Annotation.list
-                                (annotations.localOptional namespace name)
-                            )
-                        )
-
-                 else if hasRequiredArgs then
-                    Elm.list
-                        (required
-                            |> List.map (prepareRequiredRecursive namespace schema)
-                        )
-
-                 else
-                    Elm.list []
+                (Elm.Gen.List.append
+                    requiredArgs
+                    optionalArgs
                 )
                 (Elm.string name)
                 (Elm.valueWith (Elm.moduleName [])
