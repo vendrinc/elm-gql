@@ -7,13 +7,13 @@ import Dict
 import Elm
 import Elm.Annotation as Type
 import Generate.Args
+import Generate.Example
+import Generate.Input as Input
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.Validate as Validate
-import GraphQL.Schema.Type as SchemaType
-import Generate.Input as Input
 import GraphQL.Schema
+import GraphQL.Schema.Type as SchemaType
 import Set
-import Generate.Example
 
 
 generate : GraphQL.Schema.Schema -> AST.Document -> List String -> Result (List Validate.Error) (List Elm.File)
@@ -24,9 +24,7 @@ generate schema document path =
 
         Ok validated ->
             Ok
-                [ Elm.file
-                    (Elm.moduleName path)
-                    ""
+                [ Elm.file path
                     [ Elm.fn "query"
                         ( "input"
                         , Type.record
@@ -108,8 +106,6 @@ toElmTypeHelper schema astType =
 
         AST.Nullable inner ->
             Type.maybe (toElmTypeHelper schema inner)
-
-
 
 
 isPrimitive : GraphQL.Schema.Schema -> String -> Bool

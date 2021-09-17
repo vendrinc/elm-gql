@@ -3,10 +3,39 @@ module GraphQL.Schema.Type exposing
     , decoder
     , toKind
     , toString
+    , toElmString
     )
 
 import GraphQL.Schema.Kind as Kind exposing (Kind)
 import Json.Decode as Json
+
+
+toElmString : Type -> String
+toElmString t =
+    case t of
+        Scalar name ->
+            name
+
+        InputObject name ->
+            name
+
+        Object name ->
+            name
+
+        Enum name ->
+            name
+
+        Union name ->
+            name
+
+        Interface name ->
+            name
+
+        List_ inner ->
+            "(List " ++ toString inner ++ ")"
+
+        Nullable inner ->
+            "(Maybe " ++ toString inner ++ ")"
 
 
 toString : Type -> String

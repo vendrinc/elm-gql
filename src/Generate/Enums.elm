@@ -6,12 +6,14 @@ import Elm.Annotation
 import Elm.Gen.Json.Decode as Decode
 import Elm.Gen.Json.Encode as Encode
 import Elm.Pattern
+import Generate.Common
 import GraphQL.Schema
-import String.Extra as String
+import Utils.String
 
 
+enumNameToConstructorName : String -> String
 enumNameToConstructorName =
-    String.toSentenceCase
+    Utils.String.formatTypename
 
 
 generateFiles : String -> GraphQL.Schema.Schema -> List Elm.File
@@ -88,7 +90,8 @@ generateFiles namespace graphQLSchema =
                                     )
                             )
                 in
-                Elm.file [ namespace, "Enum", enumDefinition.name ]
+                Elm.file
+                    (Generate.Common.modules.enum namespace enumDefinition.name)
                     [ enumTypeDeclaration
                         |> Elm.exposeConstructor
                     , listOfValues

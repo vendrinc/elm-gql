@@ -22,7 +22,6 @@ import GraphQL.Schema.Field as Field exposing (Field)
 import GraphQL.Schema.Object
 import GraphQL.Schema.Operation
 import GraphQL.Schema.Type exposing (Type(..))
-import String.Extra as String
 import Utils.String
 
 

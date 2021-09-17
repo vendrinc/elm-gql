@@ -4,6 +4,20 @@ import String
 import String.Extra
 
 
+
+formatTypename : String -> String
+formatTypename name =
+    -- let
+    --     first =
+    --         String.left 1 name
+
+    -- in
+    -- String.toUpper first ++ (String.dropLeft 1 name)
+    formatScalar name
+
+
+
+
 {-| Converts a string from the gql to a string format that is amenable to Elm's typesystem.
 
 Generally this means:
@@ -18,8 +32,8 @@ Por ejemplo:
     ViewID -> ViewId
 
 -}
-formatTypename : String -> String
-formatTypename name =
+formatScalar : String -> String
+formatScalar name =
     let
         first =
             String.left 1 name
@@ -35,6 +49,7 @@ formatTypename name =
                 |> Tuple.second
     in
     String.toUpper first ++ body
+
 
 
 
@@ -65,6 +80,7 @@ formatValue name =
     String.toLower first ++ body
 
 
+elmify : Char -> (Bool, String) -> (Bool, String)
 elmify char ( passedLower, gathered ) =
     if Char.isUpper char && passedLower then
         ( Char.isLower char

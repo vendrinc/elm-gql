@@ -21,9 +21,8 @@ import GraphQL.Schema.Field
 import GraphQL.Schema.Type exposing (Type(..))
 import Set exposing (Set)
 import String
-import String.Extra
 import Utils.String
-
+import Generate.Decode
 
 embeddedOptionsFieldName : String
 embeddedOptionsFieldName =
@@ -282,7 +281,7 @@ annotations =
     { optional =
         \namespace name ->
             Elm.Annotation.namedWith
-                (Elm.moduleName [ namespace, name ])
+                (Elm.moduleName (Generate.Common.modules.input namespace name))
                 "Optional"
                 []
     , safeOptional =
@@ -432,7 +431,11 @@ inputAnnotationRecursive namespace schema type_ wrapped =
             scalarType wrapped scalarName
 
         GraphQL.Schema.Type.Enum enumName ->
-            Elm.Annotation.named (Elm.moduleName [ namespace, "Enum", enumName ]) enumName
+            Elm.Annotation.named
+                (Generate.Common.modules.enum namespace enumName
+                    |> Elm.moduleName
+                )
+                enumName
                 |> unwrapWith wrapped
 
         GraphQL.Schema.Type.InputObject inputName ->
@@ -460,8 +463,6 @@ inputAnnotationRecursive namespace schema type_ wrapped =
                                 |> unwrapWith wrapped
 
                         ( [], optional ) ->
-                            -- annotations.arg namespace inputName
-                            --     |> unwrapWith wrapped
                             annotations.safeOptional namespace inputName
                                 |> Elm.Annotation.list
                                 |> unwrapWith wrapped
@@ -968,7 +969,48 @@ createBuilder namespace schema name arguments returnType operation =
             else
                 Elm.list []
 
-        expression =
+        selectionArg =
+            if needsInnerSelection returnType then
+                -- if we're selecting an object, we need the dev to pass a selection set in.
+                Just
+                    ( Generate.Common.selection namespace
+                        (GraphQL.Schema.Type.toString returnType)
+                        (Elm.Annotation.var "data")
+                    , Elm.Pattern.var "selection"
+                    )
+
+            else
+                Nothing
+
+        returnSelection =
+            if needsInnerSelection returnType then
+                Elm.valueWith Elm.local
+                    "selection"
+                    (Generate.Common.selection namespace
+                        (GraphQL.Schema.Type.toString returnType)
+                        (Elm.Annotation.var "data")
+                    )
+
+            else
+                Generate.Decode.scalar 
+                    (GraphQL.Schema.Type.toString returnType)
+                    (Input.getWrap returnType)
+                    |> Engine.decode
+
+        returnAnnotation =
+            if needsInnerSelection returnType then
+                Generate.Common.selection namespace
+                    (Input.operationToString operation)
+                    (Elm.Annotation.var "data")
+
+            else
+                Generate.Common.selection namespace
+                    (Input.operationToString operation)
+                    (Elm.Annotation.named Elm.local (GraphQL.Schema.Type.toElmString returnType))
+               
+
+       
+        return =
             Engine.objectWith
                 (if hasRequiredArgs && hasOptionalArgs then
                     Elm.Gen.List.append
@@ -985,18 +1027,8 @@ createBuilder namespace schema name arguments returnType operation =
                     Elm.list []
                 )
                 (Elm.string name)
-                (Elm.valueWith (Elm.moduleName [])
-                    "selection"
-                    (Generate.Common.selection namespace
-                        (GraphQL.Schema.Type.toString returnType)
-                        (Elm.Annotation.var "data")
-                    )
-                )
-                |> Elm.withAnnotation
-                    (Generate.Common.selection namespace
-                        (Input.operationToString operation)
-                        (Elm.Annotation.var "data")
-                    )
+                returnSelection
+                |> Elm.withAnnotation returnAnnotation
     in
     Elm.functionWith name
         (List.filterMap identity
@@ -1009,16 +1041,39 @@ createBuilder namespace schema name arguments returnType operation =
                     (annotations.localOptional namespace name)
                 , Elm.Pattern.var embeddedOptionsFieldName
                 )
-            , Just
-                ( Generate.Common.selection namespace
-                    (GraphQL.Schema.Type.toString returnType)
-                    (Elm.Annotation.var "data")
-                , Elm.Pattern.var "selection"
-                )
+            , selectionArg
             ]
         )
-        expression
+        return
         |> Elm.expose
+
+
+needsInnerSelection : Type -> Bool
+needsInnerSelection type_ =
+    case type_ of
+        Scalar name ->
+            False
+
+        InputObject name ->
+            True
+
+        Object name ->
+            True
+
+        Enum name ->
+            False
+
+        Union name ->
+            True
+
+        Interface name ->
+            True
+
+        List_ inner ->
+            needsInnerSelection inner
+
+        Nullable inner ->
+            needsInnerSelection inner
 
 
 justIf : Bool -> a -> Maybe a

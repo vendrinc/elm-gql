@@ -1,4 +1,4 @@
-module Generate.Example exposing (example)
+module Generate.Example exposing (example, operation)
 
 import Dict
 import Elm
@@ -14,13 +14,47 @@ import Generate.Input
 import GraphQL.Schema
 import GraphQL.Schema.Argument
 import GraphQL.Schema.Field
+import GraphQL.Schema.Operation as Operation exposing (Operation)
 import GraphQL.Schema.Type exposing (Type(..))
 import Set exposing (Set)
 import String
-import String.Extra
 import Utils.String
 
 
+{-| -}
+operation :
+    String
+    -> GraphQL.Schema.Schema
+    -> ( Generate.Input.Operation, Operation )
+    -> Elm.Expression
+operation namespace schema ( opType, op ) =
+    create namespace
+        schema
+        Set.empty
+        op.name
+        opType
+        (Elm.valueFrom
+            (case opType of
+                Generate.Input.Mutation ->
+                    Generate.Common.modules.mutation namespace op.name
+                        |> Elm.moduleName
+
+                Generate.Input.Query ->
+                    Generate.Common.modules.query namespace op.name
+                        |> Elm.moduleName
+            )
+            (Utils.String.formatValue op.name)
+        )
+        op.arguments
+        -- (Elm.value ("select" ++ GraphQL.Schema.Type.toString returnType))
+        (Engine.select Elm.unit)
+
+
+{-|
+
+    Generates an example that demonstrates Inputs, but the selection set is only `select{Object}`
+
+-}
 example :
     String
     -> GraphQL.Schema.Schema
@@ -35,29 +69,26 @@ example :
     -> Type
     -> Generate.Input.Operation
     -> Elm.Expression
-example namespace schema name arguments returnType operation =
+example namespace schema name arguments returnType op =
     create namespace
         schema
         Set.empty
         name
+        op
         (Elm.valueFrom
-            (Elm.moduleName
-                [ namespace
-                , case operation of
-                    Generate.Input.Mutation ->
-                        "Mutations"
+            (case op of
+                Generate.Input.Mutation ->
+                    Generate.Common.modules.mutation namespace name
+                        |> Elm.moduleName
 
-                    Generate.Input.Query ->
-                        "Queries"
-                , String.Extra.toSentenceCase name
-                ]
+                Generate.Input.Query ->
+                    Generate.Common.modules.query namespace name
+                        |> Elm.moduleName
             )
-            name
+            (Utils.String.formatValue name)
         )
         arguments
-        (Just
-            (Elm.value ("select" ++ GraphQL.Schema.Type.toString returnType))
-        )
+        (Elm.value ("select" ++ GraphQL.Schema.Type.toString returnType))
 
 
 create :
@@ -65,6 +96,7 @@ create :
     -> GraphQL.Schema.Schema
     -> Set String
     -> String
+    -> Generate.Input.Operation
     -> Elm.Expression
     ->
         List
@@ -73,9 +105,9 @@ create :
                 , name : String.String
                 , type_ : Type
             }
-    -> Maybe Elm.Expression
     -> Elm.Expression
-create namespace schema called name base fields maybeReturn =
+    -> Elm.Expression
+create namespace schema called name operationType base fields return =
     let
         ( required, optional ) =
             Generate.Input.splitRequired
@@ -115,7 +147,7 @@ create namespace schema called name base fields maybeReturn =
                         name
                         -- only give a maximum of 5 examples
                         (List.take 5 optional)
-                        (maybeReturn /= Nothing)
+                        (Just operationType)
                         Set.empty
                         []
                     )
@@ -128,7 +160,7 @@ create namespace schema called name base fields maybeReturn =
         (List.filterMap identity
             [ requiredArgs
             , optionalArgs
-            , maybeReturn
+            , Just return
             ]
         )
 
@@ -138,7 +170,6 @@ createEmbedded :
     -> GraphQL.Schema.Schema
     -> Set String
     -> String
-    -- -> Elm.Expression
     ->
         List
             { fieldOrArg
@@ -168,7 +199,6 @@ createEmbedded namespace schema called name fields =
 
                 _ ->
                     True
-
     in
     if hasRequiredArgs then
         requiredArgsExample namespace schema name called fields
@@ -181,7 +211,7 @@ createEmbedded namespace schema called name fields =
             name
             -- only give a maximum of 5 examples
             (List.take 5 optional)
-            False
+            Nothing
             Set.empty
             []
 
@@ -205,7 +235,7 @@ optionalArgsExample :
     -> Set String
     -> String.String
     -> List { a | type_ : Type, name : String.String }
-    -> Bool
+    -> Maybe Generate.Input.Operation
     -> Set String
     -> List Elm.Expression
     -> Elm.Expression
@@ -233,18 +263,20 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
             else
                 let
                     optionalModule =
-                        if isTopLevel then
-                            Elm.moduleName
-                                [ namespace
-                                , "Queries"
-                                , Utils.String.formatTypename parentName
-                                ]
+                        case isTopLevel of
+                            Nothing ->
+                                Elm.moduleName
+                                    [ namespace
+                                    , Utils.String.formatTypename parentName
+                                    ]
 
-                        else
-                            Elm.moduleName
-                                [ namespace
-                                , Utils.String.formatTypename parentName
-                                ]
+                            Just Generate.Input.Mutation ->
+                                Generate.Common.modules.mutation namespace parentName
+                                    |> Elm.moduleName
+
+                            Just Generate.Input.Query ->
+                                Generate.Common.modules.query namespace parentName
+                                    |> Elm.moduleName
 
                     unnullifiedType =
                         denullable field.type_
@@ -312,15 +344,14 @@ requiredArgsExample namespace schema name called fields =
 
                     _ ->
                         [ ( "with_"
-                          , --Elm.list
-                            optionalArgsExample
+                          , optionalArgsExample
                                 namespace
                                 schema
                                 called
                                 name
                                 -- only give a maximum of 5 examples
                                 (List.take 5 optional)
-                                False
+                                Nothing
                                 Set.empty
                                 []
                           )
@@ -353,7 +384,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
                 |> Generate.Input.wrapExpression wrapped
 
         GraphQL.Schema.Type.Object nestedObjectName ->
-            Elm.value ("select" ++ String.Extra.toSentenceCase nestedObjectName)
+            Elm.value ("select" ++ Utils.String.formatTypename nestedObjectName)
                 |> Generate.Input.wrapExpression wrapped
 
         GraphQL.Schema.Type.InputObject inputName ->
@@ -393,14 +424,6 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
                                     schema
                                     newCalled
                                     inputName
-                                    -- (Elm.valueFrom
-                                    --     (Elm.moduleName
-                                    --         [ namespace
-                                    --         , "Input"
-                                    --         ]
-                                    --     )
-                                    --     (Utils.String.formatValue inputName)
-                                    -- )
                                     input.fields
                                     |> Generate.Input.wrapExpression wrapped
 
@@ -423,7 +446,10 @@ enumExample namespace schema enumName =
                     Elm.value enumName
 
                 top :: _ ->
-                    Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ])
+                    Elm.valueFrom
+                        (Elm.moduleName
+                            (Generate.Common.modules.enum namespace enumName)
+                        )
                         (Utils.String.formatTypename top.name)
 
 

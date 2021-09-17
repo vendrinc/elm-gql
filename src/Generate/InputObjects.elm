@@ -8,7 +8,7 @@ import Generate.Args
 import GraphQL.Schema
 import GraphQL.Schema.InputObject
 import GraphQL.Schema.Type exposing (Type(..))
-
+import Utils.String
 
 inputObjectToOptionalBuilders : String -> GraphQL.Schema.Schema -> GraphQL.Schema.InputObject.InputObject -> List Elm.File
 inputObjectToOptionalBuilders namespace schema input =
@@ -44,7 +44,7 @@ inputObjectToOptionalBuilders namespace schema input =
                 |> Elm.expose
     in
     if hasOptionalArgs then
-        [ Elm.file [ namespace, input.name ]
+        [ Elm.file [ namespace, Utils.String.formatTypename input.name ]
             (optionalTypeAlias
                 :: Generate.Args.optionsRecursive namespace
                     schema

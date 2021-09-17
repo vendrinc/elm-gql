@@ -9,7 +9,7 @@ import Generate.Example
 import Generate.Input as Input
 import GraphQL.Schema
 import GraphQL.Schema.Operation
-import String.Extra as String
+import Utils.String
 
 
 queryToModule : String -> Input.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation.Operation -> Elm.File
@@ -72,7 +72,7 @@ queryToModule namespace op schema operation =
     Elm.file
         [ namespace
         , dir
-        , String.toSentenceCase operation.name
+        , Utils.String.formatTypename operation.name
         ]
         (queryFunction :: optionalHelpers)
         |> Elm.withModuleComment

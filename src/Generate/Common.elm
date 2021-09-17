@@ -6,7 +6,37 @@ import Elm.Gen.GraphQL.Engine as Engine
 import GraphQL.Schema.Type exposing (Type(..))
 import Utils.String
 
+modules =
+    { enum = 
+        \namespace enumName ->
+            [ namespace
+            , "Enum"
+            , Utils.String.formatTypename enumName
+            ]
+    , query =
+        \namespace queryName ->
+            [ namespace
+            , "Queries"
+            , Utils.String.formatTypename queryName
+            ]
+    , mutation =
+        \namespace mutationName ->
+            [ namespace
+            , "Mutations"
+            , Utils.String.formatTypename mutationName
+            ]
 
+    , input =
+        \namespace name ->
+            [ namespace
+            
+            , Utils.String.formatTypename name
+            ]
+
+    }
+
+
+selection : String -> String -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
 selection namespace name data =
     Elm.Annotation.namedWith
         (Elm.moduleName [ namespace ])
@@ -14,6 +44,7 @@ selection namespace name data =
         [ data ]
 
 
+selectionLocal : String -> String -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
 selectionLocal namespace name data =
     Elm.Annotation.namedWith
         Elm.local

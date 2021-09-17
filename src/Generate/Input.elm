@@ -22,7 +22,6 @@ import GraphQL.Schema.Field
 import GraphQL.Schema.Type exposing (Type(..))
 import Set exposing (Set)
 import String
-import String.Extra
 import Utils.String
 
 

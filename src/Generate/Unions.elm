@@ -7,11 +7,12 @@ import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Common as Common
 import GraphQL.Schema
 import GraphQL.Schema.Kind
-import String.Extra as String
+import Utils.String
 
 
+enumNameToConstructorName : String -> String
 enumNameToConstructorName =
-    String.toSentenceCase
+    Utils.String.formatValue
 
 
 generateFiles : String -> GraphQL.Schema.Schema -> List Elm.File

@@ -13,9 +13,8 @@ import GraphQL.Schema
 import GraphQL.Schema.Object
 import GraphQL.Schema.Type exposing (Type(..))
 import GraphQL.Schema.Field as Field exposing (Field)
-import String.Extra as String
 import Utils.String
-
+import Generate.Decode
 
 
 
@@ -56,7 +55,7 @@ objectToModule namespace object =
                 |> Elm.record
             
     in
-    Elm.declaration (String.decapitalize object.name) 
+    Elm.declaration (Utils.String.formatValue object.name) 
         (objectImplementation
             |> Elm.withAnnotation objectTypeAnnotation
         )
@@ -102,7 +101,7 @@ implementField namespace objectName fieldName fieldType wrapped =
             { expression =
                 Engine.field
                     (Elm.string fieldName)
-                    (decodeScalar scalarName wrapped)
+                    (Generate.Decode.scalar scalarName wrapped)
             , annotation = signature.annotation
             }
 
@@ -259,34 +258,6 @@ fieldSignature namespace objectName wrapped fieldType =
     in
     { annotation = typeAnnotation
     }
-
-
-decodeScalar : String -> Wrapped -> Elm.Expression
-decodeScalar scalarName wrapped =
-    let
-        lowered =
-            String.toLower scalarName
-
-        decoder =
-            case lowered of
-                "string" ->
-                    Json.string
-
-                "int" ->
-                    Json.int
-
-                "float" ->
-                    Json.float
-
-
-                "boolean" ->
-                    Json.bool
-
-                _ ->
-                    Elm.valueFrom (Elm.moduleName [ "Scalar" ]) (Utils.String.formatValue scalarName)
-                        |> Elm.get "decoder"
-    in
-    decodeWrapper wrapped decoder
 
 
 decodeWrapper : Wrapped -> Elm.Expression -> Elm.Expression
