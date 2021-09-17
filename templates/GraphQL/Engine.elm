@@ -1,5 +1,5 @@
 module GraphQL.Engine exposing
-    ( batch, nullable, list, field, fieldWith, object, objectWith
+    ( batch, nullable, list, field, fieldWith, object, objectWith, decode
     , enum, maybeEnum
     , union
     , Selection, select, with, map, map2, recover
@@ -15,7 +15,7 @@ module GraphQL.Engine exposing
 {-|
 @docs batch
 
-@docs nullable, list, field, fieldWith, object, objectWith
+@docs nullable, list, field, fieldWith, object, objectWith, decode
 
 @docs enum, maybeEnum
 
@@ -296,6 +296,28 @@ objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
                 in
                 ( new.context
                 , Json.field aliasedName fieldsDecoder
+                )
+            )
+
+
+{-| This adds a bare decoder for data that has already been pulled down.
+
+Note, this is rarely needed!  So far, only when a query or mutation returns a scalar directly without selecting any fields.
+
+
+-}
+decode : Json.Decoder data -> Selection source data
+decode decoder =
+    Selection <|
+        Details
+            (\context ->
+                ( context
+                , [ ]
+                )
+            )
+            (\context ->
+                ( context
+                , decoder
                 )
             )
 
