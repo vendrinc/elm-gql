@@ -30,13 +30,6 @@ embeddedOptionsFieldName =
     "with_"
 
 
-{-|
-
-    val -> our variable containing the value we want to encode
-
-    We then want to
-
--}
 encodeScalar : String -> Input.Wrapped -> (Elm.Expression -> Elm.Expression)
 encodeScalar scalarName wrapped =
     case wrapped of
@@ -159,7 +152,6 @@ recursiveRequiredAnnotation namespace schema reqs =
             )
             reqs
         )
-
 
 
 prepareRequiredRecursive :
@@ -760,8 +752,6 @@ inputTypeToString type_ =
             "Interfaces cant be in inputs"
 
 
-
-
 {-|
 
     Unwrapped ->
@@ -980,9 +970,19 @@ createBuilder namespace schema name arguments returnType operation =
 
         expression =
             Engine.objectWith
-                (Elm.Gen.List.append
+                (if hasRequiredArgs && hasOptionalArgs then
+                    Elm.Gen.List.append
+                        requiredArgs
+                        optionalArgs
+
+                 else if hasRequiredArgs then
                     requiredArgs
+
+                 else if hasOptionalArgs then
                     optionalArgs
+
+                 else
+                    Elm.list []
                 )
                 (Elm.string name)
                 (Elm.valueWith (Elm.moduleName [])
