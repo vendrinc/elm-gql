@@ -25,6 +25,7 @@ module Scalar exposing
     , url
     , viewId
     , id
+    , fakeUrl
     )
 
 import GraphQL.Engine as Engine
@@ -181,3 +182,14 @@ type Never
 {-| -}
 type Presence
     = Present
+
+
+fakeUrl : Url 
+fakeUrl =
+    { protocol = Url.Https
+    , host = "example.com"
+    , port_ = Just 443
+    , path = "/"
+    , query = Nothing
+    , fragment = Nothing
+    }

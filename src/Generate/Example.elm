@@ -468,8 +468,32 @@ scalarExample scalarName =
         "boolean" ->
             Elm.bool True
 
-        "id" ->
-            Elm.value "id"
+        "datetime" ->
+            Elm.apply
+                (Elm.valueFrom
+                    (Elm.moduleName
+                        [ "Time" ]
+                    )
+                    "millisToPosix"
+                )
+                [ Elm.int 0
+                ]
+
+        "url" ->
+            Elm.valueFrom
+                (Elm.moduleName
+                    [ "Scalar" ]
+                )
+                "fakeUrl"
 
         _ ->
-            Elm.value (Utils.String.formatValue scalarName)
+            -- Elm.value (Utils.String.formatValue scalarName)
+            Elm.apply
+                (Elm.valueFrom
+                    (Elm.moduleName
+                        [ "Scalar" ]
+                    )
+                    (Utils.String.formatScalar scalarName)
+                )
+                [ Elm.string "placeholder"
+                ]

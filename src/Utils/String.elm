@@ -77,7 +77,8 @@ formatValue name =
                 remaining
                 |> Tuple.second
     in
-    String.toLower first ++ body
+    String.toLower first ++ body 
+        |> sanitize
 
 
 elmify : Char -> (Bool, String) -> (Bool, String)
@@ -94,3 +95,31 @@ elmify char ( passedLower, gathered ) =
             ++ String.toLower
                 (String.fromChar char)
         )
+
+
+{-| Note, this should be done in elm-prefab directly!
+
+-}
+sanitize : String -> String
+sanitize name =
+    case name of
+        "in" ->
+            "in_"
+
+        "type" ->
+            "type_"
+
+        "case" ->
+            "case_"
+
+        "let" ->
+            "let_"
+
+        "module" ->
+            "module_"
+
+        "exposing" ->
+            "exposing_"
+
+        _ ->
+            name
