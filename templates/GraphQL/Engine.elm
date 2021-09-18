@@ -10,6 +10,7 @@ module GraphQL.Engine exposing
     , encodeOptionals, encodeInputObject, encodeArgument
     , decodeNullable
     , unsafe
+    , selectTypeNameButSkip
     )
 
 {-|
@@ -34,7 +35,7 @@ module GraphQL.Engine exposing
 @docs encodeOptionals, encodeInputObject, encodeArgument
 
 @docs decodeNullable
-@docs unsafe
+@docs unsafe, selectTypeNameButSkip
 
 -}
 
@@ -320,6 +321,23 @@ decode decoder =
                 , decoder
                 )
             )
+{-|-}
+selectTypeNameButSkip : Selection source ()
+selectTypeNameButSkip =
+    Selection <|
+        Details
+            (\context ->
+                ( context
+                , [ Field "__typename" Nothing [] []
+                  ]
+                )
+            )
+            (\context ->
+               
+                ( context
+                , Json.succeed ()
+                )
+            )
 
 
 {-| -}
@@ -522,8 +540,8 @@ arg val typename =
 
 
 {-| -}
-argList : List (Argument obj) -> Argument input
-argList fields =
+argList : List (Argument obj) -> String -> Argument input
+argList fields typeName =
     ArgValue
         (fields
             |> Encode.list
@@ -536,7 +554,7 @@ argList fields =
                             (  Encode.string varName )
                 )
         )
-        ("[PLACEHOLDER!]!")
+        typeName
 
 {-| -}
 encodeInputObject : List ( String, Argument obj ) -> String -> Argument input
@@ -772,7 +790,7 @@ body operation maybeUnformattedName q =
         (Encode.object
             (List.filterMap identity 
                 [ Maybe.map (\name -> ( "operationName", Encode.string name )) maybeName
-                , Just ( operation, Encode.string (queryString operation maybeName q) )
+                , Just ( "query", Encode.string (queryString operation maybeName q) )
                 , Just ( "variables", encodedVariables )
                 ]
             )

@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, typeArgument, typeError, typeMutation, typeOptional, typeQuery, typeSelection, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, selectTypeNameButSkip, typeArgument, typeError, typeMutation, typeOptional, typeQuery, typeSelection, union, unsafe, with)
 
 {-| 
 
@@ -492,8 +492,8 @@ arg arg1 arg2 =
 
 
 {-| -}
-argList : Elm.Expression -> Elm.Expression
-argList arg1 =
+argList : Elm.Expression -> Elm.Expression -> Elm.Expression
+argList arg1 arg2 =
     Elm.apply
         (Elm.valueWith
             moduleName_
@@ -507,6 +507,7 @@ argList arg1 =
                         "Argument"
                         [ Type.var "obj" ]
                     ]
+                , Type.namedWith Elm.local "String" []
                 ]
                 (Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
@@ -515,7 +516,7 @@ argList arg1 =
                 )
             )
         )
-        [ arg1 ]
+        [ arg1, arg2 ]
 
 
 {-| -}
@@ -962,6 +963,19 @@ unsafe arg1 =
         [ arg1 ]
 
 
+{-|-}
+selectTypeNameButSkip : Elm.Expression
+selectTypeNameButSkip =
+    Elm.valueWith
+        moduleName_
+        "selectTypeNameButSkip"
+        (Type.namedWith
+            (Elm.moduleName [ "GraphQL", "Engine" ])
+            "Selection"
+            [ Type.var "source", Type.unit ]
+        )
+
+
 {-| Every value/function in this module in case you need to refer to it directly. -}
 id_ :
     { batch : Elm.Expression
@@ -992,6 +1006,7 @@ id_ :
     , encodeArgument : Elm.Expression
     , decodeNullable : Elm.Expression
     , unsafe : Elm.Expression
+    , selectTypeNameButSkip : Elm.Expression
     }
 id_ =
     { batch =
@@ -1339,6 +1354,7 @@ id_ =
                         "Argument"
                         [ Type.var "obj" ]
                     ]
+                , Type.namedWith Elm.local "String" []
                 ]
                 (Type.namedWith
                     (Elm.moduleName [ "GraphQL", "Engine" ])
@@ -1614,5 +1630,14 @@ id_ =
                     "Selection"
                     [ Type.var "unsafe", Type.var "selected" ]
                 )
+            )
+    , selectTypeNameButSkip =
+        Elm.valueWith
+            moduleName_
+            "selectTypeNameButSkip"
+            (Type.namedWith
+                (Elm.moduleName [ "GraphQL", "Engine" ])
+                "Selection"
+                [ Type.var "source", Type.unit ]
             )
     }
