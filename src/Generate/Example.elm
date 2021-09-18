@@ -47,7 +47,11 @@ operation namespace schema ( opType, op ) =
         )
         op.arguments
         -- (Elm.value ("select" ++ GraphQL.Schema.Type.toString returnType))
-        (Engine.select Elm.unit)
+        -- (Engine.select Elm.unit)
+        (Engine.selectTypeNameButSkip 
+            -- (Elm.string "__typename")
+            -- (Decode.succeed (Elm.string "Payload"))
+        )
 
 
 {-|
@@ -281,19 +285,29 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
                     unnullifiedType =
                         denullable field.type_
 
-                    prep =
-                        Elm.apply
-                            (Elm.valueFrom
-                                optionalModule
-                                (Utils.String.formatValue field.name)
-                            )
-                            [ requiredArgsExampleHelper
-                                namespace
-                                schema
-                                called
-                                unnullifiedType
-                                Generate.Input.UnwrappedValue
-                            ]
+                    maybePrep =
+                        let
+                            innerRequired =
+                                requiredArgsExampleHelper
+                                    namespace
+                                    schema
+                                    called
+                                    unnullifiedType
+                                    Generate.Input.UnwrappedValue
+                        in
+                        case innerRequired of
+                            Nothing ->
+                                Nothing
+
+                            Just inner ->
+                                Elm.apply
+                                    (Elm.valueFrom
+                                        optionalModule
+                                        (Utils.String.formatValue field.name)
+                                    )
+                                    [ inner
+                                    ]
+                                    |> Just
                 in
                 optionalArgsExample namespace
                     schema
@@ -302,7 +316,13 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
                     remaining
                     isTopLevel
                     (Set.insert typeString calledType)
-                    (prep :: prepared)
+                    (case maybePrep of
+                        Nothing ->
+                            prepared
+
+                        Just prep ->
+                            prep :: prepared
+                    )
 
 
 {-| -}
@@ -326,16 +346,26 @@ requiredArgsExample namespace schema name called fields =
                 fields
     in
     Elm.record
-        (List.map
+        (List.filterMap
             (\field ->
-                ( field.name
-                , requiredArgsExampleHelper
-                    namespace
-                    schema
-                    called
-                    field.type_
-                    Generate.Input.UnwrappedValue
-                )
+                let
+                    innerContent =
+                        requiredArgsExampleHelper
+                            namespace
+                            schema
+                            called
+                            field.type_
+                            Generate.Input.UnwrappedValue
+                in
+                case innerContent of
+                    Nothing ->
+                        Nothing
+
+                    Just inner ->
+                        Just
+                            ( field.name
+                            , inner
+                            )
             )
             required
             ++ (case optional of
@@ -366,7 +396,7 @@ requiredArgsExampleHelper :
     -> Set String
     -> Type
     -> Generate.Input.Wrapped
-    -> Elm.Expression
+    -> Maybe Elm.Expression
 requiredArgsExampleHelper namespace schema called type_ wrapped =
     case type_ of
         GraphQL.Schema.Type.Nullable newType ->
@@ -378,24 +408,24 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
         GraphQL.Schema.Type.Scalar scalarName ->
             scalarExample scalarName
                 |> Generate.Input.wrapExpression wrapped
+                |> Just
 
         GraphQL.Schema.Type.Enum enumName ->
             enumExample namespace schema enumName
                 |> Generate.Input.wrapExpression wrapped
+                |> Just
 
         GraphQL.Schema.Type.Object nestedObjectName ->
-            Elm.value ("select" ++ Utils.String.formatTypename nestedObjectName)
-                |> Generate.Input.wrapExpression wrapped
+            Nothing
 
         GraphQL.Schema.Type.InputObject inputName ->
             if Set.member inputName called then
-                Elm.value ("additional" ++ inputName)
-                    |> Generate.Input.wrapExpression wrapped
+                Nothing
 
             else
                 case Dict.get inputName schema.inputObjects of
                     Nothing ->
-                        Elm.value inputName
+                        Nothing
 
                     Just input ->
                         let
@@ -405,19 +435,30 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
                         case Generate.Input.splitRequired input.fields of
                             ( required, [] ) ->
                                 Elm.record
-                                    (List.map
+                                    (List.filterMap
                                         (\field ->
-                                            ( field.name
-                                            , requiredArgsExampleHelper namespace
-                                                schema
-                                                newCalled
-                                                field.type_
-                                                Generate.Input.UnwrappedValue
-                                            )
+                                            let
+                                                innerContent =
+                                                    requiredArgsExampleHelper namespace
+                                                        schema
+                                                        newCalled
+                                                        field.type_
+                                                        Generate.Input.UnwrappedValue
+                                            in
+                                            case innerContent of
+                                                Nothing ->
+                                                    Nothing
+
+                                                Just inner ->
+                                                    Just
+                                                        ( field.name
+                                                        , inner
+                                                        )
                                         )
                                         required
                                     )
                                     |> Generate.Input.wrapExpression wrapped
+                                    |> Just
 
                             otherwise ->
                                 createEmbedded namespace
@@ -426,12 +467,13 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
                                     inputName
                                     input.fields
                                     |> Generate.Input.wrapExpression wrapped
+                                    |> Just
 
         GraphQL.Schema.Type.Union unionName ->
-            Elm.unit
+            Nothing
 
         GraphQL.Schema.Type.Interface interfaceName ->
-            Elm.unit
+            Nothing
 
 
 enumExample : String -> GraphQL.Schema.Schema -> String -> Elm.Expression
@@ -478,6 +520,13 @@ scalarExample scalarName =
                 )
                 [ Elm.int 0
                 ]
+
+        "presence" ->
+            Elm.valueFrom
+                (Elm.moduleName
+                    [ "Scalar" ]
+                )
+                "Present"
 
         "url" ->
             Elm.valueFrom

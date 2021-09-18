@@ -1,9 +1,6 @@
 module Generate.Input exposing (..)
 
-{-|
-
-Some helpers to handle inputs types.
-
+{-| Some helpers to handle inputs types.
 -}
 
 import Dict
@@ -57,6 +54,32 @@ getWrap type_ =
 
         _ ->
             UnwrappedValue
+
+
+gqlType : Wrapped -> String -> String
+gqlType wrapped base =
+    case wrapped of
+        UnwrappedValue ->
+            base ++ "!"
+
+        InList inner ->
+            "[" ++ gqlType inner base ++ "]"
+
+        InMaybe inner ->
+            gqlTypeHelper inner base
+
+
+gqlTypeHelper : Wrapped -> String -> String
+gqlTypeHelper wrapped base =
+    case wrapped of
+        UnwrappedValue ->
+            base
+
+        InList inner ->
+            "[" ++ gqlTypeHelper inner base ++ "]"
+
+        InMaybe inner ->
+            gqlTypeHelper inner base
 
 
 
