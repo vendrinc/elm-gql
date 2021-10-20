@@ -7,15 +7,12 @@ import String.Extra
 
 formatTypename : String -> String
 formatTypename name =
-    -- let
-    --     first =
-    --         String.left 1 name
+    let
+        first =
+            String.left 1 name
 
-    -- in
-    -- String.toUpper first ++ (String.dropLeft 1 name)
-    formatScalar name
-
-
+    in
+    String.toUpper first ++ (String.dropLeft 1 name)
 
 
 {-| Converts a string from the gql to a string format that is amenable to Elm's typesystem.
@@ -53,14 +50,11 @@ formatScalar name =
 
 
 
-{-
+{-|
    Same logic as above, but the first letter is lowercase
 
 
-   |
 -}
-
-
 formatValue : String -> String
 formatValue name =
     let

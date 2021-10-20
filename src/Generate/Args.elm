@@ -121,7 +121,7 @@ scalarType wrapped scalarName =
                 _ ->
                     Elm.Annotation.named
                         (Elm.moduleName [ "Scalar" ])
-                        (Utils.String.formatTypename scalarName)
+                        (Utils.String.formatScalar scalarName)
 
 
 {-| Searches the schema and realizes the arguemnts in one annotation.

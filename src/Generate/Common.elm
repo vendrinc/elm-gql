@@ -83,7 +83,7 @@ gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
 
                 _ ->
                     Elm.Annotation.namedWith (Elm.moduleName [ "Scalar" ])
-                        (Utils.String.formatTypename scalarName)
+                        (Utils.String.formatScalar scalarName)
                         appliedToTypes
 
         Enum enumName ->
@@ -139,7 +139,7 @@ localAnnotation namespace gqlType maybeAppliedToTypes =
 
                 _ ->
                     Elm.Annotation.namedWith (Elm.moduleName [ "Scalar" ])
-                        (Utils.String.formatTypename scalarName)
+                        (Utils.String.formatScalar scalarName)
                         appliedToTypes
 
         Enum enumName ->
