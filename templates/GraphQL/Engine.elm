@@ -1,5 +1,6 @@
 module GraphQL.Engine exposing
-    ( batch, nullable, list, field, fieldWith, object, objectWith, decode
+    ( batch
+    , nullable, list, field, fieldWith, object, objectWith, decode
     , enum, maybeEnum
     , union
     , Selection, select, with, map, map2, recover
@@ -9,11 +10,11 @@ module GraphQL.Engine exposing
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeInputObject, encodeArgument
     , decodeNullable
-    , unsafe
-    , selectTypeNameButSkip
+    , unsafe, selectTypeNameButSkip
     )
 
 {-|
+
 @docs batch
 
 @docs nullable, list, field, fieldWith, object, objectWith, decode
@@ -46,8 +47,6 @@ import Json.Encode as Encode
 import Set
 
 
-
-
 {-| Batch a number of selection sets together!
 -}
 batch : List (Selection source data) -> Selection source (List data)
@@ -55,49 +54,41 @@ batch selections =
     Selection <|
         Details
             (\context ->
-            
-                List.foldl 
-                    (\(Selection (Details toFieldsGql _)) (ctxt, fields)  ->
+                List.foldl
+                    (\(Selection (Details toFieldsGql _)) ( ctxt, fields ) ->
                         let
-                            (newCtxt, newFields)
-                                = toFieldsGql ctxt
-
+                            ( newCtxt, newFields ) =
+                                toFieldsGql ctxt
                         in
-                         ( newCtxt
-                         , fields ++ newFields
-                         )
-                    
+                        ( newCtxt
+                        , fields ++ newFields
+                        )
                     )
-                    (context, [])
+                    ( context, [] )
                     selections
             )
             (\context ->
-                List.foldl 
-                    (\(Selection (Details _ toItemDecoder)) (ctxt, cursorFieldsDecoder)  ->
+                List.foldl
+                    (\(Selection (Details _ toItemDecoder)) ( ctxt, cursorFieldsDecoder ) ->
                         let
-                            (newCtxt, itemDecoder)
-                                = toItemDecoder ctxt
-
+                            ( newCtxt, itemDecoder ) =
+                                toItemDecoder ctxt
                         in
-                         ( newCtxt
-                         , cursorFieldsDecoder 
+                        ( newCtxt
+                        , cursorFieldsDecoder
                             |> Json.andThen
                                 (\existingList ->
-                                    Json.map 
-                                        (\item -> 
+                                    Json.map
+                                        (\item ->
                                             item :: existingList
-                                        ) 
+                                        )
                                         itemDecoder
-
                                 )
-                                
-                         )
-                    
+                        )
                     )
-                    (context, Json.succeed [])
+                    ( context, Json.succeed [] )
                     selections
             )
-
 
 
 {-| -}
@@ -133,7 +124,6 @@ union options =
                                 let
                                     ( newContext, fields ) =
                                         fragQuery currentContext
-
 
                                     nonEmptyFields =
                                         case fields of
@@ -259,7 +249,6 @@ list (Selection (Details toFieldsGql toFieldsDecoder)) =
             )
 
 
-
 {-| -}
 object : String -> Selection source data -> Selection otherSource data
 object =
@@ -303,8 +292,7 @@ objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
 
 {-| This adds a bare decoder for data that has already been pulled down.
 
-Note, this is rarely needed!  So far, only when a query or mutation returns a scalar directly without selecting any fields.
-
+Note, this is rarely needed! So far, only when a query or mutation returns a scalar directly without selecting any fields.
 
 -}
 decode : Json.Decoder data -> Selection source data
@@ -313,7 +301,7 @@ decode decoder =
         Details
             (\context ->
                 ( context
-                , [ ]
+                , []
                 )
             )
             (\context ->
@@ -321,7 +309,9 @@ decode decoder =
                 , decoder
                 )
             )
-{-|-}
+
+
+{-| -}
 selectTypeNameButSkip : Selection source ()
 selectTypeNameButSkip =
     Selection <|
@@ -333,7 +323,6 @@ selectTypeNameButSkip =
                 )
             )
             (\context ->
-               
                 ( context
                 , Json.succeed ()
                 )
@@ -545,16 +534,17 @@ argList fields typeName =
     ArgValue
         (fields
             |> Encode.list
-                (\( argVal ) ->
+                (\argVal ->
                     case argVal of
                         ArgValue val _ ->
-                            (  val )
+                            val
 
                         Var varName ->
-                            (  Encode.string varName )
+                            Encode.string varName
                 )
         )
         typeName
+
 
 {-| -}
 encodeInputObject : List ( String, Argument obj ) -> String -> Argument input
@@ -632,11 +622,6 @@ select data =
 with : Selection source a -> Selection source (a -> b) -> Selection source b
 with =
     map2 (|>)
-
-
-
-
-
 
 
 {-| -}
@@ -760,10 +745,9 @@ mutation sel config =
 body : String -> Maybe String -> Selection source data -> Http.Body
 body operation maybeUnformattedName q =
     let
-
         maybeName =
             maybeUnformattedName
-                |> Maybe.map 
+                |> Maybe.map
                     sanitizeOperationName
 
         variables : Dict String (Argument Free)
@@ -788,7 +772,7 @@ body operation maybeUnformattedName q =
     in
     Http.jsonBody
         (Encode.object
-            (List.filterMap identity 
+            (List.filterMap identity
                 [ Maybe.map (\name -> ( "operationName", Encode.string name )) maybeName
                 , Just ( "query", Encode.string (queryString operation maybeName q) )
                 , Just ( "variables", encodedVariables )
@@ -798,19 +782,22 @@ body operation maybeUnformattedName q =
 
 
 {-|
+
     Operation names need to be formatted in a certain way.
 
     This is maybe too restrictive, but this keeps everything as [a-zA-Z0-9] and _
 
     None mathcing characters will be transformed to _.
+
 -}
 sanitizeOperationName : String -> String
 sanitizeOperationName input =
-    String.toList input 
-        |> List.map 
+    String.toList input
+        |> List.map
             (\c ->
                 if Char.isAlphaNum c || c == '_' then
                     c
+
                 else
                     '_'
             )
@@ -833,7 +820,7 @@ expect toMsg (Selection (Details gql toDecoder)) =
         ( context, decoder ) =
             toDecoder empty
     in
-    Http.expectStringResponse toMsg <| 
+    Http.expectStringResponse toMsg <|
         \response ->
             case response of
                 Http.BadUrl_ url ->
@@ -846,8 +833,8 @@ expect toMsg (Selection (Details gql toDecoder)) =
                     Err NetworkError
 
                 Http.BadStatus_ metadata responseBody ->
-                    Err 
-                        (BadStatus 
+                    Err
+                        (BadStatus
                             { status = metadata.statusCode
                             , responseBody = responseBody
                             }
@@ -859,28 +846,27 @@ expect toMsg (Selection (Details gql toDecoder)) =
                             Ok value
 
                         Err err ->
-                            Err 
-                                (BadBody 
+                            Err
+                                (BadBody
                                     { responseBody = responseBody
                                     , decodingError = Json.errorToString err
                                     }
-                                ) 
+                                )
 
 
-{-|-}
+{-| -}
 type Error
     = BadUrl String
     | Timeout
     | NetworkError
-    | BadStatus 
+    | BadStatus
         { status : Int
-        , responseBody : String 
+        , responseBody : String
         }
-    | BadBody 
+    | BadBody
         { decodingError : String
         , responseBody : String
         }
-
 
 
 {-| -}
@@ -889,48 +875,14 @@ queryString operation queryName (Selection (Details gql _)) =
     let
         ( context, fields ) =
             gql empty
-
     in
     operation
         ++ " "
-        ++ (Maybe.withDefault "" queryName)
+        ++ Maybe.withDefault "" queryName
         ++ renderParameters context.variables
         ++ "{"
         ++ fieldsToQueryString fields ""
         ++ "}"
-
-
-renderParameterValues : Dict String (Argument arg) -> String
-renderParameterValues dict =
-    let
-        listParam =
-            Dict.toList dict
-    in
-    case listParam of
-        [] ->
-            ""
-
-        _ ->
-            "{" ++ renderParameterValuesHelper listParam "" ++ "}"
-
-
-renderParameterValuesHelper : List ( String, Argument arg ) -> String -> String
-renderParameterValuesHelper args rendered =
-    case args of
-        [] ->
-            rendered
-
-        ( name, value ) :: remaining ->
-            let
-                comma =
-                    case rendered of
-                        "" ->
-                            ""
-
-                        _ ->
-                            ", "
-            in
-            renderParameterValuesHelper remaining (rendered ++ comma ++ "\"" ++ name ++ "\" :" ++ argToString value)
 
 
 renderParameters : Dict String (Argument arg) -> String
