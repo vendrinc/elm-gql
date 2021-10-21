@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, selectTypeNameButSkip, typeArgument, typeError, typeMutation, typeOptional, typeQuery, typeSelection, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, query, queryString, recover, select, selectTypeNameButSkip, typeArgument, typeError, typeMutation, typeOptional, typeQuery, typeSelection, union, unsafe, with)
 
 {-| 
 
@@ -218,8 +218,7 @@ objectWith arg1 arg2 arg3 =
 
 {-| This adds a bare decoder for data that has already been pulled down.
 
-Note, this is rarely needed!  So far, only when a query or mutation returns a scalar directly without selecting any fields.
-
+Note, this is rarely needed! So far, only when a query or mutation returns a scalar directly without selecting any fields.
 
 -}
 decode : Elm.Expression -> Elm.Expression
@@ -700,7 +699,7 @@ mutation arg1 arg2 =
         [ arg1, arg2 ]
 
 
-{-|-}
+{-| -}
 typeError =
     { annotation = Type.named moduleName_ "Error"
     , badUrl =
@@ -963,7 +962,7 @@ unsafe arg1 =
         [ arg1 ]
 
 
-{-|-}
+{-| -}
 selectTypeNameButSkip : Elm.Expression
 selectTypeNameButSkip =
     Elm.valueWith
@@ -974,6 +973,38 @@ selectTypeNameButSkip =
             "Selection"
             [ Type.var "source", Type.unit ]
         )
+
+
+{-|
+
+
+-}
+prebakedQuery : Elm.Expression -> Elm.Expression -> Elm.Expression
+prebakedQuery arg1 arg2 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "prebakedQuery"
+            (Type.function
+                [ Type.namedWith Elm.local "String" []
+                , Type.namedWith
+                    (Elm.moduleName [ "Json", "Decode" ])
+                    "Decoder"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Selection"
+                    [ Type.namedWith
+                        (Elm.moduleName [ "GraphQL", "Engine" ])
+                        "Query"
+                        []
+                    , Type.var "data"
+                    ]
+                )
+            )
+        )
+        [ arg1, arg2 ]
 
 
 {-| Every value/function in this module in case you need to refer to it directly. -}
@@ -1007,6 +1038,7 @@ id_ :
     , decodeNullable : Elm.Expression
     , unsafe : Elm.Expression
     , selectTypeNameButSkip : Elm.Expression
+    , prebakedQuery : Elm.Expression
     }
 id_ =
     { batch =
@@ -1639,5 +1671,27 @@ id_ =
                 (Elm.moduleName [ "GraphQL", "Engine" ])
                 "Selection"
                 [ Type.var "source", Type.unit ]
+            )
+    , prebakedQuery =
+        Elm.valueWith
+            moduleName_
+            "prebakedQuery"
+            (Type.function
+                [ Type.namedWith Elm.local "String" []
+                , Type.namedWith
+                    (Elm.moduleName [ "Json", "Decode" ])
+                    "Decoder"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    (Elm.moduleName [ "GraphQL", "Engine" ])
+                    "Selection"
+                    [ Type.namedWith
+                        (Elm.moduleName [ "GraphQL", "Engine" ])
+                        "Query"
+                        []
+                    , Type.var "data"
+                    ]
+                )
             )
     }

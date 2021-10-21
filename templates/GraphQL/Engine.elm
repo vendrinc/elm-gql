@@ -10,7 +10,7 @@ module GraphQL.Engine exposing
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeInputObject, encodeArgument
     , decodeNullable
-    , unsafe, selectTypeNameButSkip
+    , unsafe, selectTypeNameButSkip, prebakedQuery
     )
 
 {-|
@@ -36,7 +36,7 @@ module GraphQL.Engine exposing
 @docs encodeOptionals, encodeInputObject, encodeArgument
 
 @docs decodeNullable
-@docs unsafe, selectTypeNameButSkip
+@docs unsafe, selectTypeNameButSkip, prebakedQuery
 
 -}
 
@@ -501,6 +501,9 @@ type Field
       Field String (Maybe String) (List ( String, Argument Free )) (List Field)
       --        ...on FragmentName
     | Fragment String (List Field)
+    -- a piece of GQL that has been validated separately
+    -- This is generally for operational gql
+    | Baked String
 
 
 {-| We can also accept:
@@ -667,6 +670,28 @@ map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields
                 , Json.map2 fn oneDecoderNew twoDecoderNew
                 )
             )
+
+
+{-|
+
+
+-}
+prebakedQuery : String -> Json.Decoder data -> Selection Query data
+prebakedQuery gql decoder =
+    Selection <|
+        Details
+            (\aliases ->
+                ( aliases
+                , [ Baked gql
+                  ]
+                )
+            )
+            (\aliases ->
+                ( aliases
+                , decoder
+                )
+            )
+
 
 
 
@@ -930,6 +955,9 @@ fieldsToQueryString fields rendered =
 renderField : Field -> String
 renderField myField =
     case myField of
+        Baked q ->
+            q
+
         Fragment name fields ->
             "... on "
                 ++ name
