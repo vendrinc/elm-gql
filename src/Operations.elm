@@ -16,6 +16,7 @@ import GraphQL.Operations.AST as AST
 import GraphQL.Operations.Generate
 import GraphQL.Operations.Parse
 import GraphQL.Operations.Validate
+import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Schema
 import Http
 import Json.Decode
@@ -65,7 +66,9 @@ main =
                                   , input = input
                                   , namespace = "Api"
                                   }
-                                , parseAndValidateQuery "Api" schema dashboardQuery
+                                , parseAndValidateQuery "Api" schema 
+                                    -- dashboardQuery
+                                    smallDashboardQuery
                                 )
 
                             SchemaGet details ->
@@ -82,7 +85,9 @@ main =
                 case msg of
                     SchemaReceived (Ok schema) ->
                         ( model
-                        , parseAndValidateQuery model.namespace schema dashboardQuery
+                        , parseAndValidateQuery model.namespace schema 
+                            --dashboardQuery
+                            smallDashboardQuery
                         )
 
                     SchemaReceived (Err err) ->
@@ -108,17 +113,27 @@ parseAndValidateQuery namespace schema queryStr =
                 }
 
         Ok query ->
-            case GraphQL.Operations.Generate.generate schema query ["Ops", "Test"] of
-                Err validationError ->
-                    Elm.Gen.error
-                        { title = "Invalid query"
+            case Canonicalize.canonicalize schema query of
+                Err errors ->
+                     Elm.Gen.error
+                        { title = "Errors"
                         , description =
-                            List.map GraphQL.Operations.Validate.errorToString validationError
+                            List.map Canonicalize.errorToString errors
                                 |> String.join "\n\n    "
                         }
 
-                Ok files ->
-                    Elm.Gen.files (List.map Elm.render files)
+                Ok canAST ->
+                    case GraphQL.Operations.Generate.generate schema queryStr canAST ["Ops", "Test"] of
+                        Err validationError ->
+                            Elm.Gen.error
+                                { title = "Invalid query"
+                                , description =
+                                    List.map GraphQL.Operations.Validate.errorToString validationError
+                                        |> String.join "\n\n    "
+                                }
+
+                        Ok files ->
+                            Elm.Gen.files (List.map Elm.render files)
 
 
 flagsDecoder : Json.Decode.Decoder Input
@@ -174,6 +189,26 @@ httpErrorToString err =
 
         Http.BadBody msg ->
             "Bad Body: " ++ msg
+
+
+
+
+smallDashboardQuery : String
+smallDashboardQuery =
+    """query Dashboard {
+  
+  organization {
+    spendDelta
+    lastMonthSpend
+    aggregateSpendOverTimeReports {
+      amount
+      from
+    }
+  }
+  
+}
+
+"""
 
 
 dashboardQuery : String
