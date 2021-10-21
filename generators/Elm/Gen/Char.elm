@@ -1,77 +1,27 @@
-module Elm.Gen.Char exposing (fromCode, id_, isAlpha, isAlphaNum, isDigit, isHexDigit, isLower, isOctDigit, isUpper, moduleName_, toCode, toLocaleLower, toLocaleUpper, toLower, toUpper)
+module Elm.Gen.Char exposing (fromCode, id_, isAlpha, isAlphaNum, isDigit, isHexDigit, isLower, isOctDigit, isUpper, make_, moduleName_, toCode, toLocaleLower, toLocaleUpper, toLower, toUpper, types_)
+
+{-| 
+-}
+
 
 import Elm
-import Elm.Annotation
+import Elm.Annotation as Type
 
 
 {-| The name of this module. -}
-moduleName_ : Elm.Module
+moduleName_ : List String
 moduleName_ =
-    Elm.moduleName [ "Char" ]
+    [ "Char" ]
 
 
-{-| Every value/function in this module in case you need to refer to it directly. -}
-id_ :
-    { isUpper : Elm.Expression
-    , isLower : Elm.Expression
-    , isAlpha : Elm.Expression
-    , isAlphaNum : Elm.Expression
-    , isDigit : Elm.Expression
-    , isOctDigit : Elm.Expression
-    , isHexDigit : Elm.Expression
-    , toUpper : Elm.Expression
-    , toLower : Elm.Expression
-    , toLocaleUpper : Elm.Expression
-    , toLocaleLower : Elm.Expression
-    , toCode : Elm.Expression
-    , fromCode : Elm.Expression
-    }
-id_ =
-    { isUpper = Elm.valueFrom moduleName_ "isUpper"
-    , isLower = Elm.valueFrom moduleName_ "isLower"
-    , isAlpha = Elm.valueFrom moduleName_ "isAlpha"
-    , isAlphaNum = Elm.valueFrom moduleName_ "isAlphaNum"
-    , isDigit = Elm.valueFrom moduleName_ "isDigit"
-    , isOctDigit = Elm.valueFrom moduleName_ "isOctDigit"
-    , isHexDigit = Elm.valueFrom moduleName_ "isHexDigit"
-    , toUpper = Elm.valueFrom moduleName_ "toUpper"
-    , toLower = Elm.valueFrom moduleName_ "toLower"
-    , toLocaleUpper = Elm.valueFrom moduleName_ "toLocaleUpper"
-    , toLocaleLower = Elm.valueFrom moduleName_ "toLocaleLower"
-    , toCode = Elm.valueFrom moduleName_ "toCode"
-    , fromCode = Elm.valueFrom moduleName_ "fromCode"
-    }
+types_ : { char : Type.Annotation }
+types_ =
+    { char = Type.named moduleName_ "Char" }
 
 
-{-| A `Char` is a single [unicode][u] character:
-
-    'a'
-    '0'
-    'Z'
-    '?'
-    '"'
-    'Σ'
-    '🙈'
-
-    '\t'
-    '\"'
-    '\''
-    '\u{1F648}' -- '🙈'
-
-**Note 1:** You _cannot_ use single quotes around multiple characters like in
-JavaScript. This is how we distinguish [`String`](String#String) and `Char`
-values in syntax.
-
-**Note 2:** You can use the unicode escapes from `\u{0000}` to `\u{10FFFF}` to
-represent characters by their code point. You can also include the unicode
-characters directly. Using the escapes can be better if you need one of the
-many whitespace characters with different widths.
-
-[u]: https://en.wikipedia.org/wiki/Unicode
--}
-typeChar : { annotation : Elm.Annotation.Annotation }
-typeChar =
-    { annotation = Elm.Annotation.named moduleName_ "Char" }
+make_ : {}
+make_ =
+    {}
 
 
 {-| Detect upper case ASCII characters.
@@ -88,7 +38,13 @@ typeChar =
 -}
 isUpper : Elm.Expression -> Elm.Expression
 isUpper arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "isUpper") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "isUpper"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+        )
+        [ arg1 ]
 
 
 {-| Detect lower case ASCII characters.
@@ -105,7 +61,13 @@ isUpper arg1 =
 -}
 isLower : Elm.Expression -> Elm.Expression
 isLower arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "isLower") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "isLower"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+        )
+        [ arg1 ]
 
 
 {-| Detect upper case and lower case ASCII characters.
@@ -121,7 +83,13 @@ isLower arg1 =
 -}
 isAlpha : Elm.Expression -> Elm.Expression
 isAlpha arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "isAlpha") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "isAlpha"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+        )
+        [ arg1 ]
 
 
 {-| Detect upper case and lower case ASCII characters.
@@ -138,7 +106,13 @@ isAlpha arg1 =
 -}
 isAlphaNum : Elm.Expression -> Elm.Expression
 isAlphaNum arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "isAlphaNum") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "isAlphaNum"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+        )
+        [ arg1 ]
 
 
 {-| Detect digits `0123456789`
@@ -154,7 +128,13 @@ isAlphaNum arg1 =
 -}
 isDigit : Elm.Expression -> Elm.Expression
 isDigit arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "isDigit") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "isDigit"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+        )
+        [ arg1 ]
 
 
 {-| Detect octal digits `01234567`
@@ -170,38 +150,86 @@ isDigit arg1 =
 -}
 isOctDigit : Elm.Expression -> Elm.Expression
 isOctDigit arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "isOctDigit") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "isOctDigit"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+        )
+        [ arg1 ]
 
 
 {-| Detect hexadecimal digits `0123456789abcdefABCDEF`
 -}
 isHexDigit : Elm.Expression -> Elm.Expression
 isHexDigit arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "isHexDigit") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "isHexDigit"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+        )
+        [ arg1 ]
 
 
 {-| Convert to upper case. -}
 toUpper : Elm.Expression -> Elm.Expression
 toUpper arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "toUpper") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "toUpper"
+            (Type.function
+                [ Type.namedWith [ "Char" ] "Char" [] ]
+                (Type.namedWith [ "Char" ] "Char" [])
+            )
+        )
+        [ arg1 ]
 
 
 {-| Convert to lower case. -}
 toLower : Elm.Expression -> Elm.Expression
 toLower arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "toLower") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "toLower"
+            (Type.function
+                [ Type.namedWith [ "Char" ] "Char" [] ]
+                (Type.namedWith [ "Char" ] "Char" [])
+            )
+        )
+        [ arg1 ]
 
 
 {-| Convert to upper case, according to any locale-specific case mappings. -}
 toLocaleUpper : Elm.Expression -> Elm.Expression
 toLocaleUpper arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "toLocaleUpper") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "toLocaleUpper"
+            (Type.function
+                [ Type.namedWith [ "Char" ] "Char" [] ]
+                (Type.namedWith [ "Char" ] "Char" [])
+            )
+        )
+        [ arg1 ]
 
 
 {-| Convert to lower case, according to any locale-specific case mappings. -}
 toLocaleLower : Elm.Expression -> Elm.Expression
 toLocaleLower arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "toLocaleLower") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "toLocaleLower"
+            (Type.function
+                [ Type.namedWith [ "Char" ] "Char" [] ]
+                (Type.namedWith [ "Char" ] "Char" [])
+            )
+        )
+        [ arg1 ]
 
 
 {-| Convert to the corresponding Unicode [code point][cp].
@@ -216,7 +244,13 @@ toLocaleLower arg1 =
 -}
 toCode : Elm.Expression -> Elm.Expression
 toCode arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "toCode") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "toCode"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.int)
+        )
+        [ arg1 ]
 
 
 {-| Convert a Unicode [code point][cp] to a character.
@@ -236,4 +270,109 @@ range, you get [the replacement character][fffd].
 -}
 fromCode : Elm.Expression -> Elm.Expression
 fromCode arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "fromCode") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "fromCode"
+            (Type.function [ Type.int ] (Type.namedWith [ "Char" ] "Char" []))
+        )
+        [ arg1 ]
+
+
+{-| Every value/function in this module in case you need to refer to it directly. -}
+id_ :
+    { isUpper : Elm.Expression
+    , isLower : Elm.Expression
+    , isAlpha : Elm.Expression
+    , isAlphaNum : Elm.Expression
+    , isDigit : Elm.Expression
+    , isOctDigit : Elm.Expression
+    , isHexDigit : Elm.Expression
+    , toUpper : Elm.Expression
+    , toLower : Elm.Expression
+    , toLocaleUpper : Elm.Expression
+    , toLocaleLower : Elm.Expression
+    , toCode : Elm.Expression
+    , fromCode : Elm.Expression
+    }
+id_ =
+    { isUpper =
+        Elm.valueWith
+            moduleName_
+            "isUpper"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+    , isLower =
+        Elm.valueWith
+            moduleName_
+            "isLower"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+    , isAlpha =
+        Elm.valueWith
+            moduleName_
+            "isAlpha"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+    , isAlphaNum =
+        Elm.valueWith
+            moduleName_
+            "isAlphaNum"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+    , isDigit =
+        Elm.valueWith
+            moduleName_
+            "isDigit"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+    , isOctDigit =
+        Elm.valueWith
+            moduleName_
+            "isOctDigit"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+    , isHexDigit =
+        Elm.valueWith
+            moduleName_
+            "isHexDigit"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.bool)
+    , toUpper =
+        Elm.valueWith
+            moduleName_
+            "toUpper"
+            (Type.function
+                [ Type.namedWith [ "Char" ] "Char" [] ]
+                (Type.namedWith [ "Char" ] "Char" [])
+            )
+    , toLower =
+        Elm.valueWith
+            moduleName_
+            "toLower"
+            (Type.function
+                [ Type.namedWith [ "Char" ] "Char" [] ]
+                (Type.namedWith [ "Char" ] "Char" [])
+            )
+    , toLocaleUpper =
+        Elm.valueWith
+            moduleName_
+            "toLocaleUpper"
+            (Type.function
+                [ Type.namedWith [ "Char" ] "Char" [] ]
+                (Type.namedWith [ "Char" ] "Char" [])
+            )
+    , toLocaleLower =
+        Elm.valueWith
+            moduleName_
+            "toLocaleLower"
+            (Type.function
+                [ Type.namedWith [ "Char" ] "Char" [] ]
+                (Type.namedWith [ "Char" ] "Char" [])
+            )
+    , toCode =
+        Elm.valueWith
+            moduleName_
+            "toCode"
+            (Type.function [ Type.namedWith [ "Char" ] "Char" [] ] Type.int)
+    , fromCode =
+        Elm.valueWith
+            moduleName_
+            "fromCode"
+            (Type.function [ Type.int ] (Type.namedWith [ "Char" ] "Char" []))
+    }
+
+

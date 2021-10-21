@@ -1,40 +1,27 @@
-module Elm.Gen.Platform.Cmd exposing (batch, id_, map, moduleName_, none)
+module Elm.Gen.Platform.Cmd exposing (batch, id_, make_, map, moduleName_, none, types_)
+
+{-| 
+-}
+
 
 import Elm
-import Elm.Annotation
+import Elm.Annotation as Type
 
 
 {-| The name of this module. -}
-moduleName_ : Elm.Module
+moduleName_ : List String
 moduleName_ =
-    Elm.moduleName [ "Platform", "Cmd" ]
+    [ "Platform", "Cmd" ]
 
 
-{-| Every value/function in this module in case you need to refer to it directly. -}
-id_ : { none : Elm.Expression, batch : Elm.Expression, map : Elm.Expression }
-id_ =
-    { none = Elm.valueFrom moduleName_ "none"
-    , batch = Elm.valueFrom moduleName_ "batch"
-    , map = Elm.valueFrom moduleName_ "map"
-    }
+types_ : { cmd : Type.Annotation -> Type.Annotation }
+types_ =
+    { cmd = \arg0 -> Type.namedWith moduleName_ "Cmd" [ arg0 ] }
 
 
-{-| A command is a way of telling Elm, “Hey, I want you to do this thing!”
-So if you want to send an HTTP request, you would need to command Elm to do it.
-Or if you wanted to ask for geolocation, you would need to command Elm to go
-get it.
-
-Every `Cmd` specifies (1) which effects you need access to and (2) the type of
-messages that will come back into your application.
-
-**Note:** Do not worry if this seems confusing at first! As with every Elm user
-ever, commands will make more sense as you work through [the Elm Architecture
-Tutorial](https://guide.elm-lang.org/architecture/) and see how they
-fit into a real application!
--}
-typeCmd : { annotation : Elm.Annotation.Annotation }
-typeCmd =
-    { annotation = Elm.Annotation.named moduleName_ "Cmd" }
+make_ : {}
+make_ =
+    {}
 
 
 {-| Tell the runtime that there are no commands.
@@ -42,7 +29,10 @@ typeCmd =
 -}
 none : Elm.Expression
 none =
-    Elm.valueFrom moduleName_ "none"
+    Elm.valueWith
+        moduleName_
+        "none"
+        (Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "msg" ])
 
 
 {-| When you need the runtime system to perform a couple commands, you
@@ -55,7 +45,22 @@ all do the same thing.
 -}
 batch : Elm.Expression -> Elm.Expression
 batch arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "batch") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "batch"
+            (Type.function
+                [ Type.list
+                    (Type.namedWith
+                        [ "Platform", "Cmd" ]
+                        "Cmd"
+                        [ Type.var "msg" ]
+                    )
+                ]
+                (Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "msg" ])
+            )
+        )
+        [ arg1 ]
 
 
 {-| Transform the messages produced by a command.
@@ -68,4 +73,52 @@ section on [structure][] in the guide before reaching for this!
 -}
 map : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 map arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "map") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "map"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "msg")
+                , Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "a" ]
+                ]
+                (Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "msg" ])
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
+
+
+{-| Every value/function in this module in case you need to refer to it directly. -}
+id_ : { none : Elm.Expression, batch : Elm.Expression, map : Elm.Expression }
+id_ =
+    { none =
+        Elm.valueWith
+            moduleName_
+            "none"
+            (Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "msg" ])
+    , batch =
+        Elm.valueWith
+            moduleName_
+            "batch"
+            (Type.function
+                [ Type.list
+                    (Type.namedWith
+                        [ "Platform", "Cmd" ]
+                        "Cmd"
+                        [ Type.var "msg" ]
+                    )
+                ]
+                (Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "msg" ])
+            )
+    , map =
+        Elm.valueWith
+            moduleName_
+            "map"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "msg")
+                , Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "a" ]
+                ]
+                (Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "msg" ])
+            )
+    }
+
+

@@ -30,16 +30,16 @@ generateFiles namespace graphQLSchema =
 
                     enumTypeDeclaration =
                         Elm.customType enumDefinition.name
-                            constructors
+                            (List.map (\(name,vals) -> Elm.variantWith name vals) constructors)
 
                     listOfValues =
                         constructors
                             |> List.map
                                 (\( enumName, _ ) ->
                                     Elm.valueWith
-                                        (Elm.moduleName [])
+                                        ( [])
                                         enumName
-                                        (Elm.Annotation.named Elm.local enumDefinition.name)
+                                        (Elm.Annotation.named [] enumDefinition.name)
                                 )
                             |> Elm.list
                             |> Elm.declaration "list"
@@ -58,9 +58,9 @@ generateFiles namespace graphQLSchema =
                                                             (\( name, _ ) ->
                                                                 ( Elm.Pattern.string name
                                                                 , Decode.succeed
-                                                                    (Elm.valueWith Elm.local
+                                                                    (Elm.valueWith []
                                                                         name
-                                                                        (Elm.Annotation.named Elm.local enumDefinition.name)
+                                                                        (Elm.Annotation.named [] enumDefinition.name)
                                                                     )
                                                                 )
                                                             )
@@ -69,15 +69,15 @@ generateFiles namespace graphQLSchema =
                                                     )
                                             )
                                     )
-                                |> Elm.withAnnotation
-                                    (Decode.typeDecoder.annotation
-                                        (Elm.Annotation.named Elm.local enumDefinition.name)
+                                |> Elm.withType
+                                    (Decode.types_.decoder
+                                        (Elm.Annotation.named [] enumDefinition.name)
                                     )
                             )
 
                     enumEncoder =
                         Elm.fn "encode"
-                            ( "val", Elm.Annotation.named Elm.local enumDefinition.name )
+                            ( "val", Elm.Annotation.named [] enumDefinition.name )
                             (\val ->
                                 Elm.caseOf val
                                     (enumDefinition.values

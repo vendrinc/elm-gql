@@ -1,39 +1,27 @@
-module Elm.Gen.Process exposing (id_, kill, moduleName_, sleep, spawn)
+module Elm.Gen.Process exposing (id_, kill, make_, moduleName_, sleep, spawn, types_)
+
+{-| 
+-}
+
 
 import Elm
-import Elm.Annotation
+import Elm.Annotation as Type
 
 
 {-| The name of this module. -}
-moduleName_ : Elm.Module
+moduleName_ : List String
 moduleName_ =
-    Elm.moduleName [ "Process" ]
+    [ "Process" ]
 
 
-{-| Every value/function in this module in case you need to refer to it directly. -}
-id_ : { spawn : Elm.Expression, sleep : Elm.Expression, kill : Elm.Expression }
-id_ =
-    { spawn = Elm.valueFrom moduleName_ "spawn"
-    , sleep = Elm.valueFrom moduleName_ "sleep"
-    , kill = Elm.valueFrom moduleName_ "kill"
-    }
+types_ : { id : Type.Annotation }
+types_ =
+    { id = Type.named moduleName_ "Id" }
 
 
-{-| A light-weight process that runs concurrently. You can use `spawn` to
-get a bunch of different tasks running in different processes. The Elm runtime
-will interleave their progress. So if a task is taking too long, we will pause
-it at an `andThen` and switch over to other stuff.
-
-**Note:** We make a distinction between *concurrency* which means interleaving
-different sequences and *parallelism* which means running different
-sequences at the exact same time. For example, a
-[time-sharing system](https://en.wikipedia.org/wiki/Time-sharing) is definitely
-concurrent, but not necessarily parallel. So even though JS runs within a
-single OS-level thread, Elm can still run things concurrently.
--}
-aliasId : { annotation : Elm.Annotation.Annotation }
-aliasId =
-    { annotation = Elm.Annotation.named moduleName_ "Id" }
+make_ : {}
+make_ =
+    {}
 
 
 {-| Run a task in its own light-weight process. In the following example,
@@ -50,7 +38,24 @@ come in a later release!
 -}
 spawn : Elm.Expression -> Elm.Expression
 spawn arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "spawn") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "spawn"
+            (Type.function
+                [ Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "y", Type.namedWith [ "Process" ] "Id" [] ]
+                )
+            )
+        )
+        [ arg1 ]
 
 
 {-| Block progress on the current process for the given number of milliseconds.
@@ -61,7 +66,16 @@ delay work until later.
 -}
 sleep : Elm.Expression -> Elm.Expression
 sleep arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "sleep") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "sleep"
+            (Type.function
+                [ Type.float ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.unit ])
+            )
+        )
+        [ arg1 ]
 
 
 {-| Sometimes you `spawn` a process, but later decide it would be a waste to
@@ -71,4 +85,53 @@ flight, it will also abort the request.
 -}
 kill : Elm.Expression -> Elm.Expression
 kill arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "kill") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "kill"
+            (Type.function
+                [ Type.namedWith [ "Process" ] "Id" [] ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.unit ])
+            )
+        )
+        [ arg1 ]
+
+
+{-| Every value/function in this module in case you need to refer to it directly. -}
+id_ : { spawn : Elm.Expression, sleep : Elm.Expression, kill : Elm.Expression }
+id_ =
+    { spawn =
+        Elm.valueWith
+            moduleName_
+            "spawn"
+            (Type.function
+                [ Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "y", Type.namedWith [ "Process" ] "Id" [] ]
+                )
+            )
+    , sleep =
+        Elm.valueWith
+            moduleName_
+            "sleep"
+            (Type.function
+                [ Type.float ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.unit ])
+            )
+    , kill =
+        Elm.valueWith
+            moduleName_
+            "kill"
+            (Type.function
+                [ Type.namedWith [ "Process" ] "Id" [] ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.unit ])
+            )
+    }
+
+

@@ -88,13 +88,13 @@ toElmTypeHelper schema astType =
                     Can.nameToString name
             in
             if isPrimitive schema typename then
-                Type.named (Elm.moduleName []) typename
+                Type.named [] typename
 
             else
                 case Dict.get typename schema.inputObjects of
                     Nothing ->
                         -- this should never happen because this is validated...
-                        Type.named (Elm.moduleName []) typename
+                        Type.named  [] typename
 
                     Just input ->
                         case Input.splitRequired input.fields of
@@ -110,7 +110,7 @@ toElmTypeHelper schema astType =
                                     )
 
                             ( required, opts ) ->
-                                Type.named (Elm.moduleName []) typename
+                                Type.named [] typename
 
         Can.List_ inner ->
             Type.list (toElmTypeHelper schema inner)
@@ -292,7 +292,7 @@ schemaTypeToPrefab schemaType =
                     Type.bool
 
                 _ ->
-                    Type.namedWith (Elm.moduleName [ "Scalar" ])
+                    Type.namedWith [ "Scalar" ]
                         (Utils.String.formatScalar scalarName)
                         []
 
@@ -432,7 +432,7 @@ decodeScalarType type_ =
                     Decode.bool
 
                 scal ->
-                    Elm.valueFrom (Elm.moduleName ["Scalar"])
+                    Elm.valueFrom ["Scalar"]
                         (Utils.String.formatValue scalarName)
                         |> Elm.get "decoder"
                     -- Decode.succeed (Elm.string scal)

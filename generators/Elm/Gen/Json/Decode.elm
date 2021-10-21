@@ -1,771 +1,79 @@
-module Elm.Gen.Json.Decode exposing (aliasValue, andThen, array, at, bool, decodeString, decodeValue, dict, errorToString, fail, field, float, id_, index, int, keyValuePairs, lazy, list, map, map2, map3, map4, map5, map6, map7, map8, maybe, moduleName_, null, nullable, oneOf, oneOrMore, string, succeed, typeDecoder, typeError, value)
+module Elm.Gen.Json.Decode exposing (andThen, array, at, bool, decodeString, decodeValue, dict, errorToString, fail, field, float, id_, index, int, keyValuePairs, lazy, list, make_, map, map2, map3, map4, map5, map6, map7, map8, maybe, moduleName_, null, nullable, oneOf, oneOrMore, string, succeed, types_, value)
 
 {-| 
-
-
 -}
+
 
 import Elm
 import Elm.Annotation as Type
 
 
 {-| The name of this module. -}
-moduleName_ : Elm.Module
+moduleName_ : List String
 moduleName_ =
-    Elm.moduleName [ "Json", "Decode" ]
+    [ "Json", "Decode" ]
 
 
-{-| Every value/function in this module in case you need to refer to it directly. -}
-id_ :
-    { string : Elm.Expression
-    , bool : Elm.Expression
-    , int : Elm.Expression
-    , float : Elm.Expression
-    , nullable : Elm.Expression
-    , list : Elm.Expression
-    , array : Elm.Expression
-    , dict : Elm.Expression
-    , keyValuePairs : Elm.Expression
-    , oneOrMore : Elm.Expression
-    , field : Elm.Expression
-    , at : Elm.Expression
-    , index : Elm.Expression
-    , maybe : Elm.Expression
-    , oneOf : Elm.Expression
-    , decodeString : Elm.Expression
-    , decodeValue : Elm.Expression
-    , errorToString : Elm.Expression
-    , map : Elm.Expression
-    , map2 : Elm.Expression
-    , map3 : Elm.Expression
-    , map4 : Elm.Expression
-    , map5 : Elm.Expression
-    , map6 : Elm.Expression
-    , map7 : Elm.Expression
-    , map8 : Elm.Expression
-    , lazy : Elm.Expression
-    , value : Elm.Expression
-    , null : Elm.Expression
-    , succeed : Elm.Expression
-    , fail : Elm.Expression
-    , andThen : Elm.Expression
+types_ :
+    { error : Type.Annotation
+    , value : Type.Annotation
+    , decoder : Type.Annotation -> Type.Annotation
     }
-id_ =
-    { string =
-        Elm.valueWith
-            moduleName_
-            "string"
-            (Type.namedWith
-                (Elm.moduleName [ "Json", "Decode" ])
-                "Decoder"
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" [] ]
-            )
-    , bool =
-        Elm.valueWith
-            moduleName_
-            "bool"
-            (Type.namedWith
-                (Elm.moduleName [ "Json", "Decode" ])
-                "Decoder"
-                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Bool" [] ]
-            )
-    , int =
-        Elm.valueWith
-            moduleName_
-            "int"
-            (Type.namedWith
-                (Elm.moduleName [ "Json", "Decode" ])
-                "Decoder"
-                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Int" [] ]
-            )
-    , float =
-        Elm.valueWith
-            moduleName_
-            "float"
-            (Type.namedWith
-                (Elm.moduleName [ "Json", "Decode" ])
-                "Decoder"
-                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Float" [] ]
-            )
-    , nullable =
-        Elm.valueWith
-            moduleName_
-            "nullable"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Maybe" ])
-                        "Maybe"
-                        [ Type.var "a" ]
-                    ]
-                )
-            )
-    , list =
-        Elm.valueWith
-            moduleName_
-            "list"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "List" ])
-                        "List"
-                        [ Type.var "a" ]
-                    ]
-                )
-            )
-    , array =
-        Elm.valueWith
-            moduleName_
-            "array"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Array" ])
-                        "Array"
-                        [ Type.var "a" ]
-                    ]
-                )
-            )
-    , dict =
-        Elm.valueWith
-            moduleName_
-            "dict"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Dict" ])
-                        "Dict"
-                        [ Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        , Type.var "a"
-                        ]
-                    ]
-                )
-            )
-    , keyValuePairs =
-        Elm.valueWith
-            moduleName_
-            "keyValuePairs"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "List" ])
-                        "List"
-                        [ Type.tuple
-                            (Type.namedWith
-                                (Elm.moduleName [ "String" ])
-                                "String"
-                                []
-                            )
-                            (Type.var "a")
-                        ]
-                    ]
-                )
-            )
-    , oneOrMore =
-        Elm.valueWith
-            moduleName_
-            "oneOrMore"
-            (Type.function
-                [ Type.function
-                    [ Type.var "a"
-                    , Type.namedWith
-                        (Elm.moduleName [ "List" ])
-                        "List"
-                        [ Type.var "a" ]
-                    ]
-                    (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "value" ]
-                )
-            )
-    , field =
-        Elm.valueWith
-            moduleName_
-            "field"
-            (Type.function
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" []
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
-            )
-    , at =
-        Elm.valueWith
-            moduleName_
-            "at"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
-                    "List"
-                    [ Type.namedWith (Elm.moduleName [ "String" ]) "String" [] ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
-            )
-    , index =
-        Elm.valueWith
-            moduleName_
-            "index"
-            (Type.function
-                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Int" []
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
-            )
-    , maybe =
-        Elm.valueWith
-            moduleName_
-            "maybe"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Maybe" ])
-                        "Maybe"
-                        [ Type.var "a" ]
-                    ]
-                )
-            )
-    , oneOf =
-        Elm.valueWith
-            moduleName_
-            "oneOf"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
-                    "List"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Json", "Decode" ])
-                        "Decoder"
-                        [ Type.var "a" ]
-                    ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
-            )
-    , decodeString =
-        Elm.valueWith
-            moduleName_
-            "decodeString"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Result" ])
-                    "Result"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Json", "Decode" ])
-                        "Error"
-                        []
-                    , Type.var "a"
-                    ]
-                )
-            )
-    , decodeValue =
-        Elm.valueWith
-            moduleName_
-            "decodeValue"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Value"
-                    []
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Result" ])
-                    "Result"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Json", "Decode" ])
-                        "Error"
-                        []
-                    , Type.var "a"
-                    ]
-                )
-            )
-    , errorToString =
-        Elm.valueWith
-            moduleName_
-            "errorToString"
-            (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Error"
-                    []
-                ]
-                (Type.namedWith (Elm.moduleName [ "String" ]) "String" [])
-            )
-    , map =
-        Elm.valueWith
-            moduleName_
-            "map"
-            (Type.function
-                [ Type.function [ Type.var "a" ] (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "value" ]
-                )
-            )
-    , map2 =
-        Elm.valueWith
-            moduleName_
-            "map2"
-            (Type.function
-                [ Type.function
-                    [ Type.var "a", Type.var "b" ]
-                    (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "value" ]
-                )
-            )
-    , map3 =
-        Elm.valueWith
-            moduleName_
-            "map3"
-            (Type.function
-                [ Type.function
-                    [ Type.var "a", Type.var "b", Type.var "c" ]
-                    (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "value" ]
-                )
-            )
-    , map4 =
-        Elm.valueWith
-            moduleName_
-            "map4"
-            (Type.function
-                [ Type.function
-                    [ Type.var "a", Type.var "b", Type.var "c", Type.var "d" ]
-                    (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "d" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "value" ]
-                )
-            )
-    , map5 =
-        Elm.valueWith
-            moduleName_
-            "map5"
-            (Type.function
-                [ Type.function
-                    [ Type.var "a"
-                    , Type.var "b"
-                    , Type.var "c"
-                    , Type.var "d"
-                    , Type.var "e"
-                    ]
-                    (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "d" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "e" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "value" ]
-                )
-            )
-    , map6 =
-        Elm.valueWith
-            moduleName_
-            "map6"
-            (Type.function
-                [ Type.function
-                    [ Type.var "a"
-                    , Type.var "b"
-                    , Type.var "c"
-                    , Type.var "d"
-                    , Type.var "e"
-                    , Type.var "f"
-                    ]
-                    (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "d" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "e" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "f" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "value" ]
-                )
-            )
-    , map7 =
-        Elm.valueWith
-            moduleName_
-            "map7"
-            (Type.function
-                [ Type.function
-                    [ Type.var "a"
-                    , Type.var "b"
-                    , Type.var "c"
-                    , Type.var "d"
-                    , Type.var "e"
-                    , Type.var "f"
-                    , Type.var "g"
-                    ]
-                    (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "d" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "e" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "f" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "g" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "value" ]
-                )
-            )
-    , map8 =
-        Elm.valueWith
-            moduleName_
-            "map8"
-            (Type.function
-                [ Type.function
-                    [ Type.var "a"
-                    , Type.var "b"
-                    , Type.var "c"
-                    , Type.var "d"
-                    , Type.var "e"
-                    , Type.var "f"
-                    , Type.var "g"
-                    , Type.var "h"
-                    ]
-                    (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "d" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "e" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "f" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "g" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "h" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "value" ]
-                )
-            )
-    , lazy =
-        Elm.valueWith
-            moduleName_
-            "lazy"
-            (Type.function
-                [ Type.function
-                    [ Type.unit ]
-                    (Type.namedWith
-                        (Elm.moduleName [ "Json", "Decode" ])
-                        "Decoder"
-                        [ Type.var "a" ]
-                    )
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
-            )
-    , value =
-        Elm.valueWith
-            moduleName_
-            "value"
-            (Type.namedWith
-                (Elm.moduleName [ "Json", "Decode" ])
-                "Decoder"
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Value"
-                    []
-                ]
-            )
-    , null =
-        Elm.valueWith
-            moduleName_
-            "null"
-            (Type.function
-                [ Type.var "a" ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
-            )
-    , succeed =
-        Elm.valueWith
-            moduleName_
-            "succeed"
-            (Type.function
-                [ Type.var "a" ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
-            )
-    , fail =
-        Elm.valueWith
-            moduleName_
-            "fail"
-            (Type.function
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" [] ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
-            )
-    , andThen =
-        Elm.valueWith
-            moduleName_
-            "andThen"
-            (Type.function
-                [ Type.function
-                    [ Type.var "a" ]
-                    (Type.namedWith
-                        (Elm.moduleName [ "Json", "Decode" ])
-                        "Decoder"
-                        [ Type.var "b" ]
-                    )
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                )
-            )
+types_ =
+    { error = Type.named moduleName_ "Error"
+    , value = Type.named moduleName_ "Value"
+    , decoder = \arg0 -> Type.namedWith moduleName_ "Decoder" [ arg0 ]
     }
 
 
-{-| A value that knows how to decode JSON values.
-
-There is a whole section in `guide.elm-lang.org` about decoders, so [check it
-out](https://guide.elm-lang.org/interop/json.html) for a more comprehensive
-introduction!
--}
-typeDecoder =
-    { annotation = \arg0 -> Type.namedWith moduleName_ "Decoder" [ arg0 ] }
+make_ :
+    { error :
+        { field : Elm.Expression -> Elm.Expression -> Elm.Expression
+        , index : Elm.Expression -> Elm.Expression -> Elm.Expression
+        , oneOf : Elm.Expression -> Elm.Expression
+        , failure : Elm.Expression -> Elm.Expression -> Elm.Expression
+        }
+    }
+make_ =
+    { error =
+        { field =
+            \ar0 ar1 ->
+                Elm.apply
+                    (Elm.valueWith
+                        moduleName_
+                        "Field"
+                        (Type.namedWith [] "Error" [])
+                    )
+                    [ ar0, ar1 ]
+        , index =
+            \ar0 ar1 ->
+                Elm.apply
+                    (Elm.valueWith
+                        moduleName_
+                        "Index"
+                        (Type.namedWith [] "Error" [])
+                    )
+                    [ ar0, ar1 ]
+        , oneOf =
+            \ar0 ->
+                Elm.apply
+                    (Elm.valueWith
+                        moduleName_
+                        "OneOf"
+                        (Type.namedWith [] "Error" [])
+                    )
+                    [ ar0 ]
+        , failure =
+            \ar0 ar1 ->
+                Elm.apply
+                    (Elm.valueWith
+                        moduleName_
+                        "Failure"
+                        (Type.namedWith [] "Error" [])
+                    )
+                    [ ar0, ar1 ]
+        }
+    }
 
 
 {-| Decode a JSON string into an Elm `String`.
@@ -781,11 +89,7 @@ string =
     Elm.valueWith
         moduleName_
         "string"
-        (Type.namedWith
-            (Elm.moduleName [ "Json", "Decode" ])
-            "Decoder"
-            [ Type.namedWith (Elm.moduleName [ "String" ]) "String" [] ]
-        )
+        (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.string ])
 
 
 {-| Decode a JSON boolean into an Elm `Bool`.
@@ -801,11 +105,7 @@ bool =
     Elm.valueWith
         moduleName_
         "bool"
-        (Type.namedWith
-            (Elm.moduleName [ "Json", "Decode" ])
-            "Decoder"
-            [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Bool" [] ]
-        )
+        (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.bool ])
 
 
 {-| Decode a JSON number into an Elm `Int`.
@@ -821,11 +121,7 @@ int =
     Elm.valueWith
         moduleName_
         "int"
-        (Type.namedWith
-            (Elm.moduleName [ "Json", "Decode" ])
-            "Decoder"
-            [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Int" [] ]
-        )
+        (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.int ])
 
 
 {-| Decode a JSON number into an Elm `Float`.
@@ -841,11 +137,7 @@ float =
     Elm.valueWith
         moduleName_
         "float"
-        (Type.namedWith
-            (Elm.moduleName [ "Json", "Decode" ])
-            "Decoder"
-            [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Float" [] ]
-        )
+        (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.float ])
 
 
 {-| Decode a nullable JSON value into an Elm value.
@@ -862,19 +154,12 @@ nullable arg1 =
             moduleName_
             "nullable"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Maybe" ])
-                        "Maybe"
-                        [ Type.var "a" ]
-                    ]
+                    [ Type.maybe (Type.var "a") ]
                 )
             )
         )
@@ -893,19 +178,12 @@ list arg1 =
             moduleName_
             "list"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "List" ])
-                        "List"
-                        [ Type.var "a" ]
-                    ]
+                    [ Type.list (Type.var "a") ]
                 )
             )
         )
@@ -924,19 +202,12 @@ array arg1 =
             moduleName_
             "array"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Array" ])
-                        "Array"
-                        [ Type.var "a" ]
-                    ]
+                    [ Type.namedWith [ "Array" ] "Array" [ Type.var "a" ] ]
                 )
             )
         )
@@ -993,23 +264,15 @@ dict arg1 =
             moduleName_
             "dict"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.namedWith
-                        (Elm.moduleName [ "Dict" ])
+                        [ "Dict" ]
                         "Dict"
-                        [ Type.namedWith
-                            (Elm.moduleName [ "String" ])
-                            "String"
-                            []
-                        , Type.var "a"
-                        ]
+                        [ Type.string, Type.var "a" ]
                     ]
                 )
             )
@@ -1029,26 +292,12 @@ keyValuePairs arg1 =
             moduleName_
             "keyValuePairs"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "List" ])
-                        "List"
-                        [ Type.tuple
-                            (Type.namedWith
-                                (Elm.moduleName [ "String" ])
-                                "String"
-                                []
-                            )
-                            (Type.var "a")
-                        ]
-                    ]
+                    [ Type.list (Type.tuple Type.string (Type.var "a")) ]
                 )
             )
         )
@@ -1082,20 +331,12 @@ oneOrMore arg1 arg2 =
             "oneOrMore"
             (Type.function
                 [ Type.function
-                    [ Type.var "a"
-                    , Type.namedWith
-                        (Elm.moduleName [ "List" ])
-                        "List"
-                        [ Type.var "a" ]
-                    ]
+                    [ Type.var "a", Type.list (Type.var "a") ]
                     (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "value" ]
                 )
@@ -1125,17 +366,10 @@ field arg1 arg2 =
             moduleName_
             "field"
             (Type.function
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" []
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                [ Type.string
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
             )
         )
         [ arg1, arg2 ]
@@ -1159,20 +393,10 @@ at arg1 arg2 =
             moduleName_
             "at"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
-                    "List"
-                    [ Type.namedWith (Elm.moduleName [ "String" ]) "String" [] ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                [ Type.list Type.string
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
             )
         )
         [ arg1, arg2 ]
@@ -1194,17 +418,10 @@ index arg1 arg2 =
             moduleName_
             "index"
             (Type.function
-                [ Type.namedWith (Elm.moduleName [ "Basics" ]) "Int" []
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                [ Type.int
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
             )
         )
         [ arg1, arg2 ]
@@ -1236,19 +453,12 @@ maybe arg1 =
             moduleName_
             "maybe"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Maybe" ])
-                        "Maybe"
-                        [ Type.var "a" ]
-                    ]
+                    [ Type.maybe (Type.var "a") ]
                 )
             )
         )
@@ -1282,20 +492,14 @@ oneOf arg1 =
             moduleName_
             "oneOf"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "List" ])
-                    "List"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Json", "Decode" ])
+                [ Type.list
+                    (Type.namedWith
+                        [ "Json", "Decode" ]
                         "Decoder"
                         [ Type.var "a" ]
-                    ]
+                    )
                 ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
             )
         )
         [ arg1 ]
@@ -1315,19 +519,13 @@ decodeString arg1 arg2 =
             moduleName_
             "decodeString"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith (Elm.moduleName [ "String" ]) "String" []
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.string
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Result" ])
+                    [ "Result" ]
                     "Result"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Json", "Decode" ])
-                        "Error"
-                        []
+                    [ Type.namedWith [ "Json", "Decode" ] "Error" []
                     , Type.var "a"
                     ]
                 )
@@ -1346,81 +544,19 @@ decodeValue arg1 arg2 =
             moduleName_
             "decodeValue"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Value"
-                    []
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Value" []
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Result" ])
+                    [ "Result" ]
                     "Result"
-                    [ Type.namedWith
-                        (Elm.moduleName [ "Json", "Decode" ])
-                        "Error"
-                        []
+                    [ Type.namedWith [ "Json", "Decode" ] "Error" []
                     , Type.var "a"
                     ]
                 )
             )
         )
         [ arg1, arg2 ]
-
-
-{-| Represents a JavaScript value.
--}
-aliasValue : { annotation : Type.Annotation }
-aliasValue =
-    { annotation = Type.named moduleName_ "Value" }
-
-
-{-| A structured error describing exactly how the decoder failed. You can use
-this to create more elaborate visualizations of a decoder problem. For example,
-you could show the entire JSON object and show the part causing the failure in
-red.
--}
-typeError =
-    { annotation = Type.named moduleName_ "Error"
-    , field =
-        \ar0 ar1 ->
-            Elm.apply
-                (Elm.valueWith
-                    moduleName_
-                    "Field"
-                    (Type.namedWith (Elm.moduleName []) "Error" [])
-                )
-                [ ar0, ar1 ]
-    , index =
-        \ar0 ar1 ->
-            Elm.apply
-                (Elm.valueWith
-                    moduleName_
-                    "Index"
-                    (Type.namedWith (Elm.moduleName []) "Error" [])
-                )
-                [ ar0, ar1 ]
-    , oneOf =
-        \ar0 ->
-            Elm.apply
-                (Elm.valueWith
-                    moduleName_
-                    "OneOf"
-                    (Type.namedWith (Elm.moduleName []) "Error" [])
-                )
-                [ ar0 ]
-    , failure =
-        \ar0 ar1 ->
-            Elm.apply
-                (Elm.valueWith
-                    moduleName_
-                    "Failure"
-                    (Type.namedWith (Elm.moduleName []) "Error" [])
-                )
-                [ ar0, ar1 ]
-    }
 
 
 {-| Convert a decoding error into a `String` that is nice for debugging.
@@ -1446,12 +582,8 @@ errorToString arg1 =
             moduleName_
             "errorToString"
             (Type.function
-                [ Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Error"
-                    []
-                ]
-                (Type.namedWith (Elm.moduleName [ "String" ]) "String" [])
+                [ Type.namedWith [ "Json", "Decode" ] "Error" [] ]
+                Type.string
             )
         )
         [ arg1 ]
@@ -1482,13 +614,10 @@ map arg1 arg2 =
             "map"
             (Type.function
                 [ Type.function [ Type.var "a" ] (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "value" ]
                 )
@@ -1527,17 +656,11 @@ map2 arg1 arg2 arg3 =
                 [ Type.function
                     [ Type.var "a", Type.var "b" ]
                     (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "value" ]
                 )
@@ -1579,21 +702,12 @@ map3 arg1 arg2 arg3 arg4 =
                 [ Type.function
                     [ Type.var "a", Type.var "b", Type.var "c" ]
                     (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "value" ]
                 )
@@ -1623,25 +737,13 @@ map4 arg1 arg2 arg3 arg4 arg5 =
                 [ Type.function
                     [ Type.var "a", Type.var "b", Type.var "c", Type.var "d" ]
                     (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "d" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "d" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "value" ]
                 )
@@ -1678,29 +780,14 @@ map5 arg1 arg2 arg3 arg4 arg5 arg6 =
                     , Type.var "e"
                     ]
                     (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "d" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "e" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "d" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "e" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "value" ]
                 )
@@ -1746,33 +833,15 @@ map6 arg1 arg2 arg3 arg4 arg5 arg6 arg7 =
                     , Type.var "f"
                     ]
                     (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "d" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "e" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "f" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "d" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "e" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "f" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "value" ]
                 )
@@ -1822,37 +891,16 @@ map7 arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 =
                     , Type.var "g"
                     ]
                     (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "d" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "e" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "f" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "g" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "d" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "e" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "f" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "g" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "value" ]
                 )
@@ -1906,41 +954,17 @@ map8 arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 =
                     , Type.var "h"
                     ]
                     (Type.var "value")
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "c" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "d" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "e" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "f" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "g" ]
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "h" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "d" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "e" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "f" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "g" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "h" ]
                 ]
                 (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
+                    [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "value" ]
                 )
@@ -2002,16 +1026,12 @@ lazy arg1 =
                 [ Type.function
                     [ Type.unit ]
                     (Type.namedWith
-                        (Elm.moduleName [ "Json", "Decode" ])
+                        [ "Json", "Decode" ]
                         "Decoder"
                         [ Type.var "a" ]
                     )
                 ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
             )
         )
         [ arg1 Elm.pass ]
@@ -2028,9 +1048,9 @@ value =
         moduleName_
         "value"
         (Type.namedWith
-            (Elm.moduleName [ "Json", "Decode" ])
+            [ "Json", "Decode" ]
             "Decoder"
-            [ Type.namedWith (Elm.moduleName [ "Json", "Decode" ]) "Value" [] ]
+            [ Type.namedWith [ "Json", "Decode" ] "Value" [] ]
         )
 
 
@@ -2051,11 +1071,7 @@ null arg1 =
             "null"
             (Type.function
                 [ Type.var "a" ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
             )
         )
         [ arg1 ]
@@ -2077,11 +1093,7 @@ succeed arg1 =
             "succeed"
             (Type.function
                 [ Type.var "a" ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
             )
         )
         [ arg1 ]
@@ -2100,12 +1112,8 @@ fail arg1 =
             moduleName_
             "fail"
             (Type.function
-                [ Type.namedWith (Elm.moduleName [ "String" ]) "String" [] ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
-                )
+                [ Type.string ]
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
             )
         )
         [ arg1 ]
@@ -2146,20 +1154,500 @@ andThen arg1 arg2 =
                 [ Type.function
                     [ Type.var "a" ]
                     (Type.namedWith
-                        (Elm.moduleName [ "Json", "Decode" ])
+                        [ "Json", "Decode" ]
                         "Decoder"
                         [ Type.var "b" ]
                     )
-                , Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
                 ]
-                (Type.namedWith
-                    (Elm.moduleName [ "Json", "Decode" ])
-                    "Decoder"
-                    [ Type.var "b" ]
-                )
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ])
             )
         )
         [ arg1 Elm.pass, arg2 ]
+
+
+{-| Every value/function in this module in case you need to refer to it directly. -}
+id_ :
+    { string : Elm.Expression
+    , bool : Elm.Expression
+    , int : Elm.Expression
+    , float : Elm.Expression
+    , nullable : Elm.Expression
+    , list : Elm.Expression
+    , array : Elm.Expression
+    , dict : Elm.Expression
+    , keyValuePairs : Elm.Expression
+    , oneOrMore : Elm.Expression
+    , field : Elm.Expression
+    , at : Elm.Expression
+    , index : Elm.Expression
+    , maybe : Elm.Expression
+    , oneOf : Elm.Expression
+    , decodeString : Elm.Expression
+    , decodeValue : Elm.Expression
+    , errorToString : Elm.Expression
+    , map : Elm.Expression
+    , map2 : Elm.Expression
+    , map3 : Elm.Expression
+    , map4 : Elm.Expression
+    , map5 : Elm.Expression
+    , map6 : Elm.Expression
+    , map7 : Elm.Expression
+    , map8 : Elm.Expression
+    , lazy : Elm.Expression
+    , value : Elm.Expression
+    , null : Elm.Expression
+    , succeed : Elm.Expression
+    , fail : Elm.Expression
+    , andThen : Elm.Expression
+    }
+id_ =
+    { string =
+        Elm.valueWith
+            moduleName_
+            "string"
+            (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.string ])
+    , bool =
+        Elm.valueWith
+            moduleName_
+            "bool"
+            (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.bool ])
+    , int =
+        Elm.valueWith
+            moduleName_
+            "int"
+            (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.int ])
+    , float =
+        Elm.valueWith
+            moduleName_
+            "float"
+            (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.float ])
+    , nullable =
+        Elm.valueWith
+            moduleName_
+            "nullable"
+            (Type.function
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.maybe (Type.var "a") ]
+                )
+            )
+    , list =
+        Elm.valueWith
+            moduleName_
+            "list"
+            (Type.function
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.list (Type.var "a") ]
+                )
+            )
+    , array =
+        Elm.valueWith
+            moduleName_
+            "array"
+            (Type.function
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.namedWith [ "Array" ] "Array" [ Type.var "a" ] ]
+                )
+            )
+    , dict =
+        Elm.valueWith
+            moduleName_
+            "dict"
+            (Type.function
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.namedWith
+                        [ "Dict" ]
+                        "Dict"
+                        [ Type.string, Type.var "a" ]
+                    ]
+                )
+            )
+    , keyValuePairs =
+        Elm.valueWith
+            moduleName_
+            "keyValuePairs"
+            (Type.function
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.list (Type.tuple Type.string (Type.var "a")) ]
+                )
+            )
+    , oneOrMore =
+        Elm.valueWith
+            moduleName_
+            "oneOrMore"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.list (Type.var "a") ]
+                    (Type.var "value")
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "value" ]
+                )
+            )
+    , field =
+        Elm.valueWith
+            moduleName_
+            "field"
+            (Type.function
+                [ Type.string
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
+            )
+    , at =
+        Elm.valueWith
+            moduleName_
+            "at"
+            (Type.function
+                [ Type.list Type.string
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
+            )
+    , index =
+        Elm.valueWith
+            moduleName_
+            "index"
+            (Type.function
+                [ Type.int
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
+            )
+    , maybe =
+        Elm.valueWith
+            moduleName_
+            "maybe"
+            (Type.function
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.maybe (Type.var "a") ]
+                )
+            )
+    , oneOf =
+        Elm.valueWith
+            moduleName_
+            "oneOf"
+            (Type.function
+                [ Type.list
+                    (Type.namedWith
+                        [ "Json", "Decode" ]
+                        "Decoder"
+                        [ Type.var "a" ]
+                    )
+                ]
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
+            )
+    , decodeString =
+        Elm.valueWith
+            moduleName_
+            "decodeString"
+            (Type.function
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.string
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.namedWith [ "Json", "Decode" ] "Error" []
+                    , Type.var "a"
+                    ]
+                )
+            )
+    , decodeValue =
+        Elm.valueWith
+            moduleName_
+            "decodeValue"
+            (Type.function
+                [ Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Value" []
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.namedWith [ "Json", "Decode" ] "Error" []
+                    , Type.var "a"
+                    ]
+                )
+            )
+    , errorToString =
+        Elm.valueWith
+            moduleName_
+            "errorToString"
+            (Type.function
+                [ Type.namedWith [ "Json", "Decode" ] "Error" [] ]
+                Type.string
+            )
+    , map =
+        Elm.valueWith
+            moduleName_
+            "map"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "value")
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "value" ]
+                )
+            )
+    , map2 =
+        Elm.valueWith
+            moduleName_
+            "map2"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b" ]
+                    (Type.var "value")
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "value" ]
+                )
+            )
+    , map3 =
+        Elm.valueWith
+            moduleName_
+            "map3"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b", Type.var "c" ]
+                    (Type.var "value")
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "value" ]
+                )
+            )
+    , map4 =
+        Elm.valueWith
+            moduleName_
+            "map4"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b", Type.var "c", Type.var "d" ]
+                    (Type.var "value")
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "d" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "value" ]
+                )
+            )
+    , map5 =
+        Elm.valueWith
+            moduleName_
+            "map5"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a"
+                    , Type.var "b"
+                    , Type.var "c"
+                    , Type.var "d"
+                    , Type.var "e"
+                    ]
+                    (Type.var "value")
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "d" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "e" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "value" ]
+                )
+            )
+    , map6 =
+        Elm.valueWith
+            moduleName_
+            "map6"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a"
+                    , Type.var "b"
+                    , Type.var "c"
+                    , Type.var "d"
+                    , Type.var "e"
+                    , Type.var "f"
+                    ]
+                    (Type.var "value")
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "d" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "e" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "f" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "value" ]
+                )
+            )
+    , map7 =
+        Elm.valueWith
+            moduleName_
+            "map7"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a"
+                    , Type.var "b"
+                    , Type.var "c"
+                    , Type.var "d"
+                    , Type.var "e"
+                    , Type.var "f"
+                    , Type.var "g"
+                    ]
+                    (Type.var "value")
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "d" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "e" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "f" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "g" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "value" ]
+                )
+            )
+    , map8 =
+        Elm.valueWith
+            moduleName_
+            "map8"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a"
+                    , Type.var "b"
+                    , Type.var "c"
+                    , Type.var "d"
+                    , Type.var "e"
+                    , Type.var "f"
+                    , Type.var "g"
+                    , Type.var "h"
+                    ]
+                    (Type.var "value")
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "c" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "d" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "e" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "f" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "g" ]
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "h" ]
+                ]
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "value" ]
+                )
+            )
+    , lazy =
+        Elm.valueWith
+            moduleName_
+            "lazy"
+            (Type.function
+                [ Type.function
+                    [ Type.unit ]
+                    (Type.namedWith
+                        [ "Json", "Decode" ]
+                        "Decoder"
+                        [ Type.var "a" ]
+                    )
+                ]
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
+            )
+    , value =
+        Elm.valueWith
+            moduleName_
+            "value"
+            (Type.namedWith
+                [ "Json", "Decode" ]
+                "Decoder"
+                [ Type.namedWith [ "Json", "Decode" ] "Value" [] ]
+            )
+    , null =
+        Elm.valueWith
+            moduleName_
+            "null"
+            (Type.function
+                [ Type.var "a" ]
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
+            )
+    , succeed =
+        Elm.valueWith
+            moduleName_
+            "succeed"
+            (Type.function
+                [ Type.var "a" ]
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
+            )
+    , fail =
+        Elm.valueWith
+            moduleName_
+            "fail"
+            (Type.function
+                [ Type.string ]
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ])
+            )
+    , andThen =
+        Elm.valueWith
+            moduleName_
+            "andThen"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        [ "Json", "Decode" ]
+                        "Decoder"
+                        [ Type.var "b" ]
+                    )
+                , Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "a" ]
+                ]
+                (Type.namedWith [ "Json", "Decode" ] "Decoder" [ Type.var "b" ])
+            )
+    }
+
+

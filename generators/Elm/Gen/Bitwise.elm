@@ -1,61 +1,79 @@
-module Elm.Gen.Bitwise exposing (and, complement, id_, moduleName_, or, shiftLeftBy, shiftRightBy, shiftRightZfBy, xor)
+module Elm.Gen.Bitwise exposing (and, complement, id_, make_, moduleName_, or, shiftLeftBy, shiftRightBy, shiftRightZfBy, types_, xor)
+
+{-| 
+-}
+
 
 import Elm
+import Elm.Annotation as Type
 
 
 {-| The name of this module. -}
-moduleName_ : Elm.Module
+moduleName_ : List String
 moduleName_ =
-    Elm.moduleName [ "Bitwise" ]
+    [ "Bitwise" ]
 
 
-{-| Every value/function in this module in case you need to refer to it directly. -}
-id_ :
-    { and : Elm.Expression
-    , or : Elm.Expression
-    , xor : Elm.Expression
-    , complement : Elm.Expression
-    , shiftLeftBy : Elm.Expression
-    , shiftRightBy : Elm.Expression
-    , shiftRightZfBy : Elm.Expression
-    }
-id_ =
-    { and = Elm.valueFrom moduleName_ "and"
-    , or = Elm.valueFrom moduleName_ "or"
-    , xor = Elm.valueFrom moduleName_ "xor"
-    , complement = Elm.valueFrom moduleName_ "complement"
-    , shiftLeftBy = Elm.valueFrom moduleName_ "shiftLeftBy"
-    , shiftRightBy = Elm.valueFrom moduleName_ "shiftRightBy"
-    , shiftRightZfBy = Elm.valueFrom moduleName_ "shiftRightZfBy"
-    }
+types_ : {}
+types_ =
+    {}
+
+
+make_ : {}
+make_ =
+    {}
 
 
 {-| Bitwise AND
 -}
 and : Elm.Expression -> Elm.Expression -> Elm.Expression
 and arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "and") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "and"
+            (Type.function [ Type.int, Type.int ] Type.int)
+        )
+        [ arg1, arg2 ]
 
 
 {-| Bitwise OR
 -}
 or : Elm.Expression -> Elm.Expression -> Elm.Expression
 or arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "or") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "or"
+            (Type.function [ Type.int, Type.int ] Type.int)
+        )
+        [ arg1, arg2 ]
 
 
 {-| Bitwise XOR
 -}
 xor : Elm.Expression -> Elm.Expression -> Elm.Expression
 xor arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "xor") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "xor"
+            (Type.function [ Type.int, Type.int ] Type.int)
+        )
+        [ arg1, arg2 ]
 
 
 {-| Flip each bit individually, often called bitwise NOT
 -}
 complement : Elm.Expression -> Elm.Expression
 complement arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "complement") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "complement"
+            (Type.function [ Type.int ] Type.int)
+        )
+        [ arg1 ]
 
 
 {-| Shift bits to the left by a given offset, filling new bits with zeros.
@@ -66,7 +84,13 @@ This can be used to multiply numbers by powers of two.
 -}
 shiftLeftBy : Elm.Expression -> Elm.Expression -> Elm.Expression
 shiftLeftBy arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "shiftLeftBy") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "shiftLeftBy"
+            (Type.function [ Type.int, Type.int ] Type.int)
+        )
+        [ arg1, arg2 ]
 
 
 {-| Shift bits to the right by a given offset, filling new bits with
@@ -84,7 +108,13 @@ with copies of the highest bit.
 -}
 shiftRightBy : Elm.Expression -> Elm.Expression -> Elm.Expression
 shiftRightBy arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "shiftRightBy") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "shiftRightBy"
+            (Type.function [ Type.int, Type.int ] Type.int)
+        )
+        [ arg1, arg2 ]
 
 
 {-| Shift bits to the right by a given offset, filling new bits with zeros.
@@ -101,4 +131,61 @@ zeros.
 -}
 shiftRightZfBy : Elm.Expression -> Elm.Expression -> Elm.Expression
 shiftRightZfBy arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "shiftRightZfBy") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "shiftRightZfBy"
+            (Type.function [ Type.int, Type.int ] Type.int)
+        )
+        [ arg1, arg2 ]
+
+
+{-| Every value/function in this module in case you need to refer to it directly. -}
+id_ :
+    { and : Elm.Expression
+    , or : Elm.Expression
+    , xor : Elm.Expression
+    , complement : Elm.Expression
+    , shiftLeftBy : Elm.Expression
+    , shiftRightBy : Elm.Expression
+    , shiftRightZfBy : Elm.Expression
+    }
+id_ =
+    { and =
+        Elm.valueWith
+            moduleName_
+            "and"
+            (Type.function [ Type.int, Type.int ] Type.int)
+    , or =
+        Elm.valueWith
+            moduleName_
+            "or"
+            (Type.function [ Type.int, Type.int ] Type.int)
+    , xor =
+        Elm.valueWith
+            moduleName_
+            "xor"
+            (Type.function [ Type.int, Type.int ] Type.int)
+    , complement =
+        Elm.valueWith
+            moduleName_
+            "complement"
+            (Type.function [ Type.int ] Type.int)
+    , shiftLeftBy =
+        Elm.valueWith
+            moduleName_
+            "shiftLeftBy"
+            (Type.function [ Type.int, Type.int ] Type.int)
+    , shiftRightBy =
+        Elm.valueWith
+            moduleName_
+            "shiftRightBy"
+            (Type.function [ Type.int, Type.int ] Type.int)
+    , shiftRightZfBy =
+        Elm.valueWith
+            moduleName_
+            "shiftRightZfBy"
+            (Type.function [ Type.int, Type.int ] Type.int)
+    }
+
+

@@ -39,7 +39,7 @@ modules =
 selection : String -> String -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
 selection namespace name data =
     Elm.Annotation.namedWith
-        (Elm.moduleName [ namespace ])
+        [ namespace ]
         name
         [ data ]
 
@@ -47,17 +47,17 @@ selection namespace name data =
 selectionLocal : String -> String -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
 selectionLocal namespace name data =
     Elm.Annotation.namedWith
-        Elm.local
+        []
         name
         [ data ]
 
 
 ref namespace name =
-    Elm.Annotation.named (Elm.moduleName [ namespace ]) name
+    Elm.Annotation.named [ namespace ] name
 
 
 local namespace name =
-    Elm.Annotation.named Elm.local name
+    Elm.Annotation.named [] name
 
 
 gqlTypeToElmTypeAnnotation : String -> GraphQL.Schema.Type.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
@@ -82,12 +82,12 @@ gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
                     Elm.Annotation.bool
 
                 _ ->
-                    Elm.Annotation.namedWith (Elm.moduleName [ "Scalar" ])
+                    Elm.Annotation.namedWith ( [ "Scalar" ])
                         (Utils.String.formatScalar scalarName)
                         appliedToTypes
 
         Enum enumName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Enum", enumName ]) enumName appliedToTypes
+            Elm.Annotation.namedWith ( [ namespace, "Enum", enumName ]) enumName appliedToTypes
 
         List_ listElementType ->
             let
@@ -138,12 +138,12 @@ localAnnotation namespace gqlType maybeAppliedToTypes =
                     Elm.Annotation.bool
 
                 _ ->
-                    Elm.Annotation.namedWith (Elm.moduleName [ "Scalar" ])
+                    Elm.Annotation.namedWith ( [ "Scalar" ])
                         (Utils.String.formatScalar scalarName)
                         appliedToTypes
 
         Enum enumName ->
-            Elm.Annotation.namedWith (Elm.moduleName [ namespace, "Enum", enumName ]) enumName appliedToTypes
+            Elm.Annotation.namedWith ( [ namespace, "Enum", enumName ]) enumName appliedToTypes
 
         List_ listElementType ->
             let

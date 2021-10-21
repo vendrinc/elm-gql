@@ -64,7 +64,7 @@ encodeScalar scalarName wrapped =
                 _ ->
                     \val ->
                         Elm.apply
-                            (Elm.valueFrom (Elm.moduleName [ "Scalar" ])
+                            (Elm.valueFrom ( [ "Scalar" ])
                                 (Utils.String.formatValue scalarName)
                                 |> Elm.get "encode"
                             )
@@ -120,7 +120,7 @@ scalarType wrapped scalarName =
 
                 _ ->
                     Elm.Annotation.named
-                        (Elm.moduleName [ "Scalar" ])
+                        ( [ "Scalar" ])
                         (Utils.String.formatScalar scalarName)
 
 
@@ -282,19 +282,19 @@ annotations =
     { optional =
         \namespace name ->
             Elm.Annotation.namedWith
-                (Elm.moduleName (Generate.Common.modules.input namespace name))
+                ( (Generate.Common.modules.input namespace name))
                 "Optional"
                 []
     , safeOptional =
         \namespace name ->
-            Engine.typeOptional.annotation
-                (Elm.Annotation.named (Elm.moduleName [ namespace ])
+            Engine.types_.optional
+                (Elm.Annotation.named ( [ namespace ])
                     name
                 )
     , localOptional =
         \namespace name ->
             Elm.Annotation.namedWith
-                Elm.local
+                []
                 "Optional"
                 []
     , arg =
@@ -329,13 +329,15 @@ nullsRecord namespace name fields =
     Elm.record
         (List.map
             (\field ->
-                ( Utils.String.formatValue field.name
-                , Engine.arg Encode.null (Elm.string (inputTypeToString field.type_))
-                    |> Engine.optional
-                        (Elm.string field.name)
-                    |> Elm.withAnnotation
-                        (annotations.localOptional namespace name)
-                )
+                Elm.field 
+                    (Utils.String.formatValue field.name)
+                    (Engine.arg Encode.null (Elm.string (inputTypeToString field.type_))
+                        |> Engine.optional
+                            (Elm.string field.name)
+                        |> Elm.withType
+                            (annotations.localOptional namespace name)
+                    )
+
             )
             fields
         )
@@ -406,11 +408,11 @@ optionsRecursiveHelper namespace schema name options fields =
                             arg.type_
                             wrapping
                             val
-                            |> Elm.withAnnotation
+                            |> Elm.withType
                                 (annotations.arg namespace name)
                             |> Engine.optional
                                 (Elm.string arg.name)
-                            |> Elm.withAnnotation
+                            |> Elm.withType
                                 (annotations.localOptional namespace name)
                     )
                     |> Elm.expose
@@ -433,9 +435,7 @@ inputAnnotationRecursive namespace schema type_ wrapped =
 
         GraphQL.Schema.Type.Enum enumName ->
             Elm.Annotation.named
-                (Generate.Common.modules.enum namespace enumName
-                    |> Elm.moduleName
-                )
+                (Generate.Common.modules.enum namespace enumName)
                 enumName
                 |> unwrapWith wrapped
 
@@ -542,7 +542,7 @@ encodeInputRecursive namespace schema fieldType wrapped val =
                 (encodeWrappedInverted wrapped
                     (\v ->
                         Elm.apply
-                            (Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ]) "encode")
+                            (Elm.valueFrom ( [ namespace, "Enum", enumName ]) "encode")
                             [ v
                             ]
                     )
@@ -687,7 +687,7 @@ encodeInput namespace fieldType wrapped val =
                 (encodeWrappedInverted wrapped
                     (\v ->
                         Elm.apply
-                            (Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ]) "encode")
+                            (Elm.valueFrom ( [ namespace, "Enum", enumName ]) "encode")
                             [ v
                             ]
                     )
@@ -964,7 +964,7 @@ createBuilder namespace schema name arguments returnType operation =
             if hasOptionalArgs then
                 Engine.encodeOptionals
                     (Elm.valueWith
-                        (Elm.moduleName [])
+                        ( [])
                         embeddedOptionsFieldName
                         (Elm.Annotation.list
                             (annotations.localOptional namespace name)
@@ -989,7 +989,7 @@ createBuilder namespace schema name arguments returnType operation =
 
         returnSelection =
             if needsInnerSelection returnType then
-                Elm.valueWith Elm.local
+                Elm.valueWith []
                     "selection"
                     (Generate.Common.selection namespace
                         (GraphQL.Schema.Type.toString returnType)
@@ -1011,7 +1011,7 @@ createBuilder namespace schema name arguments returnType operation =
             else
                 Generate.Common.selection namespace
                     (Input.operationToString operation)
-                    (Elm.Annotation.named Elm.local (GraphQL.Schema.Type.toElmString returnType))
+                    (Elm.Annotation.named [] (GraphQL.Schema.Type.toElmString returnType))
 
         return =
             Engine.objectWith
@@ -1031,7 +1031,7 @@ createBuilder namespace schema name arguments returnType operation =
                 )
                 (Elm.string name)
                 returnSelection
-                |> Elm.withAnnotation returnAnnotation
+                |> Elm.withType returnAnnotation
     in
     Elm.functionWith (Utils.String.formatValue name)
         (List.filterMap identity

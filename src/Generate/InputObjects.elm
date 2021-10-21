@@ -34,10 +34,9 @@ inputObjectToOptionalBuilders namespace schema input =
                     True
 
         optionalTypeAlias =
-            Elm.aliasWith "Optional"
-                []
-                (Engine.typeOptional.annotation
-                    (Elm.Annotation.named (Elm.moduleName [ namespace ])
+            Elm.alias "Optional"
+                (Engine.types_.optional
+                    (Elm.Annotation.named ( [ namespace ])
                         input.name
                     )
                 )

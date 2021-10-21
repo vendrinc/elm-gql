@@ -40,7 +40,7 @@ scalar scalarName wrapped =
                     Json.bool
 
                 _ ->
-                    Elm.valueFrom (Elm.moduleName [ "Scalar" ]) (Utils.String.formatValue scalarName)
+                    Elm.valueFrom ( [ "Scalar" ]) (Utils.String.formatValue scalarName)
                         |> Elm.get "decoder"
     in
     decodeWrapper wrapped decoder

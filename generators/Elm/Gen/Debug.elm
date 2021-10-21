@@ -1,21 +1,27 @@
-module Elm.Gen.Debug exposing (id_, log, moduleName_, toString, todo)
+module Elm.Gen.Debug exposing (id_, log, make_, moduleName_, toString, todo, types_)
+
+{-| 
+-}
+
 
 import Elm
+import Elm.Annotation as Type
 
 
 {-| The name of this module. -}
-moduleName_ : Elm.Module
+moduleName_ : List String
 moduleName_ =
-    Elm.moduleName [ "Debug" ]
+    [ "Debug" ]
 
 
-{-| Every value/function in this module in case you need to refer to it directly. -}
-id_ : { toString : Elm.Expression, log : Elm.Expression, todo : Elm.Expression }
-id_ =
-    { toString = Elm.valueFrom moduleName_ "toString"
-    , log = Elm.valueFrom moduleName_ "log"
-    , todo = Elm.valueFrom moduleName_ "todo"
-    }
+types_ : {}
+types_ =
+    {}
+
+
+make_ : {}
+make_ =
+    {}
 
 
 {-| Turn any kind of value into a string.
@@ -37,7 +43,13 @@ use `toString` because they may be used in `--optimize` mode.
 -}
 toString : Elm.Expression -> Elm.Expression
 toString arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "toString") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "toString"
+            (Type.function [ Type.var "a" ] Type.string)
+        )
+        [ arg1 ]
 
 
 {-| Log a tagged value on the developer console, and then return the value.
@@ -60,7 +72,13 @@ applications are the primary focus of platform development for now.
 -}
 log : Elm.Expression -> Elm.Expression -> Elm.Expression
 log arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "log") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "log"
+            (Type.function [ Type.string, Type.var "a" ] (Type.var "a"))
+        )
+        [ arg1, arg2 ]
 
 
 {-| This is a placeholder for code that you will write later.
@@ -95,4 +113,33 @@ goes unhandled!
 -}
 todo : Elm.Expression -> Elm.Expression
 todo arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "todo") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "todo"
+            (Type.function [ Type.string ] (Type.var "a"))
+        )
+        [ arg1 ]
+
+
+{-| Every value/function in this module in case you need to refer to it directly. -}
+id_ : { toString : Elm.Expression, log : Elm.Expression, todo : Elm.Expression }
+id_ =
+    { toString =
+        Elm.valueWith
+            moduleName_
+            "toString"
+            (Type.function [ Type.var "a" ] Type.string)
+    , log =
+        Elm.valueWith
+            moduleName_
+            "log"
+            (Type.function [ Type.string, Type.var "a" ] (Type.var "a"))
+    , todo =
+        Elm.valueWith
+            moduleName_
+            "todo"
+            (Type.function [ Type.string ] (Type.var "a"))
+    }
+
+

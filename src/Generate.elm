@@ -119,15 +119,14 @@ generateSchema namespace schema =
         --     Generate.Paged.generate namespace schema
     in
     Elm.Gen.files
-        (List.map Elm.render
-            (unionFiles
-                ++ enumFiles
-                ++ objectFiles
-                ++ queryFiles
-                ++ mutationFiles
-                ++ inputFiles
-            )
+        (unionFiles
+            ++ enumFiles
+            ++ objectFiles
+            ++ queryFiles
+            ++ mutationFiles
+            ++ inputFiles
         )
+        
 
 
 flagsDecoder : Json.Decode.Decoder Input

@@ -1,72 +1,27 @@
-module Elm.Gen.Task exposing (andThen, attempt, fail, id_, map, map2, map3, map4, map5, mapError, moduleName_, onError, perform, sequence, succeed)
+module Elm.Gen.Task exposing (andThen, attempt, fail, id_, make_, map, map2, map3, map4, map5, mapError, moduleName_, onError, perform, sequence, succeed, types_)
+
+{-| 
+-}
+
 
 import Elm
-import Elm.Annotation
+import Elm.Annotation as Type
 
 
 {-| The name of this module. -}
-moduleName_ : Elm.Module
+moduleName_ : List String
 moduleName_ =
-    Elm.moduleName [ "Task" ]
+    [ "Task" ]
 
 
-{-| Every value/function in this module in case you need to refer to it directly. -}
-id_ :
-    { perform : Elm.Expression
-    , attempt : Elm.Expression
-    , andThen : Elm.Expression
-    , succeed : Elm.Expression
-    , fail : Elm.Expression
-    , sequence : Elm.Expression
-    , map : Elm.Expression
-    , map2 : Elm.Expression
-    , map3 : Elm.Expression
-    , map4 : Elm.Expression
-    , map5 : Elm.Expression
-    , onError : Elm.Expression
-    , mapError : Elm.Expression
-    }
-id_ =
-    { perform = Elm.valueFrom moduleName_ "perform"
-    , attempt = Elm.valueFrom moduleName_ "attempt"
-    , andThen = Elm.valueFrom moduleName_ "andThen"
-    , succeed = Elm.valueFrom moduleName_ "succeed"
-    , fail = Elm.valueFrom moduleName_ "fail"
-    , sequence = Elm.valueFrom moduleName_ "sequence"
-    , map = Elm.valueFrom moduleName_ "map"
-    , map2 = Elm.valueFrom moduleName_ "map2"
-    , map3 = Elm.valueFrom moduleName_ "map3"
-    , map4 = Elm.valueFrom moduleName_ "map4"
-    , map5 = Elm.valueFrom moduleName_ "map5"
-    , onError = Elm.valueFrom moduleName_ "onError"
-    , mapError = Elm.valueFrom moduleName_ "mapError"
-    }
+types_ : { task : Type.Annotation -> Type.Annotation -> Type.Annotation }
+types_ =
+    { task = \arg0 arg1 -> Type.namedWith moduleName_ "Task" [ arg0, arg1 ] }
 
 
-{-| Here are some common tasks:
-
-- [`now : Task x Posix`][now]
-- [`focus : String -> Task Error ()`][focus]
-- [`sleep : Float -> Task x ()`][sleep]
-
-[now]: /packages/elm/time/latest/Time#now
-[focus]: /packages/elm/browser/latest/Browser-Dom#focus
-[sleep]: /packages/elm/core/latest/Process#sleep
-
-In each case we have a `Task` that will resolve successfully with an `a` value
-or unsuccessfully with an `x` value. So `Browser.Dom.focus` we may fail with an
-`Error` if the given ID does not exist. Whereas `Time.now` never fails so
-I cannot be more specific than `x`. No such value will ever exist! Instead it
-always succeeds with the current POSIX time.
-
-More generally a task is a _description_ of what you need to do. Like a todo
-list. Or like a grocery list. Or like GitHub issues. So saying "the task is
-to tell me the current POSIX time" does not complete the task! You need
-[`perform`](#perform) tasks or [`attempt`](#attempt) tasks.
--}
-aliasTask : { annotation : Elm.Annotation.Annotation }
-aliasTask =
-    { annotation = Elm.Annotation.named moduleName_ "Task" }
+make_ : {}
+make_ =
+    {}
 
 
 {-| Like I was saying in the [`Task`](#Task) documentation, just having a
@@ -93,7 +48,21 @@ delicious lasagna and give it to my `update` function as a `Msg` value."
 -}
 perform : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 perform arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "perform") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "perform"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "msg")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.namedWith [ "Basics" ] "Never" [], Type.var "a" ]
+                ]
+                (Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "msg" ])
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| This is very similar to [`perform`](#perform) except it can handle failures!
@@ -122,7 +91,27 @@ feeling for how commands fit into The Elm Architecture.
 -}
 attempt : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 attempt arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "attempt") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "attempt"
+            (Type.function
+                [ Type.function
+                    [ Type.namedWith
+                        [ "Result" ]
+                        "Result"
+                        [ Type.var "x", Type.var "a" ]
+                    ]
+                    (Type.var "msg")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "msg" ])
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| Chain together a task and a callback. The first task will run, and if it is
@@ -142,7 +131,28 @@ First the process sleeps for an hour **and then** it tells us what time it is.
 -}
 andThen : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 andThen arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "andThen") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "andThen"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        [ "Task" ]
+                        "Task"
+                        [ Type.var "x", Type.var "b" ]
+                    )
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.var "b" ]
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| A task that succeeds immediately when run. It is usually used with
@@ -158,7 +168,17 @@ andThen arg1 arg2 =
 -}
 succeed : Elm.Expression -> Elm.Expression
 succeed arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "succeed") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "succeed"
+            (Type.function
+                [ Type.var "a" ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.var "a" ]
+                )
+            )
+        )
+        [ arg1 ]
 
 
 {-| A task that fails immediately when run. Like with `succeed`, this can be
@@ -172,7 +192,17 @@ used with `andThen` to check on the outcome of another task.
 -}
 fail : Elm.Expression -> Elm.Expression
 fail arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "fail") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "fail"
+            (Type.function
+                [ Type.var "x" ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.var "a" ]
+                )
+            )
+        )
+        [ arg1 ]
 
 
 {-| Start with a list of tasks, and turn them into a single task that returns a
@@ -184,7 +214,26 @@ sequence fails.
 -}
 sequence : Elm.Expression -> Elm.Expression
 sequence arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "sequence") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "sequence"
+            (Type.function
+                [ Type.list
+                    (Type.namedWith
+                        [ "Task" ]
+                        "Task"
+                        [ Type.var "x", Type.var "a" ]
+                    )
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.list (Type.var "a") ]
+                )
+            )
+        )
+        [ arg1 ]
 
 
 {-| Transform a task. Maybe you want to use [`elm/time`][time] to figure
@@ -205,7 +254,22 @@ out what time it will be in one hour:
 -}
 map : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 map arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "map") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "map"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "b")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.var "b" ]
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| Put the results of two tasks together. For example, if we wanted to know
@@ -231,7 +295,29 @@ map2 :
     -> Elm.Expression
 map2 arg1 arg2 arg3 =
     Elm.apply
-        (Elm.valueFrom moduleName_ "map2")
+        (Elm.valueWith
+            moduleName_
+            "map2"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b" ]
+                    (Type.var "result")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "b" ]
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "result" ]
+                )
+            )
+        )
         [ arg1 Elm.pass Elm.pass, arg2, arg3 ]
 
 
@@ -244,7 +330,33 @@ map3 :
     -> Elm.Expression
 map3 arg1 arg2 arg3 arg4 =
     Elm.apply
-        (Elm.valueFrom moduleName_ "map3")
+        (Elm.valueWith
+            moduleName_
+            "map3"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b", Type.var "c" ]
+                    (Type.var "result")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "c" ]
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "result" ]
+                )
+            )
+        )
         [ arg1 Elm.pass Elm.pass Elm.pass, arg2, arg3, arg4 ]
 
 
@@ -262,7 +374,37 @@ map4 :
     -> Elm.Expression
 map4 arg1 arg2 arg3 arg4 arg5 =
     Elm.apply
-        (Elm.valueFrom moduleName_ "map4")
+        (Elm.valueWith
+            moduleName_
+            "map4"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b", Type.var "c", Type.var "d" ]
+                    (Type.var "result")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "c" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "d" ]
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "result" ]
+                )
+            )
+        )
         [ arg1 Elm.pass Elm.pass Elm.pass Elm.pass, arg2, arg3, arg4, arg5 ]
 
 
@@ -282,7 +424,46 @@ map5 :
     -> Elm.Expression
 map5 arg1 arg2 arg3 arg4 arg5 arg6 =
     Elm.apply
-        (Elm.valueFrom moduleName_ "map5")
+        (Elm.valueWith
+            moduleName_
+            "map5"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a"
+                    , Type.var "b"
+                    , Type.var "c"
+                    , Type.var "d"
+                    , Type.var "e"
+                    ]
+                    (Type.var "result")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "c" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "d" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "e" ]
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "result" ]
+                )
+            )
+        )
         [ arg1 Elm.pass Elm.pass Elm.pass Elm.pass Elm.pass
         , arg2
         , arg3
@@ -305,7 +486,28 @@ callback to recover.
 -}
 onError : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 onError arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "onError") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "onError"
+            (Type.function
+                [ Type.function
+                    [ Type.var "x" ]
+                    (Type.namedWith
+                        [ "Task" ]
+                        "Task"
+                        [ Type.var "y", Type.var "a" ]
+                    )
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "y", Type.var "a" ]
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| Transform the error value. This can be useful if you need a bunch of error
@@ -325,4 +527,298 @@ types to match up.
 mapError :
     (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 mapError arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "mapError") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "mapError"
+            (Type.function
+                [ Type.function [ Type.var "x" ] (Type.var "y")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "y", Type.var "a" ]
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
+
+
+{-| Every value/function in this module in case you need to refer to it directly. -}
+id_ :
+    { perform : Elm.Expression
+    , attempt : Elm.Expression
+    , andThen : Elm.Expression
+    , succeed : Elm.Expression
+    , fail : Elm.Expression
+    , sequence : Elm.Expression
+    , map : Elm.Expression
+    , map2 : Elm.Expression
+    , map3 : Elm.Expression
+    , map4 : Elm.Expression
+    , map5 : Elm.Expression
+    , onError : Elm.Expression
+    , mapError : Elm.Expression
+    }
+id_ =
+    { perform =
+        Elm.valueWith
+            moduleName_
+            "perform"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "msg")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.namedWith [ "Basics" ] "Never" [], Type.var "a" ]
+                ]
+                (Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "msg" ])
+            )
+    , attempt =
+        Elm.valueWith
+            moduleName_
+            "attempt"
+            (Type.function
+                [ Type.function
+                    [ Type.namedWith
+                        [ "Result" ]
+                        "Result"
+                        [ Type.var "x", Type.var "a" ]
+                    ]
+                    (Type.var "msg")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith [ "Platform", "Cmd" ] "Cmd" [ Type.var "msg" ])
+            )
+    , andThen =
+        Elm.valueWith
+            moduleName_
+            "andThen"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        [ "Task" ]
+                        "Task"
+                        [ Type.var "x", Type.var "b" ]
+                    )
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.var "b" ]
+                )
+            )
+    , succeed =
+        Elm.valueWith
+            moduleName_
+            "succeed"
+            (Type.function
+                [ Type.var "a" ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.var "a" ]
+                )
+            )
+    , fail =
+        Elm.valueWith
+            moduleName_
+            "fail"
+            (Type.function
+                [ Type.var "x" ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.var "a" ]
+                )
+            )
+    , sequence =
+        Elm.valueWith
+            moduleName_
+            "sequence"
+            (Type.function
+                [ Type.list
+                    (Type.namedWith
+                        [ "Task" ]
+                        "Task"
+                        [ Type.var "x", Type.var "a" ]
+                    )
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.list (Type.var "a") ]
+                )
+            )
+    , map =
+        Elm.valueWith
+            moduleName_
+            "map"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "b")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "x", Type.var "b" ]
+                )
+            )
+    , map2 =
+        Elm.valueWith
+            moduleName_
+            "map2"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b" ]
+                    (Type.var "result")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "b" ]
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "result" ]
+                )
+            )
+    , map3 =
+        Elm.valueWith
+            moduleName_
+            "map3"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b", Type.var "c" ]
+                    (Type.var "result")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "c" ]
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "result" ]
+                )
+            )
+    , map4 =
+        Elm.valueWith
+            moduleName_
+            "map4"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b", Type.var "c", Type.var "d" ]
+                    (Type.var "result")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "c" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "d" ]
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "result" ]
+                )
+            )
+    , map5 =
+        Elm.valueWith
+            moduleName_
+            "map5"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a"
+                    , Type.var "b"
+                    , Type.var "c"
+                    , Type.var "d"
+                    , Type.var "e"
+                    ]
+                    (Type.var "result")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "c" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "d" ]
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "e" ]
+                ]
+                (Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "result" ]
+                )
+            )
+    , onError =
+        Elm.valueWith
+            moduleName_
+            "onError"
+            (Type.function
+                [ Type.function
+                    [ Type.var "x" ]
+                    (Type.namedWith
+                        [ "Task" ]
+                        "Task"
+                        [ Type.var "y", Type.var "a" ]
+                    )
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "y", Type.var "a" ]
+                )
+            )
+    , mapError =
+        Elm.valueWith
+            moduleName_
+            "mapError"
+            (Type.function
+                [ Type.function [ Type.var "x" ] (Type.var "y")
+                , Type.namedWith
+                    [ "Task" ]
+                    "Task"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith [ "Task" ] "Task" [ Type.var "y", Type.var "a" ]
+                )
+            )
+    }
+
+

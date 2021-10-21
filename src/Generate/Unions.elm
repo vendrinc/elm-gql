@@ -52,7 +52,7 @@ generateFiles namespace graphQLSchema =
                                             unionDefinition.variants
                                         )
                                     )
-                                    |> Elm.withAnnotation
+                                    |> Elm.withType
                                         (Common.selection namespace
                                             unionDefinition.name
                                             (Elm.Annotation.var "data")

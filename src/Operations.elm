@@ -133,7 +133,7 @@ parseAndValidateQuery namespace schema queryStr =
                                 }
 
                         Ok files ->
-                            Elm.Gen.files (List.map Elm.render files)
+                            Elm.Gen.files files
 
 
 flagsDecoder : Json.Decode.Decoder Input

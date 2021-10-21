@@ -1,31 +1,27 @@
-module Elm.Gen.Tuple exposing (first, id_, mapBoth, mapFirst, mapSecond, moduleName_, pair, second)
+module Elm.Gen.Tuple exposing (first, id_, make_, mapBoth, mapFirst, mapSecond, moduleName_, pair, second, types_)
+
+{-| 
+-}
+
 
 import Elm
+import Elm.Annotation as Type
 
 
 {-| The name of this module. -}
-moduleName_ : Elm.Module
+moduleName_ : List String
 moduleName_ =
-    Elm.moduleName [ "Tuple" ]
+    [ "Tuple" ]
 
 
-{-| Every value/function in this module in case you need to refer to it directly. -}
-id_ :
-    { pair : Elm.Expression
-    , first : Elm.Expression
-    , second : Elm.Expression
-    , mapFirst : Elm.Expression
-    , mapSecond : Elm.Expression
-    , mapBoth : Elm.Expression
-    }
-id_ =
-    { pair = Elm.valueFrom moduleName_ "pair"
-    , first = Elm.valueFrom moduleName_ "first"
-    , second = Elm.valueFrom moduleName_ "second"
-    , mapFirst = Elm.valueFrom moduleName_ "mapFirst"
-    , mapSecond = Elm.valueFrom moduleName_ "mapSecond"
-    , mapBoth = Elm.valueFrom moduleName_ "mapBoth"
-    }
+types_ : {}
+types_ =
+    {}
+
+
+make_ : {}
+make_ =
+    {}
 
 
 {-| Create a 2-tuple.
@@ -38,7 +34,16 @@ id_ =
 -}
 pair : Elm.Expression -> Elm.Expression -> Elm.Expression
 pair arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "pair") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "pair"
+            (Type.function
+                [ Type.var "a", Type.var "b" ]
+                (Type.tuple (Type.var "a") (Type.var "b"))
+            )
+        )
+        [ arg1, arg2 ]
 
 
 {-| Extract the first value from a tuple.
@@ -48,7 +53,16 @@ pair arg1 arg2 =
 -}
 first : Elm.Expression -> Elm.Expression
 first arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "first") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "first"
+            (Type.function
+                [ Type.tuple (Type.var "a") (Type.var "b") ]
+                (Type.var "a")
+            )
+        )
+        [ arg1 ]
 
 
 {-| Extract the second value from a tuple.
@@ -58,7 +72,16 @@ first arg1 =
 -}
 second : Elm.Expression -> Elm.Expression
 second arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "second") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "second"
+            (Type.function
+                [ Type.tuple (Type.var "a") (Type.var "b") ]
+                (Type.var "b")
+            )
+        )
+        [ arg1 ]
 
 
 {-| Transform the first value in a tuple.
@@ -71,7 +94,18 @@ second arg1 =
 mapFirst :
     (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 mapFirst arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "mapFirst") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "mapFirst"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "x")
+                , Type.tuple (Type.var "a") (Type.var "b")
+                ]
+                (Type.tuple (Type.var "x") (Type.var "b"))
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| Transform the second value in a tuple.
@@ -82,7 +116,18 @@ mapFirst arg1 arg2 =
 mapSecond :
     (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 mapSecond arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "mapSecond") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "mapSecond"
+            (Type.function
+                [ Type.function [ Type.var "b" ] (Type.var "y")
+                , Type.tuple (Type.var "a") (Type.var "b")
+                ]
+                (Type.tuple (Type.var "a") (Type.var "y"))
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| Transform both parts of a tuple.
@@ -99,5 +144,85 @@ mapBoth :
     -> Elm.Expression
 mapBoth arg1 arg2 arg3 =
     Elm.apply
-        (Elm.valueFrom moduleName_ "mapBoth")
+        (Elm.valueWith
+            moduleName_
+            "mapBoth"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "x")
+                , Type.function [ Type.var "b" ] (Type.var "y")
+                , Type.tuple (Type.var "a") (Type.var "b")
+                ]
+                (Type.tuple (Type.var "x") (Type.var "y"))
+            )
+        )
         [ arg1 Elm.pass, arg2 Elm.pass, arg3 ]
+
+
+{-| Every value/function in this module in case you need to refer to it directly. -}
+id_ :
+    { pair : Elm.Expression
+    , first : Elm.Expression
+    , second : Elm.Expression
+    , mapFirst : Elm.Expression
+    , mapSecond : Elm.Expression
+    , mapBoth : Elm.Expression
+    }
+id_ =
+    { pair =
+        Elm.valueWith
+            moduleName_
+            "pair"
+            (Type.function
+                [ Type.var "a", Type.var "b" ]
+                (Type.tuple (Type.var "a") (Type.var "b"))
+            )
+    , first =
+        Elm.valueWith
+            moduleName_
+            "first"
+            (Type.function
+                [ Type.tuple (Type.var "a") (Type.var "b") ]
+                (Type.var "a")
+            )
+    , second =
+        Elm.valueWith
+            moduleName_
+            "second"
+            (Type.function
+                [ Type.tuple (Type.var "a") (Type.var "b") ]
+                (Type.var "b")
+            )
+    , mapFirst =
+        Elm.valueWith
+            moduleName_
+            "mapFirst"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "x")
+                , Type.tuple (Type.var "a") (Type.var "b")
+                ]
+                (Type.tuple (Type.var "x") (Type.var "b"))
+            )
+    , mapSecond =
+        Elm.valueWith
+            moduleName_
+            "mapSecond"
+            (Type.function
+                [ Type.function [ Type.var "b" ] (Type.var "y")
+                , Type.tuple (Type.var "a") (Type.var "b")
+                ]
+                (Type.tuple (Type.var "a") (Type.var "y"))
+            )
+    , mapBoth =
+        Elm.valueWith
+            moduleName_
+            "mapBoth"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "x")
+                , Type.function [ Type.var "b" ] (Type.var "y")
+                , Type.tuple (Type.var "a") (Type.var "b")
+                ]
+                (Type.tuple (Type.var "x") (Type.var "y"))
+            )
+    }
+
+

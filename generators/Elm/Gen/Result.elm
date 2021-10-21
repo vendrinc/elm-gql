@@ -1,54 +1,60 @@
-module Elm.Gen.Result exposing (andThen, fromMaybe, id_, map, map2, map3, map4, map5, mapError, moduleName_, toMaybe, withDefault)
+module Elm.Gen.Result exposing (andThen, fromMaybe, id_, make_, map, map2, map3, map4, map5, mapError, moduleName_, toMaybe, types_, withDefault)
+
+{-| 
+-}
+
 
 import Elm
-import Elm.Annotation
+import Elm.Annotation as Type
 
 
 {-| The name of this module. -}
-moduleName_ : Elm.Module
+moduleName_ : List String
 moduleName_ =
-    Elm.moduleName [ "Result" ]
+    [ "Result" ]
 
 
-{-| Every value/function in this module in case you need to refer to it directly. -}
-id_ :
-    { map : Elm.Expression
-    , map2 : Elm.Expression
-    , map3 : Elm.Expression
-    , map4 : Elm.Expression
-    , map5 : Elm.Expression
-    , andThen : Elm.Expression
-    , withDefault : Elm.Expression
-    , toMaybe : Elm.Expression
-    , fromMaybe : Elm.Expression
-    , mapError : Elm.Expression
-    }
-id_ =
-    { map = Elm.valueFrom moduleName_ "map"
-    , map2 = Elm.valueFrom moduleName_ "map2"
-    , map3 = Elm.valueFrom moduleName_ "map3"
-    , map4 = Elm.valueFrom moduleName_ "map4"
-    , map5 = Elm.valueFrom moduleName_ "map5"
-    , andThen = Elm.valueFrom moduleName_ "andThen"
-    , withDefault = Elm.valueFrom moduleName_ "withDefault"
-    , toMaybe = Elm.valueFrom moduleName_ "toMaybe"
-    , fromMaybe = Elm.valueFrom moduleName_ "fromMaybe"
-    , mapError = Elm.valueFrom moduleName_ "mapError"
+types_ : { result : Type.Annotation -> Type.Annotation -> Type.Annotation }
+types_ =
+    { result = \arg0 arg1 -> Type.namedWith moduleName_ "Result" [ arg0, arg1 ]
     }
 
 
-{-| A `Result` is either `Ok` meaning the computation succeeded, or it is an
-`Err` meaning that there was some failure.
--}
-typeResult :
-    { annotation : Elm.Annotation.Annotation
-    , ok : Elm.Expression
-    , err : Elm.Expression
+make_ :
+    { result :
+        { ok : Elm.Expression -> Elm.Expression
+        , err : Elm.Expression -> Elm.Expression
+        }
     }
-typeResult =
-    { annotation = Elm.Annotation.named moduleName_ "Result"
-    , ok = Elm.valueFrom moduleName_ "Ok"
-    , err = Elm.valueFrom moduleName_ "Err"
+make_ =
+    { result =
+        { ok =
+            \ar0 ->
+                Elm.apply
+                    (Elm.valueWith
+                        moduleName_
+                        "Ok"
+                        (Type.namedWith
+                            []
+                            "Result"
+                            [ Type.var "error", Type.var "value" ]
+                        )
+                    )
+                    [ ar0 ]
+        , err =
+            \ar0 ->
+                Elm.apply
+                    (Elm.valueWith
+                        moduleName_
+                        "Err"
+                        (Type.namedWith
+                            []
+                            "Result"
+                            [ Type.var "error", Type.var "value" ]
+                        )
+                    )
+                    [ ar0 ]
+        }
     }
 
 
@@ -60,7 +66,25 @@ If the result is an `Err`, the same error value will propagate through.
 -}
 map : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 map arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "map") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "map"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "value")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "value" ]
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| Apply a function if both results are `Ok`. If not, the first `Err` will
@@ -81,7 +105,29 @@ map2 :
     -> Elm.Expression
 map2 arg1 arg2 arg3 =
     Elm.apply
-        (Elm.valueFrom moduleName_ "map2")
+        (Elm.valueWith
+            moduleName_
+            "map2"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b" ]
+                    (Type.var "value")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "b" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "value" ]
+                )
+            )
+        )
         [ arg1 Elm.pass Elm.pass, arg2, arg3 ]
 
 
@@ -94,7 +140,33 @@ map3 :
     -> Elm.Expression
 map3 arg1 arg2 arg3 arg4 =
     Elm.apply
-        (Elm.valueFrom moduleName_ "map3")
+        (Elm.valueWith
+            moduleName_
+            "map3"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b", Type.var "c" ]
+                    (Type.var "value")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "c" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "value" ]
+                )
+            )
+        )
         [ arg1 Elm.pass Elm.pass Elm.pass, arg2, arg3, arg4 ]
 
 
@@ -112,7 +184,37 @@ map4 :
     -> Elm.Expression
 map4 arg1 arg2 arg3 arg4 arg5 =
     Elm.apply
-        (Elm.valueFrom moduleName_ "map4")
+        (Elm.valueWith
+            moduleName_
+            "map4"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b", Type.var "c", Type.var "d" ]
+                    (Type.var "value")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "c" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "d" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "value" ]
+                )
+            )
+        )
         [ arg1 Elm.pass Elm.pass Elm.pass Elm.pass, arg2, arg3, arg4, arg5 ]
 
 
@@ -132,7 +234,46 @@ map5 :
     -> Elm.Expression
 map5 arg1 arg2 arg3 arg4 arg5 arg6 =
     Elm.apply
-        (Elm.valueFrom moduleName_ "map5")
+        (Elm.valueWith
+            moduleName_
+            "map5"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a"
+                    , Type.var "b"
+                    , Type.var "c"
+                    , Type.var "d"
+                    , Type.var "e"
+                    ]
+                    (Type.var "value")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "c" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "d" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "e" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "value" ]
+                )
+            )
+        )
         [ arg1 Elm.pass Elm.pass Elm.pass Elm.pass Elm.pass
         , arg2
         , arg3
@@ -178,7 +319,31 @@ code.
 -}
 andThen : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 andThen arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "andThen") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "andThen"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        [ "Result" ]
+                        "Result"
+                        [ Type.var "x", Type.var "b" ]
+                    )
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "b" ]
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
 
 
 {-| If the result is `Ok` return the value, but if the result is an `Err` then
@@ -189,7 +354,21 @@ return a given default value. The following examples try to parse integers.
 -}
 withDefault : Elm.Expression -> Elm.Expression -> Elm.Expression
 withDefault arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "withDefault") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "withDefault"
+            (Type.function
+                [ Type.var "a"
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.var "a")
+            )
+        )
+        [ arg1, arg2 ]
 
 
 {-| Convert to a simpler `Maybe` if the actual error message is not needed or
@@ -203,7 +382,20 @@ you need to interact with some code that primarily uses maybes.
 -}
 toMaybe : Elm.Expression -> Elm.Expression
 toMaybe arg1 =
-    Elm.apply (Elm.valueFrom moduleName_ "toMaybe") [ arg1 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "toMaybe"
+            (Type.function
+                [ Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.maybe (Type.var "a"))
+            )
+        )
+        [ arg1 ]
 
 
 {-| Convert from a simple `Maybe` to interact with some code that primarily
@@ -217,7 +409,20 @@ uses `Results`.
 -}
 fromMaybe : Elm.Expression -> Elm.Expression -> Elm.Expression
 fromMaybe arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "fromMaybe") [ arg1, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "fromMaybe"
+            (Type.function
+                [ Type.var "x", Type.maybe (Type.var "a") ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                )
+            )
+        )
+        [ arg1, arg2 ]
 
 
 {-| Transform an `Err` value. For example, say the errors we get have too much
@@ -237,4 +442,256 @@ information:
 mapError :
     (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 mapError arg1 arg2 =
-    Elm.apply (Elm.valueFrom moduleName_ "mapError") [ arg1 Elm.pass, arg2 ]
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "mapError"
+            (Type.function
+                [ Type.function [ Type.var "x" ] (Type.var "y")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "y", Type.var "a" ]
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
+
+
+{-| Every value/function in this module in case you need to refer to it directly. -}
+id_ :
+    { map : Elm.Expression
+    , map2 : Elm.Expression
+    , map3 : Elm.Expression
+    , map4 : Elm.Expression
+    , map5 : Elm.Expression
+    , andThen : Elm.Expression
+    , withDefault : Elm.Expression
+    , toMaybe : Elm.Expression
+    , fromMaybe : Elm.Expression
+    , mapError : Elm.Expression
+    }
+id_ =
+    { map =
+        Elm.valueWith
+            moduleName_
+            "map"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "value")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "value" ]
+                )
+            )
+    , map2 =
+        Elm.valueWith
+            moduleName_
+            "map2"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b" ]
+                    (Type.var "value")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "b" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "value" ]
+                )
+            )
+    , map3 =
+        Elm.valueWith
+            moduleName_
+            "map3"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b", Type.var "c" ]
+                    (Type.var "value")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "c" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "value" ]
+                )
+            )
+    , map4 =
+        Elm.valueWith
+            moduleName_
+            "map4"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a", Type.var "b", Type.var "c", Type.var "d" ]
+                    (Type.var "value")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "c" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "d" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "value" ]
+                )
+            )
+    , map5 =
+        Elm.valueWith
+            moduleName_
+            "map5"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a"
+                    , Type.var "b"
+                    , Type.var "c"
+                    , Type.var "d"
+                    , Type.var "e"
+                    ]
+                    (Type.var "value")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "b" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "c" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "d" ]
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "e" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "value" ]
+                )
+            )
+    , andThen =
+        Elm.valueWith
+            moduleName_
+            "andThen"
+            (Type.function
+                [ Type.function
+                    [ Type.var "a" ]
+                    (Type.namedWith
+                        [ "Result" ]
+                        "Result"
+                        [ Type.var "x", Type.var "b" ]
+                    )
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "b" ]
+                )
+            )
+    , withDefault =
+        Elm.valueWith
+            moduleName_
+            "withDefault"
+            (Type.function
+                [ Type.var "a"
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.var "a")
+            )
+    , toMaybe =
+        Elm.valueWith
+            moduleName_
+            "toMaybe"
+            (Type.function
+                [ Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.maybe (Type.var "a"))
+            )
+    , fromMaybe =
+        Elm.valueWith
+            moduleName_
+            "fromMaybe"
+            (Type.function
+                [ Type.var "x", Type.maybe (Type.var "a") ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                )
+            )
+    , mapError =
+        Elm.valueWith
+            moduleName_
+            "mapError"
+            (Type.function
+                [ Type.function [ Type.var "x" ] (Type.var "y")
+                , Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "x", Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "Result" ]
+                    "Result"
+                    [ Type.var "y", Type.var "a" ]
+                )
+            )
+    }
+
+

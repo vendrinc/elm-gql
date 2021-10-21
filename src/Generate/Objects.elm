@@ -51,13 +51,13 @@ objectToModule namespace object =
 
         objectImplementation =
             fieldTypesAndImpls
-                |> List.map (\( name, _, expression ) -> ( formatName name, expression ))
+                |> List.map (\( name, _, expression ) -> Elm.field (formatName name) expression )
                 |> Elm.record
             
     in
     Elm.declaration (Utils.String.formatValue object.name) 
         (objectImplementation
-            |> Elm.withAnnotation objectTypeAnnotation
+            |> Elm.withType objectTypeAnnotation
         )
 
 
@@ -113,7 +113,7 @@ implementField namespace objectName fieldName fieldType wrapped =
             { expression =
                 Engine.field
                     (Elm.string fieldName)
-                    (Elm.valueFrom (Elm.moduleName [ namespace, "Enum", enumName ]) "decoder"
+                    (Elm.valueFrom ( [ namespace, "Enum", enumName ]) "decoder"
                         |> decodeWrapper wrapped
                     )
             , annotation = signature.annotation
@@ -346,31 +346,31 @@ generateFiles namespace graphQLSchema =
         inputHelpers =
             List.concatMap
                 (\name ->
-                    [ Elm.aliasWith name
-                        []
-                        (Engine.typeArgument.annotation
-                            (Elm.Annotation.named Elm.local (name ++ "_"))
+                    [ Elm.alias name
+                        (Engine.types_.argument
+                            (Elm.Annotation.named [] (name ++ "_"))
                         )
-                    , Elm.customType (name ++ "_") [ ( name, [] ) ]
+                    , Elm.customType (name ++ "_") [ Elm.variant name ]
                     ]
                 )
                 inputTypeDeclarations
                 ++ List.map
                     (\name ->
-                        Elm.customType name [ ( name, [] ) ]
+                        Elm.customType name [ Elm.variant name ]
                     )
                     optionNames
 
         proofsAndAliases =
             List.concatMap
                 (\name ->
-                    [ Elm.aliasWith name
-                        [ "data" ]
-                        (Engine.typeSelection.annotation
-                            (Elm.Annotation.named Elm.local (name ++ "_"))
+                    [ Elm.alias name
+                        -- [ "data" ]
+                        -- NOTE, does the type variable stick around?
+                        (Engine.types_.selection
+                            (Elm.Annotation.named [] (name ++ "_"))
                             (Elm.Annotation.var "data")
                         )
-                    , Elm.customType (name ++ "_") [ ( name, [] ) ]
+                    , Elm.customType (name ++ "_") [ Elm.variant name ]
                     ]
                 )
                 names
@@ -406,18 +406,18 @@ generateFiles namespace graphQLSchema =
                     Engine.moduleName_
                     "recover"
                 )
-            , Elm.aliasWith "Selection"
-                [ "source"
-                , "data"
-                ]
-                (Engine.typeSelection.annotation
+            , Elm.alias "Selection"
+                -- [ "source"
+                -- , "data"
+                -- ]
+                (Engine.types_.selection
                     (Elm.Annotation.var "source")
                     (Elm.Annotation.var "data")
                 )
-            , Elm.aliasWith "Query"
-                [ "data" ]
-                (Engine.typeSelection.annotation
-                    Engine.typeQuery.annotation
+            , Elm.alias "Query"
+                -- [ "data" ]
+                (Engine.types_.selection
+                    Engine.types_.query
                     (Elm.Annotation.var "data")
                 )
             , Elm.declaration "query"
@@ -425,10 +425,10 @@ generateFiles namespace graphQLSchema =
                     Engine.moduleName_
                     "query"
                 )
-            , Elm.aliasWith "Mutation"
-                [ "data" ]
-                (Engine.typeSelection.annotation
-                    Engine.typeMutation.annotation
+            , Elm.alias "Mutation"
+                -- [ "data" ]
+                (Engine.types_.selection
+                    Engine.types_.mutation
                     (Elm.Annotation.var "data")
                 )
             , Elm.declaration "mutation"

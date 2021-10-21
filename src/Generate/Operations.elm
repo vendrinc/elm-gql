@@ -38,10 +38,9 @@ queryToModule namespace op schema operation =
             if List.any Input.isOptional operation.arguments then
                 let
                     topLevelAlias =
-                        Elm.aliasWith "Optional"
-                            []
-                            (Engine.typeOptional.annotation
-                                (Elm.Annotation.named (Elm.moduleName [ namespace ])
+                        Elm.alias "Optional"
+                            (Engine.types_.optional
+                                (Elm.Annotation.named ( [ namespace ])
                                     (case op of
                                         Input.Query ->
                                             operation.name ++ "_Option"
@@ -69,18 +68,21 @@ queryToModule namespace op schema operation =
             else
                 []
     in
-    Elm.file
+    Elm.fileWith
         [ namespace
         , dir
         , Utils.String.formatTypename operation.name
         ]
+        { docs = 
+            \docs ->
+                ("\n\nExample usage:\n\n"
+                    ++ Elm.expressionImports example
+                    ++ "\n\n\n"
+                    ++ Elm.toString example
+                )
+        , aliases = []
+        }
         (queryFunction :: optionalHelpers)
-        |> Elm.withModuleComment
-            ("\n\nExample usage:\n\n"
-                ++ Elm.expressionImportsToString example
-                ++ "\n\n\n"
-                ++ Elm.expressionToString example
-            )
 
 
 directory : Input.Operation -> String
