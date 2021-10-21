@@ -49,6 +49,15 @@ type Selection
     | FragmentSpreadSelection FragmentSpread
     | InlineFragmentSelection InlineFragment
 
+type alias FieldDetails =
+    { alias_ : Maybe Name
+    , name : Name
+    , arguments : List Argument
+    , directives : List Directive
+    , selection : List Selection
+    }
+
+
 type alias FragmentSpread =
     { name : Name
     , directives : List Directive
@@ -83,13 +92,6 @@ type Value
     | ListValue (List Value)
 
 
-type alias FieldDetails =
-    { alias_ : Maybe Name
-    , name : Name
-    , arguments : List Argument
-    , directives : List Directive
-    , selection : List Selection
-    }
 
 
 type alias Argument =
