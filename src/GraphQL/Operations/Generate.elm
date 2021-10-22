@@ -23,28 +23,51 @@ import Utils.String
 generate : GraphQL.Schema.Schema -> String -> Can.Document -> List String -> Result (List Validate.Error) (List Elm.File)
 generate schema queryStr document path =
     let
+        typeName =
+            case document.definitions of
+                [] -> "Query"
+
+                [ Can.Operation op  ] -> 
+                    (Maybe.withDefault "Query" 
+                        (Maybe.map 
+                            Can.nameToString op.name
+                        )
+                    )
+                
+                _ -> 
+                    "Query"
+
+
         query =
             Elm.fn "query"
-                    ( "input"
-                    , Type.record
-                        (List.concatMap (getVariables schema) document.definitions)
-                    )
-                    (\var ->
-                        Engine.prebakedQuery
-                            (Elm.string queryStr)
-                            (generateDecoder schema document.definitions )
+                ( "input"
+                , Type.record
+                    (List.concatMap (getVariables schema) document.definitions)
+                )
+                (\var ->
+                    Engine.prebakedQuery
+                        (Elm.string queryStr)
+                        (generateDecoder schema document.definitions )
+                        |> Elm.withType 
+                            (Engine.types_.selection
+                                (Engine.types_.query)
+                                (Type.named [  ] typeName)
+                            )
 
-                    )
+                )
                     |> Elm.expose
 
         helpers =
             List.concatMap (generateResultTypes schema) document.definitions
+    
+        primaryResult =
+            List.concatMap (generatePrimaryResultType schema) document.definitions
+            
+    
     in
     Ok
         [ Elm.file path
-            (query :: helpers)
-
-
+            (primaryResult ++ (query :: helpers))
             
         ]
 
@@ -144,15 +167,14 @@ primitives =
 {- RESULT DATA -}
 
 
-
-generateResultTypes :  GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
-generateResultTypes schema def =
+generatePrimaryResultType : GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
+generatePrimaryResultType schema def =
     case def of
         Can.Fragment frag ->
             []
 
         Can.Operation op ->
-             (Elm.alias 
+            [ Elm.alias 
                 (Maybe.withDefault "Query" 
                     (Maybe.map 
                         Can.nameToString op.name
@@ -163,8 +185,20 @@ generateResultTypes schema def =
                         (fieldAnnotation schema Nothing)
                         op.fields
                     )
-                ))
-             :: List.concatMap (generateChildTypes schema) (op.fields)
+                )
+            ]
+             
+
+
+
+generateResultTypes :  GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
+generateResultTypes schema def =
+    case def of
+        Can.Fragment frag ->
+            []
+
+        Can.Operation op ->
+             List.concatMap (generateChildTypes schema) (op.fields)
 
 
 generateChildTypes : GraphQL.Schema.Schema -> Can.Selection -> List Elm.Declaration
@@ -266,6 +300,15 @@ fieldAnnotation schema parent selection =
                 Just alias ->
                     Can.nameToString alias
             ,  schemaTypeToPrefab field.type_
+            )
+
+        Can.FieldEnum field ->
+            ( case field.alias_ of
+                Nothing ->
+                    Can.nameToString field.name 
+                Just alias ->
+                    Can.nameToString alias
+            , Type.named ["TnG", "Enum", Utils.String.formatTypename (Can.nameToString field.name)] (Can.nameToString field.name)
             )
 
         _ ->
@@ -401,18 +444,61 @@ decodeFields fields exp =
                             
                         )
              in
-             
              decodeFields 
                 remain
                 decoded
             
-
+        (Can.FieldEnum enum :: remain) -> 
+             let
+                decoded =
+                    exp
+                    |> Decode.map2 
+                        (\newField builder ->
+                            Elm.lambda2 "build" 
+                                Type.unit
+                                Type.unit
+                                (\one two -> 
+                                    Elm.apply two [ one ]
+                                ) 
+                        )
+                        (Decode.field 
+                            (Elm.string (Can.nameToString enum.name)) 
+                            (Decode.oneOf 
+                                (List.map 
+                                    (decodeEnumValue (Can.nameToString enum.name))                            
+                                    enum.values
+                                    |> Elm.list
+                                )
+                            )
+                            
+                        )
+             in
+             decodeFields 
+                remain
+                decoded
 
         (Can.FieldUnion union :: remain) ->
             exp
 
         _ ->
             exp
+
+decodeEnumValue enumName value =
+    Decode.string 
+        |> Decode.andThen 
+            (\_ ->
+                Elm.lambda  "enum"
+                    Type.string
+                    (\str ->
+                        Elm.ifThen 
+                            (Elm.equal (Elm.string value.name) str) 
+                            (Decode.succeed (Elm.valueFrom ["TnG", "Enum", (Utils.String.formatTypename enumName)] value.name))
+                            (Decode.fail (Elm.string "I don't recognize this enum!"))
+                    )
+
+            )
+    
+
 
 
 decodeScalarType type_ =

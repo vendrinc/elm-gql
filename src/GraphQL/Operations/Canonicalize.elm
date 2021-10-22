@@ -65,6 +65,7 @@ type alias Position =
 type ErrorDetails 
     = Todo String
     | QueryUnknown String
+    | EnumUnknown String
     | ObjectUnknown String
     | UnionUnknown String
     | FieldUnknown 
@@ -77,12 +78,19 @@ errorToString (Error details) =
     case details.error of
         Todo msg ->
             "Todo: " ++ msg
+
+        EnumUnknown name ->
+            "Unknown Enum: " ++ name
+
         QueryUnknown name ->
             "Unknown Query: " ++ name
+
         ObjectUnknown name ->
             "Unknown Object: " ++ name
+
         UnionUnknown name ->
             "Unknown Union: " ++ name
+
         FieldUnknown field ->
             "Unknown Field: " ++ field.object ++ "." ++ field.field
         
@@ -438,7 +446,21 @@ canonicalizeFieldType schema object field type_ selection originalType =
                                 Err err
 
             Type.Enum name ->
-                Err [ todo "Field enums!" ]
+                case Dict.get name schema.enums of
+                    Nothing ->
+                        Err [ error (EnumUnknown name) ]
+
+                    Just enum ->
+                        Ok 
+                            (Can.FieldEnum
+                                { alias_ = Maybe.map convertName field.alias_
+                                , name = convertName field.name
+                                , arguments = []
+                                , directives = []
+                                , values = enum.values
+                                }
+                            )
+                            
 
             Type.Union name ->
                 Err [ todo "Field Unions" ]

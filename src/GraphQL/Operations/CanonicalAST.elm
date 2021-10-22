@@ -72,6 +72,7 @@ type Selection
     | FieldObject FieldObjectDetails
     | FieldUnion FieldUnionDetails
     | FieldScalar FieldScalarDetails
+    | FieldEnum FieldEnumDetails
     | FragmentSelection FragmentSpread
     | UnionCase UnionCaseDetails
 
@@ -109,6 +110,15 @@ type alias FieldScalarDetails =
     , arguments : List Argument
     , directives : List Directive
     , type_ : Type.Type
+    }
+
+
+type alias FieldEnumDetails =
+    { alias_ : Maybe Name
+    , name : Name
+    , arguments : List Argument
+    , directives : List Directive
+    , values : List { name : String, description : Maybe String}
     }
 
 

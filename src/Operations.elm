@@ -200,6 +200,7 @@ smallDashboardQuery =
   organization {
     spendDelta
     lastMonthSpend
+    subscriptionStatus
     aggregateSpendOverTimeReports {
       amount
       from
