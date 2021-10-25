@@ -10,6 +10,7 @@ import GraphQL.Schema.Operation as Operation
 import GraphQL.Schema.Object as Object
 import GraphQL.Schema.Enum as Enum
 import GraphQL.Schema.Field as Field
+import GraphQL.Schema.Kind as Kind
 import GraphQL.Schema.Interface as Interface
 import GraphQL.Schema.Union as Union
 import GraphQL.Schema.Scalar as Scalar
@@ -270,26 +271,31 @@ canonicalizeQuerySelection schema selection =
                                     Err [ error (UnionUnknown name) ]
 
                                 Just union ->
-                                    let
-                                    --     args = reduce (validateArg queryObj) field.arguments (Ok [])
-                                        
-                                        selectionResult = reduce (canonicalizeUnionField schema union) field.selection (Ok [])
-                                    in
-                                    case selectionResult of
-                                        Ok canSelection ->
-                                            Ok 
-                                                (Can.FieldUnion
-                                                    { alias_ = Maybe.map convertName field.alias_
-                                                    , name = convertName field.name
-                                                    , arguments = []
-                                                    , directives = []
-                                                    , selection = canSelection
-                                                    , union = union
-                                                    }
-                                                )
-                                            
-                                        Err err ->
-                                            Err err
+                                     case extractUnionTags union.variants [] of
+                                        Nothing ->
+                                            Err [ todo "Things in a union are not objects!" ]
+
+                                        Just vars ->
+                                            let
+                                            --     args = reduce (validateArg queryObj) field.arguments (Ok [])
+                                                
+                                                selectionResult = reduce (canonicalizeUnionField schema union vars) field.selection (Ok [])
+                                            in
+                                            case selectionResult of
+                                                Ok canSelection ->
+                                                    Ok 
+                                                        (Can.FieldUnion
+                                                            { alias_ = Maybe.map convertName field.alias_
+                                                            , name = convertName field.name
+                                                            , arguments = []
+                                                            , directives = []
+                                                            , selection = canSelection
+                                                            , union = union
+                                                            }
+                                                        )
+                                                    
+                                                Err err ->
+                                                    Err err
 
                         Type.Interface name ->
                             Err [ todo "Handle more object types!" ]
@@ -463,7 +469,37 @@ canonicalizeFieldType schema object field type_ selection originalType =
                             
 
             Type.Union name ->
-                Err [ todo "Field Unions" ]
+                -- Err [ todo "Field Unions" ]
+                 case Dict.get name schema.unions of
+                    Nothing ->
+                        Err [ error (UnionUnknown name) ]
+
+                    Just union ->
+                        case extractUnionTags union.variants [] of
+                            Nothing ->
+                                Err [ todo "Things in a union are not objects!" ]
+
+                            Just vars ->
+                                let
+                                --     args = reduce (validateArg queryObj) field.arguments (Ok [])
+                                   
+                                    selectionResult = reduce (canonicalizeUnionField schema union vars) field.selection (Ok [])
+                                in
+                                case selectionResult of
+                                    Ok canSelection ->
+                                        Ok 
+                                            (Can.FieldUnion
+                                                { alias_ = Maybe.map convertName field.alias_
+                                                , name = convertName field.name
+                                                , arguments = []
+                                                , directives = []
+                                                , selection = canSelection
+                                                , union = union
+                                                }
+                                            )
+                                        
+                                    Err err ->
+                                        Err err
 
             Type.Interface name ->
                 Err [ todo "Field Interfaces!" ]
@@ -477,90 +513,93 @@ canonicalizeFieldType schema object field type_ selection originalType =
   
 
 
+extractUnionTags : List Union.Variant -> List String -> Maybe (List String)
+extractUnionTags vars captured =
+    case vars of 
+        [] ->
+            Just captured
+
+        (top :: remain) ->
+            case top.kind of
+                Kind.Object name ->
+                    extractUnionTags remain (name :: captured)
+                
+                _ ->
+                    Nothing
 
 
-canonicalizeUnionField : GraphQL.Schema.Schema -> Union.Union -> AST.Selection -> Result (List Error) (Can.Selection)
-canonicalizeUnionField schema union selection =
+canonicalizeUnionField : GraphQL.Schema.Schema -> Union.Union -> List String -> AST.Selection -> Result (List Error) (Can.Selection)
+canonicalizeUnionField schema union remainingAllowedTags selection =
     case selection of
         AST.Field field ->
-            -- let
-            --     fieldName =
-            --         AST.nameToString field.name
+            let
+                fieldName =
+                    AST.nameToString field.name
 
                
-            -- in
-            -- if fieldName == "__typename" then
-            --     Ok 
-            --         (Can.FieldScalar
-            --             { alias_ = Maybe.map convertName field.alias_
-            --             , name = convertName field.name
-            --             , arguments = []
-            --             , directives = []
-            --             , type_ = Type.Scalar "typename"
-            --             }
-            --         )
+            in
+            --- NOTE, we could probably be more sophisticated here!
+            if fieldName == "__typename" then
+                Ok 
+                    (Can.FieldScalar
+                        { alias_ = Maybe.map convertName field.alias_
+                        , name = convertName field.name
+                        , arguments = []
+                        , directives = []
+                        , type_ = Type.Scalar "typename"
+                        }
+                    )
 
-            -- else
-            --     let
-            --         matchedField =
-            --             unions.fields
-            --                 |> List.filter (\fld -> fld.name == fieldName)
-            --                 |> List.head
-
-            --     in
-            --     case matchedField of
-            --         Just matched ->
-            --             case matched.type_ of
-            --                 Type.Scalar name ->
-            --                     -- Err [ todo "Handle more object types!" ]
-            --                     Ok 
-            --                         (Can.FieldScalar
-            --                             { alias_ = Maybe.map convertName field.alias_
-            --                             , name = convertName field.name
-            --                             , arguments = []
-            --                             , directives = []
-            --                             , type_ = matched.type_
-            --                             }
-            --                         )
-
-            --                 Type.InputObject name ->
-            --                     Err [ todo "Invalid schema!  Weird InputObject" ]
-
-            --                 Type.Object name ->
-            --                     case Dict.get name schema.objects of
-            --                         Nothing ->
-            --                             Err [ error (ObjectUnknown name) ]
-
-            --                         Just obj ->
-            --                             let
-            --                             --     args = reduce (validateArg queryObj) field.arguments (Ok [])
-                                            
-            --                                 fields = reduce (canonicalizeField schema obj) field.selection (Ok [])
-            --                             in
-            --                             Err [ todo "Handle more object types!" ]
-
-            --                 Type.Enum name ->
-            --                     Err [ todo "Handle more object types!" ]
-
-            --                 Type.Union name ->
-            --                     Err [ todo "Handle more object types!" ]
-
-            --                 Type.Interface name ->
-            --                     Err [ todo "Handle more object types!" ]
-
-            --                 Type.List_ inner ->
-            --                     Err [ todo "Handle more object types!" ]
-
-            --                 Type.Nullable inner ->
-            --                     Err [ todo "Handle more object types!" ]
-                                        
-
-            --         Nothing ->
-            --             Err [ error (FieldUnknown { object = object.name, field = fieldName} ) ]
-            Err [ todo "Fragments in objects aren't suported yet!" ]
+            else
+                Err [ todo "Common selections not allowed for gql unions" ]
 
         AST.FragmentSpreadSelection frag ->
             Err [ todo "Fragments in objects aren't suported yet!" ]
 
         AST.InlineFragmentSelection inline ->
-            Err [ todo "Inline fragments are not allowed" ]
+            let
+                tag = AST.nameToString inline.tag
+
+                (tagMatches, leftOvertags) = 
+                    matchTag tag remainingAllowedTags (False, [])
+            in
+            if tagMatches then
+                case Dict.get tag schema.objects of
+                    Nothing ->
+                        Err [ error (ObjectUnknown tag) ]
+
+                    Just obj ->
+                        let
+                                --     args = reduce (validateArg queryObj) field.arguments (Ok [])
+                            
+                            selectionResult = reduce (canonicalizeField schema obj) inline.selection (Ok [])
+                        in
+                        case selectionResult of
+                            Ok canSelection ->
+                                Ok 
+                                    (Can.UnionCase
+                                        { tag = Can.Name tag
+                                        , directives = []
+                                        , selection = canSelection
+                                        }
+                                    )
+                                
+                            Err err ->
+                                Err err
+
+            else
+                Err [ todo (tag ++ " does not match!") ]
+
+
+matchTag : String -> List String -> (Bool, List String) -> (Bool, List String)
+matchTag tag tags (matched, captured) =
+    case tags of
+        [] ->
+            (matched, captured)
+        
+        top :: remain ->
+            if top == tag then
+                (True, remain ++ captured)
+            else
+                matchTag tag remain
+                    (matched, top :: captured)

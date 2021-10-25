@@ -18,6 +18,7 @@ import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Decode
 import GraphQL.Schema.Scalar
 import Utils.String
+import Elm.Pattern as Pattern
 
 
 generate : GraphQL.Schema.Schema -> String -> Can.Document -> List String -> Result (List Validate.Error) (List Elm.File)
@@ -218,8 +219,64 @@ generateChildTypes schema sel =
                     )
                 ) :: List.concatMap (generateChildTypes schema) (obj.selection)
 
+
+        Can.FieldUnion field ->
+            Elm.customType 
+                (Maybe.withDefault (Can.nameToString field.name)
+                    (Maybe.map 
+                        Can.nameToString field.alias_
+                    )
+                )
+                (List.filterMap 
+                    (unionVariant schema)
+                    field.selection
+                )
+                 :: List.concatMap (generateChildTypes schema) (field.selection)
         _ ->
             []
+
+
+unionVariant : GraphQL.Schema.Schema -> Can.Selection -> Maybe Elm.Variant
+unionVariant schema selection =
+    case selection of
+        Can.FieldScalar field ->
+            Nothing
+
+        Can.UnionCase field ->
+            case List.filter removeTypename field.selection of 
+                [] ->
+                    Just (Elm.variant (Can.nameToString field.tag))
+                    
+                fields ->
+                    Just 
+                        (Elm.variantWith 
+                            (Can.nameToString field.tag)
+                            [ Type.record 
+                                (List.map 
+                                    (fieldAnnotation schema Nothing)
+                                    fields
+                                )
+                            ]
+                        )
+
+        _ ->
+            let
+                _ = Debug.log "NOT IMPLEMENTED" selection
+            in
+            Debug.todo "Union variant not implemented!" selection
+
+
+removeTypename field =
+    case field of 
+        Can.FieldScalar scal ->
+            case scal.type_ of
+                SchemaType.Scalar "typename" ->
+                    False
+                _ ->
+                    True
+
+        _ ->
+            True
 
 
 fieldAnnotation : GraphQL.Schema.Schema -> Maybe String -> Can.Selection -> (String, Type.Annotation)
@@ -234,12 +291,7 @@ fieldAnnotation schema parent selection =
             , case field.selection of
                 [] ->
                     -- This is a leaf, produce a leaf type
-                    let
-                        _ = Debug.log "LEAF" (parent, field.name)
-
-                        
-                           
-                    in
+                   
                      case parent of
                         Nothing ->
                             -- Debug.todo "WAT"
@@ -308,10 +360,49 @@ fieldAnnotation schema parent selection =
                     Can.nameToString field.name 
                 Just alias ->
                     Can.nameToString alias
-            , Type.named ["TnG", "Enum", Utils.String.formatTypename (Can.nameToString field.name)] (Can.nameToString field.name)
+            , Type.named 
+                [ "TnG"
+                , "Enum"
+                , Utils.String.formatTypename (Can.nameToString field.name)
+                ] 
+                (Can.nameToString field.name)
+            )
+
+        Can.UnionCase field ->
+            ( Can.nameToString field.tag 
+            , Type.named 
+                [] 
+                (Can.nameToString field.tag)
+            )
+
+        Can.FieldUnion field ->
+            ( case field.alias_ of
+                Nothing ->
+                    Can.nameToString field.name 
+                Just alias ->
+                    Can.nameToString alias
+            , case field.selection of
+                [] ->
+                     case parent of
+                        Nothing ->
+                            Type.unit
+
+                        Just par ->
+                            getScalarType par (Can.nameToString field.name) schema
+                                |> schemaTypeToPrefab
+
+                sels ->
+                    Type.named 
+                        [] 
+                        (Can.nameToString field.name)
+                    
+                
             )
 
         _ ->
+            let
+                _ = Debug.log "NOT IMPLEMENTED" selection
+            in
             Debug.todo "Field not implemented!" selection
 
         
@@ -390,7 +481,7 @@ generateDecoder schema defs =
             
 
 decodeFields fields exp =
-    case Debug.log "FIELDS" fields of
+    case fields of
         [] ->
             exp
 
@@ -478,10 +569,100 @@ decodeFields fields exp =
                 decoded
 
         (Can.FieldUnion union :: remain) ->
-            exp
+            let
+                _ = Debug.log "Union" union
+            in
+            decodeFields 
+                remain
+                (exp
+                    |> Decode.map2 
+                        (\newField builder ->
+                            Elm.lambda2 "build" 
+                                Type.unit
+                                Type.unit
+                                (\one two -> 
+                                    Elm.apply two [ one ]
+                                ) 
+                        )
+                        (Decode.field 
+                            (Elm.string (Can.nameToString union.name)) 
+                            (decodeUnion union)
+                        )
+                )
 
         _ ->
             exp
+
+
+
+decodeUnion union =
+    Decode.field (Elm.string "__typename") Decode.string
+        |> Decode.andThen 
+            (\_ ->
+                Elm.lambda "typename" 
+                    Type.string
+                    (\typename -> 
+                        Elm.caseOf typename
+                            ((List.filterMap 
+                                toUnionVariantPattern
+                                union.selection
+                             )
+                             ++ 
+                             [ (Pattern.wildcard
+                               , Decode.fail (Elm.string "Unknown union type")
+                               )
+
+                             ]
+                            )
+                    ) 
+                        
+
+            )
+
+toUnionVariantPattern selection =
+    case selection of
+        Can.UnionCase var ->
+            let
+                tag = (Utils.String.formatTypename (Can.nameToString var.tag))
+            in
+            Just 
+                ( Pattern.string tag
+                , case List.filter removeTypename var.selection of
+                    [] ->
+                        Decode.succeed (Elm.value tag)
+
+                    fields ->
+                        Decode.succeed 
+                            (Elm.lambdaWith 
+                                (List.map fieldParameters fields)
+                                (Elm.apply (Elm.value tag)
+                                    [ Elm.record 
+                                        (List.map buildRecordFromVariantFields fields)
+                                    ]
+                                )
+                                
+
+                            )
+                            |> decodeFields fields
+                            
+
+                )
+        _ ->
+            Nothing
+
+fieldParameters field =
+    let
+        name = Can.getAliasedName field
+    in
+    (Pattern.var name, Type.unit)
+
+buildRecordFromVariantFields field =
+    let
+        name = Can.getAliasedName field
+    in
+    (Elm.field name (Elm.value name))
+
+
 
 decodeEnumValue enumName value =
     Decode.string 
