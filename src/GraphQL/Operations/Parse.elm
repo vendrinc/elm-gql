@@ -4,7 +4,7 @@ import Char
 import GraphQL.Operations.AST as AST
 import Parser exposing (..)
 import Set exposing (Set)
-
+import Parser.Advanced
 
 multiOr : List (a -> Bool) -> a -> Bool
 multiOr conds val =
@@ -82,7 +82,52 @@ name =
         , inner = multiOr [ Char.isLower, Char.isUpper, Char.isDigit, (==) '_' ]
         , reserved = keywords
         }
+        |> peek "VARIABLE" 
         |> Parser.map AST.Name
+
+
+
+peek : String -> Parser thing -> Parser thing
+peek tag parser =
+    Parser.succeed
+        (\start val end src ->
+            let
+                highlightParsed =
+                    String.repeat (start.column - 1) " " ++ String.repeat (max 0 (end.column - start.column)) "^"
+
+                fullLine =
+                    String.slice (max 0 (start.offset - start.column)) end.offset src
+
+                _ =
+                    Debug.log tag
+                        -- fullLine
+                        (String.slice start.offset end.offset src)
+
+                -- _ =
+                --     Debug.log name
+                --         highlightParsed
+            in
+            val
+        )
+        |= getPosition
+        |= parser
+        |= getPosition
+        |= Parser.Advanced.getSource
+
+
+
+getPosition =
+    Parser.succeed 
+        (\row col offset ->
+            { row = row
+            , column = col
+            , offset = offset
+            }
+        )
+        |= Parser.getRow
+        |= Parser.getCol
+        |= Parser.getOffset
+
 
 
 variable : Parser AST.Variable
@@ -245,7 +290,7 @@ field_ =
             , selection = sels
             }
         )
-        |= aliasedName
+        |= peek "ALIASED" aliasedName
         |. ws
         |= argumentsOpt
         |. ws
@@ -272,6 +317,7 @@ aliasedName =
         |= Parser.oneOf
             [ Parser.succeed Just
                 |. Parser.chompIf (\c -> c == ':')
+                |. ws
                 |= name
             , Parser.succeed Nothing
             ]
