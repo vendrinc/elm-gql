@@ -19,6 +19,7 @@ import Elm.Gen.Json.Decode as Decode
 import GraphQL.Schema.Scalar
 import Utils.String
 import Elm.Pattern as Pattern
+import Elm.Gen.String
 
 
 generate : GraphQL.Schema.Schema -> String -> Can.Document -> List String -> Result (List Validate.Error) (List Elm.File)
@@ -68,9 +69,54 @@ generate schema queryStr document path =
     in
     Ok
         [ Elm.file path
-            (primaryResult ++ (query :: helpers))
+            (primaryResult ++ (query :: helpers) ++ [decodeHelper])
             
         ]
+
+
+
+andField name decoder builder =
+    Elm.pipe
+        builder
+        (Elm.apply 
+            (Elm.value "field")
+            [ (Elm.string (Can.nameToString name)) 
+            , decoder
+            ]
+        )
+
+
+
+{-|
+field name fieldExpr builder
+
+
+
+-}
+
+decodeHelper =
+    Elm.fn3 "field" 
+        ("name", Type.string)
+        ("new", Decode.types_.decoder (Type.var "a"))
+        ("build", Decode.types_.decoder (Type.function [Type.var "a"] (Type.var "b")))
+        (\name new build ->
+            build
+                |> (Decode.map2 
+                        (\_ _ ->
+                            Elm.lambda2 "inner" 
+                                Type.unit
+                                Type.unit
+                                (\one two -> 
+                                    Elm.apply two [ one ]
+                                ) 
+                        )
+                        (Decode.field 
+                            name
+                            new
+                        )
+                    )
+                |> Elm.withType (Decode.types_.decoder (Type.var "b"))
+        )
 
 
 getVariables : GraphQL.Schema.Schema -> Can.Definition -> List ( String, Type.Annotation )
@@ -319,13 +365,6 @@ fieldAnnotation schema parent selection =
                     Can.nameToString alias
             , case field.selection of
                 [] ->
-                    -- This is a leaf, produce a leaf type
-                    let
-                        _ = Debug.log "LEAF" (parent, field.name)
-
-                        
-                           
-                    in
                      case parent of
                         Nothing ->
                             -- Debug.todo "WAT"
@@ -493,47 +532,25 @@ decodeFields fields exp =
         (Can.FieldObject obj :: remain) -> 
             decodeFields 
                 remain
-                (exp
-                    |> Decode.map2 
-                        (\newField builder ->
-                            -- Elm.apply builder [ newField ]
-                            -- Elm.tuple newField builder
-                            Elm.lambda2 "build" 
-                                Type.unit
-                                Type.unit
-                                (\one two -> 
-                                    Elm.apply two [ one ]
-                                ) 
-                        )
-                        (Decode.field 
-                            (Elm.string (Can.nameToString obj.name)) 
-                            (decodeFields obj.selection 
-                                (Decode.succeed
-                                    (Elm.value (Utils.String.formatTypename (Can.nameToString obj.name)))
-                                )
-                            )
+                (andField
+                    obj.name
+                    (decodeFields obj.selection 
+                        (Decode.succeed
+                            (Elm.value (Utils.String.formatTypename (Can.nameToString obj.name)))
                         )
                     )
+                    exp
+                )
                 
         
         (Can.FieldScalar scal :: remain) -> 
              let
                 decoded =
-                    exp
-                    |> Decode.map2 
-                        (\newField builder ->
-                            Elm.lambda2 "build" 
-                                Type.unit
-                                Type.unit
-                                (\one two -> 
-                                    Elm.apply two [ one ]
-                                ) 
-                        )
-                        (Decode.field 
-                            (Elm.string (Can.nameToString scal.name)) 
-                            (decodeScalarType scal.type_)
-                            
-                        )
+                     andField
+                        scal.name
+                        (decodeScalarType scal.type_)
+                        exp
+                        
              in
              decodeFields 
                 remain
@@ -542,27 +559,42 @@ decodeFields fields exp =
         (Can.FieldEnum enum :: remain) -> 
              let
                 decoded =
-                    exp
-                    |> Decode.map2 
-                        (\newField builder ->
-                            Elm.lambda2 "build" 
-                                Type.unit
-                                Type.unit
-                                (\one two -> 
-                                    Elm.apply two [ one ]
-                                ) 
-                        )
-                        (Decode.field 
-                            (Elm.string (Can.nameToString enum.name)) 
-                            (Decode.oneOf 
-                                (List.map 
-                                    (decodeEnumValue (Can.nameToString enum.name))                            
-                                    enum.values
-                                    |> Elm.list
+                    andField
+                        enum.name
+                        (Decode.string
+                            |> (Decode.andThen
+                                (\_ ->
+                                    Elm.lambda  "enum"
+                                        Type.string
+                                        (\str ->
+                                            Elm.caseOf (Elm.Gen.String.toLower str) 
+                                                ((List.map 
+                                                    (\value ->
+                                                        ( Pattern.string (String.toLower value.name)
+                                                        , Decode.succeed 
+                                                            (Elm.valueFrom
+                                                                [ "TnG"
+                                                                , "Enum"
+                                                                , Utils.String.formatTypename value.name
+                                                                ]
+                                                                value.name
+                                                            )
+                                                        )
+                                                    
+                                                    )
+                                                    enum.values
+                                                ) ++ 
+                                                    [ ( Pattern.wildcard
+                                                     ,  (Decode.fail (Elm.string "I don't recognize this enum!"))
+                                                     )
+                                                    ]
+                                                
+                                                )
+                                        )
                                 )
                             )
-                            
-                        )
+                        )    
+                        exp
              in
              decodeFields 
                 remain
@@ -574,20 +606,10 @@ decodeFields fields exp =
             in
             decodeFields 
                 remain
-                (exp
-                    |> Decode.map2 
-                        (\newField builder ->
-                            Elm.lambda2 "build" 
-                                Type.unit
-                                Type.unit
-                                (\one two -> 
-                                    Elm.apply two [ one ]
-                                ) 
-                        )
-                        (Decode.field 
-                            (Elm.string (Can.nameToString union.name)) 
-                            (decodeUnion union)
-                        )
+                (andField
+                     union.name
+                    (decodeUnion union)
+                     exp
                 )
 
         _ ->
@@ -650,36 +672,19 @@ toUnionVariantPattern selection =
         _ ->
             Nothing
 
+
 fieldParameters field =
     let
         name = Can.getAliasedName field
     in
     (Pattern.var name, Type.unit)
 
+
 buildRecordFromVariantFields field =
     let
         name = Can.getAliasedName field
     in
     (Elm.field name (Elm.value name))
-
-
-
-decodeEnumValue enumName value =
-    Decode.string 
-        |> Decode.andThen 
-            (\_ ->
-                Elm.lambda  "enum"
-                    Type.string
-                    (\str ->
-                        Elm.ifThen 
-                            (Elm.equal (Elm.string value.name) str) 
-                            (Decode.succeed (Elm.valueFrom ["TnG", "Enum", (Utils.String.formatTypename enumName)] value.name))
-                            (Decode.fail (Elm.string "I don't recognize this enum!"))
-                    )
-
-            )
-    
-
 
 
 decodeScalarType type_ =
