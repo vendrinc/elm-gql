@@ -76,6 +76,25 @@ type Selection
     | FragmentSelection FragmentSpread
     | UnionCase UnionCaseDetails
 
+
+getAliasedName : Selection -> String
+getAliasedName sel =
+    case sel of
+        Field details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
+        FieldObject details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
+        FieldUnion details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
+        FieldScalar details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
+        FieldEnum details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
+        FragmentSelection details ->
+            nameToString (details.name)
+        UnionCase details ->
+             nameToString (details.tag)
+
 type alias FieldDetails =
     { alias_ : Maybe Name
     , name : Name
