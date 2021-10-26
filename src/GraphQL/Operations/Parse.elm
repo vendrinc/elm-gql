@@ -82,7 +82,6 @@ name =
         , inner = multiOr [ Char.isLower, Char.isUpper, Char.isDigit, (==) '_' ]
         , reserved = keywords
         }
-        |> peek "VARIABLE" 
         |> Parser.map AST.Name
 
 
@@ -290,7 +289,7 @@ field_ =
             , selection = sels
             }
         )
-        |= peek "ALIASED" aliasedName
+        |= aliasedName
         |. ws
         |= argumentsOpt
         |. ws
