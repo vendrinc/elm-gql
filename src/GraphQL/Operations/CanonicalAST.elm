@@ -10,7 +10,7 @@ import GraphQL.Schema.Union as Union
 import GraphQL.Schema.Scalar as Scalar
 import GraphQL.Schema.InputObject as Input
 import GraphQL.Schema.Type as Type
-
+import GraphQL.Operations.AST as AST
 
 type alias Document =
     { definitions : List Definition
@@ -50,15 +50,15 @@ type alias Directive =
 
 type alias Argument =
     { name : Name
-    , value : Value
+    , value : AST.Value
     }
 
 
 
 type alias VariableDefinition =
     { variable : Variable
-    , type_ : Type
-    , defaultValue : Maybe Value
+    , type_ : AST.Type
+    , defaultValue : Maybe AST.Value
     }
 
 
@@ -164,21 +164,21 @@ nameToString : Name -> String
 nameToString (Name str) =
     str
 
-type Value
-    = Str String
-    | Integer Int
-    | Decimal Float
-    | Boolean Bool
-    | Null
-    | Enum Name
-    | Var Variable
-    | Object (List ( Name, Value ))
-    | ListValue (List Value)
+-- type Value
+--     = Str String
+--     | Integer Int
+--     | Decimal Float
+--     | Boolean Bool
+--     | Null
+--     | Enum Name
+--     | Var Variable
+--     | Object (List ( Name, Value ))
+--     | ListValue (List Value)
 
 
-type Type
-    = Type_ Name
-    | List_ Type
-    | Nullable Type
+-- type Type
+--     = Type_ Name
+--     | List_ Type
+--     | Nullable Type
 
 

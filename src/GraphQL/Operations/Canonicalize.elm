@@ -166,7 +166,10 @@ canonicalizeDefinition schema def =
                                 Can.Operation 
                                     { operationType = Can.Query
                                     , name = Maybe.map convertName details.name
-                                    , variableDefinitions = []
+                                    , variableDefinitions =
+                                        List.map
+                                            toCanonVariable
+                                            details.variableDefinitions
                                     , directives = []
                                     , fields = fields
                                     }
@@ -178,6 +181,14 @@ canonicalizeDefinition schema def =
                 AST.Mutation ->
                     -- reduce (validateMutation schema) details.fields (Ok ())
                     Debug.todo "MUTATSION!"
+
+
+toCanonVariable : AST.VariableDefinition -> Can.VariableDefinition
+toCanonVariable def =
+    { variable = { name = convertName def.variable.name }
+    , type_ = def.type_
+    , defaultValue = def.defaultValue
+    }
 
 
 canonicalizeQuerySelection : GraphQL.Schema.Schema -> AST.Selection -> Result (List Error) (Can.Selection)

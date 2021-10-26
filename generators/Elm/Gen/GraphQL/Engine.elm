@@ -855,11 +855,10 @@ selectTypeNameButSkip =
 
 
 {-|
-
-
 -}
-prebakedQuery : Elm.Expression -> Elm.Expression -> Elm.Expression
-prebakedQuery arg1 arg2 =
+prebakedQuery :
+    Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+prebakedQuery arg1 arg2 arg3 =
     Elm.apply
         (Elm.valueWith
             moduleName_
@@ -870,6 +869,11 @@ prebakedQuery arg1 arg2 =
                     [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "data" ]
+                , Type.list
+                    (Type.tuple
+                        Type.string
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                    )
                 ]
                 (Type.namedWith
                     [ "GraphQL", "Engine" ]
@@ -880,7 +884,7 @@ prebakedQuery arg1 arg2 =
                 )
             )
         )
-        [ arg1, arg2 ]
+        [ arg1, arg2, arg3 ]
 
 
 {-| Every value/function in this module in case you need to refer to it directly. -}
@@ -1452,6 +1456,11 @@ id_ =
                     [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.var "data" ]
+                , Type.list
+                    (Type.tuple
+                        Type.string
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                    )
                 ]
                 (Type.namedWith
                     [ "GraphQL", "Engine" ]

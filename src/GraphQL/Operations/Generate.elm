@@ -20,7 +20,7 @@ import GraphQL.Schema.Scalar
 import Utils.String
 import Elm.Pattern as Pattern
 import Elm.Gen.String
-
+import GraphQL.Operations.AST as AST
 
 generate : GraphQL.Schema.Schema -> String -> Can.Document -> List String -> Result (List Validate.Error) (List Elm.File)
 generate schema queryStr document path =
@@ -49,6 +49,12 @@ generate schema queryStr document path =
                 (\var ->
                     Engine.prebakedQuery
                         (Elm.string queryStr)
+                        (Elm.list 
+                            (List.concatMap 
+                                (encodeVariable schema) 
+                                document.definitions
+                            )
+                        )
                         (generateDecoder schema document.definitions )
                         |> Elm.withType 
                             (Engine.types_.selection
@@ -64,17 +70,19 @@ generate schema queryStr document path =
     
         primaryResult =
             List.concatMap (generatePrimaryResultType schema) document.definitions
-            
-    
     in
     Ok
         [ Elm.file path
             (primaryResult ++ (query :: helpers) ++ [decodeHelper])
-            
         ]
 
 
 
+encodeVariable schema def =
+    []
+
+
+andField : Can.Name -> Elm.Expression -> Elm.Expression -> Elm.Expression
 andField name decoder builder =
     Elm.pipe
         builder
@@ -94,6 +102,7 @@ field name fieldExpr builder
 
 -}
 
+decodeHelper : Elm.Declaration
 decodeHelper =
     Elm.fn3 "field" 
         ("name", Type.string)
@@ -127,6 +136,7 @@ getVariables schema def =
 
         Can.Operation op ->
             List.map (toVariableAnnotation schema) op.variableDefinitions
+                |> Debug.log "GET VARS"
 
 
 toVariableAnnotation : GraphQL.Schema.Schema -> Can.VariableDefinition -> ( String, Type.Annotation )
@@ -136,26 +146,26 @@ toVariableAnnotation schema var =
     )
 
 
-toElmType : GraphQL.Schema.Schema -> Can.Type -> Type.Annotation
+toElmType : GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
 toElmType schema astType =
     case astType of
-        Can.Type_ name ->
+        AST.Type_ name ->
             Type.string
 
-        Can.List_ inner ->
+        AST.List_ inner ->
             Type.list (toElmTypeHelper schema inner)
 
-        Can.Nullable inner ->
+        AST.Nullable inner ->
             toElmTypeHelper schema inner
 
 
-toElmTypeHelper : GraphQL.Schema.Schema -> Can.Type -> Type.Annotation
+toElmTypeHelper : GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
 toElmTypeHelper schema astType =
     case astType of
-        Can.Type_ name ->
+        AST.Type_ name ->
             let
                 typename =
-                    Can.nameToString name
+                    AST.nameToString name
             in
             if isPrimitive schema typename then
                 Type.named [] typename
@@ -182,10 +192,10 @@ toElmTypeHelper schema astType =
                             ( required, opts ) ->
                                 Type.named [] typename
 
-        Can.List_ inner ->
+        AST.List_ inner ->
             Type.list (toElmTypeHelper schema inner)
 
-        Can.Nullable inner ->
+        AST.Nullable inner ->
             Type.maybe (toElmTypeHelper schema inner)
 
 
@@ -312,6 +322,7 @@ unionVariant schema selection =
             Debug.todo "Union variant not implemented!" selection
 
 
+removeTypename : Can.Selection -> Bool
 removeTypename field =
     case field of 
         Can.FieldScalar scal ->
@@ -434,8 +445,6 @@ fieldAnnotation schema parent selection =
                     Type.named 
                         [] 
                         (Can.nameToString field.name)
-                    
-                
             )
 
         _ ->
@@ -519,6 +528,7 @@ generateDecoder schema defs =
             
             
 
+decodeFields : List Can.Selection -> Elm.Expression -> Elm.Expression
 decodeFields fields exp =
     case fields of
         [] ->
@@ -601,9 +611,6 @@ decodeFields fields exp =
                 decoded
 
         (Can.FieldUnion union :: remain) ->
-            let
-                _ = Debug.log "Union" union
-            in
             decodeFields 
                 remain
                 (andField
@@ -617,6 +624,7 @@ decodeFields fields exp =
 
 
 
+decodeUnion : { a | selection : List Can.Selection } -> Elm.Expression
 decodeUnion union =
     Decode.field (Elm.string "__typename") Decode.string
         |> Decode.andThen 
@@ -641,6 +649,7 @@ decodeUnion union =
 
             )
 
+toUnionVariantPattern : Can.Selection -> Maybe (Pattern.Pattern, Elm.Expression)
 toUnionVariantPattern selection =
     case selection of
         Can.UnionCase var ->
@@ -673,6 +682,7 @@ toUnionVariantPattern selection =
             Nothing
 
 
+fieldParameters : Can.Selection -> (Pattern.Pattern, Type.Annotation)
 fieldParameters field =
     let
         name = Can.getAliasedName field
@@ -687,6 +697,7 @@ buildRecordFromVariantFields field =
     (Elm.field name (Elm.value name))
 
 
+decodeScalarType : SchemaType.Type -> Elm.Expression
 decodeScalarType type_ =
     case type_ of
         SchemaType.Scalar scalarName ->

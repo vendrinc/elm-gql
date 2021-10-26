@@ -673,11 +673,9 @@ map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields
 
 
 {-|
-
-
 -}
-prebakedQuery : String -> Json.Decoder data -> Selection Query data
-prebakedQuery gql decoder =
+prebakedQuery : String -> List ( String, Encode.Value ) -> Json.Decoder data ->  Selection Query data
+prebakedQuery gql args decoder =
     Selection <|
         Details
             (\aliases ->
@@ -686,8 +684,16 @@ prebakedQuery gql decoder =
                   ]
                 )
             )
-            (\aliases ->
-                ( aliases
+            (\vars ->
+                ( List.foldl 
+                    (\(name, val) dict ->
+                        { dict | variables = 
+                            dict.variables 
+                                |> Dict.insert name (ArgValue val "whatogeshere") 
+                        }
+                    )
+                    vars
+                    args
                 , decoder
                 )
             )
