@@ -113,7 +113,6 @@ type alias FieldObjectDetails =
     }
 
 
-
 type alias FieldUnionDetails =
     { alias_ : Maybe Name
     , name : Name
@@ -137,6 +136,7 @@ type alias FieldEnumDetails =
     , name : Name
     , arguments : List Argument
     , directives : List Directive
+    , enumName : String
     , values : List { name : String, description : Maybe String}
     }
 

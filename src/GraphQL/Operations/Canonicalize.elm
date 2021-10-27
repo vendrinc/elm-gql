@@ -355,57 +355,9 @@ canonicalizeField schema object selection =
                             |> List.head
 
                 in
-                -- canonicalizeFieldType
                 case matchedField of
                     Just matched ->
                         canonicalizeFieldType schema object field matched.type_ selection matched.type_
-                        -- case matched.type_ of
-                        --     Type.Scalar name ->
-                        --         -- Err [ todo "Handle more object types!" ]
-                        --         Ok 
-                        --             (Can.FieldScalar
-                        --                 { alias_ = Maybe.map convertName field.alias_
-                        --                 , name = convertName field.name
-                        --                 , arguments = []
-                        --                 , directives = []
-                        --                 , type_ = matched.type_
-                        --                 }
-                        --             )
-
-                        --     Type.InputObject name ->
-                        --         Err [ todo "Invalid schema!  Weird InputObject" ]
-
-                        --     Type.Object name ->
-                        --         case Dict.get name schema.objects of
-                        --             Nothing ->
-                        --                 Err [ error (ObjectUnknown name) ]
-
-                        --             Just obj ->
-                        --                 let
-                        --                 --     args = reduce (validateArg queryObj) field.arguments (Ok [])
-                                            
-                        --                     fields = reduce (canonicalizeField schema obj) field.selection (Ok [])
-                        --                 in
-                        --                 Err [ todo "Field Object" ]
-
-                        --     Type.Enum name ->
-                        --         Err [ todo "Field enums!" ]
-
-                        --     Type.Union name ->
-                        --         Err [ todo "Field Unions" ]
-
-                        --     Type.Interface name ->
-                        --         Err [ todo "Field Interfaces!" ]
-
-                        --     Type.List_ inner ->
-                        --         Err [ todo "Field List" ]
-
-                        --     Type.Nullable inner ->
-                        --         let
-                        --             _ = Debug.log "INNER NULLABLE" inner
-                        --         in
-                        --         Err [ todo "Field Nullable" ]
-                                        
 
                     Nothing ->
                         Err [ error (FieldUnknown { object = object.name, field = fieldName} ) ]
@@ -474,6 +426,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                                 , name = convertName field.name
                                 , arguments = []
                                 , directives = []
+                                , enumName = enum.name
                                 , values = enum.values
                                 }
                             )

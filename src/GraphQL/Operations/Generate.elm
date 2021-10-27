@@ -73,13 +73,47 @@ generate schema queryStr document path =
     in
     Ok
         [ Elm.file path
-            (primaryResult ++ (query :: helpers) ++ [decodeHelper])
+            (primaryResult ++ helpers ++ [query ] ++ [decodeHelper])
         ]
 
 
 
+encodeVariable : GraphQL.Schema.Schema -> Can.Definition -> List Elm.Expression
 encodeVariable schema def =
-    []
+    case def of
+        Can.Fragment frag ->
+            []
+
+        Can.Operation op ->
+            List.map (toVariableEncoder schema) op.variableDefinitions
+    
+
+toVariableEncoder : GraphQL.Schema.Schema -> Can.VariableDefinition -> Elm.Expression
+toVariableEncoder schema var =
+    let
+        name = Can.nameToString var.variable.name
+    in
+    Elm.get name (Elm.value "input")
+        |> Generate.Args.encodeInputRecursive 
+            "TnG"
+            schema 
+            (toVariableSchemaType schema var.type_)
+            (Input.InMaybe Input.UnwrappedValue)
+        |> Elm.tuple (Elm.string name)
+
+
+toVariableSchemaType : GraphQL.Schema.Schema -> AST.Type -> SchemaType.Type
+toVariableSchemaType schema type_ =
+    case type_ of
+        AST.Type_ name ->
+            SchemaType.InputObject (AST.nameToString name)
+
+        AST.List_ inner ->
+            SchemaType.List_ (toVariableSchemaType schema inner)
+
+        AST.Nullable inner ->
+            SchemaType.Nullable (toVariableSchemaType schema inner)
+
 
 
 andField : Can.Name -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -136,7 +170,7 @@ getVariables schema def =
 
         Can.Operation op ->
             List.map (toVariableAnnotation schema) op.variableDefinitions
-                |> Debug.log "GET VARS"
+
 
 
 toVariableAnnotation : GraphQL.Schema.Schema -> Can.VariableDefinition -> ( String, Type.Annotation )
@@ -150,13 +184,13 @@ toElmType : GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
 toElmType schema astType =
     case astType of
         AST.Type_ name ->
-            Type.string
+            toElmTypeHelper schema astType
 
         AST.List_ inner ->
             Type.list (toElmTypeHelper schema inner)
 
         AST.Nullable inner ->
-            toElmTypeHelper schema inner
+            Type.maybe (toElmTypeHelper schema inner)
 
 
 toElmTypeHelper : GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
@@ -177,20 +211,7 @@ toElmTypeHelper schema astType =
                         Type.named  [] typename
 
                     Just input ->
-                        case Input.splitRequired input.fields of
-                            ( req, [] ) ->
-                                Type.record
-                                    (List.map
-                                        (\r ->
-                                            ( r.name
-                                            , Type.string
-                                            )
-                                        )
-                                        req
-                                    )
-
-                            ( required, opts ) ->
-                                Type.named [] typename
+                        Generate.Args.annotation "TnG" schema input
 
         AST.List_ inner ->
             Type.list (toElmTypeHelper schema inner)
@@ -261,19 +282,8 @@ generateResultTypes schema def =
 generateChildTypes : GraphQL.Schema.Schema -> Can.Selection -> List Elm.Declaration
 generateChildTypes schema sel =
     case sel of
-        Can.FieldObject obj ->
-            Elm.alias 
-                (Maybe.withDefault (Can.nameToString obj.name)
-                    (Maybe.map 
-                        Can.nameToString obj.alias_
-                    )
-                )
-                (Type.record 
-                    (List.map 
-                        (fieldAnnotation schema Nothing)
-                        obj.selection
-                    )
-                ) :: List.concatMap (generateChildTypes schema) (obj.selection)
+        Can.FieldObject obj ->               
+            List.concatMap (generateChildTypes schema) (obj.selection)
 
 
         Can.FieldUnion field ->
@@ -410,12 +420,7 @@ fieldAnnotation schema parent selection =
                     Can.nameToString field.name 
                 Just alias ->
                     Can.nameToString alias
-            , Type.named 
-                [ "TnG"
-                , "Enum"
-                , Utils.String.formatTypename (Can.nameToString field.name)
-                ] 
-                (Can.nameToString field.name)
+            , enumType field.enumName
             )
 
         Can.UnionCase field ->
@@ -454,6 +459,26 @@ fieldAnnotation schema parent selection =
             Debug.todo "Field not implemented!" selection
 
         
+
+
+enumValue : String -> String -> Elm.Expression
+enumValue enumName val =
+    Elm.valueFrom
+        [ "TnG"
+        , "Enum"
+        , Utils.String.formatTypename enumName
+        ] 
+        val
+
+
+enumType : String -> Type.Annotation
+enumType enumName =
+    Type.named 
+        [ "TnG"
+        , "Enum"
+        , Utils.String.formatTypename enumName
+        ] 
+        enumName
 
 
 schemaTypeToPrefab : SchemaType.Type -> Type.Annotation
@@ -516,17 +541,39 @@ generateDecoder schema defs =
                             Can.nameToString op.name
                         )
                     )
-            --     _ = Debug.log "OP" 
-            --         ( op.variableDefinitions
-                    
-            --         )
             in
-            decodeFields op.fields (Decode.succeed (Elm.value opName))
+            decodeFields op.fields
+                (Decode.succeed
+                    (Elm.value opName)
+                )
 
         _ ->
             Decode.succeed Elm.unit
             
             
+
+subobjectBuilderArgs : Can.Selection -> (Pattern.Pattern, Type.Annotation)
+subobjectBuilderArgs sel =
+    ( Pattern.var (Utils.String.formatValue (Can.getAliasedName sel))
+    , Type.unit
+    )
+      
+
+
+subobjectBuilderBody : List Can.Selection -> Elm.Expression
+subobjectBuilderBody fields =
+    Elm.record 
+        (List.map 
+            (\selection ->
+                let
+                    name = (Can.getAliasedName selection)
+                in
+                Elm.field name
+                    ((Elm.value (Utils.String.formatValue name)))
+            
+            )
+        
+        fields)
 
 decodeFields : List Can.Selection -> Elm.Expression -> Elm.Expression
 decodeFields fields exp =
@@ -535,18 +582,20 @@ decodeFields fields exp =
             exp
 
         (Can.Field field :: remain) ->
-            -- Decode.field
-            
              exp
         
-        (Can.FieldObject obj :: remain) -> 
+        (((Can.FieldObject obj) as field) :: remain) -> 
             decodeFields 
                 remain
                 (andField
-                    obj.name
+                    (Can.Name (Can.getAliasedName field))
                     (decodeFields obj.selection 
                         (Decode.succeed
-                            (Elm.value (Utils.String.formatTypename (Can.nameToString obj.name)))
+                            (Elm.lambdaWith 
+                                (List.map subobjectBuilderArgs obj.selection)
+                                (subobjectBuilderBody obj.selection)
+
+                            )
                         )
                     )
                     exp
@@ -566,11 +615,11 @@ decodeFields fields exp =
                 remain
                 decoded
             
-        (Can.FieldEnum enum :: remain) -> 
+        (((Can.FieldEnum enum) as field) :: remain) -> 
              let
                 decoded =
                     andField
-                        enum.name
+                        (Can.Name (Can.getAliasedName field))
                         (Decode.string
                             |> (Decode.andThen
                                 (\_ ->
@@ -582,11 +631,7 @@ decodeFields fields exp =
                                                     (\value ->
                                                         ( Pattern.string (String.toLower value.name)
                                                         , Decode.succeed 
-                                                            (Elm.valueFrom
-                                                                [ "TnG"
-                                                                , "Enum"
-                                                                , Utils.String.formatTypename value.name
-                                                                ]
+                                                            (enumValue enum.enumName
                                                                 value.name
                                                             )
                                                         )
@@ -610,11 +655,11 @@ decodeFields fields exp =
                 remain
                 decoded
 
-        (Can.FieldUnion union :: remain) ->
+        (((Can.FieldUnion union) as field) :: remain) ->
             decodeFields 
                 remain
                 (andField
-                     union.name
+                     (Can.Name (Can.getAliasedName field))
                     (decodeUnion union)
                      exp
                 )

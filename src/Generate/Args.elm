@@ -2,6 +2,8 @@ module Generate.Args exposing
     ( createBuilder
     , nullsRecord
     , optionsRecursive
+    , annotation
+    , encodeInputRecursive
     )
 
 import Dict
@@ -19,6 +21,7 @@ import Generate.Input as Input
 import GraphQL.Schema
 import GraphQL.Schema.Argument
 import GraphQL.Schema.Field
+import GraphQL.Schema.InputObject as InputObject
 import GraphQL.Schema.Type exposing (Type(..))
 import Set exposing (Set)
 import String
@@ -287,16 +290,18 @@ annotations =
                 []
     , safeOptional =
         \namespace name ->
-            Engine.types_.optional
-                (Elm.Annotation.named ( [ namespace ])
-                    name
-                )
+            Elm.Annotation.named [ namespace ]
+                name
+                |> Engine.types_.optional
+            
     , localOptional =
         \namespace name ->
-            Elm.Annotation.namedWith
-                []
-                "Optional"
-                []
+            Engine.types_.optional
+                (Elm.Annotation.namedWith
+                    []
+                    "Optional"
+                    []
+                )
     , arg =
         \namespace name ->
             Generate.Common.ref namespace name
@@ -446,44 +451,7 @@ inputAnnotationRecursive namespace schema type_ wrapped =
                         |> unwrapWith wrapped
 
                 Just input ->
-                    case Input.splitRequired input.fields of
-                        ( [], [] ) ->
-                            annotations.arg namespace inputName
-                                |> unwrapWith wrapped
-
-                        ( required, [] ) ->
-                            Elm.Annotation.record
-                                (List.map
-                                    (\field ->
-                                        ( field.name
-                                        , inputAnnotationRecursive namespace schema field.type_ (Input.getWrap field.type_)
-                                        )
-                                    )
-                                    input.fields
-                                )
-                                |> unwrapWith wrapped
-
-                        ( [], optional ) ->
-                            annotations.safeOptional namespace inputName
-                                |> Elm.Annotation.list
-                                |> unwrapWith wrapped
-
-                        ( required, optional ) ->
-                            Elm.Annotation.record
-                                (List.map
-                                    (\field ->
-                                        ( field.name
-                                        , inputAnnotationRecursive namespace schema field.type_ (Input.getWrap field.type_)
-                                        )
-                                    )
-                                    required
-                                    ++ [ ( embeddedOptionsFieldName
-                                         , annotations.optional namespace inputName
-                                            |> Elm.Annotation.list
-                                         )
-                                       ]
-                                )
-                                |> unwrapWith wrapped
+                    inputObjectAnnotation namespace schema input wrapped
 
         GraphQL.Schema.Type.Object nestedObjectName ->
             -- not used as input
@@ -502,6 +470,56 @@ inputAnnotationRecursive namespace schema type_ wrapped =
         GraphQL.Schema.Type.Interface interfaceName ->
             -- not used as input
             Elm.Annotation.unit
+
+
+inputObjectAnnotation :
+    String 
+        -> GraphQL.Schema.Schema 
+        -> InputObject.InputObject
+        -> Input.Wrapped 
+        -> Elm.Annotation.Annotation
+inputObjectAnnotation namespace schema input wrapped =
+    let
+        inputName = input.name
+    in
+    case Input.splitRequired input.fields of
+        ( [], [] ) ->
+            annotations.arg namespace inputName
+                |> unwrapWith wrapped
+
+        ( required, [] ) ->
+            Elm.Annotation.record
+                (List.map
+                    (\field ->
+                        ( field.name
+                        , inputAnnotationRecursive namespace schema field.type_ (Input.getWrap field.type_)
+                        )
+                    )
+                    input.fields
+                )
+                |> unwrapWith wrapped
+
+        ( [], optional ) ->
+            annotations.safeOptional namespace inputName
+                |> Elm.Annotation.list
+                |> unwrapWith wrapped
+
+        ( required, optional ) ->
+            Elm.Annotation.record
+                (List.map
+                    (\field ->
+                        ( field.name
+                        , inputAnnotationRecursive namespace schema field.type_ (Input.getWrap field.type_)
+                        )
+                    )
+                    required
+                    ++ [ ( embeddedOptionsFieldName
+                            , annotations.optional namespace inputName
+                            |> Elm.Annotation.list
+                            )
+                        ]
+                )
+                |> unwrapWith wrapped
 
 
 encodeInputRecursive :
@@ -916,6 +934,15 @@ encodeWrappedInverted wrapper encoder val =
 
 {- CREATE BUILDER -}
 
+
+annotation : 
+    String 
+        -> GraphQL.Schema.Schema 
+        -> InputObject.InputObject 
+        -> Elm.Annotation.Annotation
+annotation namespace schema input =
+    inputObjectAnnotation namespace schema input Input.UnwrappedValue
+        
 
 {-| -}
 createBuilder :
