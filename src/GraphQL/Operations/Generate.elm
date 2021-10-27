@@ -94,7 +94,7 @@ toVariableEncoder schema var =
         name = Can.nameToString var.variable.name
     in
     Elm.get name (Elm.value "input")
-        |> Generate.Args.encodeInputRecursive 
+        |> Generate.Args.toJsonValue 
             "TnG"
             schema 
             (toVariableSchemaType schema var.type_)
@@ -106,13 +106,25 @@ toVariableSchemaType : GraphQL.Schema.Schema -> AST.Type -> SchemaType.Type
 toVariableSchemaType schema type_ =
     case type_ of
         AST.Type_ name ->
-            SchemaType.InputObject (AST.nameToString name)
+            if nameIsScalar (AST.nameToString name) then
+                SchemaType.Scalar (AST.nameToString name)
+            else
+                SchemaType.InputObject (AST.nameToString name)
 
         AST.List_ inner ->
             SchemaType.List_ (toVariableSchemaType schema inner)
 
         AST.Nullable inner ->
             SchemaType.Nullable (toVariableSchemaType schema inner)
+
+
+nameIsScalar : String -> Bool
+nameIsScalar name =
+    List.member (String.toLower name) 
+        [ "int"
+        , "float"
+        , "boolean"
+        ]
 
 
 

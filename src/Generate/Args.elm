@@ -3,7 +3,8 @@ module Generate.Args exposing
     , nullsRecord
     , optionsRecursive
     , annotation
-    , encodeInputRecursive
+    , toEngineArg
+    , toJsonValue
     )
 
 import Dict
@@ -165,7 +166,7 @@ prepareRequiredRecursive :
 prepareRequiredRecursive namespace schema argument =
     Elm.tuple
         (Elm.string argument.name)
-        (encodeInputRecursive
+        (toEngineArg
             namespace
             schema
             argument.type_
@@ -408,7 +409,7 @@ optionsRecursiveHelper namespace schema name options fields =
                     , inputAnnotationRecursive namespace schema arg.type_ wrapping
                     )
                     (\val ->
-                        encodeInputRecursive namespace
+                        toEngineArg namespace
                             schema
                             arg.type_
                             wrapping
@@ -522,20 +523,181 @@ inputObjectAnnotation namespace schema input wrapped =
                 |> unwrapWith wrapped
 
 
-encodeInputRecursive :
+{-|
+
+    Take an input
+
+-}
+toJsonValue :
     String
     -> GraphQL.Schema.Schema
     -> Type
     -> Input.Wrapped
     -> Elm.Expression
     -> Elm.Expression
-encodeInputRecursive namespace schema fieldType wrapped val =
-    case fieldType of
+toJsonValue namespace schema fieldType wrapped val =
+    case Debug.log "JSON VALUE" fieldType of
         GraphQL.Schema.Type.Nullable newType ->
-            encodeInputRecursive namespace schema newType wrapped val
+            toJsonValue namespace schema newType wrapped val
 
         GraphQL.Schema.Type.List_ newType ->
-            encodeInputRecursive namespace schema newType wrapped val
+            toJsonValue namespace schema newType wrapped val
+
+        GraphQL.Schema.Type.Scalar scalarName ->
+            encodeScalar scalarName
+                wrapped
+                val
+
+        GraphQL.Schema.Type.Enum enumName ->
+            --This can either be
+            --     val -> Enum.encode val
+            --     val ->
+            --          Encode.list Enum.encode val
+            --     val ->
+            --          Engine.encodeMaybe Enum.encode val
+            --     or some stack
+            --     val ->
+            --          Encode.list (Encode.list Enum.encode) val
+            --
+            encodeWrappedInverted wrapped
+                (\v ->
+                    Elm.apply
+                        (Elm.valueFrom ( [ namespace, "Enum", enumName ]) "encode")
+                        [ v
+                        ]
+                )
+                val
+                
+               
+
+        GraphQL.Schema.Type.InputObject inputName ->
+            case Dict.get inputName schema.inputObjects of
+                Nothing ->
+                    encodeInputObjectArg inputName wrapped val 0
+
+                Just input ->
+                    if List.all Input.isOptional input.fields then
+                            (encodeInputObjectArg inputName wrapped val 0)
+
+                    else
+                        case input.fields of
+                            [] ->
+                                encodeInputObjectArg inputName wrapped val 0
+
+                            many ->
+                                encodeWrappedJsonValue input.name
+                                    wrapped
+                                    (\v ->
+                                        let
+                                            requiredVals =
+                                                List.map
+                                                    (\field ->
+                                                        Elm.tuple
+                                                            (Elm.string field.name)
+                                                            (toJsonValue namespace
+                                                                schema
+                                                                field.type_
+                                                                (Input.getWrap field.type_)
+                                                                (Elm.get field.name v)
+                                                            )
+                                                    )
+                                                    (List.filter (not << Input.isOptional) many)
+                                                    |> Elm.list
+                                        in
+                                        if List.any Input.isOptional input.fields then
+                                            Elm.Gen.List.append
+                                                requiredVals
+                                                (Engine.encodeOptionals
+                                                    (Elm.get embeddedOptionsFieldName v)
+                                                )
+                                                |> Encode.object
+
+                                        else
+                                            Encode.object requiredVals
+                                        
+                                    )
+                                    val
+
+        GraphQL.Schema.Type.Union unionName ->
+            Elm.string "Unions cant be nested in inputs"
+
+        GraphQL.Schema.Type.Object nestedObjectName ->
+            Elm.string "Objects cant be nested in inputs"
+
+        GraphQL.Schema.Type.Interface interfaceName ->
+            Elm.string "Interfaces cant be in inputs"
+
+
+
+
+
+{-|
+
+-}
+encodeWrappedJsonValue : String -> Input.Wrapped -> (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
+encodeWrappedJsonValue inputName wrapper encoder val =
+    case wrapper of
+        Input.UnwrappedValue ->
+            encoder val
+
+        Input.InMaybe inner ->
+            let
+                valName =
+                    addCount inner (Utils.String.formatValue inputName)
+            in
+            Elm.caseOf val
+                [ ( Elm.Pattern.named "Just" [ Elm.Pattern.var "item" ]
+                  , encodeWrappedJsonValue valName inner encoder (Elm.value "item")
+                  )
+                , ( Elm.Pattern.named "Nothing" []
+                  , Encode.null
+                  )
+                ]
+
+        Input.InList inner ->
+            let
+                valName =
+                    addCount inner (Utils.String.formatValue inputName)
+            in
+            -- Engine.argList
+            Encode.list
+                (\v ->
+                    Elm.lambda valName
+                        Elm.Annotation.unit
+                        (\within ->
+                            encodeWrappedJsonValue valName inner encoder within
+                        )
+                )
+                val
+                -- (Elm.Gen.List.map
+                --         (\v ->
+                --             Elm.lambda valName
+                --                 Elm.Annotation.unit
+                --                 (\within ->
+                --                     encodeWrappedJsonValue valName inner encoder within
+                --                 )
+                --         )
+                --         val
+                -- )
+                -- (Elm.string (Input.gqlType wrapper inputName))
+
+                
+
+
+toEngineArg :
+    String
+    -> GraphQL.Schema.Schema
+    -> Type
+    -> Input.Wrapped
+    -> Elm.Expression
+    -> Elm.Expression
+toEngineArg namespace schema fieldType wrapped val =
+    case fieldType of
+        GraphQL.Schema.Type.Nullable newType ->
+            toEngineArg namespace schema newType wrapped val
+
+        GraphQL.Schema.Type.List_ newType ->
+            toEngineArg namespace schema newType wrapped val
 
         GraphQL.Schema.Type.Scalar scalarName ->
             Engine.arg
@@ -598,7 +760,7 @@ encodeInputRecursive namespace schema fieldType wrapped val =
                                                     (\field ->
                                                         Elm.tuple
                                                             (Elm.string field.name)
-                                                            (encodeInputRecursive namespace
+                                                            (toEngineArg namespace
                                                                 schema
                                                                 field.type_
                                                                 (Input.getWrap field.type_)
