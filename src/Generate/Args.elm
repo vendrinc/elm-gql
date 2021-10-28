@@ -279,6 +279,7 @@ getNested schema captured type_ =
 annotations :
     { optional : String -> String -> Elm.Annotation.Annotation
     , safeOptional : String -> String -> Elm.Annotation.Annotation
+    , ergonomicOptional : String -> String -> Elm.Annotation.Annotation
     , localOptional : a -> b -> Elm.Annotation.Annotation
     , arg : String -> String -> Elm.Annotation.Annotation
     }
@@ -290,11 +291,19 @@ annotations =
                 "Optional"
                 []
     , safeOptional =
+        -- safe optional needs to be of the form of 
+        -- Engine.Optional BaseThing
+        -- This is needed within Optional files to avoid circular imports
         \namespace name ->
             Elm.Annotation.named [ namespace ]
                 name
                 |> Engine.types_.optional
-            
+    , ergonomicOptional =
+         -- ergonomic optional is of the form BaseThing.Optional
+         -- More ergonomic, but can only be used in operational queries
+        \namespace name ->
+            Elm.Annotation.named [ namespace, name ]
+                "Optional"
     , localOptional =
         \namespace name ->
             Engine.types_.optional
@@ -453,6 +462,7 @@ inputAnnotationRecursive namespace schema type_ wrapped =
 
                 Just input ->
                     inputObjectAnnotation namespace schema input wrapped
+                        { ergonomicOptionType = False }
 
         GraphQL.Schema.Type.Object nestedObjectName ->
             -- not used as input
@@ -478,8 +488,9 @@ inputObjectAnnotation :
         -> GraphQL.Schema.Schema 
         -> InputObject.InputObject
         -> Input.Wrapped 
+        -> { ergonomicOptionType : Bool}
         -> Elm.Annotation.Annotation
-inputObjectAnnotation namespace schema input wrapped =
+inputObjectAnnotation namespace schema input  wrapped optForm =
     let
         inputName = input.name
     in
@@ -501,9 +512,14 @@ inputObjectAnnotation namespace schema input wrapped =
                 |> unwrapWith wrapped
 
         ( [], optional ) ->
-            annotations.safeOptional namespace inputName
-                |> Elm.Annotation.list
-                |> unwrapWith wrapped
+            if optForm.ergonomicOptionType then
+                annotations.ergonomicOptional namespace inputName
+                    |> Elm.Annotation.list
+                    |> unwrapWith wrapped
+            else
+                annotations.safeOptional namespace inputName
+                    |> Elm.Annotation.list
+                    |> unwrapWith wrapped
 
         ( required, optional ) ->
             Elm.Annotation.record
@@ -1103,7 +1119,7 @@ annotation :
         -> InputObject.InputObject 
         -> Elm.Annotation.Annotation
 annotation namespace schema input =
-    inputObjectAnnotation namespace schema input Input.UnwrappedValue
+    inputObjectAnnotation namespace schema input Input.UnwrappedValue { ergonomicOptionType = True}
         
 
 {-| -}
