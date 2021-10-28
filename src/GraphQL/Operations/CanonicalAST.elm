@@ -11,6 +11,7 @@ import GraphQL.Schema.Scalar as Scalar
 import GraphQL.Schema.InputObject as Input
 import GraphQL.Schema.Type as Type
 import GraphQL.Operations.AST as AST
+import Generate.Input
 
 type alias Document =
     { definitions : List Definition
@@ -110,7 +111,9 @@ type alias FieldObjectDetails =
     , directives : List Directive
     , selection : List Selection
     , object : Object.Object
+    , wrapper : Generate.Input.Wrapped
     }
+
 
 
 type alias FieldUnionDetails =

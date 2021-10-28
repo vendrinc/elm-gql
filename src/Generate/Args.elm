@@ -536,7 +536,7 @@ toJsonValue :
     -> Elm.Expression
     -> Elm.Expression
 toJsonValue namespace schema fieldType wrapped val =
-    case Debug.log "JSON VALUE" fieldType of
+    case fieldType of
         GraphQL.Schema.Type.Nullable newType ->
             toJsonValue namespace schema newType wrapped val
 

@@ -17,7 +17,7 @@ import GraphQL.Schema.Scalar as Scalar
 import GraphQL.Schema.InputObject as Input
 import GraphQL.Schema.Type as Type
 import Dict exposing (Dict)
-
+import Generate.Input
 type Error =
     Error 
         { coords : Coords 
@@ -193,37 +193,14 @@ toCanonVariable def =
 
 canonicalizeQuerySelection : GraphQL.Schema.Schema -> AST.Selection -> Result (List Error) (Can.Selection)
 canonicalizeQuerySelection schema selection =
-    case selection of
+    case Debug.log "SEL" selection of
         AST.Field field ->
             case Dict.get (AST.nameToString field.name) schema.queries of
                 Nothing ->
                     Err  [error (QueryUnknown (AST.nameToString field.name))]
 
                 Just query ->
-                    case query.type_ of
-                        -- Union unionName ->
-                        --     case Dict.get unionName schema.unions of
-                        --         Nothing ->
-                        --             Err [ UnknownField unionName ]
-
-                        --         Just innerUnion ->
-                        --             reduce (validateUnion schema innerUnion) field.selection (Ok [])
-
-                        -- Object objName ->
-                            -- case Dict.get objName schema.objects of
-                            --     Nothing ->
-                            --         Err [ UnknownField objName ]
-
-                            --     Just obj ->
-                            --         Ok ()
-                            --             |> reduce (validateArg queryObj) field.arguments
-                            --             |> reduce (validateField schema obj) field.selection
-
-                        -- Leaf ->
-                        --     Ok ()
-
-
-                        
+                    case query.type_ of                          
                         Type.Scalar name ->
                             Ok 
                                 (Can.FieldScalar
@@ -259,6 +236,7 @@ canonicalizeQuerySelection schema selection =
                                                     , directives = []
                                                     , selection = canSelection
                                                     , object = obj
+                                                    , wrapper = Generate.Input.getWrap query.type_
                                                     }
                                                 )
                                             
@@ -328,12 +306,11 @@ canonicalizeQuerySelection schema selection =
 
 canonicalizeField : GraphQL.Schema.Schema -> Object.Object -> AST.Selection -> Result (List Error) (Can.Selection)
 canonicalizeField schema object selection =
-    case selection of
+    case Debug.log "Field" selection of
         AST.Field field ->
             let
                 fieldName =
                     AST.nameToString field.name
-
                
             in
             if fieldName == "__typename" then
@@ -369,9 +346,15 @@ canonicalizeField schema object selection =
             Err [ todo "Inline fragments are not allowed" ]
 
 
+
+{-|
+    For `field`, we are matching it up with types from `schema`
+
+
+-}
 canonicalizeFieldType : GraphQL.Schema.Schema -> Object.Object -> AST.FieldDetails -> Type.Type -> AST.Selection -> Type.Type ->  Result (List Error) (Can.Selection)
 canonicalizeFieldType schema object field type_ selection originalType =
-        case type_ of
+        case Debug.log "     CANIZE_TYPE:" type_ of
             Type.Scalar name ->
                 -- Err [ todo "Handle more object types!" ]
                 Ok 
@@ -395,7 +378,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                     Just obj ->
                         let
                                 --     args = reduce (validateArg queryObj) field.arguments (Ok [])
-                            
+
                             selectionResult = reduce (canonicalizeField schema obj) field.selection (Ok [])
                         in
                         case selectionResult of
@@ -408,6 +391,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                                         , directives = []
                                         , selection = canSelection
                                         , object = obj
+                                        , wrapper = Generate.Input.getWrap originalType
                                         }
                                     )
                                 
@@ -536,7 +520,7 @@ canonicalizeUnionField schema union remainingAllowedTags selection =
                         let
                                 --     args = reduce (validateArg queryObj) field.arguments (Ok [])
                             
-                            selectionResult = reduce (canonicalizeField schema obj) inline.selection (Ok [])
+                            selectionResult = reduce (\sel -> canonicalizeField schema obj sel) inline.selection (Ok [])
                         in
                         case selectionResult of
                             Ok canSelection ->

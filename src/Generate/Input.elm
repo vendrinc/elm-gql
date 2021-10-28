@@ -5,7 +5,7 @@ module Generate.Input exposing (..)
 
 import Dict
 import Elm
-import Elm.Annotation
+import Elm.Annotation as Type
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Decode
 import Elm.Gen.Json.Encode as Encode
@@ -18,6 +18,7 @@ import GraphQL.Schema.Argument
 import GraphQL.Schema.Field
 import GraphQL.Schema.Type exposing (Type(..))
 import Set exposing (Set)
+import GraphQL.Operations.AST as Ast
 import String
 import Utils.String
 
@@ -82,6 +83,33 @@ gqlTypeHelper wrapped base =
             gqlTypeHelper inner base
 
 
+getWrapFromAst : Ast.Type -> Wrapped
+getWrapFromAst type_ =
+     case type_ of
+        Ast.Type_ name ->
+            UnwrappedValue
+
+        Ast.List_ inner ->
+            InList (getWrapFromAst inner)
+
+        Ast.Nullable inner ->
+            InMaybe (getWrapFromAst inner)
+
+
+wrapElmType : Wrapped -> Type.Annotation -> Type.Annotation
+wrapElmType wrapper exp =
+    case wrapper of
+        InList inner ->
+            Type.list
+                (wrapElmType inner exp)
+                
+
+        InMaybe inner ->
+            Type.maybe
+                (wrapElmType inner exp)
+
+        UnwrappedValue ->
+            exp
 
 wrapExpression : Wrapped -> Elm.Expression -> Elm.Expression
 wrapExpression wrapper exp =
@@ -114,3 +142,18 @@ isOptional arg =
 
         _ ->
             False
+
+
+decodeWrapper : Wrapped -> Elm.Expression -> Elm.Expression
+decodeWrapper wrap exp =
+    case wrap of
+        UnwrappedValue ->
+            exp
+
+        InList inner ->
+            Decode.list
+                (decodeWrapper inner exp)
+
+        InMaybe inner ->
+            Engine.decodeNullable
+                (decodeWrapper inner exp)

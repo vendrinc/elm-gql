@@ -92,13 +92,14 @@ toVariableEncoder : GraphQL.Schema.Schema -> Can.VariableDefinition -> Elm.Expre
 toVariableEncoder schema var =
     let
         name = Can.nameToString var.variable.name
+
     in
     Elm.get name (Elm.value "input")
         |> Generate.Args.toJsonValue 
             "TnG"
             schema 
             (toVariableSchemaType schema var.type_)
-            (Input.InMaybe Input.UnwrappedValue)
+            (Input.getWrapFromAst var.type_)
         |> Elm.tuple (Elm.string name)
 
 
@@ -408,11 +409,12 @@ fieldAnnotation schema parent selection =
                                 |> schemaTypeToPrefab
 
                 sels ->
-                    Type.record 
-                        (List.map 
-                            (fieldAnnotation schema (Just (Can.nameToString field.name)))
-                            field.selection
-                        )
+                    Input.wrapElmType field.wrapper
+                        (Type.record 
+                            (List.map 
+                                (fieldAnnotation schema (Just (Can.nameToString field.name)))
+                                field.selection
+                            ))
                     
                 
             )
@@ -601,12 +603,14 @@ decodeFields fields exp =
                 remain
                 (andField
                     (Can.Name (Can.getAliasedName field))
-                    (decodeFields obj.selection 
-                        (Decode.succeed
-                            (Elm.lambdaWith 
-                                (List.map subobjectBuilderArgs obj.selection)
-                                (subobjectBuilderBody obj.selection)
+                    (Input.decodeWrapper obj.wrapper
+                        (decodeFields obj.selection 
+                            (Decode.succeed
+                                (Elm.lambdaWith 
+                                    (List.map subobjectBuilderArgs obj.selection)
+                                    (subobjectBuilderBody obj.selection)
 
+                                )
                             )
                         )
                     )
