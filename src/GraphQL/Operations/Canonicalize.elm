@@ -193,7 +193,7 @@ toCanonVariable def =
 
 canonicalizeQuerySelection : GraphQL.Schema.Schema -> AST.Selection -> Result (List Error) (Can.Selection)
 canonicalizeQuerySelection schema selection =
-    case Debug.log "SEL" selection of
+    case selection of
         AST.Field field ->
             case Dict.get (AST.nameToString field.name) schema.queries of
                 Nothing ->
@@ -306,7 +306,7 @@ canonicalizeQuerySelection schema selection =
 
 canonicalizeField : GraphQL.Schema.Schema -> Object.Object -> AST.Selection -> Result (List Error) (Can.Selection)
 canonicalizeField schema object selection =
-    case Debug.log "Field" selection of
+    case selection of
         AST.Field field ->
             let
                 fieldName =
