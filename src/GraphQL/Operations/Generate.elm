@@ -22,8 +22,8 @@ import Elm.Pattern as Pattern
 import Elm.Gen.String
 import GraphQL.Operations.AST as AST
 
-generate : GraphQL.Schema.Schema -> String -> Can.Document -> List String -> Result (List Validate.Error) (List Elm.File)
-generate schema queryStr document path =
+generate : String -> GraphQL.Schema.Schema -> String -> Can.Document -> List String -> Result (List Validate.Error) (List Elm.File)
+generate namespace schema queryStr document path =
     let
         typeName =
             case document.definitions of
@@ -44,14 +44,14 @@ generate schema queryStr document path =
             Elm.fn "query"
                 ( "input"
                 , Type.record
-                    (List.concatMap (getVariables schema) document.definitions)
+                    (List.concatMap (getVariables namespace schema) document.definitions)
                 )
                 (\var ->
                     Engine.prebakedQuery
                         (Elm.string queryStr)
                         (Elm.list 
                             (List.concatMap 
-                                (encodeVariable schema) 
+                                (encodeVariable namespace schema) 
                                 document.definitions
                             )
                         )
@@ -78,25 +78,25 @@ generate schema queryStr document path =
 
 
 
-encodeVariable : GraphQL.Schema.Schema -> Can.Definition -> List Elm.Expression
-encodeVariable schema def =
+encodeVariable : String ->GraphQL.Schema.Schema -> Can.Definition -> List Elm.Expression
+encodeVariable namespace schema def =
     case def of
         Can.Fragment frag ->
             []
 
         Can.Operation op ->
-            List.map (toVariableEncoder schema) op.variableDefinitions
+            List.map (toVariableEncoder namespace schema) op.variableDefinitions
     
 
-toVariableEncoder : GraphQL.Schema.Schema -> Can.VariableDefinition -> Elm.Expression
-toVariableEncoder schema var =
+toVariableEncoder : String -> GraphQL.Schema.Schema -> Can.VariableDefinition -> Elm.Expression
+toVariableEncoder namespace schema var =
     let
         name = Can.nameToString var.variable.name
 
     in
     Elm.get name (Elm.value "input")
         |> Generate.Args.toJsonValue 
-            "TnG"
+            namespace
             schema 
             (toVariableSchemaType schema var.type_)
             (Input.getWrapFromAst var.type_)
@@ -175,39 +175,39 @@ decodeHelper =
         )
 
 
-getVariables : GraphQL.Schema.Schema -> Can.Definition -> List ( String, Type.Annotation )
-getVariables schema def =
+getVariables : String -> GraphQL.Schema.Schema -> Can.Definition -> List ( String, Type.Annotation )
+getVariables namespace schema def =
     case def of
         Can.Fragment frag ->
             []
 
         Can.Operation op ->
-            List.map (toVariableAnnotation schema) op.variableDefinitions
+            List.map (toVariableAnnotation namespace schema) op.variableDefinitions
 
 
 
-toVariableAnnotation : GraphQL.Schema.Schema -> Can.VariableDefinition -> ( String, Type.Annotation )
-toVariableAnnotation schema var =
+toVariableAnnotation : String -> GraphQL.Schema.Schema -> Can.VariableDefinition -> ( String, Type.Annotation )
+toVariableAnnotation namespace schema var =
     ( Can.nameToString var.variable.name
-    , toElmType schema var.type_
+    , toElmType namespace schema var.type_
     )
 
 
-toElmType : GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
-toElmType schema astType =
+toElmType : String -> GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
+toElmType namespace schema astType =
     case astType of
         AST.Type_ name ->
-            toElmTypeHelper schema astType
+            toElmTypeHelper namespace schema astType
 
         AST.List_ inner ->
-            Type.list (toElmTypeHelper schema inner)
+            Type.list (toElmTypeHelper namespace schema inner)
 
         AST.Nullable inner ->
-            Type.maybe (toElmTypeHelper schema inner)
+            Type.maybe (toElmTypeHelper namespace schema inner)
 
 
-toElmTypeHelper : GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
-toElmTypeHelper schema astType =
+toElmTypeHelper : String -> GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
+toElmTypeHelper namespace schema astType =
     case astType of
         AST.Type_ name ->
             let
@@ -224,13 +224,13 @@ toElmTypeHelper schema astType =
                         Type.named  [] typename
 
                     Just input ->
-                        Generate.Args.annotation "TnG" schema input
+                        Generate.Args.annotation namespace schema input
 
         AST.List_ inner ->
-            Type.list (toElmTypeHelper schema inner)
+            Type.list (toElmTypeHelper namespace schema inner)
 
         AST.Nullable inner ->
-            Type.maybe (toElmTypeHelper schema inner)
+            Type.maybe (toElmTypeHelper namespace schema inner)
 
 
 isPrimitive : GraphQL.Schema.Schema -> String -> Bool
