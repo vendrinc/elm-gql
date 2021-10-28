@@ -354,7 +354,7 @@ canonicalizeField schema object selection =
 -}
 canonicalizeFieldType : GraphQL.Schema.Schema -> Object.Object -> AST.FieldDetails -> Type.Type -> AST.Selection -> Type.Type ->  Result (List Error) (Can.Selection)
 canonicalizeFieldType schema object field type_ selection originalType =
-        case Debug.log "     CANIZE_TYPE:" type_ of
+        case type_ of
             Type.Scalar name ->
                 -- Err [ todo "Handle more object types!" ]
                 Ok 
