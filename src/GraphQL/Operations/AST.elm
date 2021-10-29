@@ -15,7 +15,7 @@ type alias FragmentDetails =
     { name : Name
     , typeCondition : Name
     , directives : List Directive
-    , selectionSet : List Selection
+    , selection : List Selection
     }
 
 
