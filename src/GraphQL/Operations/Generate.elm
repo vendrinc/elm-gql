@@ -80,9 +80,6 @@ generate namespace schema queryStr document path =
 encodeVariable : String -> GraphQL.Schema.Schema -> Can.Definition -> List Elm.Expression
 encodeVariable namespace schema def =
     case def of
-        Can.Fragment frag ->
-            []
-
         Can.Operation op ->
             List.map (toVariableEncoder namespace schema) op.variableDefinitions
 
@@ -170,9 +167,6 @@ decodeHelper =
 getVariables : String -> GraphQL.Schema.Schema -> Can.Definition -> List ( String, Type.Annotation )
 getVariables namespace schema def =
     case def of
-        Can.Fragment frag ->
-            []
-
         Can.Operation op ->
             List.map (toVariableAnnotation namespace schema) op.variableDefinitions
 
@@ -251,9 +245,6 @@ primitives =
 generatePrimaryResultType : GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
 generatePrimaryResultType schema def =
     case def of
-        Can.Fragment frag ->
-            []
-
         Can.Operation op ->
             [ Elm.alias
                 (Maybe.withDefault "Query"
@@ -274,9 +265,6 @@ generatePrimaryResultType schema def =
 generateResultTypes : GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
 generateResultTypes schema def =
     case def of
-        Can.Fragment frag ->
-            []
-
         Can.Operation op ->
             List.concatMap (generateChildTypes schema) op.fields
 
@@ -354,33 +342,6 @@ removeTypename field =
 fieldAnnotation : GraphQL.Schema.Schema -> Maybe String -> Can.Selection -> ( String, Type.Annotation )
 fieldAnnotation schema parent selection =
     case selection of
-        Can.Field field ->
-            ( case field.alias_ of
-                Nothing ->
-                    Can.nameToString field.name
-
-                Just alias ->
-                    Can.nameToString alias
-            , case field.selection of
-                [] ->
-                    -- This is a leaf, produce a leaf type
-                    case parent of
-                        Nothing ->
-                            -- Debug.todo "WAT"
-                            Type.unit
-
-                        Just par ->
-                            getScalarType par (Can.nameToString field.name) schema
-                                |> schemaTypeToPrefab
-
-                sels ->
-                    Type.record
-                        (List.map
-                            (fieldAnnotation schema (Just (Can.nameToString field.name)))
-                            field.selection
-                        )
-            )
-
         Can.FieldObject field ->
             ( case field.alias_ of
                 Nothing ->
@@ -458,13 +419,6 @@ fieldAnnotation schema parent selection =
                         []
                         (Can.nameToString field.name)
             )
-
-        _ ->
-            let
-                _ =
-                    Debug.log "NOT IMPLEMENTED" selection
-            in
-            Debug.todo "Field not implemented!" selection
 
 
 enumValue : String -> String -> Elm.Expression
@@ -586,9 +540,6 @@ decodeFields : List Can.Selection -> Elm.Expression -> Elm.Expression
 decodeFields fields exp =
     case fields of
         [] ->
-            exp
-
-        (Can.Field field) :: remain ->
             exp
 
         ((Can.FieldObject obj) as field) :: remain ->

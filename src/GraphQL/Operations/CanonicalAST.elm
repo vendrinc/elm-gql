@@ -19,16 +19,7 @@ type alias Document =
 
 
 type Definition
-    = Fragment FragmentDetails
-    | Operation OperationDetails
-
-
-type alias FragmentDetails =
-    { name : Name
-    , typeCondition : Name
-    , directives : List Directive
-    , selectionSet : List Selection
-    }
+    = Operation OperationDetails
 
 
 type alias OperationDetails =
@@ -70,38 +61,11 @@ type alias Variable =
 
 
 type Selection
-    = Field FieldDetails
-    | FieldObject FieldObjectDetails
+    = FieldObject FieldObjectDetails
     | FieldUnion FieldUnionDetails
     | FieldScalar FieldScalarDetails
     | FieldEnum FieldEnumDetails
-    | FragmentSelection FragmentSpread
     | UnionCase UnionCaseDetails
-
-
-getAliasedName : Selection -> String
-getAliasedName sel =
-    case sel of
-        Field details ->
-            nameToString (Maybe.withDefault details.name details.alias_)
-
-        FieldObject details ->
-            nameToString (Maybe.withDefault details.name details.alias_)
-
-        FieldUnion details ->
-            nameToString (Maybe.withDefault details.name details.alias_)
-
-        FieldScalar details ->
-            nameToString (Maybe.withDefault details.name details.alias_)
-
-        FieldEnum details ->
-            nameToString (Maybe.withDefault details.name details.alias_)
-
-        FragmentSelection details ->
-            nameToString details.name
-
-        UnionCase details ->
-            nameToString details.tag
 
 
 type alias FieldDetails =
@@ -153,12 +117,6 @@ type alias FieldEnumDetails =
     }
 
 
-type alias FragmentSpread =
-    { name : Name
-    , directives : List Directive
-    }
-
-
 type alias UnionCaseDetails =
     { tag : Name
     , directives : List Directive
@@ -170,23 +128,25 @@ type Name
     = Name String
 
 
+getAliasedName : Selection -> String
+getAliasedName sel =
+    case sel of
+        FieldObject details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
+
+        FieldUnion details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
+
+        FieldScalar details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
+
+        FieldEnum details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
+
+        UnionCase details ->
+            nameToString details.tag
+
+
 nameToString : Name -> String
 nameToString (Name str) =
     str
-
-
-
--- type Value
---     = Str String
---     | Integer Int
---     | Decimal Float
---     | Boolean Bool
---     | Null
---     | Enum Name
---     | Var Variable
---     | Object (List ( Name, Value ))
---     | ListValue (List Value)
--- type Type
---     = Type_ Name
---     | List_ Type
---     | Nullable Type
