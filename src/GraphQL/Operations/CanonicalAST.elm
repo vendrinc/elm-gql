@@ -52,6 +52,7 @@ type alias VariableDefinition =
     { variable : Variable
     , type_ : AST.Type
     , defaultValue : Maybe AST.Value
+    , schemaType : Type.Type
     }
 
 
