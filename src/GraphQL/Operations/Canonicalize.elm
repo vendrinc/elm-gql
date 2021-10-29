@@ -125,8 +125,9 @@ canonicalize schema doc =
     let
         fragments = getFragments schema doc
     in
-    case reduce (canonicalizeDefinition schema) doc.definitions emptySuccess of
+    case reduce (canonicalizeDefinition schema) doc.definitions (CanSuccess fragments []) of
         CanSuccess cache result ->
+
             Ok { definitions = result }
 
         CanError errorMsg ->
@@ -144,6 +145,14 @@ emptyCache =
     , fragments = Dict.empty
     }
 
+
+addVars vars cache =
+    { fragments = cache.fragments
+    , varTypes =
+        -- NOTE, there is an opporunity to check if there is avariable collision here
+        -- not a problem if there is a collision, only if they have conflicting gql types
+        vars ++ cache.varTypes
+    }
 mergeCaches one two =
     { fragments = one.fragments
     , varTypes =
@@ -253,10 +262,10 @@ canonicalizeDefinition : GraphQL.Schema.Schema -> AST.Definition -> CanResult Ca
 canonicalizeDefinition schema def =
     case def of
         AST.Fragment details ->
-            emptySuccess
+            Debug.todo "There is no concept of fragment in Can.Definition"
 
         AST.Operation details ->
-            let
+            let  
                 fieldResult =
                     reduce (canonicalizeOperation schema details.operationType) details.fields emptySuccess
             in
@@ -292,7 +301,7 @@ toCanonVariable def =
     { variable = { name = convertName def.variable.name }
     , type_ = def.type_
     , defaultValue = def.defaultValue
-    -- , schemaType = Err "Unknown"
+    , schemaType = Type.Scalar "Unknown"
     }
 
 
