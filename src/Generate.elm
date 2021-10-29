@@ -17,6 +17,12 @@ import GraphQL.Schema
 import Http
 import Json.Decode
 import Json.Encode
+import GraphQL.Operations.Validate
+import GraphQL.Operations.Canonicalize as Canonicalize
+import GraphQL.Operations.AST as AST
+import GraphQL.Operations.Generate
+import GraphQL.Operations.Parse
+import Utils.String
 
 
 main :
@@ -57,32 +63,35 @@ main =
                                     }
                                 )
 
-                            SchemaInline schema ->
-                                ( { flags = flags
-                                  , input = input
-                                  , namespace = "Api"
-                                  }
-                                , generateSchema "Api" schema
-                                )
+                            Flags details ->
+                                case details.schema of
+                                    SchemaUrl url ->
+                                        ( { flags = flags
+                                        , input = input
+                                        , namespace = details.namespace
+                                        }
+                                        , GraphQL.Schema.get
+                                            url
+                                            (SchemaReceived details)
+                                        )
 
-                            SchemaGet details ->
-                                ( { flags = flags
-                                  , input = input
-                                  , namespace = details.namespace
-                                  }
-                                , GraphQL.Schema.get
-                                    details.schema
-                                    SchemaReceived
-                                )
+                                    Schema schema ->
+                                         ( { flags = flags
+                                        , input = input
+                                        , namespace = details.namespace
+                                        }
+                                        , generateSchema details.namespace schema details
+                                        )
+                                        
         , update =
             \msg model ->
                 case msg of
-                    SchemaReceived (Ok schema) ->
+                    SchemaReceived flagDetails (Ok schema) ->
                         ( model
-                        , generateSchema model.namespace schema
+                        , generateSchema model.namespace schema flagDetails
                         )
 
-                    SchemaReceived (Err err) ->
+                    SchemaReceived flagDetails (Err err) ->
                         ( model
                         , Elm.Gen.error
                             { title = "Error retieving schema"
@@ -94,8 +103,8 @@ main =
         }
 
 
-generateSchema : String -> GraphQL.Schema.Schema -> Cmd msg
-generateSchema namespace schema =
+generateSchema : String -> GraphQL.Schema.Schema -> FlagDetails -> Cmd Msg
+generateSchema namespace schema flagDetails =
     let
         enumFiles =
             Generate.Enums.generateFiles namespace schema
@@ -117,31 +126,86 @@ generateSchema namespace schema =
 
         -- _ =
         --     Generate.Paged.generate namespace schema
+
+        parsedGqlQueries = 
+            parseGql namespace schema flagDetails flagDetails.gql []
     in
-    Elm.Gen.files
-        (unionFiles
-            ++ enumFiles
-            ++ objectFiles
-            ++ queryFiles
-            ++ mutationFiles
-            ++ inputFiles
-        )
+    case parsedGqlQueries of
+        Err err ->
+            Elm.Gen.error err
+
+        Ok gqlFiles ->
+            Elm.Gen.files
+                (unionFiles
+                    ++ enumFiles
+                    ++ objectFiles
+                    ++ queryFiles
+                    ++ mutationFiles
+                    ++ inputFiles
+                    ++ gqlFiles
+                )
         
+
+
+
+parseGql namespace schema flagDetails gql rendered =
+    case gql of
+        [] ->
+            Ok rendered
+        top :: remaining ->
+            case parseAndValidateQuery namespace schema top of
+                Ok parsedFiles ->
+                    parseGql namespace schema flagDetails remaining 
+                        (rendered ++ parsedFiles) 
+
+                Err err ->
+                    Err err
+                   
+                    
 
 
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.oneOf
-        [ Json.Decode.map2
-            (\namespace schemaUrl ->
-                SchemaGet
+        [ Json.Decode.map3
+            (\namespace gql schemaUrl ->
+                Flags
                     { schema = schemaUrl
+                    , gql = gql
                     , namespace = namespace
                     }
             )
             (Json.Decode.field "namespace" Json.Decode.string)
-            (Json.Decode.field "schema" Json.Decode.string)
-        , Json.Decode.map SchemaInline GraphQL.Schema.decoder
+            (Json.Decode.field "gql"
+                (Json.Decode.list 
+                    (Json.Decode.map2 
+                        (\path src ->
+                            { path = path
+                            , src = src
+                            }
+                        )
+                        (Json.Decode.field "path" Json.Decode.string)
+                        (Json.Decode.field "src" Json.Decode.string)
+                    )
+                )
+            )
+            (Json.Decode.field "schema" 
+                (Json.Decode.oneOf 
+                    [ Json.Decode.map SchemaUrl 
+                        (Json.Decode.string
+                            |> Json.Decode.andThen
+                                (\str ->
+                                    if String.startsWith "http" str then
+                                        Json.Decode.succeed str
+                                    else
+                                        Json.Decode.fail "Schema Url lacks http-based protocol"
+                                )
+                        )
+                    , Json.Decode.map Schema GraphQL.Schema.decoder
+                    ]
+                )
+            )
+        
         ]
 
 
@@ -153,16 +217,28 @@ type alias Model =
 
 
 type Input
-    = SchemaInline GraphQL.Schema.Schema
-    | SchemaGet
-        { schema : String
-        , namespace : String
-        }
+    = Flags FlagDetails
     | InputError
 
 
+type alias FlagDetails =
+    { schema : Schema
+    , gql : List Gql
+    , namespace : String
+    }
+
+type alias Gql =
+    { path : String
+    , src : String 
+    }
+
+
+type Schema 
+    = SchemaUrl String
+    | Schema GraphQL.Schema.Schema
+
 type Msg
-    = SchemaReceived (Result Http.Error GraphQL.Schema.Schema)
+    = SchemaReceived FlagDetails (Result Http.Error GraphQL.Schema.Schema)
 
 
 httpErrorToString : Http.Error -> String
@@ -182,3 +258,54 @@ httpErrorToString err =
 
         Http.BadBody msg ->
             "Bad Body: " ++ msg
+
+
+type alias Error = 
+    { title : String
+    , description : String
+    }
+
+
+parseAndValidateQuery : String -> GraphQL.Schema.Schema -> { src : String, path: String } -> Result Error (List Elm.File)
+parseAndValidateQuery namespace schema gql =
+    case GraphQL.Operations.Parse.parse gql.src of
+        Err err ->
+            Err
+                { title = "Malformed query"
+                , description =
+                    Debug.toString err
+                }
+
+        Ok query ->
+            case Canonicalize.canonicalize schema query of
+                Err errors ->
+                     Err
+                        { title = "Errors"
+                        , description =
+                            List.map Canonicalize.errorToString errors
+                                |> String.join "\n\n    "
+                        }
+
+                Ok canAST ->
+                    let
+                        name =
+                            gql.path
+                                |> String.split "/"
+                                |> List.reverse
+                                |> List.head
+                                |> Maybe.withDefault "Query"
+                                |> String.replace ".gql" ""
+                                |> Utils.String.formatTypename
+
+                    in
+                    case GraphQL.Operations.Generate.generate namespace schema gql.src canAST ["Gql", name] of
+                        Err validationError ->
+                            Err
+                                { title = "Invalid query"
+                                , description =
+                                    List.map GraphQL.Operations.Validate.errorToString validationError
+                                        |> String.join "\n\n    "
+                                }
+
+                        Ok files ->
+                            Ok files

@@ -12,7 +12,12 @@
     "prefab:pull": "git submodule update --init --recursive",
     "elm-prefab": "node ./elm-prefab/dist/index.js",
     "clean": "rm -rf ./output",
-    "build": "(cd elm-prefab; yarn install; yarn build; cd ..)",
+    
+    "build": "tsc ; yarn build:elm",
+    "build:elm": "elm make src/Generate.elm --output=./dist/generators/schema.js ; elm make src/Operations.elm --output=./dist/generators/operational.js",
+
+    "elm-gql": "node ./dist/index.js",
+    "elm-gql:test": "node ./dist/index.js --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
 
     "test:generate-api": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm  --debug --flags-from=./examples/playground/example-config.json)",
     "test:operations": "(node ./elm-prefab/dist/index.js src/Operations.elm  --debug --flags-from=./examples/playground/example-config.json)",
@@ -35,6 +40,12 @@
   },
   "homepage": "https://github.com/Blissfully/elm-gql#readme",
   "devDependencies": {
-    "elm-doc-preview": "^5.0.5"
+    "elm-doc-preview": "^5.0.5",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "@types/node": "^15.0.3",
+    "chalk": "^4.1.1",
+    "chokidar": "^3.5.1"
   }
 }
