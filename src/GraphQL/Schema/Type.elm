@@ -1,9 +1,9 @@
 module GraphQL.Schema.Type exposing
     ( Type(..)
     , decoder
+    , toElmString
     , toKind
     , toString
-    , toElmString
     )
 
 import GraphQL.Schema.Kind as Kind exposing (Kind)

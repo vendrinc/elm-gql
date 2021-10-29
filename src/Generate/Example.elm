@@ -37,20 +37,18 @@ operation namespace schema ( opType, op ) =
             (case opType of
                 Generate.Input.Mutation ->
                     Generate.Common.modules.mutation namespace op.name
-                        
 
                 Generate.Input.Query ->
                     Generate.Common.modules.query namespace op.name
-                        
             )
             (Utils.String.formatValue op.name)
         )
         op.arguments
         -- (Elm.value ("select" ++ GraphQL.Schema.Type.toString returnType))
         -- (Engine.select Elm.unit)
-        (Engine.selectTypeNameButSkip 
-            -- (Elm.string "__typename")
-            -- (Decode.succeed (Elm.string "Payload"))
+        (Engine.selectTypeNameButSkip
+         -- (Elm.string "__typename")
+         -- (Decode.succeed (Elm.string "Payload"))
         )
 
 
@@ -83,11 +81,9 @@ example namespace schema name arguments returnType op =
             (case op of
                 Generate.Input.Mutation ->
                     Generate.Common.modules.mutation namespace name
-                         
 
                 Generate.Input.Query ->
                     Generate.Common.modules.query namespace name
-                         
             )
             (Utils.String.formatValue name)
         )
@@ -269,18 +265,15 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
                     optionalModule =
                         case isTopLevel of
                             Nothing ->
-                                
-                                    [ namespace
-                                    , Utils.String.formatTypename parentName
-                                    ]
+                                [ namespace
+                                , Utils.String.formatTypename parentName
+                                ]
 
                             Just Generate.Input.Mutation ->
                                 Generate.Common.modules.mutation namespace parentName
-                                    
 
                             Just Generate.Input.Query ->
                                 Generate.Common.modules.query namespace parentName
-                                    
 
                     unnullifiedType =
                         denullable field.type_
@@ -364,7 +357,6 @@ requiredArgsExample namespace schema name called fields =
                     Just inner ->
                         Just
                             (Elm.field field.name inner)
-                            
             )
             required
             ++ (case optional of
@@ -486,9 +478,7 @@ enumExample namespace schema enumName =
 
                 top :: _ ->
                     Elm.valueFrom
-                        (
-                            (Generate.Common.modules.enum namespace enumName)
-                        )
+                        (Generate.Common.modules.enum namespace enumName)
                         (Utils.String.formatTypename top.name)
 
 
@@ -510,9 +500,7 @@ scalarExample scalarName =
         "datetime" ->
             Elm.apply
                 (Elm.valueFrom
-                    (
-                        [ "Time" ]
-                    )
+                    [ "Time" ]
                     "millisToPosix"
                 )
                 [ Elm.int 0
@@ -520,25 +508,19 @@ scalarExample scalarName =
 
         "presence" ->
             Elm.valueFrom
-                (
-                    [ "Scalar" ]
-                )
+                [ "Scalar" ]
                 "Present"
 
         "url" ->
             Elm.valueFrom
-                (
-                    [ "Scalar" ]
-                )
+                [ "Scalar" ]
                 "fakeUrl"
 
         _ ->
             -- Elm.value (Utils.String.formatValue scalarName)
             Elm.apply
                 (Elm.valueFrom
-                    (
-                        [ "Scalar" ]
-                    )
+                    [ "Scalar" ]
                     (Utils.String.formatScalar scalarName)
                 )
                 [ Elm.string "placeholder"

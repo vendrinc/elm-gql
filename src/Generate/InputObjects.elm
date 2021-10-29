@@ -10,6 +10,7 @@ import GraphQL.Schema.InputObject
 import GraphQL.Schema.Type exposing (Type(..))
 import Utils.String
 
+
 inputObjectToOptionalBuilders : String -> GraphQL.Schema.Schema -> GraphQL.Schema.InputObject.InputObject -> List Elm.File
 inputObjectToOptionalBuilders namespace schema input =
     let
@@ -36,7 +37,7 @@ inputObjectToOptionalBuilders namespace schema input =
         optionalTypeAlias =
             Elm.alias "Optional"
                 (Engine.types_.optional
-                    (Elm.Annotation.named ( [ namespace ])
+                    (Elm.Annotation.named [ namespace ]
                         input.name
                     )
                 )

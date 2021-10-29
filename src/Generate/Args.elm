@@ -1,8 +1,8 @@
 module Generate.Args exposing
-    ( createBuilder
+    ( annotation
+    , createBuilder
     , nullsRecord
     , optionsRecursive
-    , annotation
     , toEngineArg
     , toJsonValue
     )
@@ -68,7 +68,7 @@ encodeScalar scalarName wrapped =
                 _ ->
                     \val ->
                         Elm.apply
-                            (Elm.valueFrom ( [ "Scalar" ])
+                            (Elm.valueFrom [ "Scalar" ]
                                 (Utils.String.formatValue scalarName)
                                 |> Elm.get "encode"
                             )
@@ -124,7 +124,7 @@ scalarType wrapped scalarName =
 
                 _ ->
                     Elm.Annotation.named
-                        ( [ "Scalar" ])
+                        [ "Scalar" ]
                         (Utils.String.formatScalar scalarName)
 
 
@@ -287,11 +287,11 @@ annotations =
     { optional =
         \namespace name ->
             Elm.Annotation.namedWith
-                ( (Generate.Common.modules.input namespace name))
+                (Generate.Common.modules.input namespace name)
                 "Optional"
                 []
     , safeOptional =
-        -- safe optional needs to be of the form of 
+        -- safe optional needs to be of the form of
         -- Engine.Optional BaseThing
         -- This is needed within Optional files to avoid circular imports
         \namespace name ->
@@ -299,8 +299,8 @@ annotations =
                 name
                 |> Engine.types_.optional
     , ergonomicOptional =
-         -- ergonomic optional is of the form BaseThing.Optional
-         -- More ergonomic, but can only be used in operational queries
+        -- ergonomic optional is of the form BaseThing.Optional
+        -- More ergonomic, but can only be used in operational queries
         \namespace name ->
             Elm.Annotation.named [ namespace, name ]
                 "Optional"
@@ -344,7 +344,7 @@ nullsRecord namespace name fields =
     Elm.record
         (List.map
             (\field ->
-                Elm.field 
+                Elm.field
                     (Utils.String.formatValue field.name)
                     (Engine.arg Encode.null (Elm.string (inputTypeToString field.type_))
                         |> Engine.optional
@@ -352,7 +352,6 @@ nullsRecord namespace name fields =
                         |> Elm.withType
                             (annotations.localOptional namespace name)
                     )
-
             )
             fields
         )
@@ -461,7 +460,10 @@ inputAnnotationRecursive namespace schema type_ wrapped =
                         |> unwrapWith wrapped
 
                 Just input ->
-                    inputObjectAnnotation namespace schema input wrapped
+                    inputObjectAnnotation namespace
+                        schema
+                        input
+                        wrapped
                         { ergonomicOptionType = False }
 
         GraphQL.Schema.Type.Object nestedObjectName ->
@@ -484,15 +486,16 @@ inputAnnotationRecursive namespace schema type_ wrapped =
 
 
 inputObjectAnnotation :
-    String 
-        -> GraphQL.Schema.Schema 
-        -> InputObject.InputObject
-        -> Input.Wrapped 
-        -> { ergonomicOptionType : Bool}
-        -> Elm.Annotation.Annotation
-inputObjectAnnotation namespace schema input  wrapped optForm =
+    String
+    -> GraphQL.Schema.Schema
+    -> InputObject.InputObject
+    -> Input.Wrapped
+    -> { ergonomicOptionType : Bool }
+    -> Elm.Annotation.Annotation
+inputObjectAnnotation namespace schema input wrapped optForm =
     let
-        inputName = input.name
+        inputName =
+            input.name
     in
     case Input.splitRequired input.fields of
         ( [], [] ) ->
@@ -516,6 +519,7 @@ inputObjectAnnotation namespace schema input  wrapped optForm =
                 annotations.ergonomicOptional namespace inputName
                     |> Elm.Annotation.list
                     |> unwrapWith wrapped
+
             else
                 annotations.safeOptional namespace inputName
                     |> Elm.Annotation.list
@@ -531,10 +535,10 @@ inputObjectAnnotation namespace schema input  wrapped optForm =
                     )
                     required
                     ++ [ ( embeddedOptionsFieldName
-                            , annotations.optional namespace inputName
+                         , annotations.optional namespace inputName
                             |> Elm.Annotation.list
-                            )
-                        ]
+                         )
+                       ]
                 )
                 |> unwrapWith wrapped
 
@@ -578,13 +582,11 @@ toJsonValue namespace schema fieldType wrapped val =
             encodeWrappedInverted wrapped
                 (\v ->
                     Elm.apply
-                        (Elm.valueFrom ( [ namespace, "Enum", enumName ]) "encode")
+                        (Elm.valueFrom [ namespace, "Enum", enumName ] "encode")
                         [ v
                         ]
                 )
                 val
-                
-               
 
         GraphQL.Schema.Type.InputObject inputName ->
             case Dict.get inputName schema.inputObjects of
@@ -593,7 +595,7 @@ toJsonValue namespace schema fieldType wrapped val =
 
                 Just input ->
                     if List.all Input.isOptional input.fields then
-                            (encodeInputObjectArg inputName wrapped val 0)
+                        encodeInputObjectArg inputName wrapped val 0
 
                     else
                         case input.fields of
@@ -630,7 +632,6 @@ toJsonValue namespace schema fieldType wrapped val =
 
                                         else
                                             Encode.object requiredVals
-                                        
                                     )
                                     val
 
@@ -644,12 +645,7 @@ toJsonValue namespace schema fieldType wrapped val =
             Elm.string "Interfaces cant be in inputs"
 
 
-
-
-
-{-|
-
--}
+{-| -}
 encodeWrappedJsonValue : String -> Input.Wrapped -> (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 encodeWrappedJsonValue inputName wrapper encoder val =
     case wrapper of
@@ -685,19 +681,20 @@ encodeWrappedJsonValue inputName wrapper encoder val =
                         )
                 )
                 val
-                -- (Elm.Gen.List.map
-                --         (\v ->
-                --             Elm.lambda valName
-                --                 Elm.Annotation.unit
-                --                 (\within ->
-                --                     encodeWrappedJsonValue valName inner encoder within
-                --                 )
-                --         )
-                --         val
-                -- )
-                -- (Elm.string (Input.gqlType wrapper inputName))
 
-                
+
+
+-- (Elm.Gen.List.map
+--         (\v ->
+--             Elm.lambda valName
+--                 Elm.Annotation.unit
+--                 (\within ->
+--                     encodeWrappedJsonValue valName inner encoder within
+--                 )
+--         )
+--         val
+-- )
+-- (Elm.string (Input.gqlType wrapper inputName))
 
 
 toEngineArg :
@@ -738,7 +735,7 @@ toEngineArg namespace schema fieldType wrapped val =
                 (encodeWrappedInverted wrapped
                     (\v ->
                         Elm.apply
-                            (Elm.valueFrom ( [ namespace, "Enum", enumName ]) "encode")
+                            (Elm.valueFrom [ namespace, "Enum", enumName ] "encode")
                             [ v
                             ]
                     )
@@ -764,7 +761,7 @@ toEngineArg namespace schema fieldType wrapped val =
                             [] ->
                                 Engine.arg
                                     (encodeInputObjectArg inputName wrapped val 0)
-                                     (Elm.string (Input.gqlType wrapped input.name))
+                                    (Elm.string (Input.gqlType wrapped input.name))
 
                             many ->
                                 encodeWrappedArgument input.name
@@ -883,7 +880,7 @@ encodeInput namespace fieldType wrapped val =
                 (encodeWrappedInverted wrapped
                     (\v ->
                         Elm.apply
-                            (Elm.valueFrom ( [ namespace, "Enum", enumName ]) "encode")
+                            (Elm.valueFrom [ namespace, "Enum", enumName ] "encode")
                             [ v
                             ]
                     )
@@ -1054,8 +1051,6 @@ encodeWrappedArgument inputName wrapper encoder val =
                 )
                 (Elm.string (Input.gqlType wrapper inputName))
 
-                
-
 
 addCount : Input.Wrapped -> String -> String
 addCount wrapped str =
@@ -1113,14 +1108,14 @@ encodeWrappedInverted wrapper encoder val =
 {- CREATE BUILDER -}
 
 
-annotation : 
-    String 
-        -> GraphQL.Schema.Schema 
-        -> InputObject.InputObject 
-        -> Elm.Annotation.Annotation
+annotation :
+    String
+    -> GraphQL.Schema.Schema
+    -> InputObject.InputObject
+    -> Elm.Annotation.Annotation
 annotation namespace schema input =
-    inputObjectAnnotation namespace schema input Input.UnwrappedValue { ergonomicOptionType = True}
-        
+    inputObjectAnnotation namespace schema input Input.UnwrappedValue { ergonomicOptionType = True }
+
 
 {-| -}
 createBuilder :
@@ -1169,7 +1164,7 @@ createBuilder namespace schema name arguments returnType operation =
             if hasOptionalArgs then
                 Engine.encodeOptionals
                     (Elm.valueWith
-                        ( [])
+                        []
                         embeddedOptionsFieldName
                         (Elm.Annotation.list
                             (annotations.localOptional namespace name)

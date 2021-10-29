@@ -1,7 +1,5 @@
 module Generate.Decode exposing (scalar)
 
-
-
 import Dict
 import Elm
 import Elm.Annotation
@@ -11,11 +9,10 @@ import Elm.Pattern
 import Generate.Common as Common
 import Generate.Input as Input exposing (Wrapped(..))
 import GraphQL.Schema
+import GraphQL.Schema.Field as Field exposing (Field)
 import GraphQL.Schema.Object
 import GraphQL.Schema.Type exposing (Type(..))
-import GraphQL.Schema.Field as Field exposing (Field)
 import Utils.String
-
 
 
 scalar : String -> Wrapped -> Elm.Expression
@@ -35,12 +32,11 @@ scalar scalarName wrapped =
                 "float" ->
                     Json.float
 
-
                 "boolean" ->
                     Json.bool
 
                 _ ->
-                    Elm.valueFrom ( [ "Scalar" ]) (Utils.String.formatValue scalarName)
+                    Elm.valueFrom [ "Scalar" ] (Utils.String.formatValue scalarName)
                         |> Elm.get "decoder"
     in
     decodeWrapper wrapped decoder

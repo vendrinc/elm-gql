@@ -40,7 +40,7 @@ queryToModule namespace op schema operation =
                     topLevelAlias =
                         Elm.alias "Optional"
                             (Engine.types_.optional
-                                (Elm.Annotation.named ( [ namespace ])
+                                (Elm.Annotation.named [ namespace ]
                                     (case op of
                                         Input.Query ->
                                             operation.name ++ "_Option"
@@ -73,13 +73,12 @@ queryToModule namespace op schema operation =
         , dir
         , Utils.String.formatTypename operation.name
         ]
-        { docs = 
+        { docs =
             \docs ->
-                ("\n\nExample usage:\n\n"
+                "\n\nExample usage:\n\n"
                     ++ Elm.expressionImports example
                     ++ "\n\n\n"
                     ++ Elm.toString example
-                )
         , aliases = []
         }
         (queryFunction :: optionalHelpers)

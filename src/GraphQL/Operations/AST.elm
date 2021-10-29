@@ -27,6 +27,7 @@ type alias OperationDetails =
     , fields : List Selection
     }
 
+
 type OperationType
     = Query
     | Mutation
@@ -48,6 +49,7 @@ type Selection
     = Field FieldDetails
     | FragmentSpreadSelection FragmentSpread
     | InlineFragmentSelection InlineFragment
+
 
 type alias FieldDetails =
     { alias_ : Maybe Name
@@ -71,7 +73,6 @@ type alias InlineFragment =
     }
 
 
-
 type Name
     = Name String
 
@@ -79,6 +80,7 @@ type Name
 nameToString : Name -> String
 nameToString (Name str) =
     str
+
 
 type Value
     = Str String
@@ -90,8 +92,6 @@ type Value
     | Var Variable
     | Object (List ( Name, Value ))
     | ListValue (List Value)
-
-
 
 
 type alias Argument =
@@ -106,10 +106,7 @@ type alias Directive =
     }
 
 
-
 type Type
     = Type_ Name
     | List_ Type
     | Nullable Type
-
-

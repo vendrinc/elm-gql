@@ -13,12 +13,12 @@ import Elm.Gen.List
 import Elm.Gen.Maybe
 import Elm.Pattern
 import Generate.Common
+import GraphQL.Operations.AST as Ast
 import GraphQL.Schema
 import GraphQL.Schema.Argument
 import GraphQL.Schema.Field
 import GraphQL.Schema.Type exposing (Type(..))
 import Set exposing (Set)
-import GraphQL.Operations.AST as Ast
 import String
 import Utils.String
 
@@ -85,7 +85,7 @@ gqlTypeHelper wrapped base =
 
 getWrapFromAst : Ast.Type -> Wrapped
 getWrapFromAst type_ =
-     case type_ of
+    case type_ of
         Ast.Type_ name ->
             UnwrappedValue
 
@@ -102,7 +102,6 @@ wrapElmType wrapper exp =
         InList inner ->
             Type.list
                 (wrapElmType inner exp)
-                
 
         InMaybe inner ->
             Type.maybe
@@ -110,6 +109,7 @@ wrapElmType wrapper exp =
 
         UnwrappedValue ->
             exp
+
 
 wrapExpression : Wrapped -> Elm.Expression -> Elm.Expression
 wrapExpression wrapper exp =

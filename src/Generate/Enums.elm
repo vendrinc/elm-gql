@@ -30,14 +30,14 @@ generateFiles namespace graphQLSchema =
 
                     enumTypeDeclaration =
                         Elm.customType enumDefinition.name
-                            (List.map (\(name,vals) -> Elm.variantWith name vals) constructors)
+                            (List.map (\( name, vals ) -> Elm.variantWith name vals) constructors)
 
                     listOfValues =
                         constructors
                             |> List.map
                                 (\( enumName, _ ) ->
                                     Elm.valueWith
-                                        ( [])
+                                        []
                                         enumName
                                         (Elm.Annotation.named [] enumDefinition.name)
                                 )

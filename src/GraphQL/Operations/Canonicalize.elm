@@ -1,78 +1,80 @@
-module GraphQL.Operations.Canonicalize exposing (errorToString, canonicalize)
+module GraphQL.Operations.Canonicalize exposing (canonicalize, errorToString)
 
+{-| -}
 
-{-|-}
-
-import GraphQL.Schema
-import GraphQL.Operations.AST as AST
-import GraphQL.Operations.CanonicalAST as Can
-import GraphQL.Schema.Operation as Operation
-import GraphQL.Schema.Object as Object
-import GraphQL.Schema.Enum as Enum
-import GraphQL.Schema.Field as Field
-import GraphQL.Schema.Kind as Kind
-import GraphQL.Schema.Interface as Interface
-import GraphQL.Schema.Union as Union
-import GraphQL.Schema.Scalar as Scalar
-import GraphQL.Schema.InputObject as Input
-import GraphQL.Schema.Type as Type
 import Dict exposing (Dict)
 import Generate.Input
-type Error =
-    Error 
-        { coords : Coords 
-        , error : ErrorDetails 
+import GraphQL.Operations.AST as AST
+import GraphQL.Operations.CanonicalAST as Can
+import GraphQL.Schema
+import GraphQL.Schema.Enum as Enum
+import GraphQL.Schema.Field as Field
+import GraphQL.Schema.InputObject as Input
+import GraphQL.Schema.Interface as Interface
+import GraphQL.Schema.Kind as Kind
+import GraphQL.Schema.Object as Object
+import GraphQL.Schema.Operation as Operation
+import GraphQL.Schema.Scalar as Scalar
+import GraphQL.Schema.Type as Type
+import GraphQL.Schema.Union as Union
+
+
+type Error
+    = Error
+        { coords : Coords
+        , error : ErrorDetails
         }
 
 
 todo : String -> Error
 todo msg =
-    Error 
+    Error
         { coords =
             { start = zeroPosition
             , end = zeroPosition
             }
-
         , error = Todo msg
         }
 
 
 error : ErrorDetails -> Error
 error deets =
-    Error 
-        { coords = {start = zeroPosition, end = zeroPosition}
+    Error
+        { coords = { start = zeroPosition, end = zeroPosition }
         , error = deets
-
         }
+
 
 zeroPosition : Position
 zeroPosition =
     { line = 0
     , char = 0
-
     }
 
-type alias Coords = 
+
+type alias Coords =
     { start : Position
-    , end  : Position
-
+    , end : Position
     }
+
 
 type alias Position =
     { line : Int
     , char : Int
     }
 
-type ErrorDetails 
+
+type ErrorDetails
     = Todo String
     | QueryUnknown String
     | EnumUnknown String
     | ObjectUnknown String
     | UnionUnknown String
-    | FieldUnknown 
+    | FieldUnknown
         { object : String
         , field : String
         }
+
 
 errorToString : Error -> String
 errorToString (Error details) =
@@ -94,7 +96,6 @@ errorToString (Error details) =
 
         FieldUnknown field ->
             "Unknown Field: " ++ field.object ++ "." ++ field.field
-        
 
 
 canonicalize : GraphQL.Schema.Schema -> AST.Document -> Result (List Error) Can.Document
@@ -108,10 +109,10 @@ canonicalize schema doc =
 
 
 reduce :
-    (item -> Result (List Error) result) 
-        -> List item 
-        -> Result (List Error) (List result)
-        -> Result (List Error) (List result)
+    (item -> Result (List Error) result)
+    -> List item
+    -> Result (List Error) (List result)
+    -> Result (List Error) (List result)
 reduce isValid items res =
     case items of
         [] ->
@@ -122,9 +123,9 @@ reduce isValid items res =
                 Ok valid ->
                     case res of
                         Ok existing ->
-                            reduce isValid remain 
+                            reduce isValid
+                                remain
                                 (Ok (valid :: existing))
-
 
                         Err err ->
                             res
@@ -142,13 +143,12 @@ reduce isValid items res =
                     reduce isValid remain newResult
 
 
-
-
 convertName : AST.Name -> Can.Name
 convertName (AST.Name str) =
     Can.Name str
 
-canonicalizeDefinition : GraphQL.Schema.Schema -> AST.Definition -> Result (List Error) (Can.Definition)
+
+canonicalizeDefinition : GraphQL.Schema.Schema -> AST.Definition -> Result (List Error) Can.Definition
 canonicalizeDefinition schema def =
     case def of
         AST.Fragment details ->
@@ -158,12 +158,13 @@ canonicalizeDefinition schema def =
             case details.operationType of
                 AST.Query ->
                     let
-                        fieldResult = reduce (canonicalizeQuerySelection schema) details.fields (Ok [])
+                        fieldResult =
+                            reduce (canonicalizeQuerySelection schema) details.fields (Ok [])
                     in
                     case fieldResult of
                         Ok fields ->
                             Ok <|
-                                Can.Operation 
+                                Can.Operation
                                     { operationType = Can.Query
                                     , name = Maybe.map convertName details.name
                                     , variableDefinitions =
@@ -176,7 +177,6 @@ canonicalizeDefinition schema def =
 
                         Err err ->
                             Err err
-                            
 
                 AST.Mutation ->
                     -- reduce (validateMutation schema) details.fields (Ok ())
@@ -191,18 +191,18 @@ toCanonVariable def =
     }
 
 
-canonicalizeQuerySelection : GraphQL.Schema.Schema -> AST.Selection -> Result (List Error) (Can.Selection)
+canonicalizeQuerySelection : GraphQL.Schema.Schema -> AST.Selection -> Result (List Error) Can.Selection
 canonicalizeQuerySelection schema selection =
     case selection of
         AST.Field field ->
             case Dict.get (AST.nameToString field.name) schema.queries of
                 Nothing ->
-                    Err  [error (QueryUnknown (AST.nameToString field.name))]
+                    Err [ error (QueryUnknown (AST.nameToString field.name)) ]
 
                 Just query ->
-                    case query.type_ of                          
+                    case query.type_ of
                         Type.Scalar name ->
-                            Ok 
+                            Ok
                                 (Can.FieldScalar
                                     { alias_ = Maybe.map convertName field.alias_
                                     , name = convertName field.name
@@ -222,13 +222,13 @@ canonicalizeQuerySelection schema selection =
 
                                 Just obj ->
                                     let
-                                    --     args = reduce (validateArg queryObj) field.arguments (Ok [])
-                                        
-                                        selectionResult = reduce (canonicalizeField schema obj) field.selection (Ok [])
+                                        --     args = reduce (validateArg queryObj) field.arguments (Ok [])
+                                        selectionResult =
+                                            reduce (canonicalizeField schema obj) field.selection (Ok [])
                                     in
                                     case selectionResult of
                                         Ok canSelection ->
-                                            Ok 
+                                            Ok
                                                 (Can.FieldObject
                                                     { alias_ = Maybe.map convertName field.alias_
                                                     , name = convertName field.name
@@ -239,12 +239,12 @@ canonicalizeQuerySelection schema selection =
                                                     , wrapper = Generate.Input.getWrap query.type_
                                                     }
                                                 )
-                                            
+
                                         Err err ->
                                             Err err
 
                         Type.Enum name ->
-                            Ok 
+                            Ok
                                 (Can.FieldScalar
                                     { alias_ = Maybe.map convertName field.alias_
                                     , name = convertName field.name
@@ -255,24 +255,24 @@ canonicalizeQuerySelection schema selection =
                                 )
 
                         Type.Union name ->
-                             case Dict.get name schema.unions of
+                            case Dict.get name schema.unions of
                                 Nothing ->
                                     Err [ error (UnionUnknown name) ]
 
                                 Just union ->
-                                     case extractUnionTags union.variants [] of
+                                    case extractUnionTags union.variants [] of
                                         Nothing ->
                                             Err [ todo "Things in a union are not objects!" ]
 
                                         Just vars ->
                                             let
-                                            --     args = reduce (validateArg queryObj) field.arguments (Ok [])
-                                                
-                                                selectionResult = reduce (canonicalizeUnionField schema union vars) field.selection (Ok [])
+                                                --     args = reduce (validateArg queryObj) field.arguments (Ok [])
+                                                selectionResult =
+                                                    reduce (canonicalizeUnionField schema union vars) field.selection (Ok [])
                                             in
                                             case selectionResult of
                                                 Ok canSelection ->
-                                                    Ok 
+                                                    Ok
                                                         (Can.FieldUnion
                                                             { alias_ = Maybe.map convertName field.alias_
                                                             , name = convertName field.name
@@ -282,7 +282,7 @@ canonicalizeQuerySelection schema selection =
                                                             , union = union
                                                             }
                                                         )
-                                                    
+
                                                 Err err ->
                                                     Err err
 
@@ -294,7 +294,6 @@ canonicalizeQuerySelection schema selection =
 
                         Type.Nullable inner ->
                             Err [ todo "Handle more object types!" ]
-                       
 
         AST.FragmentSpreadSelection frag ->
             Err [ todo "Fragments in unions aren't suported yet!" ]
@@ -303,18 +302,16 @@ canonicalizeQuerySelection schema selection =
             Err [ todo "Unions not supported yet" ]
 
 
-
-canonicalizeField : GraphQL.Schema.Schema -> Object.Object -> AST.Selection -> Result (List Error) (Can.Selection)
+canonicalizeField : GraphQL.Schema.Schema -> Object.Object -> AST.Selection -> Result (List Error) Can.Selection
 canonicalizeField schema object selection =
     case selection of
         AST.Field field ->
             let
                 fieldName =
                     AST.nameToString field.name
-               
             in
             if fieldName == "__typename" then
-                Ok 
+                Ok
                     (Can.FieldScalar
                         { alias_ = Maybe.map convertName field.alias_
                         , name = convertName field.name
@@ -330,14 +327,13 @@ canonicalizeField schema object selection =
                         object.fields
                             |> List.filter (\fld -> fld.name == fieldName)
                             |> List.head
-
                 in
                 case matchedField of
                     Just matched ->
                         canonicalizeFieldType schema object field matched.type_ selection matched.type_
 
                     Nothing ->
-                        Err [ error (FieldUnknown { object = object.name, field = fieldName} ) ]
+                        Err [ error (FieldUnknown { object = object.name, field = fieldName }) ]
 
         AST.FragmentSpreadSelection frag ->
             Err [ todo "Fragments in objects aren't suported yet!" ]
@@ -346,149 +342,143 @@ canonicalizeField schema object selection =
             Err [ todo "Inline fragments are not allowed" ]
 
 
-
 {-|
+
     For `field`, we are matching it up with types from `schema`
 
-
 -}
-canonicalizeFieldType : GraphQL.Schema.Schema -> Object.Object -> AST.FieldDetails -> Type.Type -> AST.Selection -> Type.Type ->  Result (List Error) (Can.Selection)
+canonicalizeFieldType : GraphQL.Schema.Schema -> Object.Object -> AST.FieldDetails -> Type.Type -> AST.Selection -> Type.Type -> Result (List Error) Can.Selection
 canonicalizeFieldType schema object field type_ selection originalType =
-        case type_ of
-            Type.Scalar name ->
-                -- Err [ todo "Handle more object types!" ]
-                Ok 
-                    (Can.FieldScalar
-                        { alias_ = Maybe.map convertName field.alias_
-                        , name = convertName field.name
-                        , arguments = []
-                        , directives = []
-                        , type_ = originalType
-                        }
-                    )
+    case type_ of
+        Type.Scalar name ->
+            -- Err [ todo "Handle more object types!" ]
+            Ok
+                (Can.FieldScalar
+                    { alias_ = Maybe.map convertName field.alias_
+                    , name = convertName field.name
+                    , arguments = []
+                    , directives = []
+                    , type_ = originalType
+                    }
+                )
 
-            Type.InputObject name ->
-                Err [ todo "Invalid schema!  Weird InputObject" ]
+        Type.InputObject name ->
+            Err [ todo "Invalid schema!  Weird InputObject" ]
 
-            Type.Object name ->
-                case Dict.get name schema.objects of
-                    Nothing ->
-                        Err [ error (ObjectUnknown name) ]
+        Type.Object name ->
+            case Dict.get name schema.objects of
+                Nothing ->
+                    Err [ error (ObjectUnknown name) ]
 
-                    Just obj ->
-                        let
+                Just obj ->
+                    let
+                        --     args = reduce (validateArg queryObj) field.arguments (Ok [])
+                        selectionResult =
+                            reduce (canonicalizeField schema obj) field.selection (Ok [])
+                    in
+                    case selectionResult of
+                        Ok canSelection ->
+                            Ok
+                                (Can.FieldObject
+                                    { alias_ = Maybe.map convertName field.alias_
+                                    , name = convertName field.name
+                                    , arguments = []
+                                    , directives = []
+                                    , selection = canSelection
+                                    , object = obj
+                                    , wrapper = Generate.Input.getWrap originalType
+                                    }
+                                )
+
+                        Err err ->
+                            Err err
+
+        Type.Enum name ->
+            case Dict.get name schema.enums of
+                Nothing ->
+                    Err [ error (EnumUnknown name) ]
+
+                Just enum ->
+                    Ok
+                        (Can.FieldEnum
+                            { alias_ = Maybe.map convertName field.alias_
+                            , name = convertName field.name
+                            , arguments = []
+                            , directives = []
+                            , enumName = enum.name
+                            , values = enum.values
+                            }
+                        )
+
+        Type.Union name ->
+            -- Err [ todo "Field Unions" ]
+            case Dict.get name schema.unions of
+                Nothing ->
+                    Err [ error (UnionUnknown name) ]
+
+                Just union ->
+                    case extractUnionTags union.variants [] of
+                        Nothing ->
+                            Err [ todo "Things in a union are not objects!" ]
+
+                        Just vars ->
+                            let
                                 --     args = reduce (validateArg queryObj) field.arguments (Ok [])
+                                selectionResult =
+                                    reduce (canonicalizeUnionField schema union vars) field.selection (Ok [])
+                            in
+                            case selectionResult of
+                                Ok canSelection ->
+                                    Ok
+                                        (Can.FieldUnion
+                                            { alias_ = Maybe.map convertName field.alias_
+                                            , name = convertName field.name
+                                            , arguments = []
+                                            , directives = []
+                                            , selection = canSelection
+                                            , union = union
+                                            }
+                                        )
 
-                            selectionResult = reduce (canonicalizeField schema obj) field.selection (Ok [])
-                        in
-                        case selectionResult of
-                            Ok canSelection ->
-                                Ok 
-                                    (Can.FieldObject
-                                        { alias_ = Maybe.map convertName field.alias_
-                                        , name = convertName field.name
-                                        , arguments = []
-                                        , directives = []
-                                        , selection = canSelection
-                                        , object = obj
-                                        , wrapper = Generate.Input.getWrap originalType
-                                        }
-                                    )
-                                
-                            Err err ->
-                                Err err
+                                Err err ->
+                                    Err err
 
-            Type.Enum name ->
-                case Dict.get name schema.enums of
-                    Nothing ->
-                        Err [ error (EnumUnknown name) ]
+        Type.Interface name ->
+            Err [ todo "Field Interfaces!" ]
 
-                    Just enum ->
-                        Ok 
-                            (Can.FieldEnum
-                                { alias_ = Maybe.map convertName field.alias_
-                                , name = convertName field.name
-                                , arguments = []
-                                , directives = []
-                                , enumName = enum.name
-                                , values = enum.values
-                                }
-                            )
-                            
+        Type.List_ inner ->
+            canonicalizeFieldType schema object field inner selection originalType
 
-            Type.Union name ->
-                -- Err [ todo "Field Unions" ]
-                 case Dict.get name schema.unions of
-                    Nothing ->
-                        Err [ error (UnionUnknown name) ]
-
-                    Just union ->
-                        case extractUnionTags union.variants [] of
-                            Nothing ->
-                                Err [ todo "Things in a union are not objects!" ]
-
-                            Just vars ->
-                                let
-                                --     args = reduce (validateArg queryObj) field.arguments (Ok [])
-                                   
-                                    selectionResult = reduce (canonicalizeUnionField schema union vars) field.selection (Ok [])
-                                in
-                                case selectionResult of
-                                    Ok canSelection ->
-                                        Ok 
-                                            (Can.FieldUnion
-                                                { alias_ = Maybe.map convertName field.alias_
-                                                , name = convertName field.name
-                                                , arguments = []
-                                                , directives = []
-                                                , selection = canSelection
-                                                , union = union
-                                                }
-                                            )
-                                        
-                                    Err err ->
-                                        Err err
-
-            Type.Interface name ->
-                Err [ todo "Field Interfaces!" ]
-
-            Type.List_ inner ->
-                canonicalizeFieldType schema object field inner selection originalType
-
-            Type.Nullable inner ->
-                canonicalizeFieldType schema object field inner selection originalType
-                                        
-  
+        Type.Nullable inner ->
+            canonicalizeFieldType schema object field inner selection originalType
 
 
 extractUnionTags : List Union.Variant -> List String -> Maybe (List String)
 extractUnionTags vars captured =
-    case vars of 
+    case vars of
         [] ->
             Just captured
 
-        (top :: remain) ->
+        top :: remain ->
             case top.kind of
                 Kind.Object name ->
                     extractUnionTags remain (name :: captured)
-                
+
                 _ ->
                     Nothing
 
 
-canonicalizeUnionField : GraphQL.Schema.Schema -> Union.Union -> List String -> AST.Selection -> Result (List Error) (Can.Selection)
+canonicalizeUnionField : GraphQL.Schema.Schema -> Union.Union -> List String -> AST.Selection -> Result (List Error) Can.Selection
 canonicalizeUnionField schema union remainingAllowedTags selection =
     case selection of
         AST.Field field ->
             let
                 fieldName =
                     AST.nameToString field.name
-
-               
             in
             --- NOTE, we could probably be more sophisticated here!
             if fieldName == "__typename" then
-                Ok 
+                Ok
                     (Can.FieldScalar
                         { alias_ = Maybe.map convertName field.alias_
                         , name = convertName field.name
@@ -506,10 +496,11 @@ canonicalizeUnionField schema union remainingAllowedTags selection =
 
         AST.InlineFragmentSelection inline ->
             let
-                tag = AST.nameToString inline.tag
+                tag =
+                    AST.nameToString inline.tag
 
-                (tagMatches, leftOvertags) = 
-                    matchTag tag remainingAllowedTags (False, [])
+                ( tagMatches, leftOvertags ) =
+                    matchTag tag remainingAllowedTags ( False, [] )
             in
             if tagMatches then
                 case Dict.get tag schema.objects of
@@ -518,20 +509,20 @@ canonicalizeUnionField schema union remainingAllowedTags selection =
 
                     Just obj ->
                         let
-                                --     args = reduce (validateArg queryObj) field.arguments (Ok [])
-                            
-                            selectionResult = reduce (\sel -> canonicalizeField schema obj sel) inline.selection (Ok [])
+                            --     args = reduce (validateArg queryObj) field.arguments (Ok [])
+                            selectionResult =
+                                reduce (\sel -> canonicalizeField schema obj sel) inline.selection (Ok [])
                         in
                         case selectionResult of
                             Ok canSelection ->
-                                Ok 
+                                Ok
                                     (Can.UnionCase
                                         { tag = Can.Name tag
                                         , directives = []
                                         , selection = canSelection
                                         }
                                     )
-                                
+
                             Err err ->
                                 Err err
 
@@ -539,15 +530,17 @@ canonicalizeUnionField schema union remainingAllowedTags selection =
                 Err [ todo (tag ++ " does not match!") ]
 
 
-matchTag : String -> List String -> (Bool, List String) -> (Bool, List String)
-matchTag tag tags (matched, captured) =
+matchTag : String -> List String -> ( Bool, List String ) -> ( Bool, List String )
+matchTag tag tags ( matched, captured ) =
     case tags of
         [] ->
-            (matched, captured)
-        
+            ( matched, captured )
+
         top :: remain ->
             if top == tag then
-                (True, remain ++ captured)
+                ( True, remain ++ captured )
+
             else
-                matchTag tag remain
-                    (matched, top :: captured)
+                matchTag tag
+                    remain
+                    ( matched, top :: captured )

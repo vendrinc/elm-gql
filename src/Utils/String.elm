@@ -4,15 +4,13 @@ import String
 import String.Extra
 
 
-
 formatTypename : String -> String
 formatTypename name =
     let
         first =
             String.left 1 name
-
     in
-    String.toUpper first ++ (String.dropLeft 1 name)
+    String.toUpper first ++ String.dropLeft 1 name
 
 
 {-| Converts a string from the gql to a string format that is amenable to Elm's typesystem.
@@ -48,12 +46,7 @@ formatScalar name =
     String.toUpper first ++ body
 
 
-
-
-{-|
-   Same logic as above, but the first letter is lowercase
-
-
+{-| Same logic as above, but the first letter is lowercase
 -}
 formatValue : String -> String
 formatValue name =
@@ -71,11 +64,12 @@ formatValue name =
                 remaining
                 |> Tuple.second
     in
-    String.toLower first ++ body 
+    String.toLower first
+        ++ body
         |> sanitize
 
 
-elmify : Char -> (Bool, String) -> (Bool, String)
+elmify : Char -> ( Bool, String ) -> ( Bool, String )
 elmify char ( passedLower, gathered ) =
     if Char.isUpper char && passedLower then
         ( Char.isLower char
@@ -92,7 +86,6 @@ elmify char ( passedLower, gathered ) =
 
 
 {-| Note, this should be done in elm-prefab directly!
-
 -}
 sanitize : String -> String
 sanitize name =

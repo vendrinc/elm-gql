@@ -6,6 +6,7 @@ module GraphQL.Schema.Deprecation exposing
 
 import Json.Decode as Json
 
+
 type Deprecation
     = Deprecated (Maybe String)
     | Active

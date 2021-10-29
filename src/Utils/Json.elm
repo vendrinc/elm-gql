@@ -33,7 +33,7 @@ filterHidden decoder_ =
             else
                 Json.map Just decoder_
     in
-    Json.oneOf 
+    Json.oneOf
         [ Json.field "directives" (Json.dict Json.value)
             |> Json.andThen filterByDirectives
         , Json.map Just decoder_

@@ -1,17 +1,17 @@
 module GraphQL.Operations.CanonicalAST exposing (..)
 
-
-import GraphQL.Schema.Operation as Operation
-import GraphQL.Schema.Object as Object
+import Generate.Input
+import GraphQL.Operations.AST as AST
 import GraphQL.Schema.Enum as Enum
 import GraphQL.Schema.Field as Field
-import GraphQL.Schema.Interface as Interface
-import GraphQL.Schema.Union as Union
-import GraphQL.Schema.Scalar as Scalar
 import GraphQL.Schema.InputObject as Input
+import GraphQL.Schema.Interface as Interface
+import GraphQL.Schema.Object as Object
+import GraphQL.Schema.Operation as Operation
+import GraphQL.Schema.Scalar as Scalar
 import GraphQL.Schema.Type as Type
-import GraphQL.Operations.AST as AST
-import Generate.Input
+import GraphQL.Schema.Union as Union
+
 
 type alias Document =
     { definitions : List Definition
@@ -39,6 +39,7 @@ type alias OperationDetails =
     , fields : List Selection
     }
 
+
 type OperationType
     = Query
     | Mutation
@@ -49,11 +50,11 @@ type alias Directive =
     , arguments : List Argument
     }
 
+
 type alias Argument =
     { name : Name
     , value : AST.Value
     }
-
 
 
 type alias VariableDefinition =
@@ -83,18 +84,25 @@ getAliasedName sel =
     case sel of
         Field details ->
             nameToString (Maybe.withDefault details.name details.alias_)
+
         FieldObject details ->
             nameToString (Maybe.withDefault details.name details.alias_)
+
         FieldUnion details ->
             nameToString (Maybe.withDefault details.name details.alias_)
+
         FieldScalar details ->
             nameToString (Maybe.withDefault details.name details.alias_)
+
         FieldEnum details ->
             nameToString (Maybe.withDefault details.name details.alias_)
+
         FragmentSelection details ->
-            nameToString (details.name)
+            nameToString details.name
+
         UnionCase details ->
-             nameToString (details.tag)
+            nameToString details.tag
+
 
 type alias FieldDetails =
     { alias_ : Maybe Name
@@ -103,6 +111,7 @@ type alias FieldDetails =
     , directives : List Directive
     , selection : List Selection
     }
+
 
 type alias FieldObjectDetails =
     { alias_ : Maybe Name
@@ -115,7 +124,6 @@ type alias FieldObjectDetails =
     }
 
 
-
 type alias FieldUnionDetails =
     { alias_ : Maybe Name
     , name : Name
@@ -124,6 +132,7 @@ type alias FieldUnionDetails =
     , selection : List Selection
     , union : Union.Union
     }
+
 
 type alias FieldScalarDetails =
     { alias_ : Maybe Name
@@ -140,9 +149,8 @@ type alias FieldEnumDetails =
     , arguments : List Argument
     , directives : List Directive
     , enumName : String
-    , values : List { name : String, description : Maybe String}
+    , values : List { name : String, description : Maybe String }
     }
-
 
 
 type alias FragmentSpread =
@@ -158,7 +166,6 @@ type alias UnionCaseDetails =
     }
 
 
-
 type Name
     = Name String
 
@@ -166,6 +173,8 @@ type Name
 nameToString : Name -> String
 nameToString (Name str) =
     str
+
+
 
 -- type Value
 --     = Str String
@@ -177,11 +186,7 @@ nameToString (Name str) =
 --     | Var Variable
 --     | Object (List ( Name, Value ))
 --     | ListValue (List Value)
-
-
 -- type Type
 --     = Type_ Name
 --     | List_ Type
 --     | Nullable Type
-
-

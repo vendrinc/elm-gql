@@ -1,54 +1,46 @@
 module Generate.Strategy exposing (Strategy(..))
 
-{-|
-
-Given pieces of the schema, adjust the code generation strategy.
-
+{-| Given pieces of the schema, adjust the code generation strategy.
 
 For example, here's a boolean flter, which has two variants, `not` and `equals`
 
-
     booleanFilter : List TnG.BooleanFilter.Optional -> TnG.BooleanFilter
-    not : Maybe Bool -> TnG.BooleanFilter.Optional
-    equals : Maybe Bool -> TnG.BooleanFilter.Optional
 
+    not : Maybe Bool -> TnG.BooleanFilter.Optional
+
+    equals : Maybe Bool -> TnG.BooleanFilter.Optional
 
 But instead of writing
 
-    Input.booleanFilter [ not (Just True) ] 
+    Input.booleanFilter [ not (Just True) ]
          : BooleanFilter
 
 or
-    InputObject.buildBooleanFilter 
-        (\opts ->
-            {opts | not = GQL.present True}
-        ) : BooleanFilter
+InputObject.buildBooleanFilter
+(\\opts ->
+{opts | not = GQL.present True}
+) : BooleanFilter
 
 We really want to write just
 
     BooleanFilter.not True
 
-
 All we need to do is hint to our code generation that this is a `oneOf` situation.
-
 
 Which can look like this.
 
-    Generate.Strategy.input 
+    Generate.Strategy.input
         (\input ->
             case input.name of
                 "BooleanFilter" ->
                     Just Generate.Strategy.OneOf
+
                 _ ->
                     Nothing
-
-        
         )
 
-
-
 Also, check out the `teams` endpoint.
-    1. if `filter` doesn't need to worry about nulls, then it could defined as
+1. if `filter` doesn't need to worry about nulls, then it could defined as
 
             (can get rid of full qualification because this is only one module)
             Teams.filter
@@ -57,7 +49,7 @@ Also, check out the `teams` endpoint.
                 , Teams.teamsFilter.showArchived True
                 ]
 
-        instead of 
+        instead of
 
             , TnG.Queries.Teams.filter
                 (Just
@@ -68,7 +60,6 @@ Also, check out the `teams` endpoint.
                         ]
                     )
                 )
-
 
 -}
 
@@ -81,13 +72,10 @@ import GraphQL.Schema.Scalar as Scalar exposing (Scalar)
 import GraphQL.Schema.Union as Union exposing (Union)
 
 
-
-type Strategy 
-    = Normal 
-    | OneOf    
+type Strategy
+    = Normal
+    | OneOf
     | NoNull
-    
-
 
 
 input : InputObject -> Maybe Strategy

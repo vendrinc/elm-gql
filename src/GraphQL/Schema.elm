@@ -15,10 +15,12 @@ import GraphQL.Schema.Object as Object exposing (Object)
 import GraphQL.Schema.Operation as Operation exposing (Operation)
 import GraphQL.Schema.Scalar as Scalar exposing (Scalar)
 import GraphQL.Schema.Union as Union exposing (Union)
-import Json.Decode as Json
-import Utils.Json exposing (apply)
 import Http
+import Json.Decode as Json
 import Json.Encode
+import Utils.Json exposing (apply)
+
+
 
 -- Definition
 
@@ -56,7 +58,6 @@ type alias Query =
 
 type alias Mutation =
     Operation
-
 
 
 decoder : Json.Decoder Schema
@@ -182,27 +183,24 @@ empty =
     }
 
 
-
-
 get : String -> (Result Http.Error Schema -> msg) -> Cmd msg
 get url toMsg =
-   Http.post
+    Http.post
         { url = url
         , body =
             Http.jsonBody
                 (Json.Encode.object
-                    [ ("query", Json.Encode.string introspection)
-
+                    [ ( "query", Json.Encode.string introspection )
                     ]
-
                 )
         , expect =
             Http.expectJson toMsg (Json.field "data" decoder)
-
         }
 
+
 introspection : String
-introspection = """
+introspection =
+    """
 query IntrospectionQuery {
     __schema {
       queryType {

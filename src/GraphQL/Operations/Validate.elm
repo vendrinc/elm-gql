@@ -174,7 +174,7 @@ validateMutation schema selection =
                                     Err [ UnknownField objName ]
 
                                 Just obj ->
-                                     Ok ()
+                                    Ok ()
                                         |> reduce (validateArg mutationObj) field.arguments
                                         |> reduce (validateField schema obj) field.selection
 
@@ -251,8 +251,6 @@ validateField schema object selection =
             let
                 fieldName =
                     AST.nameToString field.name
-
-               
             in
             if fieldName == "__typename" then
                 Ok ()
@@ -263,9 +261,6 @@ validateField schema object selection =
                         object.fields
                             |> List.filter (\fld -> fld.name == fieldName)
                             |> List.head
-
-                    
-                    
                 in
                 case matchedField of
                     Just matched ->
@@ -294,7 +289,6 @@ validateField schema object selection =
                                     Just innerobj ->
                                         argResult
                                             |> reduce (validateField schema innerobj) field.selection
-                                        
 
                     Nothing ->
                         Err [ UnknownField fieldName ]

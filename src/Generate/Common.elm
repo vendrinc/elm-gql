@@ -6,8 +6,9 @@ import Elm.Gen.GraphQL.Engine as Engine
 import GraphQL.Schema.Type exposing (Type(..))
 import Utils.String
 
+
 modules =
-    { enum = 
+    { enum =
         \namespace enumName ->
             [ namespace
             , "Enum"
@@ -25,14 +26,11 @@ modules =
             , "Mutations"
             , Utils.String.formatTypename mutationName
             ]
-
     , input =
         \namespace name ->
             [ namespace
-            
             , Utils.String.formatTypename name
             ]
-
     }
 
 
@@ -82,12 +80,12 @@ gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
                     Elm.Annotation.bool
 
                 _ ->
-                    Elm.Annotation.namedWith ( [ "Scalar" ])
+                    Elm.Annotation.namedWith [ "Scalar" ]
                         (Utils.String.formatScalar scalarName)
                         appliedToTypes
 
         Enum enumName ->
-            Elm.Annotation.namedWith ( [ namespace, "Enum", enumName ]) enumName appliedToTypes
+            Elm.Annotation.namedWith [ namespace, "Enum", enumName ] enumName appliedToTypes
 
         List_ listElementType ->
             let
@@ -138,12 +136,12 @@ localAnnotation namespace gqlType maybeAppliedToTypes =
                     Elm.Annotation.bool
 
                 _ ->
-                    Elm.Annotation.namedWith ( [ "Scalar" ])
+                    Elm.Annotation.namedWith [ "Scalar" ]
                         (Utils.String.formatScalar scalarName)
                         appliedToTypes
 
         Enum enumName ->
-            Elm.Annotation.namedWith ( [ namespace, "Enum", enumName ]) enumName appliedToTypes
+            Elm.Annotation.namedWith [ namespace, "Enum", enumName ] enumName appliedToTypes
 
         List_ listElementType ->
             let

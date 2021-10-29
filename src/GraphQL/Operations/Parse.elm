@@ -3,8 +3,9 @@ module GraphQL.Operations.Parse exposing (..)
 import Char
 import GraphQL.Operations.AST as AST
 import Parser exposing (..)
-import Set exposing (Set)
 import Parser.Advanced
+import Set exposing (Set)
+
 
 multiOr : List (a -> Bool) -> a -> Bool
 multiOr conds val =
@@ -83,50 +84,6 @@ name =
         , reserved = keywords
         }
         |> Parser.map AST.Name
-
-
-
-peek : String -> Parser thing -> Parser thing
-peek tag parser =
-    Parser.succeed
-        (\start val end src ->
-            let
-                highlightParsed =
-                    String.repeat (start.column - 1) " " ++ String.repeat (max 0 (end.column - start.column)) "^"
-
-                fullLine =
-                    String.slice (max 0 (start.offset - start.column)) end.offset src
-
-                _ =
-                    Debug.log tag
-                        -- fullLine
-                        (String.slice start.offset end.offset src)
-
-                -- _ =
-                --     Debug.log name
-                --         highlightParsed
-            in
-            val
-        )
-        |= getPosition
-        |= parser
-        |= getPosition
-        |= Parser.Advanced.getSource
-
-
-
-getPosition =
-    Parser.succeed 
-        (\row col offset ->
-            { row = row
-            , column = col
-            , offset = offset
-            }
-        )
-        |= Parser.getRow
-        |= Parser.getCol
-        |= Parser.getOffset
-
 
 
 variable : Parser AST.Variable
@@ -305,7 +262,7 @@ aliasedName : Parser ( Maybe AST.Name, AST.Name )
 aliasedName =
     Parser.succeed
         (\nameOrAlias maybeActualName ->
-            case  maybeActualName of
+            case maybeActualName of
                 Nothing ->
                     ( Nothing, nameOrAlias )
 
@@ -543,3 +500,59 @@ ifProgress onSucceed parser =
         |= Parser.getOffset
         |= parser
         |= Parser.getOffset
+
+
+errorToString : List Parser.DeadEnd -> String
+errorToString deadEnds =
+    String.concat (List.intersperse "; " (List.map deadEndToString deadEnds))
+
+
+deadEndToString : Parser.DeadEnd -> String
+deadEndToString deadend =
+    problemToString deadend.problem ++ " at row " ++ String.fromInt deadend.row ++ ", col " ++ String.fromInt deadend.col
+
+
+problemToString : Parser.Problem -> String
+problemToString p =
+    case p of
+        Expecting s ->
+            "expecting '" ++ s ++ "'"
+
+        ExpectingInt ->
+            "expecting int"
+
+        ExpectingHex ->
+            "expecting hex"
+
+        ExpectingOctal ->
+            "expecting octal"
+
+        ExpectingBinary ->
+            "expecting binary"
+
+        ExpectingFloat ->
+            "expecting float"
+
+        ExpectingNumber ->
+            "expecting number"
+
+        ExpectingVariable ->
+            "expecting variable"
+
+        ExpectingSymbol s ->
+            "expecting symbol '" ++ s ++ "'"
+
+        ExpectingKeyword s ->
+            "expecting keyword '" ++ s ++ "'"
+
+        ExpectingEnd ->
+            "expecting end"
+
+        UnexpectedChar ->
+            "unexpected char"
+
+        Problem s ->
+            "problem " ++ s
+
+        BadRepeat ->
+            "bad repeat"
