@@ -100,6 +100,9 @@ errorToString (Error details) =
 
 canonicalize : GraphQL.Schema.Schema -> AST.Document -> Result (List Error) Can.Document
 canonicalize schema doc =
+    let
+        variableCache = gatherVariableTypeCache schema doc
+    in
     case reduce (canonicalizeDefinition schema) doc.definitions (Ok []) of
         Ok result ->
             Ok { definitions = result }
@@ -107,6 +110,58 @@ canonicalize schema doc =
         Err err ->
             Err err
 
+
+type alias VarCache =
+    { varTypes : Dict String (Result String Type.Type)
+    , fragments : Dict String (AST.FragmentDetails)
+    }
+emptyCache : VarCache
+emptyCache = 
+    { varTypes = Dict.empty
+    , fragments = Dict.empty
+
+    }
+
+gatherVariableTypeCache : GraphQL.Schema.Schema -> AST.Document -> VarCache
+gatherVariableTypeCache schema doc =
+    gatherVarFromDefinition schema emptyCache doc.definitions 
+
+gatherVarFromDefinition schema cache defs =
+    case defs of
+        [] ->
+            cache
+
+        (AST.Operation op) :: remain ->
+            gatherVarFromDefinition schema 
+                (gatherVarFromSelection schema cache op.fields)
+                remain
+
+        (AST.Fragment frag) :: remain ->
+            let
+                updatedFragments = 
+                    gatherVarFromSelection schema cache frag.selection
+            in
+            gatherVarFromDefinition schema
+                { updatedFragments | fragments =
+                    Dict.insert
+                        (AST.nameToString frag.name)
+                        frag
+                        updatedFragments.fragments
+                }
+                remain
+gatherVarFromSelection schema cache sels =
+    case sels of
+        [] ->
+            cache
+        
+        (AST.Field field) :: remain ->
+            cache
+
+        (AST.FragmentSpreadSelection spread) :: remain ->
+            cache
+        
+        (AST.InlineFragmentSelection inline) :: remain ->
+            cache
 
 reduce :
     (item -> Result (List Error) result)
@@ -155,32 +210,35 @@ canonicalizeDefinition schema def =
             Err [ todo "Top level fragments are not supported yet!" ]
 
         AST.Operation details ->
-            case details.operationType of
-                AST.Query ->
-                    let
-                        fieldResult =
-                            reduce (canonicalizeQuerySelection schema) details.fields (Ok [])
-                    in
-                    case fieldResult of
-                        Ok fields ->
-                            Ok <|
-                                Can.Operation
-                                    { operationType = Can.Query
-                                    , name = Maybe.map convertName details.name
-                                    , variableDefinitions =
-                                        List.map
-                                            toCanonVariable
-                                            details.variableDefinitions
-                                    , directives = []
-                                    , fields = fields
-                                    }
+            let
+                fieldResult =
+                    reduce (canonicalizeOperation schema details.operationType) details.fields (Ok [])
+            in
+            case fieldResult of
+                Ok fields ->
+                    Ok <|
+                        Can.Operation
+                            { operationType = 
+                                case details.operationType of
+                                    AST.Query ->
+                                        Can.Query
 
-                        Err err ->
-                            Err err
+                                    AST.Mutation ->
+                                        Can.Mutation
+                            , name = Maybe.map convertName details.name
+                            , variableDefinitions =
+                                List.map
+                                    toCanonVariable
+                                    details.variableDefinitions
+                            , directives = 
+                                List.map convertDirective details.directives
+                            , fields = fields
+                            }
 
-                AST.Mutation ->
-                    -- reduce (validateMutation schema) details.fields (Ok ())
-                    Debug.todo "MUTATSION!"
+                Err err ->
+                    Err err
+
+              
 
 
 toCanonVariable : AST.VariableDefinition -> Can.VariableDefinition
@@ -188,14 +246,24 @@ toCanonVariable def =
     { variable = { name = convertName def.variable.name }
     , type_ = def.type_
     , defaultValue = def.defaultValue
+    -- , schemaType = Err "Unknown"
     }
 
 
-canonicalizeQuerySelection : GraphQL.Schema.Schema -> AST.Selection -> Result (List Error) Can.Selection
-canonicalizeQuerySelection schema selection =
+canonicalizeOperation : GraphQL.Schema.Schema -> AST.OperationType -> AST.Selection -> Result (List Error) Can.Selection
+canonicalizeOperation schema op selection =
     case selection of
         AST.Field field ->
-            case Dict.get (AST.nameToString field.name) schema.queries of
+            let
+                matched =
+                    case op of
+                        AST.Query ->
+                            Dict.get (AST.nameToString field.name) schema.queries
+
+                        AST.Mutation ->
+                            Dict.get (AST.nameToString field.name) schema.mutations
+            in
+            case matched of
                 Nothing ->
                     Err [ error (QueryUnknown (AST.nameToString field.name)) ]
 
@@ -207,7 +275,7 @@ canonicalizeQuerySelection schema selection =
                                     { alias_ = Maybe.map convertName field.alias_
                                     , name = convertName field.name
                                     , arguments = []
-                                    , directives = []
+                                    , directives = List.map convertDirective field.directives
                                     , type_ = query.type_
                                     }
                                 )
@@ -233,7 +301,7 @@ canonicalizeQuerySelection schema selection =
                                                     { alias_ = Maybe.map convertName field.alias_
                                                     , name = convertName field.name
                                                     , arguments = []
-                                                    , directives = []
+                                                    , directives = List.map convertDirective field.directives
                                                     , selection = canSelection
                                                     , object = obj
                                                     , wrapper = Generate.Input.getWrap query.type_
@@ -249,7 +317,7 @@ canonicalizeQuerySelection schema selection =
                                     { alias_ = Maybe.map convertName field.alias_
                                     , name = convertName field.name
                                     , arguments = []
-                                    , directives = []
+                                    , directives = List.map convertDirective field.directives
                                     , type_ = query.type_
                                     }
                                 )
@@ -277,7 +345,7 @@ canonicalizeQuerySelection schema selection =
                                                             { alias_ = Maybe.map convertName field.alias_
                                                             , name = convertName field.name
                                                             , arguments = []
-                                                            , directives = []
+                                                            , directives = List.map convertDirective field.directives
                                                             , selection = canSelection
                                                             , union = union
                                                             }
@@ -316,7 +384,7 @@ canonicalizeField schema object selection =
                         { alias_ = Maybe.map convertName field.alias_
                         , name = convertName field.name
                         , arguments = []
-                        , directives = []
+                        , directives = List.map convertDirective field.directives
                         , type_ = Type.Scalar "typename"
                         }
                     )
@@ -341,6 +409,19 @@ canonicalizeField schema object selection =
         AST.InlineFragmentSelection inline ->
             Err [ todo "Inline fragments are not allowed" ]
 
+convertDirective dir =
+    { name = convertName dir.name
+    , arguments = 
+        List.map
+            (\arg ->
+                { name = convertName arg.name
+                , value = arg.value
+                }
+            ) 
+            dir.arguments 
+
+    }
+
 
 {-|
 
@@ -351,13 +432,12 @@ canonicalizeFieldType : GraphQL.Schema.Schema -> Object.Object -> AST.FieldDetai
 canonicalizeFieldType schema object field type_ selection originalType =
     case type_ of
         Type.Scalar name ->
-            -- Err [ todo "Handle more object types!" ]
             Ok
                 (Can.FieldScalar
                     { alias_ = Maybe.map convertName field.alias_
                     , name = convertName field.name
                     , arguments = []
-                    , directives = []
+                    , directives = List.map convertDirective field.directives
                     , type_ = originalType
                     }
                 )
@@ -383,7 +463,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                                     { alias_ = Maybe.map convertName field.alias_
                                     , name = convertName field.name
                                     , arguments = []
-                                    , directives = []
+                                    , directives = List.map convertDirective field.directives
                                     , selection = canSelection
                                     , object = obj
                                     , wrapper = Generate.Input.getWrap originalType
@@ -404,7 +484,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                             { alias_ = Maybe.map convertName field.alias_
                             , name = convertName field.name
                             , arguments = []
-                            , directives = []
+                            , directives = List.map convertDirective field.directives
                             , enumName = enum.name
                             , values = enum.values
                             }
@@ -434,7 +514,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                                             { alias_ = Maybe.map convertName field.alias_
                                             , name = convertName field.name
                                             , arguments = []
-                                            , directives = []
+                                            , directives = List.map convertDirective field.directives
                                             , selection = canSelection
                                             , union = union
                                             }
@@ -483,7 +563,7 @@ canonicalizeUnionField schema union remainingAllowedTags selection =
                         { alias_ = Maybe.map convertName field.alias_
                         , name = convertName field.name
                         , arguments = []
-                        , directives = []
+                        , directives = List.map convertDirective field.directives
                         , type_ = Type.Scalar "typename"
                         }
                     )
@@ -518,7 +598,7 @@ canonicalizeUnionField schema union remainingAllowedTags selection =
                                 Ok
                                     (Can.UnionCase
                                         { tag = Can.Name tag
-                                        , directives = []
+                                        , directives = List.map convertDirective inline.directives
                                         , selection = canSelection
                                         }
                                     )
