@@ -4,7 +4,7 @@ import * as path from "path";
 import chalk from "chalk";
 import { XMLHttpRequest } from "./vendor/XMLHttpRequest";
 const schema_generator = require("./generators/schema");
-const ops = require("./generators/operational");
+import engine from "./templates/Engine.elm"
 
 // We have to stub this in the allow Elm the ability to make http requests.
 // @ts-ignore
@@ -95,6 +95,11 @@ async function action(options: Options, com: any) {
         gql_operations.push({src, path: file})
     }
   }
+
+  // Copy gql engine to target dir 
+  fs.mkdirSync(path.join(options.output, "GraphQL"), { recursive: true });
+  fs.writeFileSync(path.join(options.output, "GraphQL", "Engine.elm"), engine())
+
 
   // Generate the Elm form of the schema that can be used to construc queries
   run_generator(schema_generator.Elm.Generate, options.output, {
