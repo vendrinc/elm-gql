@@ -729,10 +729,6 @@ getScalarType queryName field schema =
         Nothing ->
             case Dict.get queryName schema.objects of
                 Nothing ->
-                    let
-                        _ =
-                            Debug.log "Not an object" ( queryName, field )
-                    in
                     SchemaType.Scalar (queryName ++ "." ++ field ++ "NOT AN OBJECT?!")
 
                 Just object ->
