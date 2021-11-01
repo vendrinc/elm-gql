@@ -94,36 +94,9 @@ toVariableEncoder namespace schema var =
         |> Generate.Args.toJsonValue
             namespace
             schema
-            (toVariableSchemaType schema var.type_)
+            (var.schemaType)
             (Input.getWrapFromAst var.type_)
         |> Elm.tuple (Elm.string name)
-
-
-toVariableSchemaType : GraphQL.Schema.Schema -> AST.Type -> SchemaType.Type
-toVariableSchemaType schema type_ =
-    case type_ of
-        AST.Type_ name ->
-            if nameIsScalar (AST.nameToString name) then
-                SchemaType.Scalar (AST.nameToString name)
-
-            else
-                SchemaType.InputObject (AST.nameToString name)
-
-        AST.List_ inner ->
-            SchemaType.List_ (toVariableSchemaType schema inner)
-
-        AST.Nullable inner ->
-            SchemaType.Nullable (toVariableSchemaType schema inner)
-
-
-nameIsScalar : String -> Bool
-nameIsScalar name =
-    List.member (String.toLower name)
-        [ "int"
-        , "float"
-        , "boolean"
-        ]
-
 
 andField : Can.Name -> Elm.Expression -> Elm.Expression -> Elm.Expression
 andField name decoder builder =

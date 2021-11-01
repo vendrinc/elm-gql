@@ -126,12 +126,55 @@ canonicalize schema doc =
         fragments = getFragments schema doc
     in
     case reduce (canonicalizeDefinition schema) doc.definitions (CanSuccess fragments []) of
-        CanSuccess cache result ->
+        CanSuccess cache defs ->
+            case reduceOld (replaceVarTypes cache) defs (Ok []) of
+                Ok defsWithVars ->
+                    Ok { definitions = defsWithVars }
 
-            Ok { definitions = result }
+                Err errorMsg ->
+                    Err errorMsg
 
         CanError errorMsg ->
             Err errorMsg
+
+
+replaceVarTypes : VarCache -> Can.Definition -> Result (List Error) Can.Definition
+replaceVarTypes cache (Can.Operation def) =
+    case reduceOld (getVarTypeNamed cache.varTypes) def.variableDefinitions (Ok []) of
+        Ok varDefs ->
+            Ok 
+                (Can.Operation 
+                    { def | variableDefinitions = 
+                        varDefs
+
+                    })
+
+        Err errMsg ->
+            Err errMsg
+    
+
+getVarTypeNamed : List (String, Type.Type) -> Can.VariableDefinition -> Result (List Error) Can.VariableDefinition
+getVarTypeNamed  vars target =
+    let
+        targetName =
+            Can.nameToString target.variable.name
+
+        found = 
+            List.filter 
+                (\(varName, var) -> 
+                    varName == targetName
+                ) vars
+                |> List.head
+    in
+    case found of
+        Nothing ->
+            Err [ error (UnknownArgName ("CANON" ++targetName)) ]
+        
+        Just (_, varType) ->
+            Ok 
+                { target | schemaType = varType
+
+                }
 
 
 type alias VarCache =
@@ -163,9 +206,10 @@ mergeCaches one two =
 
 getFragments : GraphQL.Schema.Schema -> AST.Document -> VarCache
 getFragments schema doc =
-    gatherVarFromDefinition schema emptyCache doc.definitions 
+    gatherFragmentsFromDefinitions schema emptyCache doc.definitions 
 
-gatherVarFromDefinition schema cache defs =
+
+gatherFragmentsFromDefinitions schema cache defs =
     case defs of
         [] ->
             cache
@@ -174,7 +218,7 @@ gatherVarFromDefinition schema cache defs =
             cache
 
         (AST.Fragment frag) :: remain ->
-            gatherVarFromDefinition schema
+            gatherFragmentsFromDefinitions schema
                 { cache | fragments =
                     Dict.insert
                         (AST.nameToString frag.name)
@@ -439,9 +483,12 @@ validateArg spec argInGql =
         AST.Var var ->
             let
                 varname =
+                    AST.nameToString var.name
+
+                fieldname = 
                     AST.nameToString argInGql.name
             in
-            case List.head (List.filter (\a -> a.name == varname) spec.arguments) of
+            case List.head (List.filter (\a -> a.name == fieldname) spec.arguments) of
                 Nothing ->
                     Err [ error (UnknownArgName varname) ]
 
