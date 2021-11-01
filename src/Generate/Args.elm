@@ -306,12 +306,11 @@ annotations =
                 "Optional"
     , localOptional =
         \namespace name ->
-            Engine.types_.optional
-                (Elm.Annotation.namedWith
-                    []
-                    "Optional"
-                    []
-                )
+            Elm.Annotation.namedWith
+                []
+                "Optional"
+                []
+            
     , arg =
         \namespace name ->
             Generate.Common.ref namespace name
