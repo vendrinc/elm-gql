@@ -1,0 +1,34 @@
+{
+  "name": "elm-graphql",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
+  "scripts": {
+    "elm-gql": "node index.js"
+
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Blissfully/elm-gql.git"
+  },
+  "author": "",
+  "license": "BSD-3",
+  "bugs": {
+    "url": "https://github.com/Blissfully/elm-gql/issues"
+  },
+  "homepage": "https://github.com/Blissfully/elm-gql#readme",
+  "devDependencies": {
+    "elm-doc-preview": "^5.0.5",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "@types/node": "^15.0.3",
+    "chalk": "^4.1.1",
+    "chokidar": "^3.5.1",
+    "commander": "^8.3.0"
+  }
+}
