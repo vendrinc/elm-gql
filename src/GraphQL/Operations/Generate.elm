@@ -56,7 +56,7 @@ generate namespace schema queryStr document path =
                                 document.definitions
                             )
                         )
-                        (generateDecoder schema document.definitions)
+                        (generateDecoder namespace schema document.definitions)
                         |> Elm.withType
                             (Engine.types_.selection
                                 Engine.types_.query
@@ -66,10 +66,10 @@ generate namespace schema queryStr document path =
                 |> Elm.expose
 
         helpers =
-            List.concatMap (generateResultTypes schema) document.definitions
+            List.concatMap (generateResultTypes namespace schema) document.definitions
 
         primaryResult =
-            List.concatMap (generatePrimaryResultType schema) document.definitions
+            List.concatMap (generatePrimaryResultType namespace schema) document.definitions
     in
     Ok
         [ Elm.file path
@@ -215,8 +215,8 @@ primitives =
 {- RESULT DATA -}
 
 
-generatePrimaryResultType : GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
-generatePrimaryResultType schema def =
+generatePrimaryResultType : String -> GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
+generatePrimaryResultType namespace schema def =
     case def of
         Can.Operation op ->
             [ Elm.alias
@@ -228,25 +228,25 @@ generatePrimaryResultType schema def =
                 )
                 (Type.record
                     (List.map
-                        (fieldAnnotation schema Nothing)
+                        (fieldAnnotation namespace schema Nothing)
                         op.fields
                     )
                 )
             ]
 
 
-generateResultTypes : GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
-generateResultTypes schema def =
+generateResultTypes : String -> GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
+generateResultTypes namespace schema def =
     case def of
         Can.Operation op ->
-            List.concatMap (generateChildTypes schema) op.fields
+            List.concatMap (generateChildTypes namespace schema) op.fields
 
 
-generateChildTypes : GraphQL.Schema.Schema -> Can.Selection -> List Elm.Declaration
-generateChildTypes schema sel =
-    case sel of
+generateChildTypes : String -> GraphQL.Schema.Schema -> Can.Selection -> List Elm.Declaration
+generateChildTypes namespace schema sel =
+    case Debug.log "CHILD TYPES" sel of
         Can.FieldObject obj ->
-            List.concatMap (generateChildTypes schema) obj.selection
+            List.concatMap (generateChildTypes namespace schema) obj.selection
 
         Can.FieldUnion field ->
             Elm.customType
@@ -257,17 +257,20 @@ generateChildTypes schema sel =
                     )
                 )
                 (List.filterMap
-                    (unionVariant schema)
+                    (unionVariant namespace schema)
                     field.selection
                 )
-                :: List.concatMap (generateChildTypes schema) field.selection
+                :: List.concatMap (generateChildTypes namespace schema) field.selection
+
+        Can.UnionCase unionCase ->
+            List.concatMap (generateChildTypes namespace schema) unionCase.selection
 
         _ ->
             []
 
 
-unionVariant : GraphQL.Schema.Schema -> Can.Selection -> Maybe Elm.Variant
-unionVariant schema selection =
+unionVariant : String -> GraphQL.Schema.Schema -> Can.Selection -> Maybe Elm.Variant
+unionVariant namespace schema selection =
     case selection of
         Can.FieldScalar field ->
             Nothing
@@ -283,7 +286,7 @@ unionVariant schema selection =
                             (Can.nameToString field.tag)
                             [ Type.record
                                 (List.map
-                                    (fieldAnnotation schema Nothing)
+                                    (fieldAnnotation namespace schema Nothing)
                                     fields
                                 )
                             ]
@@ -312,8 +315,8 @@ removeTypename field =
             True
 
 
-fieldAnnotation : GraphQL.Schema.Schema -> Maybe String -> Can.Selection -> ( String, Type.Annotation )
-fieldAnnotation schema parent selection =
+fieldAnnotation : String ->GraphQL.Schema.Schema -> Maybe String -> Can.Selection -> ( String, Type.Annotation )
+fieldAnnotation namespace schema parent selection =
     case selection of
         Can.FieldObject field ->
             ( case field.alias_ of
@@ -337,7 +340,7 @@ fieldAnnotation schema parent selection =
                     Input.wrapElmType field.wrapper
                         (Type.record
                             (List.map
-                                (fieldAnnotation schema (Just (Can.nameToString field.name)))
+                                (fieldAnnotation namespace schema (Just (Can.nameToString field.name)))
                                 field.selection
                             )
                         )
@@ -360,7 +363,7 @@ fieldAnnotation schema parent selection =
 
                 Just alias ->
                     Can.nameToString alias
-            , enumType field.enumName
+            , enumType namespace field.enumName
             )
 
         Can.UnionCase field ->
@@ -394,20 +397,20 @@ fieldAnnotation schema parent selection =
             )
 
 
-enumValue : String -> String -> Elm.Expression
-enumValue enumName val =
+enumValue : String -> String -> String -> Elm.Expression
+enumValue namespace enumName val =
     Elm.valueFrom
-        [ "TnG"
+        [ namespace
         , "Enum"
         , Utils.String.formatTypename enumName
         ]
         val
 
 
-enumType : String -> Type.Annotation
-enumType enumName =
+enumType : String -> String -> Type.Annotation
+enumType namespace enumName =
     Type.named
-        [ "TnG"
+        [ namespace
         , "Enum"
         , Utils.String.formatTypename enumName
         ]
@@ -462,8 +465,8 @@ schemaTypeToPrefab schemaType =
 {- DECODER -}
 
 
-generateDecoder : GraphQL.Schema.Schema -> List Can.Definition -> Elm.Expression
-generateDecoder schema defs =
+generateDecoder : String -> GraphQL.Schema.Schema -> List Can.Definition -> Elm.Expression
+generateDecoder namespace schema defs =
     case defs of
         [] ->
             Decode.succeed Elm.unit
@@ -477,7 +480,7 @@ generateDecoder schema defs =
                             op.name
                         )
             in
-            decodeFields op.fields
+            decodeFields namespace op.fields
                 (Decode.succeed
                     (Elm.value opName)
                 )
@@ -509,19 +512,19 @@ subobjectBuilderBody fields =
         )
 
 
-decodeFields : List Can.Selection -> Elm.Expression -> Elm.Expression
-decodeFields fields exp =
+decodeFields : String -> List Can.Selection -> Elm.Expression -> Elm.Expression
+decodeFields namespace fields exp =
     case fields of
         [] ->
             exp
 
         ((Can.FieldObject obj) as field) :: remain ->
-            decodeFields
+            decodeFields namespace
                 remain
                 (andField
                     (Can.Name (Can.getAliasedName field))
                     (Input.decodeWrapper obj.wrapper
-                        (decodeFields obj.selection
+                        (decodeFields namespace obj.selection
                             (Decode.succeed
                                 (Elm.lambdaWith
                                     (List.map subobjectBuilderArgs obj.selection)
@@ -541,7 +544,7 @@ decodeFields fields exp =
                         (decodeScalarType scal.type_)
                         exp
             in
-            decodeFields
+            decodeFields namespace
                 remain
                 decoded
 
@@ -561,7 +564,8 @@ decodeFields fields exp =
                                                     (\value ->
                                                         ( Pattern.string (String.toLower value.name)
                                                         , Decode.succeed
-                                                            (enumValue enum.enumName
+                                                            (enumValue namespace 
+                                                                enum.enumName
                                                                 value.name
                                                             )
                                                         )
@@ -577,16 +581,16 @@ decodeFields fields exp =
                         )
                         exp
             in
-            decodeFields
+            decodeFields namespace
                 remain
                 decoded
 
         ((Can.FieldUnion union) as field) :: remain ->
-            decodeFields
+            decodeFields namespace
                 remain
                 (andField
                     (Can.Name (Can.getAliasedName field))
-                    (decodeUnion union)
+                    (decodeUnion namespace union)
                     exp
                 )
 
@@ -594,8 +598,8 @@ decodeFields fields exp =
             exp
 
 
-decodeUnion : { a | selection : List Can.Selection } -> Elm.Expression
-decodeUnion union =
+decodeUnion : String -> { a | selection : List Can.Selection } -> Elm.Expression
+decodeUnion namespace union =
     Decode.field (Elm.string "__typename") Decode.string
         |> Decode.andThen
             (\_ ->
@@ -604,7 +608,7 @@ decodeUnion union =
                     (\typename ->
                         Elm.caseOf typename
                             (List.filterMap
-                                toUnionVariantPattern
+                                (toUnionVariantPattern namespace)
                                 union.selection
                                 ++ [ ( Pattern.wildcard
                                      , Decode.fail (Elm.string "Unknown union type")
@@ -615,8 +619,8 @@ decodeUnion union =
             )
 
 
-toUnionVariantPattern : Can.Selection -> Maybe ( Pattern.Pattern, Elm.Expression )
-toUnionVariantPattern selection =
+toUnionVariantPattern : String -> Can.Selection -> Maybe ( Pattern.Pattern, Elm.Expression )
+toUnionVariantPattern namespace selection =
     case selection of
         Can.UnionCase var ->
             let
@@ -639,7 +643,7 @@ toUnionVariantPattern selection =
                                     ]
                                 )
                             )
-                            |> decodeFields fields
+                            |> decodeFields namespace fields
                 )
 
         _ ->
