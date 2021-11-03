@@ -385,6 +385,7 @@ fieldAnnotation namespace schema parent selection =
                 Just alias ->
                     Can.nameToString alias
             , enumType namespace field.enumName
+                |> Input.wrapElmType field.wrapper
             )
 
         Can.UnionCase field ->
@@ -415,6 +416,7 @@ fieldAnnotation namespace schema parent selection =
                     Type.named
                         []
                         (Can.nameToString field.name)
+                        |> Input.wrapElmType field.wrapper
             )
 
 
@@ -574,7 +576,8 @@ decodeFields namespace fields exp =
                 decoded =
                     andField
                         (Can.Name (Can.getAliasedName field))
-                        (Decode.string
+                        (Input.decodeWrapper enum.wrapper 
+                            (Decode.string
                             |> Decode.andThen
                                 (\_ ->
                                     Elm.lambda "enum"
@@ -599,7 +602,7 @@ decodeFields namespace fields exp =
                                                 )
                                         )
                                 )
-                        )
+                        ))
                         exp
             in
             decodeFields namespace
@@ -611,7 +614,8 @@ decodeFields namespace fields exp =
                 remain
                 (andField
                     (Can.Name (Can.getAliasedName field))
-                    (decodeUnion namespace (Can.getAliasedName field) union)
+                    (Input.decodeWrapper union.wrapper 
+                        (decodeUnion namespace (Can.getAliasedName field) union))
                     exp
                 )
 
@@ -710,7 +714,6 @@ decodeScalarType type_ =
                         (Utils.String.formatValue scalarName)
                         |> Elm.get "decoder"
 
-        -- Decode.succeed (Elm.string scal)
         SchemaType.Nullable inner ->
             Decode.nullable (decodeScalarType inner)
 

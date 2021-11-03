@@ -96,6 +96,7 @@ type alias FieldUnionDetails =
     , directives : List Directive
     , selection : List Selection
     , union : Union.Union
+    , wrapper : Generate.Input.Wrapped
     }
 
 
@@ -115,6 +116,7 @@ type alias FieldEnumDetails =
     , directives : List Directive
     , enumName : String
     , values : List { name : String, description : Maybe String }
+    , wrapper : Generate.Input.Wrapped
     }
 
 

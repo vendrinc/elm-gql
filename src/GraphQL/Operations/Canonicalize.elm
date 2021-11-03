@@ -453,6 +453,7 @@ canonicalizeOperation schema op selection =
                                                             , directives = List.map convertDirective field.directives
                                                             , selection = canSelection
                                                             , union = union
+                                                            , wrapper = Generate.Input.getWrap query.type_
                                                             }
                                                         )
 
@@ -618,11 +619,11 @@ canonicalizeFieldType schema object field type_ selection originalType =
                             , directives = List.map convertDirective field.directives
                             , enumName = enum.name
                             , values = enum.values
+                            , wrapper = Generate.Input.getWrap originalType
                             }
                         )
 
         Type.Union name ->
-            -- Err [ todo "Field Unions" ]
             case Dict.get name schema.unions of
                 Nothing ->
                     err [ error (UnionUnknown name) ]
@@ -648,6 +649,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                                             , directives = List.map convertDirective field.directives
                                             , selection = canSelection
                                             , union = union
+                                            , wrapper = Generate.Input.getWrap originalType
                                             }
                                         )
 
