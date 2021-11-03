@@ -7,9 +7,9 @@ import Generate.Input
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
+import GraphQL.Schema.Argument as Arg
 import GraphQL.Schema.Enum as Enum
 import GraphQL.Schema.Field as Field
-import GraphQL.Schema.Argument as Arg
 import GraphQL.Schema.InputObject as Input
 import GraphQL.Schema.Interface as Interface
 import GraphQL.Schema.Kind as Kind
@@ -107,12 +107,14 @@ type CanResult success
     = CanError (List Error)
     | CanSuccess VarCache success
 
+
 err : List Error -> CanResult success
-err = 
+err =
     CanError
 
+
 success : VarCache -> success -> CanResult success
-success = 
+success =
     CanSuccess
 
 
@@ -120,10 +122,12 @@ emptySuccess : CanResult (List a)
 emptySuccess =
     CanSuccess emptyCache []
 
+
 canonicalize : GraphQL.Schema.Schema -> AST.Document -> Result (List Error) Can.Document
 canonicalize schema doc =
     let
-        fragments = getFragments schema doc
+        fragments =
+            getFragments schema doc
     in
     case reduce (canonicalizeDefinition schema) doc.definitions (CanSuccess fragments []) of
         CanSuccess cache defs ->
@@ -142,48 +146,51 @@ replaceVarTypes : VarCache -> Can.Definition -> Result (List Error) Can.Definiti
 replaceVarTypes cache (Can.Operation def) =
     case reduceOld (getVarTypeNamed cache.varTypes) def.variableDefinitions (Ok []) of
         Ok varDefs ->
-            Ok 
-                (Can.Operation 
-                    { def | variableDefinitions = 
-                        varDefs
-
-                    })
+            Ok
+                (Can.Operation
+                    { def
+                        | variableDefinitions =
+                            varDefs
+                    }
+                )
 
         Err errMsg ->
             Err errMsg
-    
 
-getVarTypeNamed : List (String, Type.Type) -> Can.VariableDefinition -> Result (List Error) Can.VariableDefinition
-getVarTypeNamed  vars target =
+
+getVarTypeNamed : List ( String, Type.Type ) -> Can.VariableDefinition -> Result (List Error) Can.VariableDefinition
+getVarTypeNamed vars target =
     let
         targetName =
             Can.nameToString target.variable.name
 
-        found = 
-            List.filter 
-                (\(varName, var) -> 
+        found =
+            List.filter
+                (\( varName, var ) ->
                     varName == targetName
-                ) vars
+                )
+                vars
                 |> List.head
     in
     case found of
         Nothing ->
-            Err [ error (UnknownArgName ("CANON" ++targetName)) ]
-        
-        Just (_, varType) ->
-            Ok 
-                { target | schemaType = varType
+            Err [ error (UnknownArgName ("CANON" ++ targetName)) ]
 
+        Just ( _, varType ) ->
+            Ok
+                { target
+                    | schemaType = varType
                 }
 
 
 type alias VarCache =
-    { varTypes : List (String, Type.Type)
-    , fragments : Dict String (AST.FragmentDetails)
+    { varTypes : List ( String, Type.Type )
+    , fragments : Dict String AST.FragmentDetails
     }
 
+
 emptyCache : VarCache
-emptyCache = 
+emptyCache =
     { varTypes = []
     , fragments = Dict.empty
     }
@@ -196,6 +203,8 @@ addVars vars cache =
         -- not a problem if there is a collision, only if they have conflicting gql types
         vars ++ cache.varTypes
     }
+
+
 mergeCaches one two =
     { fragments = one.fragments
     , varTypes =
@@ -204,9 +213,10 @@ mergeCaches one two =
         one.varTypes ++ two.varTypes
     }
 
+
 getFragments : GraphQL.Schema.Schema -> AST.Document -> VarCache
 getFragments schema doc =
-    gatherFragmentsFromDefinitions schema emptyCache doc.definitions 
+    gatherFragmentsFromDefinitions schema emptyCache doc.definitions
 
 
 gatherFragmentsFromDefinitions schema cache defs =
@@ -219,11 +229,12 @@ gatherFragmentsFromDefinitions schema cache defs =
 
         (AST.Fragment frag) :: remain ->
             gatherFragmentsFromDefinitions schema
-                { cache | fragments =
-                    Dict.insert
-                        (AST.nameToString frag.name)
-                        frag
-                        cache.fragments
+                { cache
+                    | fragments =
+                        Dict.insert
+                            (AST.nameToString frag.name)
+                            frag
+                            cache.fragments
                 }
                 remain
 
@@ -261,6 +272,7 @@ reduce isValid items res =
                                     CanError (errorMessage ++ existingErrors)
                     in
                     reduce isValid remain newResult
+
 
 reduceOld :
     (item -> Result (List Error) result)
@@ -309,7 +321,7 @@ canonicalizeDefinition schema def =
             Debug.todo "There is no concept of fragment in Can.Definition"
 
         AST.Operation details ->
-            let  
+            let
                 fieldResult =
                     reduce (canonicalizeOperation schema details.operationType) details.fields emptySuccess
             in
@@ -317,7 +329,7 @@ canonicalizeDefinition schema def =
                 CanSuccess cache fields ->
                     CanSuccess cache <|
                         Can.Operation
-                            { operationType = 
+                            { operationType =
                                 case details.operationType of
                                     AST.Query ->
                                         Can.Query
@@ -329,15 +341,13 @@ canonicalizeDefinition schema def =
                                 List.map
                                     toCanonVariable
                                     details.variableDefinitions
-                            , directives = 
+                            , directives =
                                 List.map convertDirective details.directives
                             , fields = fields
                             }
 
                 CanError errorMsg ->
                     CanError errorMsg
-
-              
 
 
 toCanonVariable : AST.VariableDefinition -> Can.VariableDefinition
@@ -389,12 +399,13 @@ canonicalizeOperation schema op selection =
 
                                 Just obj ->
                                     let
-                                        argValidation = reduceOld (validateArg query) field.arguments (Ok [])
+                                        argValidation =
+                                            reduceOld (validateArg query) field.arguments (Ok [])
 
                                         selectionResult =
                                             reduce (canonicalizeField schema obj) field.selection emptySuccess
                                     in
-                                    case argValidation of 
+                                    case argValidation of
                                         Ok vars ->
                                             case selectionResult of
                                                 CanSuccess cache canSelection ->
@@ -412,9 +423,9 @@ canonicalizeOperation schema op selection =
 
                                                 CanError errorMsg ->
                                                     CanError errorMsg
+
                                         Err errors ->
                                             CanError errors
-                                    
 
                         Type.Enum name ->
                             CanSuccess emptyCache
@@ -476,9 +487,7 @@ canonicalizeOperation schema op selection =
             err [ todo "Unions not supported yet" ]
 
 
-
-
-validateArg : { node | arguments : List Arg.Argument } -> AST.Argument -> Result (List Error) (String, Type.Type)
+validateArg : { node | arguments : List Arg.Argument } -> AST.Argument -> Result (List Error) ( String, Type.Type )
 validateArg spec argInGql =
     case argInGql.value of
         AST.Var var ->
@@ -486,7 +495,7 @@ validateArg spec argInGql =
                 varname =
                     AST.nameToString var.name
 
-                fieldname = 
+                fieldname =
                     AST.nameToString argInGql.name
             in
             case List.head (List.filter (\a -> a.name == fieldname) spec.arguments) of
@@ -494,11 +503,10 @@ validateArg spec argInGql =
                     Err [ error (UnknownArgName varname) ]
 
                 Just schemaVar ->
-                    Ok (varname, schemaVar.type_)
+                    Ok ( varname, schemaVar.type_ )
 
         _ ->
             Err [ error (Todo "All inputs must be variables for now.  No inline values.") ]
-
 
 
 canonicalizeField : GraphQL.Schema.Schema -> Object.Object -> AST.Selection -> CanResult Can.Selection
@@ -540,17 +548,17 @@ canonicalizeField schema object selection =
         AST.InlineFragmentSelection inline ->
             err [ todo "Inline fragments are not allowed" ]
 
+
 convertDirective dir =
     { name = convertName dir.name
-    , arguments = 
+    , arguments =
         List.map
             (\arg ->
                 { name = convertName arg.name
                 , value = arg.value
                 }
-            ) 
-            dir.arguments 
-
+            )
+            dir.arguments
     }
 
 
@@ -583,10 +591,9 @@ canonicalizeFieldType schema object field type_ selection originalType =
 
                 Just obj ->
                     let
-                        
                         -- argValidation = reduceOld (validateArg obj) field.arguments (Ok [])
                         selectionResult =
-                            reduce (canonicalizeField schema obj) field.selection (emptySuccess)
+                            reduce (canonicalizeField schema obj) field.selection emptySuccess
                     in
                     case selectionResult of
                         CanSuccess var canSelection ->
@@ -691,7 +698,7 @@ canonicalizeUnionField schema union remainingAllowedTags selection =
             in
             --- NOTE, we could probably be more sophisticated here!
             if fieldName == "__typename" then
-                CanSuccess emptyCache 
+                CanSuccess emptyCache
                     (Can.FieldScalar
                         { alias_ = Maybe.map convertName field.alias_
                         , name = convertName field.name
@@ -728,7 +735,7 @@ canonicalizeUnionField schema union remainingAllowedTags selection =
                         in
                         case selectionResult of
                             CanSuccess cache canSelection ->
-                               CanSuccess cache
+                                CanSuccess cache
                                     (Can.UnionCase
                                         { tag = Can.Name tag
                                         , directives = List.map convertDirective inline.directives

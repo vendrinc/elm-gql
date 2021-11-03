@@ -42,7 +42,7 @@ generate namespace schema queryStr document path =
                     "Query"
 
         query =
-            case (List.concatMap (getVariables namespace schema) document.definitions) of
+            case List.concatMap (getVariables namespace schema) document.definitions of
                 [] ->
                     Elm.declaration "query"
                         (Engine.prebakedQuery
@@ -85,7 +85,7 @@ generate namespace schema queryStr document path =
                         |> Elm.expose
 
         helpers =
-            List.concatMap (generateResultTypes namespace schema) document.definitions
+            List.concatMap (generateResultTypes namespace schema Set.empty) document.definitions
 
         primaryResult =
             List.concatMap (generatePrimaryResultType namespace schema) document.definitions
@@ -113,9 +113,10 @@ toVariableEncoder namespace schema var =
         |> Generate.Args.toJsonValue
             namespace
             schema
-            (var.schemaType)
+            var.schemaType
             (Input.getWrapFromAst var.type_)
         |> Elm.tuple (Elm.string name)
+
 
 andField : Can.Name -> Elm.Expression -> Elm.Expression -> Elm.Expression
 andField name decoder builder =
@@ -254,40 +255,96 @@ generatePrimaryResultType namespace schema def =
             ]
 
 
-generateResultTypes : String -> GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
-generateResultTypes namespace schema def =
+generateResultTypes : String -> GraphQL.Schema.Schema -> Set.Set String -> Can.Definition -> List Elm.Declaration
+generateResultTypes namespace schema usedNames def =
     case def of
         Can.Operation op ->
-            List.concatMap (generateChildTypes namespace schema) op.fields
+            generateTypesForFields (generateChildTypes namespace schema) usedNames [] op.fields
+                |> Tuple.second
 
 
-generateChildTypes : String -> GraphQL.Schema.Schema -> Can.Selection -> List Elm.Declaration
-generateChildTypes namespace schema sel =
+generateTypesForFields fn set generated fields =
+    case fields of
+        [] ->
+            ( set, generated )
+
+        top :: remaining ->
+            let
+                ( newSet, newStuff ) =
+                    fn set top
+            in
+            generateTypesForFields fn
+                newSet
+                (generated ++ newStuff)
+                remaining
+
+
+generateChildTypes : String -> GraphQL.Schema.Schema -> Set.Set String -> Can.Selection -> ( Set.Set String, List Elm.Declaration )
+generateChildTypes namespace schema generatedNames sel =
     case sel of
         Can.FieldObject obj ->
-            List.concatMap (generateChildTypes namespace schema) obj.selection
+            let
+                ( newSet, newDecls ) =
+                    generateTypesForFields (generateChildTypes namespace schema) generatedNames [] obj.selection
+
+                desiredName =
+                    Maybe.withDefault (Can.nameToString obj.name)
+                        (Maybe.map
+                            Can.nameToString
+                            obj.alias_
+                        )
+            in
+            ( Set.insert desiredName newSet
+            , if Set.member desiredName newSet then
+                newDecls
+
+              else
+                (Elm.alias
+                    desiredName
+                    (Type.record
+                        (List.map
+                            (fieldAnnotation namespace schema Nothing)
+                            obj.selection
+                        )
+                    )
+                    |> Elm.expose
+                )
+                    :: newDecls
+            )
 
         Can.FieldUnion field ->
-            (Elm.customType
-                (Maybe.withDefault (Can.nameToString field.name)
-                    (Maybe.map
-                        Can.nameToString
-                        field.alias_
+            let
+                desiredName =
+                    Maybe.withDefault (Can.nameToString field.name)
+                        (Maybe.map
+                            Can.nameToString
+                            field.alias_
+                        )
+
+                ( newSet, newDecls ) =
+                    generateTypesForFields (generateChildTypes namespace schema) generatedNames [] field.selection
+            in
+            ( Set.insert desiredName newSet
+            , if Set.member desiredName newSet then
+                newDecls
+
+              else
+                (Elm.customType
+                    desiredName
+                    (List.filterMap
+                        (unionVariant namespace schema)
+                        field.selection
                     )
+                    |> Elm.exposeConstructor
                 )
-                (List.filterMap
-                    (unionVariant namespace schema)
-                    field.selection
-                )
-                |> Elm.exposeConstructor
+                    :: newDecls
             )
-                :: List.concatMap (generateChildTypes namespace schema) field.selection
 
         Can.UnionCase unionCase ->
-            List.concatMap (generateChildTypes namespace schema) unionCase.selection
+            generateTypesForFields (generateChildTypes namespace schema) generatedNames [] unionCase.selection
 
         _ ->
-            []
+            ( generatedNames, [] )
 
 
 unionVariant : String -> GraphQL.Schema.Schema -> Can.Selection -> Maybe Elm.Variant
@@ -336,7 +393,7 @@ removeTypename field =
             True
 
 
-fieldAnnotation : String ->GraphQL.Schema.Schema -> Maybe String -> Can.Selection -> ( String, Type.Annotation )
+fieldAnnotation : String -> GraphQL.Schema.Schema -> Maybe String -> Can.Selection -> ( String, Type.Annotation )
 fieldAnnotation namespace schema parent selection =
     case selection of
         Can.FieldObject field ->
@@ -350,7 +407,6 @@ fieldAnnotation namespace schema parent selection =
                 [] ->
                     case parent of
                         Nothing ->
-                            -- Debug.todo "WAT"
                             Type.unit
 
                         Just par ->
@@ -503,7 +559,8 @@ generateDecoder namespace schema defs =
                             op.name
                         )
             in
-            decodeFields namespace op.fields
+            decodeFields namespace
+                op.fields
                 (Decode.succeed
                     (Elm.value opName)
                 )
@@ -547,7 +604,8 @@ decodeFields namespace fields exp =
                 (andField
                     (Can.Name (Can.getAliasedName field))
                     (Input.decodeWrapper obj.wrapper
-                        (decodeFields namespace obj.selection
+                        (decodeFields namespace
+                            obj.selection
                             (Decode.succeed
                                 (Elm.lambdaWith
                                     (List.map subobjectBuilderArgs obj.selection)
@@ -576,33 +634,34 @@ decodeFields namespace fields exp =
                 decoded =
                     andField
                         (Can.Name (Can.getAliasedName field))
-                        (Input.decodeWrapper enum.wrapper 
+                        (Input.decodeWrapper enum.wrapper
                             (Decode.string
-                            |> Decode.andThen
-                                (\_ ->
-                                    Elm.lambda "enum"
-                                        Type.string
-                                        (\str ->
-                                            Elm.caseOf (Elm.Gen.String.toLower str)
-                                                (List.map
-                                                    (\value ->
-                                                        ( Pattern.string (String.toLower value.name)
-                                                        , Decode.succeed
-                                                            (enumValue namespace 
-                                                                enum.enumName
-                                                                value.name
+                                |> Decode.andThen
+                                    (\_ ->
+                                        Elm.lambda "enum"
+                                            Type.string
+                                            (\str ->
+                                                Elm.caseOf (Elm.Gen.String.toLower str)
+                                                    (List.map
+                                                        (\value ->
+                                                            ( Pattern.string (String.toLower value.name)
+                                                            , Decode.succeed
+                                                                (enumValue namespace
+                                                                    enum.enumName
+                                                                    value.name
+                                                                )
                                                             )
                                                         )
+                                                        enum.values
+                                                        ++ [ ( Pattern.wildcard
+                                                             , Decode.fail (Elm.string "I don't recognize this enum!")
+                                                             )
+                                                           ]
                                                     )
-                                                    enum.values
-                                                    ++ [ ( Pattern.wildcard
-                                                         , Decode.fail (Elm.string "I don't recognize this enum!")
-                                                         )
-                                                       ]
-                                                )
-                                        )
-                                )
-                        ))
+                                            )
+                                    )
+                            )
+                        )
                         exp
             in
             decodeFields namespace
@@ -614,8 +673,9 @@ decodeFields namespace fields exp =
                 remain
                 (andField
                     (Can.Name (Can.getAliasedName field))
-                    (Input.decodeWrapper union.wrapper 
-                        (decodeUnion namespace (Can.getAliasedName field) union))
+                    (Input.decodeWrapper union.wrapper
+                        (decodeUnion namespace (Can.getAliasedName field) union)
+                    )
                     exp
                 )
 

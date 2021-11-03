@@ -310,7 +310,6 @@ annotations =
                 []
                 "Optional"
                 []
-            
     , arg =
         \namespace name ->
             Generate.Common.ref namespace name

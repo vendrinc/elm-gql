@@ -63,16 +63,15 @@ type alias Mutation =
 decoder : Json.Decoder Schema
 decoder =
     Json.oneOf
-      [ Json.field "__schema"
-          (namesDecoder
-              |> Json.andThen grabTypes
-          )
-      , Json.at ["data", "__schema"]
-          (namesDecoder
-              |> Json.andThen grabTypes
-          )
-      ]
-    
+        [ Json.field "__schema"
+            (namesDecoder
+                |> Json.andThen grabTypes
+            )
+        , Json.at [ "data", "__schema" ]
+            (namesDecoder
+                |> Json.andThen grabTypes
+            )
+        ]
 
 
 namesDecoder : Json.Decoder Names
