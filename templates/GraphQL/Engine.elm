@@ -10,7 +10,7 @@ module GraphQL.Engine exposing
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeInputObject, encodeArgument
     , decodeNullable
-    , unsafe, selectTypeNameButSkip, prebakedQuery
+    , unsafe, selectTypeNameButSkip, prebakedQuery, Premade, premadeOperation
     )
 
 {-|
@@ -29,6 +29,8 @@ module GraphQL.Engine exposing
 
 @docs Query, query, Mutation, mutation, Error
 
+@docs prebakedQuery, Premade, premadeOperation
+
 @docs queryString
 
 @docs Argument, maybeScalarEncode
@@ -36,7 +38,7 @@ module GraphQL.Engine exposing
 @docs encodeOptionals, encodeInputObject, encodeArgument
 
 @docs decodeNullable
-@docs unsafe, selectTypeNameButSkip, prebakedQuery
+@docs unsafe, selectTypeNameButSkip
 
 -}
 
@@ -674,34 +676,24 @@ map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields
 
 {-|
 -}
-prebakedQuery : String -> List ( String, Encode.Value ) -> Json.Decoder data ->  Selection Query data
+prebakedQuery : String -> List ( String, Encode.Value ) -> Json.Decoder data -> Premade data
 prebakedQuery gql args decoder =
-    Selection <|
-        Details
-            (\aliases ->
-                ( aliases
-                , [ Baked gql
-                  ]
-                )
-            )
-            (\vars ->
-                ( List.foldl 
-                    (\(name, val) dict ->
-                        { dict | variables = 
-                            dict.variables 
-                                |> Dict.insert name (ArgValue val "whatogeshere") 
-                        }
-                    )
-                    vars
-                    args
-                , decoder
-                )
-            )
-
-
+    Premade 
+        { gql = gql
+        , args = args
+        , decoder = decoder
+        }
 
 
 {- Making requests -}
+
+{-|-}
+type Premade data =
+    Premade 
+        { gql : String
+        , decoder : Json.Decoder data
+        , args : List ( String, Encode.Value )
+        }
 
 
 {-| -}
@@ -712,6 +704,30 @@ type Query
 {-| -}
 type Mutation
     = Mutation
+
+
+
+
+{-| -}
+premadeOperation :
+    Premade value
+    ->
+        { headers : List Http.Header
+        , url : String
+        , timeout : Maybe Float
+        , tracker : Maybe String
+        }
+    -> Cmd (Result Error value)
+premadeOperation sel config =
+    Http.request
+        { method = "POST"
+        , headers = config.headers
+        , url = config.url
+        , body = bodyPremade sel
+        , expect = expectPremade sel
+        , timeout = config.timeout
+        , tracker = config.tracker
+        }
 
 
 {-| -}
@@ -811,6 +827,30 @@ body operation maybeUnformattedName q =
             )
         )
 
+{-|
+
+      Http.request
+        { method = "POST"
+        , headers = []
+        , url = "https://example.com/gql-endpoint"
+        , body = Gql.body query
+        , expect = Gql.expect Received query
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+-}
+bodyPremade : Premade data -> Http.Body
+bodyPremade (Premade q) =
+    Http.jsonBody
+        (Encode.object
+            (List.filterMap identity
+                [ Just ( "query", Encode.string q.gql )
+                , Just ( "variables", Encode.object q.args )
+                ]
+            )
+        )
+
 
 {-|
 
@@ -873,6 +913,43 @@ expect toMsg (Selection (Details gql toDecoder)) =
 
                 Http.GoodStatus_ metadata responseBody ->
                     case Json.decodeString (Json.field "data" decoder) responseBody of
+                        Ok value ->
+                            Ok value
+
+                        Err err ->
+                            Err
+                                (BadBody
+                                    { responseBody = responseBody
+                                    , decodingError = Json.errorToString err
+                                    }
+                                )
+
+
+{-| -}
+expectPremade : Premade data -> Http.Expect (Result Error data)
+expectPremade (Premade premadeQuery) =
+    Http.expectStringResponse identity <|
+        \response ->
+            case response of
+                Http.BadUrl_ url ->
+                    Err (BadUrl url)
+
+                Http.Timeout_ ->
+                    Err Timeout
+
+                Http.NetworkError_ ->
+                    Err NetworkError
+
+                Http.BadStatus_ metadata responseBody ->
+                    Err
+                        (BadStatus
+                            { status = metadata.statusCode
+                            , responseBody = responseBody
+                            }
+                        )
+
+                Http.GoodStatus_ metadata responseBody ->
+                    case Json.decodeString (Json.field "data" premadeQuery.decoder) responseBody of
                         Ok value ->
                             Ok value
 

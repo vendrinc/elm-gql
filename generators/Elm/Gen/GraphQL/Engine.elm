@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, make_, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, query, queryString, recover, select, selectTypeNameButSkip, types_, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, make_, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, types_, union, unsafe, with)
 
 {-| 
 -}
@@ -16,6 +16,7 @@ moduleName_ =
 
 types_ :
     { argument : Type.Annotation -> Type.Annotation
+    , premade : Type.Annotation -> Type.Annotation
     , error : Type.Annotation
     , mutation : Type.Annotation
     , query : Type.Annotation
@@ -24,6 +25,7 @@ types_ :
     }
 types_ =
     { argument = \arg0 -> Type.namedWith moduleName_ "Argument" [ arg0 ]
+    , premade = \arg0 -> Type.namedWith moduleName_ "Premade" [ arg0 ]
     , error = Type.named moduleName_ "Error"
     , mutation = Type.named moduleName_ "Mutation"
     , query = Type.named moduleName_ "Query"
@@ -675,6 +677,74 @@ mutation arg1 arg2 =
         [ arg1, arg2 ]
 
 
+{-|
+-}
+prebakedQuery :
+    Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+prebakedQuery arg1 arg2 arg3 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "prebakedQuery"
+            (Type.function
+                [ Type.string
+                , Type.list
+                    (Type.tuple
+                        Type.string
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                    )
+                , Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "data" ]
+                )
+            )
+        )
+        [ arg1, arg2, arg3 ]
+
+
+{-| -}
+premadeOperation : Elm.Expression -> Elm.Expression -> Elm.Expression
+premadeOperation arg1 arg2 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "premadeOperation"
+            (Type.function
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "value" ]
+                , Type.record
+                    [ ( "headers"
+                      , Type.list (Type.namedWith [ "Http" ] "Header" [])
+                      )
+                    , ( "url", Type.string )
+                    , ( "timeout", Type.maybe Type.float )
+                    , ( "tracker", Type.maybe Type.string )
+                    ]
+                ]
+                (Type.namedWith
+                    [ "Platform", "Cmd" ]
+                    "Cmd"
+                    [ Type.namedWith
+                        [ "Result" ]
+                        "Result"
+                        [ Type.namedWith [ "GraphQL", "Engine" ] "Error" []
+                        , Type.var "value"
+                        ]
+                    ]
+                )
+            )
+        )
+        [ arg1, arg2 ]
+
+
 {-| -}
 queryString :
     Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -854,39 +924,6 @@ selectTypeNameButSkip =
         )
 
 
-{-|
--}
-prebakedQuery :
-    Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
-prebakedQuery arg1 arg2 arg3 =
-    Elm.apply
-        (Elm.valueWith
-            moduleName_
-            "prebakedQuery"
-            (Type.function
-                [ Type.string
-                , Type.namedWith
-                    [ "Json", "Decode" ]
-                    "Decoder"
-                    [ Type.var "data" ]
-                , Type.list
-                    (Type.tuple
-                        Type.string
-                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
-                    )
-                ]
-                (Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "Selection"
-                    [ Type.namedWith [ "GraphQL", "Engine" ] "Query" []
-                    , Type.var "data"
-                    ]
-                )
-            )
-        )
-        [ arg1, arg2, arg3 ]
-
-
 {-| Every value/function in this module in case you need to refer to it directly. -}
 id_ :
     { batch : Elm.Expression
@@ -910,6 +947,8 @@ id_ :
     , optional : Elm.Expression
     , query : Elm.Expression
     , mutation : Elm.Expression
+    , prebakedQuery : Elm.Expression
+    , premadeOperation : Elm.Expression
     , queryString : Elm.Expression
     , maybeScalarEncode : Elm.Expression
     , encodeOptionals : Elm.Expression
@@ -918,7 +957,6 @@ id_ :
     , decodeNullable : Elm.Expression
     , unsafe : Elm.Expression
     , selectTypeNameButSkip : Elm.Expression
-    , prebakedQuery : Elm.Expression
     }
 id_ =
     { batch =
@@ -1322,6 +1360,58 @@ id_ =
                     ]
                 )
             )
+    , prebakedQuery =
+        Elm.valueWith
+            moduleName_
+            "prebakedQuery"
+            (Type.function
+                [ Type.string
+                , Type.list
+                    (Type.tuple
+                        Type.string
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                    )
+                , Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "data" ]
+                )
+            )
+    , premadeOperation =
+        Elm.valueWith
+            moduleName_
+            "premadeOperation"
+            (Type.function
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "value" ]
+                , Type.record
+                    [ ( "headers"
+                      , Type.list (Type.namedWith [ "Http" ] "Header" [])
+                      )
+                    , ( "url", Type.string )
+                    , ( "timeout", Type.maybe Type.float )
+                    , ( "tracker", Type.maybe Type.string )
+                    ]
+                ]
+                (Type.namedWith
+                    [ "Platform", "Cmd" ]
+                    "Cmd"
+                    [ Type.namedWith
+                        [ "Result" ]
+                        "Result"
+                        [ Type.namedWith [ "GraphQL", "Engine" ] "Error" []
+                        , Type.var "value"
+                        ]
+                    ]
+                )
+            )
     , queryString =
         Elm.valueWith
             moduleName_
@@ -1445,30 +1535,6 @@ id_ =
                 [ "GraphQL", "Engine" ]
                 "Selection"
                 [ Type.var "source", Type.unit ]
-            )
-    , prebakedQuery =
-        Elm.valueWith
-            moduleName_
-            "prebakedQuery"
-            (Type.function
-                [ Type.string
-                , Type.namedWith
-                    [ "Json", "Decode" ]
-                    "Decoder"
-                    [ Type.var "data" ]
-                , Type.list
-                    (Type.tuple
-                        Type.string
-                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
-                    )
-                ]
-                (Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "Selection"
-                    [ Type.namedWith [ "GraphQL", "Engine" ] "Query" []
-                    , Type.var "data"
-                    ]
-                )
             )
     }
 
