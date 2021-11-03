@@ -42,28 +42,47 @@ generate namespace schema queryStr document path =
                     "Query"
 
         query =
-            Elm.fn "query"
-                ( "input"
-                , Type.record
-                    (List.concatMap (getVariables namespace schema) document.definitions)
-                )
-                (\var ->
-                    Engine.prebakedQuery
-                        (Elm.string queryStr)
-                        (Elm.list
-                            (List.concatMap
-                                (encodeVariable namespace schema)
-                                document.definitions
+            case (List.concatMap (getVariables namespace schema) document.definitions) of
+                [] ->
+                    Elm.declaration "query"
+                        (Engine.prebakedQuery
+                            (Elm.string queryStr)
+                            (Elm.list
+                                (List.concatMap
+                                    (encodeVariable namespace schema)
+                                    document.definitions
+                                )
                             )
+                            (generateDecoder namespace schema document.definitions)
+                            |> Elm.withType
+                                (Engine.types_.premade
+                                    (Type.named [] typeName)
+                                )
                         )
-                        (generateDecoder namespace schema document.definitions)
-                        |> Elm.withType
-                            (Engine.types_.selection
-                                Engine.types_.query
-                                (Type.named [] typeName)
-                            )
-                )
-                |> Elm.expose
+                        |> Elm.expose
+
+                vars ->
+                    Elm.fn "query"
+                        ( "input"
+                        , Type.record
+                            (List.concatMap (getVariables namespace schema) document.definitions)
+                        )
+                        (\var ->
+                            Engine.prebakedQuery
+                                (Elm.string queryStr)
+                                (Elm.list
+                                    (List.concatMap
+                                        (encodeVariable namespace schema)
+                                        document.definitions
+                                    )
+                                )
+                                (generateDecoder namespace schema document.definitions)
+                                |> Elm.withType
+                                    (Engine.types_.premade
+                                        (Type.named [] typeName)
+                                    )
+                        )
+                        |> Elm.expose
 
         helpers =
             List.concatMap (generateResultTypes namespace schema) document.definitions
@@ -244,12 +263,12 @@ generateResultTypes namespace schema def =
 
 generateChildTypes : String -> GraphQL.Schema.Schema -> Can.Selection -> List Elm.Declaration
 generateChildTypes namespace schema sel =
-    case Debug.log "CHILD TYPES" sel of
+    case sel of
         Can.FieldObject obj ->
             List.concatMap (generateChildTypes namespace schema) obj.selection
 
         Can.FieldUnion field ->
-            Elm.customType
+            (Elm.customType
                 (Maybe.withDefault (Can.nameToString field.name)
                     (Maybe.map
                         Can.nameToString
@@ -260,6 +279,8 @@ generateChildTypes namespace schema sel =
                     (unionVariant namespace schema)
                     field.selection
                 )
+                |> Elm.exposeConstructor
+            )
                 :: List.concatMap (generateChildTypes namespace schema) field.selection
 
         Can.UnionCase unionCase ->
@@ -590,7 +611,7 @@ decodeFields namespace fields exp =
                 remain
                 (andField
                     (Can.Name (Can.getAliasedName field))
-                    (decodeUnion namespace union)
+                    (decodeUnion namespace (Can.getAliasedName field) union)
                     exp
                 )
 
@@ -598,12 +619,12 @@ decodeFields namespace fields exp =
             exp
 
 
-decodeUnion : String -> { a | selection : List Can.Selection } -> Elm.Expression
-decodeUnion namespace union =
+decodeUnion : String -> String -> { a | selection : List Can.Selection } -> Elm.Expression
+decodeUnion namespace fieldName union =
     Decode.field (Elm.string "__typename") Decode.string
         |> Decode.andThen
             (\_ ->
-                Elm.lambda "typename"
+                Elm.lambda ("typename" ++ fieldName)
                     Type.string
                     (\typename ->
                         Elm.caseOf typename
