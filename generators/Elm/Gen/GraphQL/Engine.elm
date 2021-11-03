@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, id_, list, make_, map, map2, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, types_, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, getGql, id_, list, make_, map, map2, mapPremade, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, types_, union, unsafe, with)
 
 {-| 
 -}
@@ -888,6 +888,50 @@ decodeNullable arg1 =
         [ arg1 ]
 
 
+{-|-}
+getGql : Elm.Expression -> Elm.Expression
+getGql arg1 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "getGql"
+            (Type.function
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "data" ]
+                ]
+                Type.string
+            )
+        )
+        [ arg1 ]
+
+
+{-|-}
+mapPremade :
+    (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
+mapPremade arg1 arg2 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "mapPremade"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "b")
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "b" ]
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
+
+
 {-| -}
 unsafe : Elm.Expression -> Elm.Expression
 unsafe arg1 =
@@ -955,6 +999,8 @@ id_ :
     , encodeInputObject : Elm.Expression
     , encodeArgument : Elm.Expression
     , decodeNullable : Elm.Expression
+    , getGql : Elm.Expression
+    , mapPremade : Elm.Expression
     , unsafe : Elm.Expression
     , selectTypeNameButSkip : Elm.Expression
     }
@@ -1509,6 +1555,35 @@ id_ =
                     [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.maybe (Type.var "data") ]
+                )
+            )
+    , getGql =
+        Elm.valueWith
+            moduleName_
+            "getGql"
+            (Type.function
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "data" ]
+                ]
+                Type.string
+            )
+    , mapPremade =
+        Elm.valueWith
+            moduleName_
+            "mapPremade"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "b")
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "b" ]
                 )
             )
     , unsafe =

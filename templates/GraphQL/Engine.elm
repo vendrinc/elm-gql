@@ -6,7 +6,7 @@ module GraphQL.Engine exposing
     , Selection, select, with, map, map2, recover
     , arg, argList, Optional, optional
     , Query, query, Mutation, mutation, Error(..)
-    , queryString
+    , queryString, getGql, mapPremade
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeInputObject, encodeArgument
     , decodeNullable
@@ -37,7 +37,7 @@ module GraphQL.Engine exposing
 
 @docs encodeOptionals, encodeInputObject, encodeArgument
 
-@docs decodeNullable
+@docs decodeNullable, getGql, mapPremade
 @docs unsafe, selectTypeNameButSkip
 
 -}
@@ -706,6 +706,19 @@ type Mutation
     = Mutation
 
 
+{-|-}
+getGql : Premade data -> String
+getGql (Premade {gql}) =
+    gql
+
+{-|-}
+mapPremade : (a -> b) -> Premade a -> Premade b
+mapPremade fn (Premade details) =
+    Premade 
+        { gql = details.gql
+        , decoder = Json.map fn details.decoder
+        , args = details.args
+        }
 
 
 {-| -}
@@ -1118,8 +1131,5 @@ maybeScalarEncode encoder maybeA =
 
 {-| -}
 decodeNullable : Json.Decoder data -> Json.Decoder (Maybe data)
-decodeNullable decoder =
-    Json.oneOf
-        [ Json.map Just decoder
-        , Json.succeed Nothing
-        ]
+decodeNullable =
+    Json.nullable
