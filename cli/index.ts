@@ -87,12 +87,27 @@ async function action(options: Options, com: any) {
   }
   
   // @ts-ignore
-  let gql_operations = []
+  // let gql_operations = []
   if (options.gql) {
     const gql_filepaths = getFilesRecursively(options.gql)
     for (const file of gql_filepaths) {
+
+        // The base is a list of strings that represents 
+        // all the folders between options.gql and the discovered `.gql` file
+        // This is needed to figure out where to generate the elm file 
+        // and what to specify as the qualified name of the module
+        const base = options.gql == path.dirname(file) ? [] : path.relative(options.gql, path.dirname(file)).split(path.sep);
+        
         const src = fs.readFileSync(file).toString()
-        gql_operations.push({src, path: file})
+        // gql_operations.push({src, path: file})
+        run_generator(schema_generator.Elm.Generate, path.dirname(file), {
+          namespace: options.namespace,
+          // @ts-ignore
+          gql: [{src, path: file}],
+          base: base,
+          schema: schema,
+          generatePlatform: false
+        });
     }
   }
 
@@ -105,8 +120,10 @@ async function action(options: Options, com: any) {
   run_generator(schema_generator.Elm.Generate, options.output, {
     namespace: options.namespace,
     // @ts-ignore
-    gql: gql_operations,
+    gql: [],
     schema: schema,
+    generatePlatform: true,
+    base: []
   });
 }
 
