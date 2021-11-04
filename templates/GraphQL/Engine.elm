@@ -6,11 +6,12 @@ module GraphQL.Engine exposing
     , Selection, select, with, map, map2, recover
     , arg, argList, Optional, optional
     , Query, query, Mutation, mutation, Error(..)
-    , queryString, getGql, mapPremade
+    , prebakedQuery, Premade, premadeOperation
+    , queryString
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeInputObject, encodeArgument
-    , decodeNullable
-    , unsafe, selectTypeNameButSkip, prebakedQuery, Premade, premadeOperation
+    , decodeNullable, getGql, mapPremade
+    , unsafe, selectTypeNameButSkip
     )
 
 {-|
@@ -503,8 +504,8 @@ type Field
       Field String (Maybe String) (List ( String, Argument Free )) (List Field)
       --        ...on FragmentName
     | Fragment String (List Field)
-    -- a piece of GQL that has been validated separately
-    -- This is generally for operational gql
+      -- a piece of GQL that has been validated separately
+      -- This is generally for operational gql
     | Baked String
 
 
@@ -674,22 +675,23 @@ map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields
             )
 
 
-{-|
--}
+{-| -}
 prebakedQuery : String -> List ( String, Encode.Value ) -> Json.Decoder data -> Premade data
 prebakedQuery gql args decoder =
-    Premade 
+    Premade
         { gql = gql
         , args = args
         , decoder = decoder
         }
 
 
+
 {- Making requests -}
 
-{-|-}
-type Premade data =
-    Premade 
+
+{-| -}
+type Premade data
+    = Premade
         { gql : String
         , decoder : Json.Decoder data
         , args : List ( String, Encode.Value )
@@ -706,15 +708,16 @@ type Mutation
     = Mutation
 
 
-{-|-}
+{-| -}
 getGql : Premade data -> String
-getGql (Premade {gql}) =
+getGql (Premade { gql }) =
     gql
 
-{-|-}
+
+{-| -}
 mapPremade : (a -> b) -> Premade a -> Premade b
 mapPremade fn (Premade details) =
-    Premade 
+    Premade
         { gql = details.gql
         , decoder = Json.map fn details.decoder
         , args = details.args
@@ -839,6 +842,7 @@ body operation maybeUnformattedName q =
                 ]
             )
         )
+
 
 {-|
 

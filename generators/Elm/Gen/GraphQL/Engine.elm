@@ -677,8 +677,7 @@ mutation arg1 arg2 =
         [ arg1, arg2 ]
 
 
-{-|
--}
+{-| -}
 prebakedQuery :
     Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
 prebakedQuery arg1 arg2 arg3 =
@@ -888,7 +887,7 @@ decodeNullable arg1 =
         [ arg1 ]
 
 
-{-|-}
+{-| -}
 getGql : Elm.Expression -> Elm.Expression
 getGql arg1 =
     Elm.apply
@@ -907,7 +906,7 @@ getGql arg1 =
         [ arg1 ]
 
 
-{-|-}
+{-| -}
 mapPremade :
     (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 mapPremade arg1 arg2 =
