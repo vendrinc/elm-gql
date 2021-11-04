@@ -363,7 +363,17 @@ generateFiles namespace graphQLSchema =
                 names
 
         engine =
-            [ Elm.declaration "select"
+            [ Elm.alias "Operation"
+                (Engine.types_.premade
+                    (Elm.Annotation.var "data")
+                )
+            , Elm.declaration "map"
+                (Elm.valueFrom
+                    Engine.moduleName_
+                    "mapPremade"
+                )
+            , Elm.comment "The below is generally deprecated and shouldn't be needed!"
+            , Elm.declaration "select"
                 (Elm.valueFrom
                     Engine.moduleName_
                     "select"
@@ -373,12 +383,12 @@ generateFiles namespace graphQLSchema =
                     Engine.moduleName_
                     "with"
                 )
-            , Elm.declaration "map"
+            , Elm.declaration "mapSelection"
                 (Elm.valueFrom
                     Engine.moduleName_
                     "map"
                 )
-            , Elm.declaration "map2"
+            , Elm.declaration "mapSelection2"
                 (Elm.valueFrom
                     Engine.moduleName_
                     "map2"
@@ -394,15 +404,11 @@ generateFiles namespace graphQLSchema =
                     "recover"
                 )
             , Elm.alias "Selection"
-                -- [ "source"
-                -- , "data"
-                -- ]
                 (Engine.types_.selection
                     (Elm.Annotation.var "source")
                     (Elm.Annotation.var "data")
                 )
             , Elm.alias "Query"
-                -- [ "data" ]
                 (Engine.types_.selection
                     Engine.types_.query
                     (Elm.Annotation.var "data")
@@ -413,7 +419,6 @@ generateFiles namespace graphQLSchema =
                     "query"
                 )
             , Elm.alias "Mutation"
-                -- [ "data" ]
                 (Engine.types_.selection
                     Engine.types_.mutation
                     (Elm.Annotation.var "data")
