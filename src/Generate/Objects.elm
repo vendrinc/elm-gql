@@ -437,7 +437,3 @@ generateFiles namespace graphQLSchema =
             ++ inputHelpers
         )
     ]
-
-
-
---:: objectFiles

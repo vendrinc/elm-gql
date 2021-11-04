@@ -105,23 +105,6 @@ main =
 generateSchema : String -> GraphQL.Schema.Schema -> FlagDetails -> Cmd Msg
 generateSchema namespace schema flagDetails =
     let
-        enumFiles =
-            Generate.Enums.generateFiles namespace schema
-
-        unionFiles =
-            Generate.Unions.generateFiles namespace schema
-
-        objectFiles =
-            Generate.Objects.generateFiles namespace schema
-
-        inputFiles =
-            Generate.InputObjects.generateFiles namespace schema
-
-        queryFiles =
-            Generate.Operations.generateFiles namespace Input.Query schema
-
-        mutationFiles =
-            Generate.Operations.generateFiles namespace Input.Mutation schema
 
         -- _ =
         --     Generate.Paged.generate namespace schema
@@ -133,17 +116,42 @@ generateSchema namespace schema flagDetails =
             Elm.Gen.error err
 
         Ok gqlFiles ->
-            Elm.Gen.files
-                (unionFiles
-                    ++ enumFiles
-                    ++ objectFiles
-                    ++ queryFiles
-                    ++ mutationFiles
-                    ++ inputFiles
-                    ++ gqlFiles
-                )
+            if flagDetails.generatePlatform then
+                let
+                    enumFiles =
+                        Generate.Enums.generateFiles namespace schema
+
+                    unionFiles =
+                        Generate.Unions.generateFiles namespace schema
+
+                    objectFiles =
+                        Generate.Objects.generateFiles namespace schema
+
+                    inputFiles =
+                        Generate.InputObjects.generateFiles namespace schema
+
+                    queryFiles =
+                        Generate.Operations.generateFiles namespace Input.Query schema
+
+                    mutationFiles =
+                        Generate.Operations.generateFiles namespace Input.Mutation schema
+                in
+                Elm.Gen.files
+                    (unionFiles
+                        ++ enumFiles
+                        ++ objectFiles
+                        ++ queryFiles
+                        ++ mutationFiles
+                        ++ inputFiles
+                        ++ gqlFiles
+                    )
+
+            else
+                Elm.Gen.files
+                    gqlFiles
 
 
+parseGql : String -> GraphQL.Schema.Schema -> c -> List { src : String, path : String } -> List Elm.File -> Result Error (List Elm.File)
 parseGql namespace schema flagDetails gql rendered =
     case gql of
         [] ->
@@ -165,12 +173,13 @@ parseGql namespace schema flagDetails gql rendered =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.oneOf
-        [ Json.Decode.map3
-            (\namespace gql schemaUrl ->
+        [ Json.Decode.map4
+            (\namespace gql schemaUrl generatePlatform ->
                 Flags
                     { schema = schemaUrl
                     , gql = gql
                     , namespace = namespace
+                    , generatePlatform = generatePlatform
                     }
             )
             (Json.Decode.field "namespace" Json.Decode.string)
@@ -204,6 +213,7 @@ flagsDecoder =
                     ]
                 )
             )
+            (Json.Decode.field "generatePlatform" Json.Decode.bool)
         ]
 
 
@@ -223,6 +233,7 @@ type alias FlagDetails =
     { schema : Schema
     , gql : List Gql
     , namespace : String
+    , generatePlatform : Bool
     }
 
 
@@ -297,7 +308,7 @@ parseAndValidateQuery namespace schema gql =
                                 |> String.replace ".gql" ""
                                 |> Utils.String.formatTypename
                     in
-                    case GraphQL.Operations.Generate.generate namespace schema gql.src canAST [ "Gql", name ] of
+                    case GraphQL.Operations.Generate.generate namespace schema gql.src canAST [ namespace, name ] of
                         Err validationError ->
                             Err
                                 { title = "Invalid query"
