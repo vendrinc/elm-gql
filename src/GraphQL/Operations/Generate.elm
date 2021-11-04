@@ -23,8 +23,8 @@ import Set
 import Utils.String
 
 
-generate : String -> GraphQL.Schema.Schema -> String -> Can.Document -> List String -> Result (List Validate.Error) (List Elm.File)
-generate namespace schema queryStr document path =
+generate : String -> GraphQL.Schema.Schema -> List String -> String -> Can.Document -> List String -> Result (List Validate.Error) (List Elm.File)
+generate namespace schema base queryStr document path =
     let
         typeName =
             case document.definitions of
@@ -91,9 +91,45 @@ generate namespace schema queryStr document path =
             List.concatMap (generatePrimaryResultType namespace schema) document.definitions
     in
     Ok
-        [ Elm.file path
+        [ Elm.fileWith (base ++ path)
+            { aliases = []
+            , docs =
+                (\docs ->
+                """This file is generated from a `gql` file, likely in a nearby folder.
+
+Please avoid modifying directly :)
+
+""" ++ renderStandardComment docs)
+            }
             (primaryResult ++ helpers ++ [ query ] ++ [ decodeHelper ])
+            |> modifyFilePath path
         ]
+
+
+modifyFilePath : List String ->  { a | path : String } -> { a | path : String }
+modifyFilePath pieces file =
+    { file | path = String.join "/" pieces ++ ".elm"
+
+    }
+
+
+renderStandardComment :
+    List
+        { group : Maybe String
+        , members : List String
+        }
+    -> String
+renderStandardComment groups =
+    if List.isEmpty groups then
+        ""
+
+    else
+        List.foldl
+            (\grouped str ->
+                str ++ "@docs " ++ String.join ", " grouped.members ++ "\n\n"
+            )
+            "\n\n"
+            groups
 
 
 encodeVariable : String -> GraphQL.Schema.Schema -> Can.Definition -> List Elm.Expression

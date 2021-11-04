@@ -151,14 +151,14 @@ generateSchema namespace schema flagDetails =
                     gqlFiles
 
 
-parseGql : String -> GraphQL.Schema.Schema -> c -> List { src : String, path : String } -> List Elm.File -> Result Error (List Elm.File)
+parseGql : String -> GraphQL.Schema.Schema -> FlagDetails -> List { src : String, path : String } -> List Elm.File -> Result Error (List Elm.File)
 parseGql namespace schema flagDetails gql rendered =
     case gql of
         [] ->
             Ok rendered
 
         top :: remaining ->
-            case parseAndValidateQuery namespace schema top of
+            case parseAndValidateQuery namespace schema flagDetails.base top of
                 Ok parsedFiles ->
                     parseGql namespace
                         schema
@@ -173,15 +173,17 @@ parseGql namespace schema flagDetails gql rendered =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.oneOf
-        [ Json.Decode.map4
-            (\namespace gql schemaUrl generatePlatform ->
+        [ Json.Decode.map5
+            (\base namespace gql schemaUrl generatePlatform ->
                 Flags
                     { schema = schemaUrl
                     , gql = gql
+                    , base = base
                     , namespace = namespace
                     , generatePlatform = generatePlatform
                     }
             )
+            (Json.Decode.field "base" (Json.Decode.list Json.Decode.string))
             (Json.Decode.field "namespace" Json.Decode.string)
             (Json.Decode.field "gql"
                 (Json.Decode.list
@@ -232,6 +234,7 @@ type Input
 type alias FlagDetails =
     { schema : Schema
     , gql : List Gql
+    , base : List String
     , namespace : String
     , generatePlatform : Bool
     }
@@ -277,8 +280,8 @@ type alias Error =
     }
 
 
-parseAndValidateQuery : String -> GraphQL.Schema.Schema -> { src : String, path : String } -> Result Error (List Elm.File)
-parseAndValidateQuery namespace schema gql =
+parseAndValidateQuery : String -> GraphQL.Schema.Schema -> List String -> { src : String, path : String } -> Result Error (List Elm.File)
+parseAndValidateQuery namespace schema base gql =
     case GraphQL.Operations.Parse.parse gql.src of
         Err err ->
             Err
@@ -308,7 +311,7 @@ parseAndValidateQuery namespace schema gql =
                                 |> String.replace ".gql" ""
                                 |> Utils.String.formatTypename
                     in
-                    case GraphQL.Operations.Generate.generate namespace schema gql.src canAST [ namespace, name ] of
+                    case GraphQL.Operations.Generate.generate namespace schema base gql.src canAST [ name ] of
                         Err validationError ->
                             Err
                                 { title = "Invalid query"
