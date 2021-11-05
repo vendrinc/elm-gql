@@ -15,6 +15,8 @@ module Scalar exposing
     , ViewId(..)
     , columnId
     , dateTime
+    , fakeUrl
+    , id
     , iso4217
     , json
     , markdown
@@ -24,8 +26,6 @@ module Scalar exposing
     , surveyId
     , url
     , viewId
-    , id
-    , fakeUrl
     )
 
 import GraphQL.Engine as Engine
@@ -56,6 +56,7 @@ url =
                             Decode.succeed successfulUrl
                 )
     }
+
 
 id =
     { encode = \(Id raw) -> Encode.string raw
@@ -184,7 +185,7 @@ type Presence
     = Present
 
 
-fakeUrl : Url 
+fakeUrl : Url
 fakeUrl =
     { protocol = Url.Https
     , host = "example.com"
