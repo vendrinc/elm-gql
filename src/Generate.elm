@@ -158,7 +158,7 @@ parseGql namespace schema flagDetails gql rendered =
             Ok rendered
 
         top :: remaining ->
-            case parseAndValidateQuery namespace schema flagDetails.base top of
+            case parseAndValidateQuery namespace schema flagDetails top of
                 Ok parsedFiles ->
                     parseGql namespace
                         schema
@@ -173,14 +173,15 @@ parseGql namespace schema flagDetails gql rendered =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.oneOf
-        [ Json.Decode.map5
-            (\base namespace gql schemaUrl generatePlatform ->
+        [ Json.Decode.map6
+            (\base namespace gql schemaUrl generatePlatform existingEnums ->
                 Flags
                     { schema = schemaUrl
                     , gql = gql
                     , base = base
                     , namespace = namespace
                     , generatePlatform = generatePlatform
+                    , existingEnumDefinitions = existingEnums
                     }
             )
             (Json.Decode.field "base" (Json.Decode.list Json.Decode.string))
@@ -216,6 +217,10 @@ flagsDecoder =
                 )
             )
             (Json.Decode.field "generatePlatform" Json.Decode.bool)
+            (Json.Decode.field "existingEnumDefinitions" 
+                Json.Decode.string
+                |> Json.Decode.maybe
+            )
         ]
 
 
@@ -237,6 +242,7 @@ type alias FlagDetails =
     , base : List String
     , namespace : String
     , generatePlatform : Bool
+    , existingEnumDefinitions : Maybe String
     }
 
 
@@ -280,8 +286,8 @@ type alias Error =
     }
 
 
-parseAndValidateQuery : String -> GraphQL.Schema.Schema -> List String -> { src : String, path : String } -> Result Error (List Elm.File)
-parseAndValidateQuery namespace schema base gql =
+parseAndValidateQuery : String -> GraphQL.Schema.Schema -> FlagDetails -> { src : String, path : String } -> Result Error (List Elm.File)
+parseAndValidateQuery namespace schema flags gql =
     case GraphQL.Operations.Parse.parse gql.src of
         Err err ->
             Err
@@ -311,7 +317,17 @@ parseAndValidateQuery namespace schema base gql =
                                 |> String.replace ".gql" ""
                                 |> Utils.String.formatTypename
                     in
-                    case GraphQL.Operations.Generate.generate namespace schema base gql.src canAST [ name ] of
+                    case GraphQL.Operations.Generate.generate 
+                            { namespace = 
+                                { namespace = namespace
+                                , enums = Maybe.withDefault namespace flags.existingEnumDefinitions
+                                }
+                            , schema = schema
+                            , base = flags.base
+                            , queryStr = gql.src
+                            , document = canAST
+                            , path = [ name ] 
+                            } of
                         Err validationError ->
                             Err
                                 { title = "Invalid query"

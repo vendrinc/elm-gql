@@ -106,7 +106,8 @@ async function action(options: Options, com: any) {
           gql: [{src, path: file}],
           base: base,
           schema: schema,
-          generatePlatform: false
+          generatePlatform: false,
+          existingEnumDefinitions: options.existingEnumDefinitions
         });
     }
   }
@@ -123,7 +124,8 @@ async function action(options: Options, com: any) {
     gql: [],
     schema: schema,
     generatePlatform: true,
-    base: []
+    base: [],
+    existingEnumDefinitions: options.existingEnumDefinitions
   });
 }
 
@@ -134,11 +136,13 @@ type Options = {
   gql: string | null;
   output: string;
   namespace: string;
+  existingEnumDefinitions: string | null;
 };
 
 program
   .version("0.1.0")
   .option("--schema <fileOrUrl>")
+ 
   .option(
     "--gql <dir>",
     "Search a directory for GQL files and generate Elm bindings"
@@ -152,6 +156,9 @@ program
     "--output <dir>",
     "The directory where your generated files should go.",
     "api"
+  )
+  .option("--existing-enum-definitions <name>",
+    "This option isn't used very commonly.  If you already have Enum definitions generated, this will skip Enum generation and point to your existing enums."
   )
   .action(action);
 

@@ -540,6 +540,11 @@ inputObjectAnnotation namespace schema input wrapped optForm =
                 )
                 |> unwrapWith wrapped
 
+type alias Namespace =
+    { namespace : String
+    , enums : String
+    }
+
 
 {-|
 
@@ -547,7 +552,7 @@ inputObjectAnnotation namespace schema input wrapped optForm =
 
 -}
 toJsonValue :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> Type
     -> Input.Wrapped
@@ -580,7 +585,7 @@ toJsonValue namespace schema fieldType wrapped val =
             encodeWrappedInverted wrapped
                 (\v ->
                     Elm.apply
-                        (Elm.valueFrom [ namespace, "Enum", enumName ] "encode")
+                        (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "encode")
                         [ v
                         ]
                 )
