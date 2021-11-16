@@ -4,11 +4,40 @@ module GraphQL.Schema.Type exposing
     , toElmString
     , toKind
     , toString
+    , mockScalar
     )
 
 import GraphQL.Schema.Kind as Kind exposing (Kind)
 import Json.Decode as Json
+import Json.Encode
 
+
+mockScalar : Type -> Json.Encode.Value
+mockScalar t =
+    case t of
+        Scalar name ->
+            Json.Encode.string ("SCALAR:" ++ name)
+
+        InputObject name ->
+            Json.Encode.null
+
+        Object name ->
+            Json.Encode.null
+
+        Enum name ->
+            Json.Encode.null
+
+        Union name ->
+            Json.Encode.null
+
+        Interface name ->
+            Json.Encode.null
+
+        List_ inner ->
+            Json.Encode.list mockScalar [ inner ]
+
+        Nullable inner ->
+            mockScalar inner
 
 toElmString : Type -> String
 toElmString t =
