@@ -6,3 +6,5 @@ dist
 output
 api
 yarn-error.log
+schema.json
+gql-ops
