@@ -540,6 +540,7 @@ inputObjectAnnotation namespace schema input wrapped optForm =
                 )
                 |> unwrapWith wrapped
 
+
 type alias Namespace =
     { namespace : String
     , enums : String

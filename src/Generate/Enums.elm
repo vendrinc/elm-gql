@@ -68,7 +68,7 @@ generateFiles namespace graphQLSchema =
                                                                         )
                                                                     )
                                                                 )
-                                                        )
+                                                         )
                                                             ++ [ ( Elm.Pattern.wildcard, Decode.fail (Elm.string "Invalid type") ) ]
                                                         )
                                                 )

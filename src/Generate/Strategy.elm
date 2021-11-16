@@ -40,26 +40,27 @@ Which can look like this.
         )
 
 Also, check out the `teams` endpoint.
-1. if `filter` doesn't need to worry about nulls, then it could defined as
 
-            (can get rid of full qualification because this is only one module)
-            Teams.filter
-                [ Teams.teamsFilter.name "Example..."
-                , Teams.teamsFilter.parentId id
-                , Teams.teamsFilter.showArchived True
-                ]
+1.  if `filter` doesn't need to worry about nulls, then it could defined as
 
-        instead of
+             (can get rid of full qualification because this is only one module)
+             Teams.filter
+                 [ Teams.teamsFilter.name "Example..."
+                 , Teams.teamsFilter.parentId id
+                 , Teams.teamsFilter.showArchived True
+                 ]
 
-            , TnG.Queries.Teams.filter
-                (Just
-                    (TnG.Input.teamsFilter
-                        [ TnG.TeamsFilter.name (Just "Example...")
-                        , TnG.TeamsFilter.parentId (Just id)
-                        , TnG.TeamsFilter.showArchived (Just True)
-                        ]
-                    )
-                )
+         instead of
+
+             , TnG.Queries.Teams.filter
+                 (Just
+                     (TnG.Input.teamsFilter
+                         [ TnG.TeamsFilter.name (Just "Example...")
+                         , TnG.TeamsFilter.parentId (Just id)
+                         , TnG.TeamsFilter.showArchived (Just True)
+                         ]
+                     )
+                 )
 
 -}
 
