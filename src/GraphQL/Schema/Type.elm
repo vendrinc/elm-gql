@@ -1,10 +1,10 @@
 module GraphQL.Schema.Type exposing
     ( Type(..)
     , decoder
+    , mockScalar
     , toElmString
     , toKind
     , toString
-    , mockScalar
     )
 
 import GraphQL.Schema.Kind as Kind exposing (Kind)
@@ -38,6 +38,7 @@ mockScalar t =
 
         Nullable inner ->
             mockScalar inner
+
 
 toElmString : Type -> String
 toElmString t =

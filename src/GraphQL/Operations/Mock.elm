@@ -29,9 +29,10 @@ type alias Namespace =
 
 generate :
     Can.Document
-    -> Result 
-        (List Validate.Error) 
-        (List { name : String, body : Json.Encode.Value })
+    ->
+        Result
+            (List Validate.Error)
+            (List { name : String, body : Json.Encode.Value })
 generate doc =
     Ok (List.map definition doc.definitions)
 
