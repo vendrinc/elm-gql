@@ -107,7 +107,7 @@ generate { namespace, schema, base, queryStr, document, path } =
             { aliases = []
             , docs =
                 (\docs ->
-                """This file is generated from a `gql` file, likely in a nearby folder.
+                """This file is generated from a `.gql` file, likely in a nearby folder.
 
 Please avoid modifying directly :)
 
