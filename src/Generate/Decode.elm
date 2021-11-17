@@ -1,17 +1,9 @@
 module Generate.Decode exposing (scalar)
 
-import Dict
 import Elm
-import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Json
-import Elm.Pattern
-import Generate.Common as Common
-import Generate.Input as Input exposing (Wrapped(..))
-import GraphQL.Schema
-import GraphQL.Schema.Field as Field exposing (Field)
-import GraphQL.Schema.Object
-import GraphQL.Schema.Type exposing (Type(..))
+import Generate.Input exposing (Wrapped(..))
 import Utils.String
 
 

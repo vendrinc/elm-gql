@@ -16,7 +16,6 @@ import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Validate as Validate
 import GraphQL.Schema
-import GraphQL.Schema.Type as SchemaType
 import Set
 import Utils.String
 
@@ -433,7 +432,7 @@ removeTypename field =
     case field of
         Can.FieldScalar scal ->
             case scal.type_ of
-                SchemaType.Scalar "typename" ->
+                GraphQL.Schema.Scalar "typename" ->
                     False
 
                 _ ->
@@ -546,10 +545,10 @@ enumType namespace enumName =
         enumName
 
 
-schemaTypeToPrefab : SchemaType.Type -> Type.Annotation
+schemaTypeToPrefab : GraphQL.Schema.Type -> Type.Annotation
 schemaTypeToPrefab schemaType =
     case schemaType of
-        SchemaType.Scalar scalarName ->
+        GraphQL.Schema.Scalar scalarName ->
             case String.toLower scalarName of
                 "string" ->
                     Type.string
@@ -568,25 +567,25 @@ schemaTypeToPrefab schemaType =
                         (Utils.String.formatScalar scalarName)
                         []
 
-        SchemaType.InputObject input ->
+        GraphQL.Schema.InputObject input ->
             Type.unit
 
-        SchemaType.Object obj ->
+        GraphQL.Schema.Object obj ->
             Type.unit
 
-        SchemaType.Enum name ->
+        GraphQL.Schema.Enum name ->
             Type.unit
 
-        SchemaType.Union name ->
+        GraphQL.Schema.Union name ->
             Type.unit
 
-        SchemaType.Interface name ->
+        GraphQL.Schema.Interface name ->
             Type.unit
 
-        SchemaType.List_ inner ->
+        GraphQL.Schema.List_ inner ->
             Type.list (schemaTypeToPrefab inner)
 
-        SchemaType.Nullable inner ->
+        GraphQL.Schema.Nullable inner ->
             Type.maybe (schemaTypeToPrefab inner)
 
 
@@ -802,10 +801,10 @@ buildRecordFromVariantFields field =
     Elm.field name (Elm.value name)
 
 
-decodeScalarType : SchemaType.Type -> Elm.Expression
+decodeScalarType : GraphQL.Schema.Type -> Elm.Expression
 decodeScalarType type_ =
     case type_ of
-        SchemaType.Scalar scalarName ->
+        GraphQL.Schema.Scalar scalarName ->
             case String.toLower scalarName of
                 "int" ->
                     Decode.int
@@ -824,23 +823,23 @@ decodeScalarType type_ =
                         (Utils.String.formatValue scalarName)
                         |> Elm.get "decoder"
 
-        SchemaType.Nullable inner ->
+        GraphQL.Schema.Nullable inner ->
             Decode.nullable (decodeScalarType inner)
 
-        SchemaType.List_ inner ->
+        GraphQL.Schema.List_ inner ->
             Decode.list (decodeScalarType inner)
 
         _ ->
             Decode.succeed (Elm.string "DECODE UNKNOWN")
 
 
-getScalarType : String -> String -> GraphQL.Schema.Schema -> SchemaType.Type
+getScalarType : String -> String -> GraphQL.Schema.Schema -> GraphQL.Schema.Type
 getScalarType queryName field schema =
     case Dict.get queryName schema.queries of
         Nothing ->
             case Dict.get queryName schema.objects of
                 Nothing ->
-                    SchemaType.Scalar (queryName ++ "." ++ field ++ "NOT AN OBJECT?!")
+                    GraphQL.Schema.Scalar (queryName ++ "." ++ field ++ "NOT AN OBJECT?!")
 
                 Just object ->
                     let
@@ -853,17 +852,17 @@ getScalarType queryName field schema =
                     in
                     case List.head found of
                         Nothing ->
-                            SchemaType.Scalar "NOT FOUND?!"
+                            GraphQL.Schema.Scalar "NOT FOUND?!"
 
                         Just foundField ->
                             foundField.type_
 
         Just q ->
             case q.type_ of
-                SchemaType.Object objName ->
+                GraphQL.Schema.Object objName ->
                     case Dict.get objName schema.objects of
                         Nothing ->
-                            SchemaType.Scalar "WHAAT?!?!"
+                            GraphQL.Schema.Scalar "WHAAT?!?!"
 
                         Just object ->
                             let
@@ -876,7 +875,7 @@ getScalarType queryName field schema =
                             in
                             case List.head found of
                                 Nothing ->
-                                    SchemaType.Scalar "NOT FOUND?!"
+                                    GraphQL.Schema.Scalar "NOT FOUND?!"
 
                                 Just foundField ->
                                     foundField.type_

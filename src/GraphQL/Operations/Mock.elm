@@ -3,7 +3,7 @@ module GraphQL.Operations.Mock exposing (generate)
 import Generate.Input as Input
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Validate as Validate
-import GraphQL.Schema.Type as SchemaType
+import GraphQL.Schema as Schema
 import Json.Encode
 
 
@@ -71,7 +71,7 @@ encodeField typename field =
 
         Can.FieldScalar details ->
             case details.type_ of
-                SchemaType.Scalar "typename" ->
+                Schema.Scalar "typename" ->
                     case typename of
                         Nothing ->
                             [ ( Can.getAliasedName field
@@ -87,7 +87,7 @@ encodeField typename field =
 
                 _ ->
                     [ ( Can.getAliasedName field
-                      , SchemaType.mockScalar details.type_
+                      , Schema.mockScalar details.type_
                       )
                     ]
 

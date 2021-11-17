@@ -20,10 +20,6 @@ import Generate.Common
 import Generate.Decode
 import Generate.Input as Input
 import GraphQL.Schema
-import GraphQL.Schema.Argument
-import GraphQL.Schema.Field
-import GraphQL.Schema.InputObject as InputObject
-import GraphQL.Schema.Type exposing (Type(..))
 import Set exposing (Set)
 import String
 import Utils.String
@@ -143,7 +139,7 @@ recursiveRequiredAnnotation :
             { fieldOrArg
                 | name : String.String
                 , description : Maybe String.String
-                , type_ : Type
+                , type_ : GraphQL.Schema.Type
             }
     -> Elm.Annotation.Annotation
 recursiveRequiredAnnotation namespace schema reqs =
@@ -161,7 +157,7 @@ recursiveRequiredAnnotation namespace schema reqs =
 prepareRequiredRecursive :
     String
     -> GraphQL.Schema.Schema
-    -> { a | name : String, type_ : Type }
+    -> { a | name : String, type_ : GraphQL.Schema.Type }
     -> Elm.Expression
 prepareRequiredRecursive namespace schema argument =
     Elm.tuple
@@ -178,7 +174,7 @@ prepareRequiredRecursive namespace schema argument =
 type alias OptionGroup =
     { topLevel : Bool
     , namespace : String
-    , options : List GraphQL.Schema.Argument.Argument
+    , options : List GraphQL.Schema.Argument
     }
 
 
@@ -186,9 +182,9 @@ getOptionals :
     String
     -> GraphQL.Schema.Schema
     -> Set String
-    -> List GraphQL.Schema.Argument.Argument
+    -> List GraphQL.Schema.Argument
     -> List OptionGroup
-    -> List GraphQL.Schema.Argument.Argument
+    -> List GraphQL.Schema.Argument
     -> Bool
     -> ( Set String, List OptionGroup )
 getOptionals name schema captured topLevel nested args isTopLevel =
@@ -232,14 +228,14 @@ toArg field =
 getNested :
     GraphQL.Schema.Schema
     -> Set String
-    -> Type
+    -> GraphQL.Schema.Type
     -> ( Set String, List OptionGroup )
 getNested schema captured type_ =
     case type_ of
-        Scalar _ ->
+        GraphQL.Schema.Scalar _ ->
             ( captured, [] )
 
-        InputObject inputName ->
+        GraphQL.Schema.InputObject inputName ->
             case Dict.get inputName schema.inputObjects of
                 Nothing ->
                     ( captured, [] )
@@ -257,22 +253,22 @@ getNested schema captured type_ =
                             (List.map toArg input.fields)
                             False
 
-        Object name ->
+        GraphQL.Schema.Object name ->
             ( captured, [] )
 
-        Enum name ->
+        GraphQL.Schema.Enum name ->
             ( captured, [] )
 
-        Union name ->
+        GraphQL.Schema.Union name ->
             ( captured, [] )
 
-        Interface name ->
+        GraphQL.Schema.Interface name ->
             ( captured, [] )
 
-        List_ inner ->
+        GraphQL.Schema.List_ inner ->
             getNested schema captured inner
 
-        Nullable inner ->
+        GraphQL.Schema.Nullable inner ->
             getNested schema captured inner
 
 
@@ -334,7 +330,7 @@ nullsRecord :
         List
             { fieldOrArg
                 | name : String
-                , type_ : Type
+                , type_ : GraphQL.Schema.Type
                 , description : Maybe String
             }
     -> Elm.Expression
@@ -370,7 +366,7 @@ optionsRecursive :
         List
             { fieldOrArg
                 | name : String
-                , type_ : Type
+                , type_ : GraphQL.Schema.Type
                 , description : Maybe String
             }
     -> List Elm.Declaration
@@ -387,7 +383,7 @@ optionsRecursiveHelper :
             { field
                 | name : String
                 , description : Maybe String
-                , type_ : Type
+                , type_ : GraphQL.Schema.Type
             }
     -> List Elm.Declaration
     -> List Elm.Declaration
@@ -433,25 +429,25 @@ optionsRecursiveHelper namespace schema name options fields =
                 )
 
 
-inputAnnotationRecursive : String -> GraphQL.Schema.Schema -> Type -> Input.Wrapped -> Elm.Annotation.Annotation
+inputAnnotationRecursive : String -> GraphQL.Schema.Schema -> GraphQL.Schema.Type -> Input.Wrapped -> Elm.Annotation.Annotation
 inputAnnotationRecursive namespace schema type_ wrapped =
     case type_ of
-        GraphQL.Schema.Type.Nullable newType ->
+        GraphQL.Schema.Nullable newType ->
             inputAnnotationRecursive namespace schema newType wrapped
 
-        GraphQL.Schema.Type.List_ newType ->
+        GraphQL.Schema.List_ newType ->
             inputAnnotationRecursive namespace schema newType wrapped
 
-        GraphQL.Schema.Type.Scalar scalarName ->
+        GraphQL.Schema.Scalar scalarName ->
             scalarType wrapped scalarName
 
-        GraphQL.Schema.Type.Enum enumName ->
+        GraphQL.Schema.Enum enumName ->
             Elm.Annotation.named
                 (Generate.Common.modules.enum namespace enumName)
                 enumName
                 |> unwrapWith wrapped
 
-        GraphQL.Schema.Type.InputObject inputName ->
+        GraphQL.Schema.InputObject inputName ->
             case Dict.get inputName schema.inputObjects of
                 Nothing ->
                     annotations.arg namespace inputName
@@ -464,13 +460,13 @@ inputAnnotationRecursive namespace schema type_ wrapped =
                         wrapped
                         { ergonomicOptionType = False }
 
-        GraphQL.Schema.Type.Object nestedObjectName ->
+        GraphQL.Schema.Object nestedObjectName ->
             -- not used as input
             Generate.Common.selection namespace
                 nestedObjectName
                 (Elm.Annotation.var "data")
 
-        GraphQL.Schema.Type.Union unionName ->
+        GraphQL.Schema.Union unionName ->
             -- not used as input
             -- Note, we need a discriminator instead of just `data`
             Generate.Common.selection namespace
@@ -478,7 +474,7 @@ inputAnnotationRecursive namespace schema type_ wrapped =
                 (Elm.Annotation.var "data")
                 |> unwrapWith wrapped
 
-        GraphQL.Schema.Type.Interface interfaceName ->
+        GraphQL.Schema.Interface interfaceName ->
             -- not used as input
             Elm.Annotation.unit
 
@@ -486,7 +482,7 @@ inputAnnotationRecursive namespace schema type_ wrapped =
 inputObjectAnnotation :
     String
     -> GraphQL.Schema.Schema
-    -> InputObject.InputObject
+    -> GraphQL.Schema.InputObjectDetails
     -> Input.Wrapped
     -> { ergonomicOptionType : Bool }
     -> Elm.Annotation.Annotation
@@ -555,24 +551,24 @@ type alias Namespace =
 toJsonValue :
     Namespace
     -> GraphQL.Schema.Schema
-    -> Type
+    -> GraphQL.Schema.Type
     -> Input.Wrapped
     -> Elm.Expression
     -> Elm.Expression
 toJsonValue namespace schema fieldType wrapped val =
     case fieldType of
-        GraphQL.Schema.Type.Nullable newType ->
+        GraphQL.Schema.Nullable newType ->
             toJsonValue namespace schema newType wrapped val
 
-        GraphQL.Schema.Type.List_ newType ->
+        GraphQL.Schema.List_ newType ->
             toJsonValue namespace schema newType wrapped val
 
-        GraphQL.Schema.Type.Scalar scalarName ->
+        GraphQL.Schema.Scalar scalarName ->
             encodeScalar scalarName
                 wrapped
                 val
 
-        GraphQL.Schema.Type.Enum enumName ->
+        GraphQL.Schema.Enum enumName ->
             --This can either be
             --     val -> Enum.encode val
             --     val ->
@@ -592,7 +588,7 @@ toJsonValue namespace schema fieldType wrapped val =
                 )
                 val
 
-        GraphQL.Schema.Type.InputObject inputName ->
+        GraphQL.Schema.InputObject inputName ->
             case Dict.get inputName schema.inputObjects of
                 Nothing ->
                     encodeInputObjectArg inputName wrapped val 0
@@ -639,13 +635,13 @@ toJsonValue namespace schema fieldType wrapped val =
                                     )
                                     val
 
-        GraphQL.Schema.Type.Union unionName ->
+        GraphQL.Schema.Union unionName ->
             Elm.string "Unions cant be nested in inputs"
 
-        GraphQL.Schema.Type.Object nestedObjectName ->
+        GraphQL.Schema.Object nestedObjectName ->
             Elm.string "Objects cant be nested in inputs"
 
-        GraphQL.Schema.Type.Interface interfaceName ->
+        GraphQL.Schema.Interface interfaceName ->
             Elm.string "Interfaces cant be in inputs"
 
 
@@ -704,19 +700,19 @@ encodeWrappedJsonValue inputName wrapper encoder val =
 toEngineArg :
     String
     -> GraphQL.Schema.Schema
-    -> Type
+    -> GraphQL.Schema.Type
     -> Input.Wrapped
     -> Elm.Expression
     -> Elm.Expression
 toEngineArg namespace schema fieldType wrapped val =
     case fieldType of
-        GraphQL.Schema.Type.Nullable newType ->
+        GraphQL.Schema.Nullable newType ->
             toEngineArg namespace schema newType wrapped val
 
-        GraphQL.Schema.Type.List_ newType ->
+        GraphQL.Schema.List_ newType ->
             toEngineArg namespace schema newType wrapped val
 
-        GraphQL.Schema.Type.Scalar scalarName ->
+        GraphQL.Schema.Scalar scalarName ->
             Engine.arg
                 (encodeScalar scalarName
                     wrapped
@@ -724,7 +720,7 @@ toEngineArg namespace schema fieldType wrapped val =
                 )
                 (Elm.string (Input.gqlType wrapped scalarName))
 
-        GraphQL.Schema.Type.Enum enumName ->
+        GraphQL.Schema.Enum enumName ->
             --This can either be
             --     val -> Enum.encode val
             --     val ->
@@ -747,7 +743,7 @@ toEngineArg namespace schema fieldType wrapped val =
                 )
                 (Elm.string (Input.gqlType wrapped enumName))
 
-        GraphQL.Schema.Type.InputObject inputName ->
+        GraphQL.Schema.InputObject inputName ->
             case Dict.get inputName schema.inputObjects of
                 Nothing ->
                     Engine.arg
@@ -802,13 +798,13 @@ toEngineArg namespace schema fieldType wrapped val =
                                     )
                                     val
 
-        GraphQL.Schema.Type.Union unionName ->
+        GraphQL.Schema.Union unionName ->
             Elm.string "Unions cant be nested in inputs"
 
-        GraphQL.Schema.Type.Object nestedObjectName ->
+        GraphQL.Schema.Object nestedObjectName ->
             Elm.string "Objects cant be nested in inputs"
 
-        GraphQL.Schema.Type.Interface interfaceName ->
+        GraphQL.Schema.Interface interfaceName ->
             Elm.string "Interfaces cant be in inputs"
 
 
@@ -849,19 +845,19 @@ encodeInputObjectArg inputName wrapper val level =
 
 encodeInput :
     String
-    -> Type
+    -> GraphQL.Schema.Type
     -> Input.Wrapped
     -> Elm.Expression
     -> Elm.Expression
 encodeInput namespace fieldType wrapped val =
     case fieldType of
-        GraphQL.Schema.Type.Nullable newType ->
+        GraphQL.Schema.Nullable newType ->
             encodeInput namespace newType wrapped val
 
-        GraphQL.Schema.Type.List_ newType ->
+        GraphQL.Schema.List_ newType ->
             encodeInput namespace newType wrapped val
 
-        GraphQL.Schema.Type.Scalar scalarName ->
+        GraphQL.Schema.Scalar scalarName ->
             Engine.arg
                 (encodeScalar scalarName
                     wrapped
@@ -869,7 +865,7 @@ encodeInput namespace fieldType wrapped val =
                 )
                 (Elm.string scalarName)
 
-        GraphQL.Schema.Type.Enum enumName ->
+        GraphQL.Schema.Enum enumName ->
             --This can either be
             --     val -> Enum.encode val
             --     val ->
@@ -892,7 +888,7 @@ encodeInput namespace fieldType wrapped val =
                 )
                 (Elm.string enumName)
 
-        GraphQL.Schema.Type.InputObject inputName ->
+        GraphQL.Schema.InputObject inputName ->
             Engine.arg
                 (encodeWrappedInverted wrapped
                     Engine.encodeArgument
@@ -900,13 +896,13 @@ encodeInput namespace fieldType wrapped val =
                 )
                 (Elm.string (inputTypeWrappedToString wrapped inputName))
 
-        GraphQL.Schema.Type.Union unionName ->
+        GraphQL.Schema.Union unionName ->
             Elm.string "Unions cant be nested in inputs"
 
-        GraphQL.Schema.Type.Object nestedObjectName ->
+        GraphQL.Schema.Object nestedObjectName ->
             Elm.string "Objects cant be nested in inputs"
 
-        GraphQL.Schema.Type.Interface interfaceName ->
+        GraphQL.Schema.Interface interfaceName ->
             Elm.string "Interfaces cant be in inputs"
 
 
@@ -923,31 +919,31 @@ inputTypeWrappedToString wrapped base =
             inputTypeWrappedToString inner base
 
 
-inputTypeToString : Type -> String
+inputTypeToString : GraphQL.Schema.Type -> String
 inputTypeToString type_ =
     case type_ of
-        GraphQL.Schema.Type.Nullable newType ->
+        GraphQL.Schema.Nullable newType ->
             inputTypeToString newType
 
-        GraphQL.Schema.Type.List_ newType ->
+        GraphQL.Schema.List_ newType ->
             "[" ++ inputTypeToString newType ++ "]"
 
-        GraphQL.Schema.Type.Scalar scalarName ->
+        GraphQL.Schema.Scalar scalarName ->
             scalarName
 
-        GraphQL.Schema.Type.Enum enumName ->
+        GraphQL.Schema.Enum enumName ->
             enumName
 
-        GraphQL.Schema.Type.InputObject inputName ->
+        GraphQL.Schema.InputObject inputName ->
             inputName
 
-        GraphQL.Schema.Type.Union unionName ->
+        GraphQL.Schema.Union unionName ->
             "Unions cant be nested in inputs"
 
-        GraphQL.Schema.Type.Object nestedObjectName ->
+        GraphQL.Schema.Object nestedObjectName ->
             "Objects cant be nested in inputs"
 
-        GraphQL.Schema.Type.Interface interfaceName ->
+        GraphQL.Schema.Interface interfaceName ->
             "Interfaces cant be in inputs"
 
 
@@ -1115,7 +1111,7 @@ encodeWrappedInverted wrapper encoder val =
 annotation :
     String
     -> GraphQL.Schema.Schema
-    -> InputObject.InputObject
+    -> GraphQL.Schema.InputObjectDetails
     -> Elm.Annotation.Annotation
 annotation namespace schema input =
     inputObjectAnnotation namespace schema input Input.UnwrappedValue { ergonomicOptionType = True }
@@ -1131,9 +1127,9 @@ createBuilder :
             { fieldOrArg
                 | name : String.String
                 , description : Maybe String.String
-                , type_ : Type
+                , type_ : GraphQL.Schema.Type
             }
-    -> Type
+    -> GraphQL.Schema.Type
     -> Input.Operation
     -> Elm.Declaration
 createBuilder namespace schema name arguments returnType operation =
@@ -1183,7 +1179,7 @@ createBuilder namespace schema name arguments returnType operation =
                 -- if we're selecting an object, we need the dev to pass a selection set in.
                 Just
                     ( Generate.Common.selection namespace
-                        (GraphQL.Schema.Type.toString returnType)
+                        (GraphQL.Schema.typeToString returnType)
                         (Elm.Annotation.var "data")
                     , Elm.Pattern.var "selection"
                     )
@@ -1196,13 +1192,13 @@ createBuilder namespace schema name arguments returnType operation =
                 Elm.valueWith []
                     "selection"
                     (Generate.Common.selection namespace
-                        (GraphQL.Schema.Type.toString returnType)
+                        (GraphQL.Schema.typeToString returnType)
                         (Elm.Annotation.var "data")
                     )
 
             else
                 Generate.Decode.scalar
-                    (GraphQL.Schema.Type.toString returnType)
+                    (GraphQL.Schema.typeToString returnType)
                     (Input.getWrap returnType)
                     |> Engine.decode
 
@@ -1215,7 +1211,7 @@ createBuilder namespace schema name arguments returnType operation =
             else
                 Generate.Common.selection namespace
                     (Input.operationToString operation)
-                    (Elm.Annotation.named [] (GraphQL.Schema.Type.toElmString returnType))
+                    (Elm.Annotation.named [] (GraphQL.Schema.typeToElmString returnType))
 
         return =
             Engine.objectWith
@@ -1255,31 +1251,31 @@ createBuilder namespace schema name arguments returnType operation =
         |> Elm.expose
 
 
-needsInnerSelection : Type -> Bool
+needsInnerSelection : GraphQL.Schema.Type -> Bool
 needsInnerSelection type_ =
     case type_ of
-        Scalar name ->
+        GraphQL.Schema.Scalar name ->
             False
 
-        InputObject name ->
+        GraphQL.Schema.InputObject name ->
             True
 
-        Object name ->
+        GraphQL.Schema.Object name ->
             True
 
-        Enum name ->
+        GraphQL.Schema.Enum name ->
             False
 
-        Union name ->
+        GraphQL.Schema.Union name ->
             True
 
-        Interface name ->
+        GraphQL.Schema.Interface name ->
             True
 
-        List_ inner ->
+        GraphQL.Schema.List_ inner ->
             needsInnerSelection inner
 
-        Nullable inner ->
+        GraphQL.Schema.Nullable inner ->
             needsInnerSelection inner
 
 

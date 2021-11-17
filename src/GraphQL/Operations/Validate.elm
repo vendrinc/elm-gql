@@ -3,11 +3,6 @@ module GraphQL.Operations.Validate exposing (Error, errorToString, validate)
 import Dict
 import GraphQL.Operations.AST as AST
 import GraphQL.Schema
-import GraphQL.Schema.Argument as Arg
-import GraphQL.Schema.Kind as Kind
-import GraphQL.Schema.Object as Object
-import GraphQL.Schema.Type as Type
-import GraphQL.Schema.Union as Union
 
 
 type Error
@@ -132,7 +127,7 @@ validateQuery schema selection =
             Err [ InlineFragmentsAreNotAllowed "queries" ]
 
 
-validateArg : { node | arguments : List Arg.Argument } -> AST.Argument -> Result (List Error) ()
+validateArg : { node | arguments : List GraphQL.Schema.Argument } -> AST.Argument -> Result (List Error) ()
 validateArg { arguments } arg =
     case arg.value of
         AST.Var var ->
@@ -188,7 +183,7 @@ validateMutation schema selection =
             Err [ InlineFragmentsAreNotAllowed "mutations" ]
 
 
-validateUnion : GraphQL.Schema.Schema -> Union.Union -> AST.Selection -> Result (List Error) ()
+validateUnion : GraphQL.Schema.Schema -> GraphQL.Schema.UnionDetails -> AST.Selection -> Result (List Error) ()
 validateUnion schema union selection =
     case selection of
         AST.Field field ->
@@ -222,29 +217,29 @@ validateUnion schema union selection =
                 Err [ UnknownFragment tag ]
 
 
-matchObjectName : String -> Union.Variant -> Bool
+matchObjectName : String -> GraphQL.Schema.Variant -> Bool
 matchObjectName tag var =
     case var.kind of
-        Kind.Object name ->
+        GraphQL.Schema.ObjectKind name ->
             name == tag
 
-        Kind.Scalar name ->
+        GraphQL.Schema.ScalarKind name ->
             False
 
-        Kind.InputObject name ->
+        GraphQL.Schema.InputObjectKind name ->
             False
 
-        Kind.Enum name ->
+        GraphQL.Schema.EnumKind name ->
             False
 
-        Kind.Union name ->
+        GraphQL.Schema.UnionKind name ->
             False
 
-        Kind.Interface name ->
+        GraphQL.Schema.InterfaceKind name ->
             False
 
 
-validateField : GraphQL.Schema.Schema -> Object.Object -> AST.Selection -> Result (List Error) ()
+validateField : GraphQL.Schema.Schema -> GraphQL.Schema.ObjectDetails -> AST.Selection -> Result (List Error) ()
 validateField schema object selection =
     case selection of
         AST.Field field ->
@@ -306,29 +301,29 @@ type NamedThing
     | Union String
 
 
-getName : Type.Type -> NamedThing
+getName : GraphQL.Schema.Type -> NamedThing
 getName kind =
     case kind of
-        Type.Scalar name ->
+        GraphQL.Schema.Scalar name ->
             Leaf
 
-        Type.InputObject name ->
+        GraphQL.Schema.InputObject name ->
             Leaf
 
-        Type.Object name ->
+        GraphQL.Schema.Object name ->
             Object name
 
-        Type.Enum name ->
+        GraphQL.Schema.Enum name ->
             Leaf
 
-        Type.Union name ->
+        GraphQL.Schema.Union name ->
             Union name
 
-        Type.Interface name ->
+        GraphQL.Schema.Interface name ->
             Leaf
 
-        Type.List_ inner ->
+        GraphQL.Schema.List_ inner ->
             getName inner
 
-        Type.Nullable inner ->
+        GraphQL.Schema.Nullable inner ->
             getName inner

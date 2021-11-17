@@ -1,9 +1,7 @@
 module Generate.Common exposing (..)
 
-import Elm
 import Elm.Annotation
-import Elm.Gen.GraphQL.Engine as Engine
-import GraphQL.Schema.Type exposing (Type(..))
+import GraphQL.Schema
 import Utils.String
 
 
@@ -58,14 +56,14 @@ local namespace name =
     Elm.Annotation.named [] name
 
 
-gqlTypeToElmTypeAnnotation : String -> GraphQL.Schema.Type.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
+gqlTypeToElmTypeAnnotation : String -> GraphQL.Schema.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
 gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
     let
         appliedToTypes =
             Maybe.withDefault [] maybeAppliedToTypes
     in
     case gqlType of
-        Scalar scalarName ->
+        GraphQL.Schema.Scalar scalarName ->
             case String.toLower scalarName of
                 "string" ->
                     Elm.Annotation.string
@@ -84,44 +82,44 @@ gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
                         (Utils.String.formatScalar scalarName)
                         appliedToTypes
 
-        Enum enumName ->
+        GraphQL.Schema.Enum enumName ->
             Elm.Annotation.namedWith [ namespace, "Enum", enumName ] enumName appliedToTypes
 
-        List_ listElementType ->
+        GraphQL.Schema.List_ listElementType ->
             let
                 innerType =
                     gqlTypeToElmTypeAnnotation namespace listElementType maybeAppliedToTypes
             in
             Elm.Annotation.list innerType
 
-        Nullable nonNullType ->
+        GraphQL.Schema.Nullable nonNullType ->
             let
                 innerType =
                     gqlTypeToElmTypeAnnotation namespace nonNullType maybeAppliedToTypes
             in
             Elm.Annotation.maybe innerType
 
-        InputObject inputObjectName ->
+        GraphQL.Schema.InputObject inputObjectName ->
             ref namespace inputObjectName
 
-        Object objectName ->
+        GraphQL.Schema.Object objectName ->
             ref namespace objectName
 
-        Union unionName ->
+        GraphQL.Schema.Union unionName ->
             ref namespace unionName
 
-        Interface interfaceName ->
+        GraphQL.Schema.Interface interfaceName ->
             ref namespace interfaceName
 
 
-localAnnotation : String -> GraphQL.Schema.Type.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
+localAnnotation : String -> GraphQL.Schema.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
 localAnnotation namespace gqlType maybeAppliedToTypes =
     let
         appliedToTypes =
             Maybe.withDefault [] maybeAppliedToTypes
     in
     case gqlType of
-        Scalar scalarName ->
+        GraphQL.Schema.Scalar scalarName ->
             case String.toLower scalarName of
                 "string" ->
                     Elm.Annotation.string
@@ -140,31 +138,31 @@ localAnnotation namespace gqlType maybeAppliedToTypes =
                         (Utils.String.formatScalar scalarName)
                         appliedToTypes
 
-        Enum enumName ->
+        GraphQL.Schema.Enum enumName ->
             Elm.Annotation.namedWith [ namespace, "Enum", enumName ] enumName appliedToTypes
 
-        List_ listElementType ->
+        GraphQL.Schema.List_ listElementType ->
             let
                 innerType =
                     gqlTypeToElmTypeAnnotation namespace listElementType maybeAppliedToTypes
             in
             Elm.Annotation.list innerType
 
-        Nullable nonNullType ->
+        GraphQL.Schema.Nullable nonNullType ->
             let
                 innerType =
                     gqlTypeToElmTypeAnnotation namespace nonNullType maybeAppliedToTypes
             in
             Elm.Annotation.maybe innerType
 
-        InputObject inputObjectName ->
+        GraphQL.Schema.InputObject inputObjectName ->
             local namespace inputObjectName
 
-        Object objectName ->
+        GraphQL.Schema.Object objectName ->
             local namespace objectName
 
-        Union unionName ->
+        GraphQL.Schema.Union unionName ->
             local namespace unionName
 
-        Interface interfaceName ->
+        GraphQL.Schema.Interface interfaceName ->
             local namespace interfaceName

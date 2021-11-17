@@ -5,22 +5,17 @@ import Elm
 import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Json
-import Elm.Pattern
-import Generate.Args as Args
 import Generate.Common as Common
 import Generate.Decode
 import Generate.Input as Input exposing (Wrapped(..))
 import GraphQL.Schema
-import GraphQL.Schema.Field as Field exposing (Field)
-import GraphQL.Schema.Object
-import GraphQL.Schema.Type exposing (Type(..))
 import Utils.String
 
 
 objectToModule :
     String
-    -- this can be objects oir interfaces
-    -> { a | fields : List Field, name : String }
+    -- this can be objects or interfaces
+    -> { a | fields : List GraphQL.Schema.Field, name : String }
     -> Elm.Declaration
 objectToModule namespace object =
     let
@@ -74,7 +69,7 @@ implementField :
     String
     -> String
     -> String
-    -> Type
+    -> GraphQL.Schema.Type
     -> Wrapped
     ->
         { expression : Elm.Expression
@@ -82,13 +77,13 @@ implementField :
         }
 implementField namespace objectName fieldName fieldType wrapped =
     case fieldType of
-        GraphQL.Schema.Type.Nullable newType ->
+        GraphQL.Schema.Nullable newType ->
             implementField namespace objectName fieldName newType wrapped
 
-        GraphQL.Schema.Type.List_ newType ->
+        GraphQL.Schema.List_ newType ->
             implementField namespace objectName fieldName newType wrapped
 
-        GraphQL.Schema.Type.Scalar scalarName ->
+        GraphQL.Schema.Scalar scalarName ->
             let
                 signature =
                     fieldSignature namespace objectName wrapped fieldType
@@ -100,7 +95,7 @@ implementField namespace objectName fieldName fieldType wrapped =
             , annotation = signature.annotation
             }
 
-        GraphQL.Schema.Type.Enum enumName ->
+        GraphQL.Schema.Enum enumName ->
             let
                 signature =
                     fieldSignature namespace objectName wrapped fieldType
@@ -114,7 +109,7 @@ implementField namespace objectName fieldName fieldType wrapped =
             , annotation = signature.annotation
             }
 
-        GraphQL.Schema.Type.Object nestedObjectName ->
+        GraphQL.Schema.Object nestedObjectName ->
             { expression =
                 Elm.lambda "selection_"
                     (Common.selectionLocal namespace
@@ -138,7 +133,7 @@ implementField namespace objectName fieldName fieldType wrapped =
                     )
             }
 
-        GraphQL.Schema.Type.Interface interfaceName ->
+        GraphQL.Schema.Interface interfaceName ->
             { expression =
                 Elm.lambda "selection_"
                     (Common.selectionLocal namespace
@@ -162,7 +157,7 @@ implementField namespace objectName fieldName fieldType wrapped =
                     )
             }
 
-        GraphQL.Schema.Type.InputObject inputName ->
+        GraphQL.Schema.InputObject inputName ->
             let
                 signature =
                     fieldSignature namespace objectName wrapped fieldType
@@ -171,7 +166,7 @@ implementField namespace objectName fieldName fieldType wrapped =
             , annotation = signature.annotation
             }
 
-        GraphQL.Schema.Type.Union unionName ->
+        GraphQL.Schema.Union unionName ->
             { expression =
                 Elm.lambda "union_"
                     (Common.selectionLocal namespace
@@ -228,7 +223,7 @@ fieldSignature :
     String
     -> String
     -> Wrapped
-    -> Type
+    -> GraphQL.Schema.Type
     ->
         { annotation : Elm.Annotation.Annotation
         }

@@ -10,19 +10,7 @@ module Generate.Paged exposing (generate)
 
 import Dict
 import Elm
-import Elm.Annotation
-import Elm.Gen.GraphQL.Engine as Engine
-import Elm.Gen.Json.Decode as Json
-import Elm.Pattern
-import Generate.Args as Args
-import Generate.Common as Common
-import Generate.Input exposing (Wrapped(..))
 import GraphQL.Schema
-import GraphQL.Schema.Field as Field exposing (Field)
-import GraphQL.Schema.Object
-import GraphQL.Schema.Operation
-import GraphQL.Schema.Type exposing (Type(..))
-import Utils.String
 
 
 generate : String -> GraphQL.Schema.Schema -> List Elm.File
@@ -41,9 +29,9 @@ generate namespace schema =
 
 
 type alias Pagination =
-    { query : GraphQL.Schema.Operation.Operation
-    , edges : GraphQL.Schema.Object.Object
-    , connection : GraphQL.Schema.Object.Object
+    { query : GraphQL.Schema.Operation
+    , edges : GraphQL.Schema.ObjectDetails
+    , connection : GraphQL.Schema.ObjectDetails
     }
 
 
@@ -59,7 +47,7 @@ detectPagination schema =
         |> List.filterMap
             (\( name, oper ) ->
                 case oper.type_ of
-                    GraphQL.Schema.Type.Object objName ->
+                    GraphQL.Schema.Object objName ->
                         if String.endsWith "Connection" objName then
                             let
                                 maybeConnection =
@@ -75,7 +63,7 @@ detectPagination schema =
                                             List.filterMap
                                                 (\field ->
                                                     if field.name == "edges" then
-                                                        Just (GraphQL.Schema.Type.toString field.type_)
+                                                        Just (GraphQL.Schema.typeToString field.type_)
 
                                                     else
                                                         Nothing
@@ -110,7 +98,7 @@ detectPagination schema =
             )
 
 
-findObjectNamed : String -> List ( String, GraphQL.Schema.Object.Object ) -> Maybe GraphQL.Schema.Object.Object
+findObjectNamed : String -> List ( String, GraphQL.Schema.ObjectDetails ) -> Maybe GraphQL.Schema.ObjectDetails
 findObjectNamed name objects =
     case objects of
         [] ->

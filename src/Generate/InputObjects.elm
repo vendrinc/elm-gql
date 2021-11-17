@@ -6,19 +6,17 @@ import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Args
 import GraphQL.Schema
-import GraphQL.Schema.InputObject
-import GraphQL.Schema.Type exposing (Type(..))
 import Utils.String
 
 
-inputObjectToOptionalBuilders : String -> GraphQL.Schema.Schema -> GraphQL.Schema.InputObject.InputObject -> List Elm.File
+inputObjectToOptionalBuilders : String -> GraphQL.Schema.Schema -> GraphQL.Schema.InputObjectDetails -> List Elm.File
 inputObjectToOptionalBuilders namespace schema input =
     let
         ( required, optional ) =
             List.partition
                 (\arg ->
                     case arg.type_ of
-                        GraphQL.Schema.Type.Nullable innerType ->
+                        GraphQL.Schema.Nullable innerType ->
                             False
 
                         _ ->

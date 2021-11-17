@@ -6,7 +6,6 @@ import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Common as Common
 import GraphQL.Schema
-import GraphQL.Schema.Kind
 import Utils.String
 
 
@@ -28,9 +27,9 @@ generateFiles namespace graphQLSchema =
                             , Elm.Annotation.record
                                 (List.map
                                     (\var ->
-                                        ( GraphQL.Schema.Kind.toString var.kind
+                                        ( GraphQL.Schema.kindToString var.kind
                                         , Common.selection namespace
-                                            (GraphQL.Schema.Kind.toString var.kind)
+                                            (GraphQL.Schema.kindToString var.kind)
                                             (Elm.Annotation.var "data")
                                         )
                                     )
@@ -43,9 +42,9 @@ generateFiles namespace graphQLSchema =
                                         (List.map
                                             (\var ->
                                                 Elm.tuple
-                                                    (Elm.string (GraphQL.Schema.Kind.toString var.kind))
+                                                    (Elm.string (GraphQL.Schema.kindToString var.kind))
                                                     (fragments
-                                                        |> Elm.get (GraphQL.Schema.Kind.toString var.kind)
+                                                        |> Elm.get (GraphQL.Schema.kindToString var.kind)
                                                         |> Engine.unsafe
                                                     )
                                             )

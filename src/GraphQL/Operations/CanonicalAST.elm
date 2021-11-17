@@ -2,9 +2,7 @@ module GraphQL.Operations.CanonicalAST exposing (..)
 
 import Generate.Input
 import GraphQL.Operations.AST as AST
-import GraphQL.Schema.Object as Object
-import GraphQL.Schema.Type as Type
-import GraphQL.Schema.Union as Union
+import GraphQL.Schema
 
 
 type alias Document =
@@ -46,7 +44,7 @@ type alias VariableDefinition =
     { variable : Variable
     , type_ : AST.Type
     , defaultValue : Maybe AST.Value
-    , schemaType : Type.Type
+    , schemaType : GraphQL.Schema.Type
     }
 
 
@@ -78,7 +76,7 @@ type alias FieldObjectDetails =
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection
-    , object : Object.Object
+    , object : GraphQL.Schema.ObjectDetails
     , wrapper : Generate.Input.Wrapped
     }
 
@@ -89,7 +87,7 @@ type alias FieldUnionDetails =
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection
-    , union : Union.Union
+    , union : GraphQL.Schema.UnionDetails
     , wrapper : Generate.Input.Wrapped
     }
 
@@ -99,7 +97,7 @@ type alias FieldScalarDetails =
     , name : Name
     , arguments : List Argument
     , directives : List Directive
-    , type_ : Type.Type
+    , type_ : GraphQL.Schema.Type
     }
 
 

@@ -3,24 +3,13 @@ module Generate.Input exposing (..)
 {-| Some helpers to handle inputs types.
 -}
 
-import Dict
 import Elm
 import Elm.Annotation as Type
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Decode
-import Elm.Gen.Json.Encode as Encode
-import Elm.Gen.List
-import Elm.Gen.Maybe
-import Elm.Pattern
-import Generate.Common
 import GraphQL.Operations.AST as Ast
 import GraphQL.Schema
-import GraphQL.Schema.Argument
-import GraphQL.Schema.Field
-import GraphQL.Schema.Type exposing (Type(..))
-import Set exposing (Set)
 import String
-import Utils.String
 
 
 type Operation
@@ -44,13 +33,13 @@ type Wrapped
     | InMaybe Wrapped
 
 
-getWrap : Type -> Wrapped
+getWrap : GraphQL.Schema.Type -> Wrapped
 getWrap type_ =
     case type_ of
-        GraphQL.Schema.Type.Nullable newType ->
+        GraphQL.Schema.Nullable newType ->
             InMaybe (getWrap newType)
 
-        GraphQL.Schema.Type.List_ newType ->
+        GraphQL.Schema.List_ newType ->
             InList (getWrap newType)
 
         _ ->
@@ -127,17 +116,17 @@ wrapExpression wrapper exp =
             exp
 
 
-splitRequired : List { a | type_ : Type } -> ( List { a | type_ : Type }, List { a | type_ : Type } )
+splitRequired : List { a | type_ : GraphQL.Schema.Type } -> ( List { a | type_ : GraphQL.Schema.Type }, List { a | type_ : GraphQL.Schema.Type } )
 splitRequired args =
     List.partition
         (not << isOptional)
         args
 
 
-isOptional : { a | type_ : Type } -> Bool
+isOptional : { a | type_ : GraphQL.Schema.Type } -> Bool
 isOptional arg =
     case arg.type_ of
-        GraphQL.Schema.Type.Nullable _ ->
+        GraphQL.Schema.Nullable _ ->
             True
 
         _ ->

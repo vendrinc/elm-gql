@@ -8,11 +8,10 @@ import Generate.Args
 import Generate.Example
 import Generate.Input as Input
 import GraphQL.Schema
-import GraphQL.Schema.Operation
 import Utils.String
 
 
-queryToModule : String -> Input.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation.Operation -> Elm.File
+queryToModule : String -> Input.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation -> Elm.File
 queryToModule namespace op schema operation =
     let
         dir =

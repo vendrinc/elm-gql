@@ -7,12 +7,6 @@ import Generate.Input
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
-import GraphQL.Schema.Argument as Arg
-import GraphQL.Schema.Kind as Kind
-import GraphQL.Schema.Object as Object
-import GraphQL.Schema.Operation as Operation
-import GraphQL.Schema.Type as Type
-import GraphQL.Schema.Union as Union
 
 
 type Error
@@ -153,7 +147,7 @@ replaceVarTypes cache (Can.Operation def) =
             Err errMsg
 
 
-getVarTypeNamed : List ( String, Type.Type ) -> Can.VariableDefinition -> Result (List Error) Can.VariableDefinition
+getVarTypeNamed : List ( String, GraphQL.Schema.Type ) -> Can.VariableDefinition -> Result (List Error) Can.VariableDefinition
 getVarTypeNamed vars target =
     let
         targetName =
@@ -179,7 +173,7 @@ getVarTypeNamed vars target =
 
 
 type alias VarCache =
-    { varTypes : List ( String, Type.Type )
+    { varTypes : List ( String, GraphQL.Schema.Type )
     , fragments : Dict String AST.FragmentDetails
     }
 
@@ -350,7 +344,7 @@ toCanonVariable def =
     { variable = { name = convertName def.variable.name }
     , type_ = def.type_
     , defaultValue = def.defaultValue
-    , schemaType = Type.Scalar "Unknown"
+    , schemaType = GraphQL.Schema.Scalar "Unknown"
     }
 
 
@@ -373,7 +367,7 @@ canonicalizeOperation schema op selection =
 
                 Just query ->
                     case query.type_ of
-                        Type.Scalar name ->
+                        GraphQL.Schema.Scalar name ->
                             CanSuccess emptyCache
                                 (Can.FieldScalar
                                     { alias_ = Maybe.map convertName field.alias_
@@ -384,10 +378,10 @@ canonicalizeOperation schema op selection =
                                     }
                                 )
 
-                        Type.InputObject name ->
+                        GraphQL.Schema.InputObject name ->
                             err [ todo "Invalid schema!  Weird InputObject" ]
 
-                        Type.Object name ->
+                        GraphQL.Schema.Object name ->
                             case Dict.get name schema.objects of
                                 Nothing ->
                                     err [ error (ObjectUnknown name) ]
@@ -422,7 +416,7 @@ canonicalizeOperation schema op selection =
                                         Err errors ->
                                             CanError errors
 
-                        Type.Enum name ->
+                        GraphQL.Schema.Enum name ->
                             CanSuccess emptyCache
                                 (Can.FieldScalar
                                     { alias_ = Maybe.map convertName field.alias_
@@ -433,7 +427,7 @@ canonicalizeOperation schema op selection =
                                     }
                                 )
 
-                        Type.Union name ->
+                        GraphQL.Schema.Union name ->
                             case Dict.get name schema.unions of
                                 Nothing ->
                                     err [ error (UnionUnknown name) ]
@@ -466,13 +460,13 @@ canonicalizeOperation schema op selection =
                                                 CanError errorMsg ->
                                                     CanError errorMsg
 
-                        Type.Interface name ->
+                        GraphQL.Schema.Interface name ->
                             err [ todo "Handle more object types!" ]
 
-                        Type.List_ inner ->
+                        GraphQL.Schema.List_ inner ->
                             err [ todo "Handle more object types!" ]
 
-                        Type.Nullable inner ->
+                        GraphQL.Schema.Nullable inner ->
                             err [ todo "Handle more object types!" ]
 
         AST.FragmentSpreadSelection frag ->
@@ -482,7 +476,7 @@ canonicalizeOperation schema op selection =
             err [ todo "Unions not supported yet" ]
 
 
-validateArg : { node | arguments : List Arg.Argument } -> AST.Argument -> Result (List Error) ( String, Type.Type )
+validateArg : { node | arguments : List GraphQL.Schema.Argument } -> AST.Argument -> Result (List Error) ( String, GraphQL.Schema.Type )
 validateArg spec argInGql =
     case argInGql.value of
         AST.Var var ->
@@ -504,7 +498,7 @@ validateArg spec argInGql =
             Err [ error (Todo "All inputs must be variables for now.  No inline values.") ]
 
 
-canonicalizeField : GraphQL.Schema.Schema -> Object.Object -> AST.Selection -> CanResult Can.Selection
+canonicalizeField : GraphQL.Schema.Schema -> GraphQL.Schema.ObjectDetails -> AST.Selection -> CanResult Can.Selection
 canonicalizeField schema object selection =
     case selection of
         AST.Field field ->
@@ -519,7 +513,7 @@ canonicalizeField schema object selection =
                         , name = convertName field.name
                         , arguments = []
                         , directives = List.map convertDirective field.directives
-                        , type_ = Type.Scalar "typename"
+                        , type_ = GraphQL.Schema.Scalar "typename"
                         }
                     )
 
@@ -562,10 +556,10 @@ convertDirective dir =
     For `field`, we are matching it up with types from `schema`
 
 -}
-canonicalizeFieldType : GraphQL.Schema.Schema -> Object.Object -> AST.FieldDetails -> Type.Type -> AST.Selection -> Type.Type -> CanResult Can.Selection
+canonicalizeFieldType : GraphQL.Schema.Schema -> GraphQL.Schema.ObjectDetails -> AST.FieldDetails -> GraphQL.Schema.Type -> AST.Selection -> GraphQL.Schema.Type -> CanResult Can.Selection
 canonicalizeFieldType schema object field type_ selection originalType =
     case type_ of
-        Type.Scalar name ->
+        GraphQL.Schema.Scalar name ->
             success emptyCache
                 (Can.FieldScalar
                     { alias_ = Maybe.map convertName field.alias_
@@ -576,10 +570,10 @@ canonicalizeFieldType schema object field type_ selection originalType =
                     }
                 )
 
-        Type.InputObject name ->
+        GraphQL.Schema.InputObject name ->
             err [ todo "Invalid schema!  Weird InputObject" ]
 
-        Type.Object name ->
+        GraphQL.Schema.Object name ->
             case Dict.get name schema.objects of
                 Nothing ->
                     err [ error (ObjectUnknown name) ]
@@ -607,7 +601,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                         CanError errorMsg ->
                             CanError errorMsg
 
-        Type.Enum name ->
+        GraphQL.Schema.Enum name ->
             case Dict.get name schema.enums of
                 Nothing ->
                     err [ error (EnumUnknown name) ]
@@ -625,7 +619,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                             }
                         )
 
-        Type.Union name ->
+        GraphQL.Schema.Union name ->
             case Dict.get name schema.unions of
                 Nothing ->
                     err [ error (UnionUnknown name) ]
@@ -658,17 +652,17 @@ canonicalizeFieldType schema object field type_ selection originalType =
                                 CanError errorMsg ->
                                     CanError errorMsg
 
-        Type.Interface name ->
+        GraphQL.Schema.Interface name ->
             err [ todo "Field Interfaces!" ]
 
-        Type.List_ inner ->
+        GraphQL.Schema.List_ inner ->
             canonicalizeFieldType schema object field inner selection originalType
 
-        Type.Nullable inner ->
+        GraphQL.Schema.Nullable inner ->
             canonicalizeFieldType schema object field inner selection originalType
 
 
-extractUnionTags : List Union.Variant -> List String -> Maybe (List String)
+extractUnionTags : List GraphQL.Schema.Variant -> List String -> Maybe (List String)
 extractUnionTags vars captured =
     case vars of
         [] ->
@@ -676,14 +670,14 @@ extractUnionTags vars captured =
 
         top :: remain ->
             case top.kind of
-                Kind.Object name ->
+                GraphQL.Schema.ObjectKind name ->
                     extractUnionTags remain (name :: captured)
 
                 _ ->
                     Nothing
 
 
-canonicalizeUnionField : GraphQL.Schema.Schema -> Union.Union -> List String -> AST.Selection -> CanResult Can.Selection
+canonicalizeUnionField : GraphQL.Schema.Schema -> GraphQL.Schema.UnionDetails -> List String -> AST.Selection -> CanResult Can.Selection
 canonicalizeUnionField schema union remainingAllowedTags selection =
     case selection of
         AST.Field field ->
@@ -699,7 +693,7 @@ canonicalizeUnionField schema union remainingAllowedTags selection =
                         , name = convertName field.name
                         , arguments = []
                         , directives = List.map convertDirective field.directives
-                        , type_ = Type.Scalar "typename"
+                        , type_ = GraphQL.Schema.Scalar "typename"
                         }
                     )
 
