@@ -1,24 +1,10 @@
 module GraphQL.Operations.Mock exposing (generate)
 
-import Dict
-import Elm
-import Elm.Annotation as Type
-import Elm.Gen.GraphQL.Engine as Engine
-import Elm.Gen.Json.Decode as Decode
-import Elm.Gen.String
-import Elm.Pattern as Pattern
-import Generate.Args
-import Generate.Example
 import Generate.Input as Input
-import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Validate as Validate
-import GraphQL.Schema
-import GraphQL.Schema.Scalar
 import GraphQL.Schema.Type as SchemaType
 import Json.Encode
-import Set
-import Utils.String
 
 
 type alias Namespace =

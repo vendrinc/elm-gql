@@ -11,13 +11,11 @@ import Elm.Gen.Json.Decode as Decode
 import Elm.Gen.String
 import Elm.Pattern as Pattern
 import Generate.Args
-import Generate.Example
 import Generate.Input as Input
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Validate as Validate
 import GraphQL.Schema
-import GraphQL.Schema.Scalar
 import GraphQL.Schema.Type as SchemaType
 import Set
 import Utils.String

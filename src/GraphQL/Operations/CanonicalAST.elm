@@ -2,13 +2,7 @@ module GraphQL.Operations.CanonicalAST exposing (..)
 
 import Generate.Input
 import GraphQL.Operations.AST as AST
-import GraphQL.Schema.Enum as Enum
-import GraphQL.Schema.Field as Field
-import GraphQL.Schema.InputObject as Input
-import GraphQL.Schema.Interface as Interface
 import GraphQL.Schema.Object as Object
-import GraphQL.Schema.Operation as Operation
-import GraphQL.Schema.Scalar as Scalar
 import GraphQL.Schema.Type as Type
 import GraphQL.Schema.Union as Union
 

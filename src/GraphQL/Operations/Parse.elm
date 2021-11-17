@@ -3,7 +3,6 @@ module GraphQL.Operations.Parse exposing (..)
 import Char
 import GraphQL.Operations.AST as AST
 import Parser exposing (..)
-import Parser.Advanced
 import Set exposing (Set)
 
 

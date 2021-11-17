@@ -5,6 +5,7 @@ module GraphQL.Schema exposing
     , decoder
     , empty
     , get
+    , getJsonValue
     )
 
 import Dict exposing (Dict)
@@ -202,6 +203,22 @@ get url toMsg =
         , expect =
             Http.expectJson toMsg (Json.field "data" decoder)
         }
+
+getJsonValue : String -> (Result Http.Error Json.Value -> msg) -> Cmd msg
+getJsonValue url toMsg =
+    Http.post
+        { url = url
+        , body =
+            Http.jsonBody
+                (Json.Encode.object
+                    [ ( "query", Json.Encode.string introspection )
+                    ]
+                )
+        , expect =
+            Http.expectJson toMsg Json.value
+        }
+
+
 
 
 introspection : String
