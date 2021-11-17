@@ -5,6 +5,7 @@ module Generate exposing (main)
 import Dict
 import Elm
 import Elm.Gen
+import Elm.Annotation
 import Generate.Args
 import Generate.Enums
 import Generate.Input as Input
@@ -16,6 +17,7 @@ import Generate.Unions
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Generate
+import GraphQL.Operations.Mock as Mock
 import GraphQL.Operations.Parse
 import GraphQL.Operations.Validate
 import GraphQL.Schema
@@ -70,25 +72,37 @@ main =
                                           , input = input
                                           , namespace = details.namespace
                                           }
-                                        , GraphQL.Schema.get
+                                        , GraphQL.Schema.getJsonValue
                                             url
                                             (SchemaReceived details)
                                         )
 
-                                    Schema schema ->
+                                    Schema schemaAsJson schema ->
                                         ( { flags = flags
                                           , input = input
                                           , namespace = details.namespace
                                           }
-                                        , generateSchema details.namespace schema details
+                                        , generatePlatform details.namespace schema schemaAsJson details
                                         )
         , update =
             \msg model ->
                 case msg of
-                    SchemaReceived flagDetails (Ok schema) ->
-                        ( model
-                        , generateSchema model.namespace schema flagDetails
-                        )
+                    SchemaReceived flagDetails (Ok schemaJsonValue) ->
+                        case Json.Decode.decodeValue GraphQL.Schema.decoder schemaJsonValue of
+                            Ok schema ->
+                                ( model
+                                , generatePlatform model.namespace schema schemaJsonValue flagDetails
+                                )
+
+                            Err decodingError ->
+                                ( model
+                                , Elm.Gen.error
+                                    { title = "Error decoding schema"
+                                    , description =
+                                        "Something went wrong with decoding the schema.\n\n    " ++ Json.Decode.errorToString decodingError
+                                    }
+                                )
+
 
                     SchemaReceived flagDetails (Err err) ->
                         ( model
@@ -102,10 +116,9 @@ main =
         }
 
 
-generateSchema : String -> GraphQL.Schema.Schema -> FlagDetails -> Cmd Msg
-generateSchema namespace schema flagDetails =
+generatePlatform : String -> GraphQL.Schema.Schema -> Json.Encode.Value -> FlagDetails -> Cmd Msg
+generatePlatform namespace schema schemaAsJson flagDetails =
     let
-
         -- _ =
         --     Generate.Paged.generate namespace schema
         parsedGqlQueries =
@@ -137,7 +150,8 @@ generateSchema namespace schema flagDetails =
                         Generate.Operations.generateFiles namespace Input.Mutation schema
                 in
                 Elm.Gen.files
-                    (unionFiles
+                    (saveSchema namespace schemaAsJson 
+                        :: unionFiles
                         ++ enumFiles
                         ++ objectFiles
                         ++ queryFiles
@@ -148,7 +162,24 @@ generateSchema namespace schema flagDetails =
 
             else
                 Elm.Gen.files
-                    gqlFiles
+                    (saveSchema namespace schemaAsJson :: gqlFiles)
+
+saveSchema : String -> Json.Encode.Value -> Elm.File
+saveSchema namespace val =
+    Elm.file [ namespace, "Meta", "Schema"]
+        [ Elm.declaration "schema"
+            (Elm.apply 
+                (Elm.valueWith ["GraphQL", "Mock"] "schemaFromString" 
+                    (Elm.Annotation.function
+                        [ Elm.Annotation.string
+                        ]
+                        (Elm.Annotation.named ["GraphQL", "Mock"] "Schema" )
+                    )
+                )
+                [ Elm.string (Json.Encode.encode 4 val) ]
+            )
+            |> Elm.expose
+        ]
 
 
 parseGql : String -> GraphQL.Schema.Schema -> FlagDetails -> List { src : String, path : String } -> List Elm.File -> Result Error (List Elm.File)
@@ -174,13 +205,13 @@ flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.oneOf
         [ Json.Decode.map6
-            (\base namespace gql schemaUrl generatePlatform existingEnums ->
+            (\base namespace gql schemaUrl genPlatform existingEnums ->
                 Flags
                     { schema = schemaUrl
                     , gql = gql
                     , base = base
                     , namespace = namespace
-                    , generatePlatform = generatePlatform
+                    , generatePlatform = genPlatform
                     , existingEnumDefinitions = existingEnums
                     }
             )
@@ -212,12 +243,14 @@ flagsDecoder =
                                         Json.Decode.fail "Schema Url lacks http-based protocol"
                                 )
                         )
-                    , Json.Decode.map Schema GraphQL.Schema.decoder
+                    , Json.Decode.map2 Schema 
+                        Json.Decode.value
+                        GraphQL.Schema.decoder
                     ]
                 )
             )
             (Json.Decode.field "generatePlatform" Json.Decode.bool)
-            (Json.Decode.field "existingEnumDefinitions" 
+            (Json.Decode.field "existingEnumDefinitions"
                 Json.Decode.string
                 |> Json.Decode.maybe
             )
@@ -254,11 +287,11 @@ type alias Gql =
 
 type Schema
     = SchemaUrl String
-    | Schema GraphQL.Schema.Schema
+    | Schema Json.Encode.Value GraphQL.Schema.Schema
 
 
 type Msg
-    = SchemaReceived FlagDetails (Result Http.Error GraphQL.Schema.Schema)
+    = SchemaReceived FlagDetails (Result Http.Error Json.Encode.Value)
 
 
 httpErrorToString : Http.Error -> String
@@ -317,8 +350,9 @@ parseAndValidateQuery namespace schema flags gql =
                                 |> String.replace ".gql" ""
                                 |> Utils.String.formatTypename
                     in
-                    case GraphQL.Operations.Generate.generate 
-                            { namespace = 
+                    case
+                        GraphQL.Operations.Generate.generate
+                            { namespace =
                                 { namespace = namespace
                                 , enums = Maybe.withDefault namespace flags.existingEnumDefinitions
                                 }
@@ -326,8 +360,9 @@ parseAndValidateQuery namespace schema flags gql =
                             , base = flags.base
                             , queryStr = gql.src
                             , document = canAST
-                            , path = [ name ] 
-                            } of
+                            , path = [ name ]
+                            }
+                    of
                         Err validationError ->
                             Err
                                 { title = "Invalid query"
