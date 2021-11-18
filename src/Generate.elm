@@ -162,7 +162,7 @@ generatePlatform namespace schema schemaAsJson flagDetails =
 
             else
                 Elm.Gen.files
-                    (saveSchema namespace schemaAsJson :: gqlFiles)
+                    (gqlFiles)
 
 saveSchema : String -> Json.Encode.Value -> Elm.File
 saveSchema namespace val =
