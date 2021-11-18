@@ -25,7 +25,6 @@ import Dict exposing (Dict)
 import Http
 import Json.Decode as Json
 import Json.Encode
-import Utils.Json exposing (apply)
 
 
 
@@ -394,22 +393,22 @@ kinds names =
                         Json.map Mutation_Group decodeOperation |> Json.map Just
 
                     else
-                        Utils.Json.filterHidden (Json.map Object_Group decodeObject)
+                        filterHidden (Json.map Object_Group decodeObject)
 
                 "SCALAR" ->
-                    Utils.Json.filterHidden (Json.map Scalar_Group decodeScalar)
+                    filterHidden (Json.map Scalar_Group decodeScalar)
 
                 "INTERFACE" ->
-                    Utils.Json.filterHidden (Json.map Interface_Group decodeInterface)
+                    filterHidden (Json.map Interface_Group decodeInterface)
 
                 "INPUT_OBJECT" ->
-                    Utils.Json.filterHidden (Json.map InputObject_Group decodeInputObject)
+                    filterHidden (Json.map InputObject_Group decodeInputObject)
 
                 "ENUM" ->
-                    Utils.Json.filterHidden (Json.map Enum_Group decodeEnum)
+                    filterHidden (Json.map Enum_Group decodeEnum)
 
                 "UNION" ->
-                    Utils.Json.filterHidden (Json.map Union_Group decodeUnion)
+                    filterHidden (Json.map Union_Group decodeUnion)
 
                 _ ->
                     Json.fail ("Didnt recognize kind: " ++ k)
@@ -559,7 +558,7 @@ decodeScalar : Json.Decoder ScalarDetails
 decodeScalar =
     Json.map2 ScalarDetails
         (Json.field "name" Json.string)
-        (Json.field "description" (Json.maybe Utils.Json.nonEmptyString))
+        (Json.field "description" (Json.maybe nonEmptyString))
 
 
 kindFromNameAndString : String -> String -> Json.Decoder Kind
@@ -645,7 +644,7 @@ decodeUnion : Json.Decoder UnionDetails
 decodeUnion =
     Json.map3 UnionDetails
         (Json.field "name" Json.string)
-        (Json.field "description" (Json.maybe Utils.Json.nonEmptyString))
+        (Json.field "description" (Json.maybe nonEmptyString))
         (Json.field "possibleTypes" (Json.list decodeVariant))
 
 
@@ -659,7 +658,7 @@ decodeObject : Json.Decoder ObjectDetails
 decodeObject =
     Json.map4 ObjectDetails
         (Json.field "name" Json.string)
-        (Json.field "description" (Json.maybe Utils.Json.nonEmptyString))
+        (Json.field "description" (Json.maybe nonEmptyString))
         (Json.field "fields" (Json.list decodeField))
         (Json.field "interfaces" (Json.list decodeInterfaceKind))
 
@@ -674,7 +673,7 @@ decodeEnum : Json.Decoder EnumDetails
 decodeEnum =
     Json.map3 EnumDetails
         (Json.field "name" Json.string)
-        (Json.field "description" (Json.maybe Utils.Json.nonEmptyString))
+        (Json.field "description" (Json.maybe nonEmptyString))
         (Json.field "enumValues" (Json.list decodeValue))
 
 
@@ -682,7 +681,7 @@ decodeValue : Json.Decoder Value
 decodeValue =
     Json.map2 Value
         (Json.field "name" Json.string)
-        (Json.field "description" (Json.maybe Utils.Json.nonEmptyString))
+        (Json.field "description" (Json.maybe nonEmptyString))
 
 
 decodeOperation : Json.Decoder (Dict String Operation)
@@ -709,11 +708,11 @@ decodeOperation =
 
 internalOperationDecoder : Json.Decoder (Maybe Operation)
 internalOperationDecoder =
-    Utils.Json.filterHidden <|
+    filterHidden <|
         Json.map6 Operation
             (Json.field "name" Json.string)
             decodeDeprecation
-            (Json.field "description" (Json.maybe Utils.Json.nonEmptyString))
+            (Json.field "description" (Json.maybe nonEmptyString))
             (Json.field "args" (Json.list decodeArgument))
             (Json.field "type" decodeType)
             decodePermission
@@ -727,7 +726,7 @@ decodeField : Json.Decoder Field
 decodeField =
     Json.map5 Field
         (Json.field "name" Json.string)
-        (Json.field "description" (Json.maybe Utils.Json.nonEmptyString))
+        (Json.field "description" (Json.maybe nonEmptyString))
         --(Json.field "args" (Json.list GraphQL.Schema.Argument.decoder))
         (Json.succeed [])
         (Json.field "type" decodeType)
@@ -781,7 +780,7 @@ decodeInputObject : Json.Decoder InputObjectDetails
 decodeInputObject =
     Json.map3 InputObjectDetails
         (Json.field "name" Json.string)
-        (Json.field "description" (Json.maybe Utils.Json.nonEmptyString))
+        (Json.field "description" (Json.maybe nonEmptyString))
         (Json.field "inputFields" (Json.list decodeField))
 
 
@@ -789,7 +788,7 @@ decodeArgument : Json.Decoder Argument
 decodeArgument =
     Json.map3 Argument
         (Json.field "name" Json.string)
-        (Json.field "description" (Json.maybe Utils.Json.nonEmptyString))
+        (Json.field "description" (Json.maybe nonEmptyString))
         (Json.field "type" decodeType)
 
 
@@ -936,3 +935,43 @@ invert_ wrappedInNull inner =
 
         Inner_Interface value ->
             nullable (Interface value)
+
+
+
+{- JSON helpers -}
+
+
+apply : Json.Decoder a -> Json.Decoder (a -> b) -> Json.Decoder b
+apply =
+    Json.map2 (|>)
+
+
+nonEmptyString : Json.Decoder String
+nonEmptyString =
+    Json.string
+        |> Json.andThen
+            (\str ->
+                if String.isEmpty (String.trim str) then
+                    Json.fail "String was empty."
+
+                else
+                    Json.succeed str
+            )
+
+
+filterHidden : Json.Decoder value -> Json.Decoder (Maybe value)
+filterHidden decoder_ =
+    let
+        filterByDirectives : Dict String Json.Value -> Json.Decoder (Maybe value)
+        filterByDirectives directives =
+            if [ "NoDocs", "Unimplemented" ] |> List.any (\d -> Dict.member d directives) then
+                Json.succeed Nothing
+
+            else
+                Json.map Just decoder_
+    in
+    Json.oneOf
+        [ Json.field "directives" (Json.dict Json.value)
+            |> Json.andThen filterByDirectives
+        , Json.map Just decoder_
+        ]
