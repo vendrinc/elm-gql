@@ -3,7 +3,6 @@ module GraphQL.Operations.Canonicalize exposing (canonicalize, errorToString)
 {-| -}
 
 import Dict exposing (Dict)
-import Generate.Input
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
@@ -406,7 +405,7 @@ canonicalizeOperation schema op selection =
                                                             , directives = List.map convertDirective field.directives
                                                             , selection = canSelection
                                                             , object = obj
-                                                            , wrapper = Generate.Input.getWrap query.type_
+                                                            , wrapper = GraphQL.Schema.getWrap query.type_
                                                             }
                                                         )
 
@@ -453,7 +452,7 @@ canonicalizeOperation schema op selection =
                                                             , directives = List.map convertDirective field.directives
                                                             , selection = canSelection
                                                             , union = union
-                                                            , wrapper = Generate.Input.getWrap query.type_
+                                                            , wrapper = GraphQL.Schema.getWrap query.type_
                                                             }
                                                         )
 
@@ -594,7 +593,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                                     , directives = List.map convertDirective field.directives
                                     , selection = canSelection
                                     , object = obj
-                                    , wrapper = Generate.Input.getWrap originalType
+                                    , wrapper = GraphQL.Schema.getWrap originalType
                                     }
                                 )
 
@@ -615,7 +614,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                             , directives = List.map convertDirective field.directives
                             , enumName = enum.name
                             , values = enum.values
-                            , wrapper = Generate.Input.getWrap originalType
+                            , wrapper = GraphQL.Schema.getWrap originalType
                             }
                         )
 
@@ -645,7 +644,7 @@ canonicalizeFieldType schema object field type_ selection originalType =
                                             , directives = List.map convertDirective field.directives
                                             , selection = canSelection
                                             , union = union
-                                            , wrapper = Generate.Input.getWrap originalType
+                                            , wrapper = GraphQL.Schema.getWrap originalType
                                             }
                                         )
 

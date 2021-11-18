@@ -48,10 +48,12 @@ selectionLocal namespace name data =
         [ data ]
 
 
+ref : String -> String -> Elm.Annotation.Annotation
 ref namespace name =
     Elm.Annotation.named [ namespace ] name
 
 
+local : String -> String -> Elm.Annotation.Annotation
 local namespace name =
     Elm.Annotation.named [] name
 

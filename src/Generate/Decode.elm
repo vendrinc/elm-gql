@@ -3,7 +3,7 @@ module Generate.Decode exposing (scalar)
 import Elm
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Json
-import Generate.Input exposing (Wrapped(..))
+import GraphQL.Schema exposing (Wrapped(..))
 import Utils.String
 
 

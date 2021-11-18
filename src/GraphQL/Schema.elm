@@ -3,6 +3,7 @@ module GraphQL.Schema exposing
     , Mutation, Query, decoder, empty
     , Kind(..), Schema, Type(..)
     , mockScalar
+    , Wrapped(..), getWrap
     , Argument, Field, InputObjectDetails, ObjectDetails, Operation, UnionDetails, Variant, kindToString, typeToElmString, typeToString
     )
 
@@ -15,6 +16,8 @@ module GraphQL.Schema exposing
 @docs Kind, Schema, Type
 
 @docs mockScalar
+
+@docs Wrapped, getWrap
 
 -}
 
@@ -152,6 +155,40 @@ type alias Operation =
 
 
 {- Helpers -}
+
+
+type OperationType
+    = Query
+    | Mutation
+
+
+operationTypeToString : OperationType -> String
+operationTypeToString op =
+    case op of
+        Query ->
+            "Query"
+
+        Mutation ->
+            "Mutation"
+
+
+type Wrapped
+    = UnwrappedValue
+    | InList Wrapped
+    | InMaybe Wrapped
+
+
+getWrap : Type -> Wrapped
+getWrap type_ =
+    case type_ of
+        Nullable newType ->
+            InMaybe (getWrap newType)
+
+        List_ newType ->
+            InList (getWrap newType)
+
+        _ ->
+            UnwrappedValue
 
 
 mockScalar : Type -> Json.Encode.Value

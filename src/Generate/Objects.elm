@@ -7,7 +7,6 @@ import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Json
 import Generate.Common as Common
 import Generate.Decode
-import Generate.Input as Input exposing (Wrapped(..))
 import GraphQL.Schema
 import Utils.String
 
@@ -30,7 +29,7 @@ objectToModule namespace object =
                                     object.name
                                     field.name
                                     field.type_
-                                    (Input.getWrap field.type_)
+                                    (GraphQL.Schema.getWrap field.type_)
                         in
                         ( field.name, implemented.annotation, implemented.expression ) :: accDecls
                     )
@@ -70,7 +69,7 @@ implementField :
     -> String
     -> String
     -> GraphQL.Schema.Type
-    -> Wrapped
+    -> GraphQL.Schema.Wrapped
     ->
         { expression : Elm.Expression
         , annotation : Elm.Annotation.Annotation
@@ -191,30 +190,30 @@ implementField namespace objectName fieldName fieldType wrapped =
             }
 
 
-wrapAnnotation : Wrapped -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
+wrapAnnotation : GraphQL.Schema.Wrapped -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
 wrapAnnotation wrap signature =
     case wrap of
-        UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             signature
 
-        InList inner ->
+        GraphQL.Schema.InList inner ->
             Elm.Annotation.list (wrapAnnotation inner signature)
 
-        InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             Elm.Annotation.maybe (wrapAnnotation inner signature)
 
 
-wrapExpression : Wrapped -> Elm.Expression -> Elm.Expression
+wrapExpression : GraphQL.Schema.Wrapped -> Elm.Expression -> Elm.Expression
 wrapExpression wrap exp =
     case wrap of
-        UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             exp
 
-        InList inner ->
+        GraphQL.Schema.InList inner ->
             Engine.list
                 (wrapExpression inner exp)
 
-        InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             Engine.nullable
                 (wrapExpression inner exp)
 
@@ -222,7 +221,7 @@ wrapExpression wrap exp =
 fieldSignature :
     String
     -> String
-    -> Wrapped
+    -> GraphQL.Schema.Wrapped
     -> GraphQL.Schema.Type
     ->
         { annotation : Elm.Annotation.Annotation
@@ -242,17 +241,17 @@ fieldSignature namespace objectName wrapped fieldType =
     }
 
 
-decodeWrapper : Wrapped -> Elm.Expression -> Elm.Expression
+decodeWrapper : GraphQL.Schema.Wrapped -> Elm.Expression -> Elm.Expression
 decodeWrapper wrap exp =
     case wrap of
-        UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             exp
 
-        InList inner ->
+        GraphQL.Schema.InList inner ->
             Json.list
                 (decodeWrapper inner exp)
 
-        InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             Engine.decodeNullable
                 (decodeWrapper inner exp)
 

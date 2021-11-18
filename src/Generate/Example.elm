@@ -276,7 +276,7 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
                                     schema
                                     called
                                     unnullifiedType
-                                    Generate.Input.UnwrappedValue
+                                    GraphQL.Schema.UnwrappedValue
                         in
                         case innerRequired of
                             Nothing ->
@@ -338,7 +338,7 @@ requiredArgsExample namespace schema name called fields =
                             schema
                             called
                             field.type_
-                            Generate.Input.UnwrappedValue
+                            GraphQL.Schema.UnwrappedValue
                 in
                 case innerContent of
                     Nothing ->
@@ -376,15 +376,15 @@ requiredArgsExampleHelper :
     -> GraphQL.Schema.Schema
     -> Set String
     -> GraphQL.Schema.Type
-    -> Generate.Input.Wrapped
+    -> GraphQL.Schema.Wrapped
     -> Maybe Elm.Expression
 requiredArgsExampleHelper namespace schema called type_ wrapped =
     case type_ of
         GraphQL.Schema.Nullable newType ->
-            requiredArgsExampleHelper namespace schema called newType (Generate.Input.InMaybe wrapped)
+            requiredArgsExampleHelper namespace schema called newType (GraphQL.Schema.InMaybe wrapped)
 
         GraphQL.Schema.List_ newType ->
-            requiredArgsExampleHelper namespace schema called newType (Generate.Input.InList wrapped)
+            requiredArgsExampleHelper namespace schema called newType (GraphQL.Schema.InList wrapped)
 
         GraphQL.Schema.Scalar scalarName ->
             scalarExample scalarName
@@ -424,7 +424,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
                                                         schema
                                                         newCalled
                                                         field.type_
-                                                        Generate.Input.UnwrappedValue
+                                                        GraphQL.Schema.UnwrappedValue
                                             in
                                             case innerContent of
                                                 Nothing ->

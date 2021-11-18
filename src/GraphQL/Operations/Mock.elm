@@ -1,8 +1,6 @@
-module GraphQL.Operations.Mock exposing (generate)
+module GraphQL.Operations.Mock exposing (Error(..), generate)
 
-import Generate.Input as Input
 import GraphQL.Operations.CanonicalAST as Can
-import GraphQL.Operations.Validate as Validate
 import GraphQL.Schema as Schema
 import Json.Encode
 
@@ -13,11 +11,15 @@ type alias Namespace =
     }
 
 
+type Error
+    = Error
+
+
 generate :
     Can.Document
     ->
         Result
-            (List Validate.Error)
+            (List Error)
             (List { name : String, body : Json.Encode.Value })
 generate doc =
     Ok (List.map definition doc.definitions)
@@ -110,16 +112,16 @@ encodeField typename field =
             List.concatMap (encodeField typename) details.selection
 
 
-wrapEncoder : Input.Wrapped -> Json.Encode.Value -> Json.Encode.Value
+wrapEncoder : Schema.Wrapped -> Json.Encode.Value -> Json.Encode.Value
 wrapEncoder wrapped val =
     case wrapped of
-        Input.UnwrappedValue ->
+        Schema.UnwrappedValue ->
             val
 
-        Input.InList inner ->
+        Schema.InList inner ->
             Json.Encode.list identity [ wrapEncoder inner val ]
 
-        Input.InMaybe inner ->
+        Schema.InMaybe inner ->
             wrapEncoder inner val
 
 

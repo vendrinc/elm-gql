@@ -1,6 +1,5 @@
 module GraphQL.Operations.CanonicalAST exposing (..)
 
-import Generate.Input
 import GraphQL.Operations.AST as AST
 import GraphQL.Schema
 
@@ -77,7 +76,7 @@ type alias FieldObjectDetails =
     , directives : List Directive
     , selection : List Selection
     , object : GraphQL.Schema.ObjectDetails
-    , wrapper : Generate.Input.Wrapped
+    , wrapper : GraphQL.Schema.Wrapped
     }
 
 
@@ -88,7 +87,7 @@ type alias FieldUnionDetails =
     , directives : List Directive
     , selection : List Selection
     , union : GraphQL.Schema.UnionDetails
-    , wrapper : Generate.Input.Wrapped
+    , wrapper : GraphQL.Schema.Wrapped
     }
 
 
@@ -108,7 +107,7 @@ type alias FieldEnumDetails =
     , directives : List Directive
     , enumName : String
     , values : List { name : String, description : Maybe String }
-    , wrapper : Generate.Input.Wrapped
+    , wrapper : GraphQL.Schema.Wrapped
     }
 
 

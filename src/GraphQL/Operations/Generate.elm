@@ -793,6 +793,7 @@ fieldParameters field =
     ( Pattern.var name, Type.unit )
 
 
+buildRecordFromVariantFields : Can.Selection -> Elm.Field
 buildRecordFromVariantFields field =
     let
         name =

@@ -8,7 +8,7 @@ import Elm.Annotation as Type
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Decode
 import GraphQL.Operations.AST as Ast
-import GraphQL.Schema
+import GraphQL.Schema exposing (Wrapped(..))
 import String
 
 
@@ -25,25 +25,6 @@ operationToString op =
 
         Mutation ->
             "Mutation"
-
-
-type Wrapped
-    = UnwrappedValue
-    | InList Wrapped
-    | InMaybe Wrapped
-
-
-getWrap : GraphQL.Schema.Type -> Wrapped
-getWrap type_ =
-    case type_ of
-        GraphQL.Schema.Nullable newType ->
-            InMaybe (getWrap newType)
-
-        GraphQL.Schema.List_ newType ->
-            InList (getWrap newType)
-
-        _ ->
-            UnwrappedValue
 
 
 gqlType : Wrapped -> String -> String

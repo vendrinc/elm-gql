@@ -30,20 +30,20 @@ embeddedOptionsFieldName =
     "with_"
 
 
-encodeScalar : String -> Input.Wrapped -> (Elm.Expression -> Elm.Expression)
+encodeScalar : String -> GraphQL.Schema.Wrapped -> (Elm.Expression -> Elm.Expression)
 encodeScalar scalarName wrapped =
     case wrapped of
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             Encode.list
                 (encodeScalar scalarName inner)
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             Engine.maybeScalarEncode
                 (encodeScalar scalarName
                     inner
                 )
 
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             let
                 lowered =
                     String.toLower scalarName
@@ -72,35 +72,35 @@ encodeScalar scalarName wrapped =
 
 
 unwrapWith :
-    Input.Wrapped
+    GraphQL.Schema.Wrapped
     -> Elm.Annotation.Annotation
     -> Elm.Annotation.Annotation
 unwrapWith wrapped expression =
     case wrapped of
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             Elm.Annotation.list
                 (unwrapWith inner expression)
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             Elm.Annotation.maybe
                 (unwrapWith inner expression)
 
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             expression
 
 
-scalarType : Input.Wrapped -> String -> Elm.Annotation.Annotation
+scalarType : GraphQL.Schema.Wrapped -> String -> Elm.Annotation.Annotation
 scalarType wrapped scalarName =
     case wrapped of
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             Elm.Annotation.list
                 (scalarType inner scalarName)
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             Elm.Annotation.maybe
                 (scalarType inner scalarName)
 
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             let
                 lowered =
                     String.toLower scalarName
@@ -147,7 +147,7 @@ recursiveRequiredAnnotation namespace schema reqs =
         (List.map
             (\field ->
                 ( field.name
-                , inputAnnotationRecursive namespace schema field.type_ (Input.getWrap field.type_)
+                , inputAnnotationRecursive namespace schema field.type_ (GraphQL.Schema.getWrap field.type_)
                 )
             )
             reqs
@@ -166,7 +166,7 @@ prepareRequiredRecursive namespace schema argument =
             namespace
             schema
             argument.type_
-            (Input.getWrap argument.type_)
+            (GraphQL.Schema.getWrap argument.type_)
             (Elm.get argument.name (Elm.value "required"))
         )
 
@@ -395,8 +395,8 @@ optionsRecursiveHelper namespace schema name options fields =
         arg :: remain ->
             let
                 wrapping =
-                    case Input.getWrap arg.type_ of
-                        Input.InMaybe inner ->
+                    case GraphQL.Schema.getWrap arg.type_ of
+                        GraphQL.Schema.InMaybe inner ->
                             inner
 
                         otherwise ->
@@ -429,7 +429,7 @@ optionsRecursiveHelper namespace schema name options fields =
                 )
 
 
-inputAnnotationRecursive : String -> GraphQL.Schema.Schema -> GraphQL.Schema.Type -> Input.Wrapped -> Elm.Annotation.Annotation
+inputAnnotationRecursive : String -> GraphQL.Schema.Schema -> GraphQL.Schema.Type -> GraphQL.Schema.Wrapped -> Elm.Annotation.Annotation
 inputAnnotationRecursive namespace schema type_ wrapped =
     case type_ of
         GraphQL.Schema.Nullable newType ->
@@ -483,7 +483,7 @@ inputObjectAnnotation :
     String
     -> GraphQL.Schema.Schema
     -> GraphQL.Schema.InputObjectDetails
-    -> Input.Wrapped
+    -> GraphQL.Schema.Wrapped
     -> { ergonomicOptionType : Bool }
     -> Elm.Annotation.Annotation
 inputObjectAnnotation namespace schema input wrapped optForm =
@@ -501,7 +501,7 @@ inputObjectAnnotation namespace schema input wrapped optForm =
                 (List.map
                     (\field ->
                         ( field.name
-                        , inputAnnotationRecursive namespace schema field.type_ (Input.getWrap field.type_)
+                        , inputAnnotationRecursive namespace schema field.type_ (GraphQL.Schema.getWrap field.type_)
                         )
                     )
                     input.fields
@@ -524,7 +524,7 @@ inputObjectAnnotation namespace schema input wrapped optForm =
                 (List.map
                     (\field ->
                         ( field.name
-                        , inputAnnotationRecursive namespace schema field.type_ (Input.getWrap field.type_)
+                        , inputAnnotationRecursive namespace schema field.type_ (GraphQL.Schema.getWrap field.type_)
                         )
                     )
                     required
@@ -552,7 +552,7 @@ toJsonValue :
     Namespace
     -> GraphQL.Schema.Schema
     -> GraphQL.Schema.Type
-    -> Input.Wrapped
+    -> GraphQL.Schema.Wrapped
     -> Elm.Expression
     -> Elm.Expression
 toJsonValue namespace schema fieldType wrapped val =
@@ -615,7 +615,7 @@ toJsonValue namespace schema fieldType wrapped val =
                                                             (toJsonValue namespace
                                                                 schema
                                                                 field.type_
-                                                                (Input.getWrap field.type_)
+                                                                (GraphQL.Schema.getWrap field.type_)
                                                                 (Elm.get field.name v)
                                                             )
                                                     )
@@ -646,13 +646,13 @@ toJsonValue namespace schema fieldType wrapped val =
 
 
 {-| -}
-encodeWrappedJsonValue : String -> Input.Wrapped -> (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
+encodeWrappedJsonValue : String -> GraphQL.Schema.Wrapped -> (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 encodeWrappedJsonValue inputName wrapper encoder val =
     case wrapper of
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             encoder val
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             let
                 valName =
                     addCount inner (Utils.String.formatValue inputName)
@@ -666,7 +666,7 @@ encodeWrappedJsonValue inputName wrapper encoder val =
                   )
                 ]
 
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             let
                 valName =
                     addCount inner (Utils.String.formatValue inputName)
@@ -701,7 +701,7 @@ toEngineArg :
     String
     -> GraphQL.Schema.Schema
     -> GraphQL.Schema.Type
-    -> Input.Wrapped
+    -> GraphQL.Schema.Wrapped
     -> Elm.Expression
     -> Elm.Expression
 toEngineArg namespace schema fieldType wrapped val =
@@ -776,7 +776,7 @@ toEngineArg namespace schema fieldType wrapped val =
                                                             (toEngineArg namespace
                                                                 schema
                                                                 field.type_
-                                                                (Input.getWrap field.type_)
+                                                                (GraphQL.Schema.getWrap field.type_)
                                                                 (Elm.get field.name v)
                                                             )
                                                     )
@@ -794,7 +794,7 @@ toEngineArg namespace schema fieldType wrapped val =
                                              else
                                                 requiredVals
                                             )
-                                            (Elm.string (Input.gqlType Input.UnwrappedValue input.name))
+                                            (Elm.string (Input.gqlType GraphQL.Schema.UnwrappedValue input.name))
                                     )
                                     val
 
@@ -808,10 +808,10 @@ toEngineArg namespace schema fieldType wrapped val =
             Elm.string "Interfaces cant be in inputs"
 
 
-encodeInputObjectArg : String -> Input.Wrapped -> Elm.Expression -> Int -> Elm.Expression
+encodeInputObjectArg : String -> GraphQL.Schema.Wrapped -> Elm.Expression -> Int -> Elm.Expression
 encodeInputObjectArg inputName wrapper val level =
     case wrapper of
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             -- encoder val
             Engine.encodeInputObject
                 (Engine.encodeOptionals
@@ -820,7 +820,7 @@ encodeInputObjectArg inputName wrapper val level =
                 (Elm.string inputName)
                 |> Engine.encodeArgument
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             Engine.maybeScalarEncode
                 (\_ ->
                     Elm.lambda ("o" ++ String.fromInt level)
@@ -831,7 +831,7 @@ encodeInputObjectArg inputName wrapper val level =
                 )
                 val
 
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             Encode.list
                 (\_ ->
                     Elm.lambda ("o" ++ String.fromInt level)
@@ -846,7 +846,7 @@ encodeInputObjectArg inputName wrapper val level =
 encodeInput :
     String
     -> GraphQL.Schema.Type
-    -> Input.Wrapped
+    -> GraphQL.Schema.Wrapped
     -> Elm.Expression
     -> Elm.Expression
 encodeInput namespace fieldType wrapped val =
@@ -906,16 +906,16 @@ encodeInput namespace fieldType wrapped val =
             Elm.string "Interfaces cant be in inputs"
 
 
-inputTypeWrappedToString : Input.Wrapped -> String -> String
+inputTypeWrappedToString : GraphQL.Schema.Wrapped -> String -> String
 inputTypeWrappedToString wrapped base =
     case wrapped of
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             base
 
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             "[" ++ inputTypeWrappedToString inner base ++ "]"
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             inputTypeWrappedToString inner base
 
 
@@ -963,13 +963,13 @@ inputTypeToString type_ =
             val
 
 -}
-wrapGet : Input.Wrapped -> String -> Elm.Expression -> Elm.Expression
+wrapGet : GraphQL.Schema.Wrapped -> String -> Elm.Expression -> Elm.Expression
 wrapGet wrapped selector val =
     case wrapped of
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             Elm.get selector val
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             Elm.Gen.Maybe.map
                 (\v ->
                     Elm.lambda "inner"
@@ -980,7 +980,7 @@ wrapGet wrapped selector val =
                 )
                 val
 
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             Elm.Gen.List.map
                 (\v ->
                     Elm.lambda "inner"
@@ -1013,13 +1013,13 @@ wrapGet wrapped selector val =
                     Engine.arg Encode.null "Actual type"
 
 -}
-encodeWrappedArgument : String -> Input.Wrapped -> (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
+encodeWrappedArgument : String -> GraphQL.Schema.Wrapped -> (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
 encodeWrappedArgument inputName wrapper encoder val =
     case wrapper of
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             encoder val
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             let
                 valName =
                     addCount inner (Utils.String.formatValue inputName)
@@ -1033,7 +1033,7 @@ encodeWrappedArgument inputName wrapper encoder val =
                   )
                 ]
 
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             let
                 valName =
                     addCount inner (Utils.String.formatValue inputName)
@@ -1052,55 +1052,55 @@ encodeWrappedArgument inputName wrapper encoder val =
                 (Elm.string (Input.gqlType wrapper inputName))
 
 
-addCount : Input.Wrapped -> String -> String
+addCount : GraphQL.Schema.Wrapped -> String -> String
 addCount wrapped str =
     str ++ String.fromInt (countRemainingDepth wrapped 1)
 
 
-countRemainingDepth : Input.Wrapped -> Int -> Int
+countRemainingDepth : GraphQL.Schema.Wrapped -> Int -> Int
 countRemainingDepth wrapped i =
     case wrapped of
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             i
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             countRemainingDepth inner (i + 1)
 
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             countRemainingDepth inner (i + 1)
 
 
 encodeWrapped :
-    Input.Wrapped
+    GraphQL.Schema.Wrapped
     -> (Elm.Expression -> Elm.Expression)
     -> Elm.Expression
     -> Elm.Expression
 encodeWrapped wrapper encoder val =
     case wrapper of
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             encoder val
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             encodeWrapped inner (Engine.maybeScalarEncode encoder) val
 
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             encodeWrapped inner (Encode.list encoder) val
 
 
 encodeWrappedInverted :
-    Input.Wrapped
+    GraphQL.Schema.Wrapped
     -> (Elm.Expression -> Elm.Expression)
     -> Elm.Expression
     -> Elm.Expression
 encodeWrappedInverted wrapper encoder val =
     case wrapper of
-        Input.UnwrappedValue ->
+        GraphQL.Schema.UnwrappedValue ->
             encoder val
 
-        Input.InMaybe inner ->
+        GraphQL.Schema.InMaybe inner ->
             Engine.maybeScalarEncode (encodeWrappedInverted inner encoder) val
 
-        Input.InList inner ->
+        GraphQL.Schema.InList inner ->
             Encode.list (encodeWrappedInverted inner encoder) val
 
 
@@ -1114,7 +1114,7 @@ annotation :
     -> GraphQL.Schema.InputObjectDetails
     -> Elm.Annotation.Annotation
 annotation namespace schema input =
-    inputObjectAnnotation namespace schema input Input.UnwrappedValue { ergonomicOptionType = True }
+    inputObjectAnnotation namespace schema input GraphQL.Schema.UnwrappedValue { ergonomicOptionType = True }
 
 
 {-| -}
@@ -1199,7 +1199,7 @@ createBuilder namespace schema name arguments returnType operation =
             else
                 Generate.Decode.scalar
                     (GraphQL.Schema.typeToString returnType)
-                    (Input.getWrap returnType)
+                    (GraphQL.Schema.getWrap returnType)
                     |> Engine.decode
 
         returnAnnotation =
