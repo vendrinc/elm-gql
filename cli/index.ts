@@ -5,6 +5,14 @@ import chalk from "chalk";
 import { XMLHttpRequest } from "./vendor/XMLHttpRequest";
 const schema_generator = require("./generators/schema");
 import engine from "./templates/Engine.elm"
+import mock from "./templates/Mock.elm"
+import schemaModule from "./templates/Schema.elm"
+import opsAST from "./templates/Operations/AST.elm"
+import opsMock from "./templates/Operations/Mock.elm"
+import opsCanAST from "./templates/Operations/CanonicalAST.elm"
+import opsParse from "./templates/Operations/Parse.elm"
+import opsCanonicalize from "./templates/Operations/Canonicalize.elm"
+
 
 // We have to stub this in the allow Elm the ability to make http requests.
 // @ts-ignore
@@ -113,8 +121,22 @@ async function action(options: Options, com: any) {
   }
 
   // Copy gql engine to target dir 
-  fs.mkdirSync(path.join(options.output, "GraphQL"), { recursive: true });
+  fs.mkdirSync(path.join(options.output, "GraphQL", "Operations"), { recursive: true });
+
+  // Standard engine
   fs.writeFileSync(path.join(options.output, "GraphQL", "Engine.elm"), engine())
+
+  // Everything required for auto-mocking
+  fs.writeFileSync(path.join(options.output, "GraphQL", "Mock.elm"), mock())
+  fs.writeFileSync(path.join(options.output, "GraphQL", "Schema.elm"), schemaModule())
+
+  const ops = path.join(options.output, "GraphQL", "Operations")
+  fs.writeFileSync(path.join(ops, "Mock.elm"), opsMock())
+  fs.writeFileSync(path.join(ops, "AST.elm"), opsAST())
+  fs.writeFileSync(path.join(ops, "Parse.elm"), opsParse())
+  fs.writeFileSync(path.join(ops, "CanonicalAST.elm"), opsCanAST())
+  fs.writeFileSync(path.join(ops, "Canonicalize.elm"), opsCanonicalize())
+
 
 
   // Generate the Elm form of the schema that can be used to construc queries
