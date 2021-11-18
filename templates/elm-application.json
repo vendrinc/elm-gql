@@ -1,5 +1,5 @@
 {
-    "name": "ryannhg/elm-graphql",
+    "name": "Blissfully/elm-graphql",
     "summary": "Elm GraphQL Engine",
     "version": "1.0.0",
     "exposed-modules": [
