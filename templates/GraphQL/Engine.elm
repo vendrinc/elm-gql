@@ -11,7 +11,7 @@ module GraphQL.Engine exposing
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeInputObject, encodeArgument
     , decodeNullable, getGql, mapPremade
-    , unsafe, selectTypeNameButSkip
+    , unsafe, selectTypeNameButSkip, requestDetails
     )
 
 {-|
@@ -30,7 +30,7 @@ module GraphQL.Engine exposing
 
 @docs Query, query, Mutation, mutation, Error
 
-@docs prebakedQuery, Premade, premadeOperation
+@docs prebakedQuery, Premade, premadeOperation, requestDetails
 
 @docs queryString
 
@@ -744,6 +744,43 @@ premadeOperation sel config =
         , timeout = config.timeout
         , tracker = config.tracker
         }
+
+
+{-| 
+Return details that can be directly given to `Http.request`.
+
+This is so that wiring up [Elm Program Test](https://package.elm-lang.org/packages/avh4/elm-program-test/latest/ProgramTest) is relatively easy.
+
+
+-}
+requestDetails :
+    Premade value
+    ->
+        { headers : List Http.Header
+        , url : String
+        , timeout : Maybe Float
+        , tracker : Maybe String
+        }
+    -> 
+        { method : String
+        , headers : List Http.Header
+        , url : String
+        , body : Http.Body
+        , expect : Http.Expect (Result Error value)
+        , timeout : Maybe Float
+        , tracker : Maybe String
+        }
+requestDetails sel config =
+    { method = "POST"
+    , headers = config.headers
+    , url = config.url
+    , body = bodyPremade sel
+    , expect = expectPremade sel
+    , timeout = config.timeout
+    , tracker = config.tracker
+    }
+
+
 
 
 {-| -}
