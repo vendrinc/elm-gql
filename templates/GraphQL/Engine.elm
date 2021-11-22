@@ -11,7 +11,7 @@ module GraphQL.Engine exposing
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeInputObject, encodeArgument
     , decodeNullable, getGql, mapPremade
-    , unsafe, selectTypeNameButSkip, requestDetails
+    , unsafe, selectTypeNameButSkip, toRequest, send, simulate
     )
 
 {-|
@@ -30,7 +30,7 @@ module GraphQL.Engine exposing
 
 @docs Query, query, Mutation, mutation, Error
 
-@docs prebakedQuery, Premade, premadeOperation, requestDetails
+@docs prebakedQuery, Premade, premadeOperation
 
 @docs queryString
 
@@ -39,7 +39,10 @@ module GraphQL.Engine exposing
 @docs encodeOptionals, encodeInputObject, encodeArgument
 
 @docs decodeNullable, getGql, mapPremade
+
 @docs unsafe, selectTypeNameButSkip
+
+@docs toRequest, send, simulate
 
 -}
 
@@ -739,10 +742,22 @@ premadeOperation sel config =
         { method = "POST"
         , headers = config.headers
         , url = config.url
-        , body = bodyPremade sel
+        , body = Http.jsonBody (bodyPremade sel)
         , expect = expectPremade sel
         , timeout = config.timeout
         , tracker = config.tracker
+        }
+
+
+type Request value =
+    Request 
+        { method : String
+        , headers : List (String,String)
+        , url : String
+        , body : Encode.Value
+        , expect : Http.Response String -> Result Error value
+        , timeout : Maybe Float
+        , tracker : Maybe String
         }
 
 
@@ -753,32 +768,70 @@ This is so that wiring up [Elm Program Test](https://package.elm-lang.org/packag
 
 
 -}
-requestDetails :
+toRequest :
     Premade value
     ->
-        { headers : List Http.Header
+        { headers : List (String,String)
         , url : String
         , timeout : Maybe Float
         , tracker : Maybe String
         }
-    -> 
+    -> Request value
+toRequest sel config =
+    Request
+        { method = "POST"
+        , headers = config.headers
+        , url = config.url
+        , body = bodyPremade sel
+        , expect = decodePremade sel
+        , timeout = config.timeout
+        , tracker = config.tracker
+        }
+
+
+{-|-}
+send : Request data -> Cmd (Result Error data)
+send (Request req) =
+    Http.request
+        { method = req.method
+        , headers = List.map (\(key, val) -> Http.header key val) req.headers
+        , url = req.url
+        , body = Http.jsonBody req.body
+        , expect =  
+            Http.expectStringResponse identity req.expect
+        , timeout = req.timeout
+        , tracker = req.tracker
+        }
+
+
+{-|-}
+simulate : 
+    { toHeader : String -> String -> header
+    , toExpectation : (Http.Response String -> Result Error value) -> expectation
+    , toBody : Encode.Value -> body
+    , toRequest : 
         { method : String
-        , headers : List Http.Header
+        , headers : List header
         , url : String
-        , body : Http.Body
-        , expect : Http.Expect (Result Error value)
+        , body : body
+        , expect : expectation
         , timeout : Maybe Float
         , tracker : Maybe String
         }
-requestDetails sel config =
-    { method = "POST"
-    , headers = config.headers
-    , url = config.url
-    , body = bodyPremade sel
-    , expect = expectPremade sel
-    , timeout = config.timeout
-    , tracker = config.tracker
-    }
+        -> simulated
+    } -> Request value -> simulated
+simulate config (Request req) =
+    config.toRequest 
+        { method = req.method
+        , headers = List.map (\(key, val) -> config.toHeader key val) req.headers
+        , url = req.url
+        , body = config.toBody req.body
+        , expect = config.toExpectation req.expect
+        , timeout = req.timeout
+        , tracker = req.tracker
+        }
+
+
 
 
 
@@ -894,16 +947,14 @@ body operation maybeUnformattedName q =
         }
 
 -}
-bodyPremade : Premade data -> Http.Body
+bodyPremade : Premade data -> Encode.Value
 bodyPremade (Premade q) =
-    Http.jsonBody
-        (Encode.object
-            (List.filterMap identity
-                [ Just ( "query", Encode.string q.gql )
-                , Just ( "variables", Encode.object q.args )
-                ]
-            )
-        )
+    Encode.object
+        (List.filterMap identity
+            [ Just ( "query", Encode.string q.gql )
+            , Just ( "variables", Encode.object q.args )
+            ]
+        )    
 
 
 {-|
@@ -981,39 +1032,43 @@ expect toMsg (Selection (Details gql toDecoder)) =
 
 {-| -}
 expectPremade : Premade data -> Http.Expect (Result Error data)
-expectPremade (Premade premadeQuery) =
-    Http.expectStringResponse identity <|
-        \response ->
-            case response of
-                Http.BadUrl_ url ->
-                    Err (BadUrl url)
+expectPremade q =
+    Http.expectStringResponse identity (decodePremade q)
 
-                Http.Timeout_ ->
-                    Err Timeout
 
-                Http.NetworkError_ ->
-                    Err NetworkError
 
-                Http.BadStatus_ metadata responseBody ->
+
+decodePremade (Premade premadeQuery) response =
+    case response of
+        Http.BadUrl_ url ->
+            Err (BadUrl url)
+
+        Http.Timeout_ ->
+            Err Timeout
+
+        Http.NetworkError_ ->
+            Err NetworkError
+
+        Http.BadStatus_ metadata responseBody ->
+            Err
+                (BadStatus
+                    { status = metadata.statusCode
+                    , responseBody = responseBody
+                    }
+                )
+
+        Http.GoodStatus_ metadata responseBody ->
+            case Json.decodeString (Json.field "data" premadeQuery.decoder) responseBody of
+                Ok value ->
+                    Ok value
+
+                Err err ->
                     Err
-                        (BadStatus
-                            { status = metadata.statusCode
-                            , responseBody = responseBody
+                        (BadBody
+                            { responseBody = responseBody
+                            , decodingError = Json.errorToString err
                             }
                         )
-
-                Http.GoodStatus_ metadata responseBody ->
-                    case Json.decodeString (Json.field "data" premadeQuery.decoder) responseBody of
-                        Ok value ->
-                            Ok value
-
-                        Err err ->
-                            Err
-                                (BadBody
-                                    { responseBody = responseBody
-                                    , decodingError = Json.errorToString err
-                                    }
-                                )
 
 
 {-| -}

@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, getGql, id_, list, make_, map, map2, mapPremade, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, requestDetails, select, selectTypeNameButSkip, types_, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, getGql, id_, list, make_, map, map2, mapPremade, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, types_, union, unsafe, with)
 
 {-| 
 -}
@@ -744,64 +744,6 @@ premadeOperation arg1 arg2 =
         [ arg1, arg2 ]
 
 
-{-| 
-Return details that can be directly given to `Http.request`.
-
-This is so that wiring up [Elm Program Test](https://package.elm-lang.org/packages/avh4/elm-program-test/latest/ProgramTest) is relatively easy.
-
-
--}
-requestDetails : Elm.Expression -> Elm.Expression -> Elm.Expression
-requestDetails arg1 arg2 =
-    Elm.apply
-        (Elm.valueWith
-            moduleName_
-            "requestDetails"
-            (Type.function
-                [ Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "Premade"
-                    [ Type.var "value" ]
-                , Type.record
-                    [ ( "headers"
-                      , Type.list (Type.namedWith [ "Http" ] "Header" [])
-                      )
-                    , ( "url", Type.string )
-                    , ( "timeout", Type.maybe Type.float )
-                    , ( "tracker", Type.maybe Type.string )
-                    ]
-                ]
-                (Type.record
-                    [ ( "method", Type.string )
-                    , ( "headers"
-                      , Type.list (Type.namedWith [ "Http" ] "Header" [])
-                      )
-                    , ( "url", Type.string )
-                    , ( "body", Type.namedWith [ "Http" ] "Body" [] )
-                    , ( "expect"
-                      , Type.namedWith
-                            [ "Http" ]
-                            "Expect"
-                            [ Type.namedWith
-                                [ "Result" ]
-                                "Result"
-                                [ Type.namedWith
-                                    [ "GraphQL", "Engine" ]
-                                    "Error"
-                                    []
-                                , Type.var "value"
-                                ]
-                            ]
-                      )
-                    , ( "timeout", Type.maybe Type.float )
-                    , ( "tracker", Type.maybe Type.string )
-                    ]
-                )
-            )
-        )
-        [ arg1, arg2 ]
-
-
 {-| -}
 queryString :
     Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -1025,6 +967,138 @@ selectTypeNameButSkip =
         )
 
 
+{-| 
+Return details that can be directly given to `Http.request`.
+
+This is so that wiring up [Elm Program Test](https://package.elm-lang.org/packages/avh4/elm-program-test/latest/ProgramTest) is relatively easy.
+
+
+-}
+toRequest : Elm.Expression -> Elm.Expression -> Elm.Expression
+toRequest arg1 arg2 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "toRequest"
+            (Type.function
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "value" ]
+                , Type.record
+                    [ ( "headers"
+                      , Type.list (Type.tuple Type.string Type.string)
+                      )
+                    , ( "url", Type.string )
+                    , ( "timeout", Type.maybe Type.float )
+                    , ( "tracker", Type.maybe Type.string )
+                    ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Request"
+                    [ Type.var "value" ]
+                )
+            )
+        )
+        [ arg1, arg2 ]
+
+
+{-|-}
+send : Elm.Expression -> Elm.Expression
+send arg1 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "send"
+            (Type.function
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Request"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    [ "Platform", "Cmd" ]
+                    "Cmd"
+                    [ Type.namedWith
+                        [ "Result" ]
+                        "Result"
+                        [ Type.namedWith [ "GraphQL", "Engine" ] "Error" []
+                        , Type.var "data"
+                        ]
+                    ]
+                )
+            )
+        )
+        [ arg1 ]
+
+
+{-|-}
+simulate : Elm.Expression -> Elm.Expression -> Elm.Expression
+simulate arg1 arg2 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "simulate"
+            (Type.function
+                [ Type.record
+                    [ ( "toHeader"
+                      , Type.function
+                            [ Type.string, Type.string ]
+                            (Type.var "header")
+                      )
+                    , ( "toExpectation"
+                      , Type.function
+                            [ Type.function
+                                [ Type.namedWith
+                                    [ "Http" ]
+                                    "Response"
+                                    [ Type.string ]
+                                ]
+                                (Type.namedWith
+                                    [ "Result" ]
+                                    "Result"
+                                    [ Type.namedWith
+                                        [ "GraphQL", "Engine" ]
+                                        "Error"
+                                        []
+                                    , Type.var "value"
+                                    ]
+                                )
+                            ]
+                            (Type.var "expectation")
+                      )
+                    , ( "toBody"
+                      , Type.function
+                            [ Type.namedWith [ "Json", "Encode" ] "Value" [] ]
+                            (Type.var "body")
+                      )
+                    , ( "toRequest"
+                      , Type.function
+                            [ Type.record
+                                [ ( "method", Type.string )
+                                , ( "headers", Type.list (Type.var "header") )
+                                , ( "url", Type.string )
+                                , ( "body", Type.var "body" )
+                                , ( "expect", Type.var "expectation" )
+                                , ( "timeout", Type.maybe Type.float )
+                                , ( "tracker", Type.maybe Type.string )
+                                ]
+                            ]
+                            (Type.var "simulated")
+                      )
+                    ]
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Request"
+                    [ Type.var "value" ]
+                ]
+                (Type.var "simulated")
+            )
+        )
+        [ arg1, arg2 ]
+
+
 {-| Every value/function in this module in case you need to refer to it directly. -}
 id_ :
     { batch : Elm.Expression
@@ -1050,7 +1124,6 @@ id_ :
     , mutation : Elm.Expression
     , prebakedQuery : Elm.Expression
     , premadeOperation : Elm.Expression
-    , requestDetails : Elm.Expression
     , queryString : Elm.Expression
     , maybeScalarEncode : Elm.Expression
     , encodeOptionals : Elm.Expression
@@ -1061,6 +1134,9 @@ id_ :
     , mapPremade : Elm.Expression
     , unsafe : Elm.Expression
     , selectTypeNameButSkip : Elm.Expression
+    , toRequest : Elm.Expression
+    , send : Elm.Expression
+    , simulate : Elm.Expression
     }
 id_ =
     { batch =
@@ -1516,51 +1592,6 @@ id_ =
                     ]
                 )
             )
-    , requestDetails =
-        Elm.valueWith
-            moduleName_
-            "requestDetails"
-            (Type.function
-                [ Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "Premade"
-                    [ Type.var "value" ]
-                , Type.record
-                    [ ( "headers"
-                      , Type.list (Type.namedWith [ "Http" ] "Header" [])
-                      )
-                    , ( "url", Type.string )
-                    , ( "timeout", Type.maybe Type.float )
-                    , ( "tracker", Type.maybe Type.string )
-                    ]
-                ]
-                (Type.record
-                    [ ( "method", Type.string )
-                    , ( "headers"
-                      , Type.list (Type.namedWith [ "Http" ] "Header" [])
-                      )
-                    , ( "url", Type.string )
-                    , ( "body", Type.namedWith [ "Http" ] "Body" [] )
-                    , ( "expect"
-                      , Type.namedWith
-                            [ "Http" ]
-                            "Expect"
-                            [ Type.namedWith
-                                [ "Result" ]
-                                "Result"
-                                [ Type.namedWith
-                                    [ "GraphQL", "Engine" ]
-                                    "Error"
-                                    []
-                                , Type.var "value"
-                                ]
-                            ]
-                      )
-                    , ( "timeout", Type.maybe Type.float )
-                    , ( "tracker", Type.maybe Type.string )
-                    ]
-                )
-            )
     , queryString =
         Elm.valueWith
             moduleName_
@@ -1713,6 +1744,111 @@ id_ =
                 [ "GraphQL", "Engine" ]
                 "Selection"
                 [ Type.var "source", Type.unit ]
+            )
+    , toRequest =
+        Elm.valueWith
+            moduleName_
+            "toRequest"
+            (Type.function
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Premade"
+                    [ Type.var "value" ]
+                , Type.record
+                    [ ( "headers"
+                      , Type.list (Type.tuple Type.string Type.string)
+                      )
+                    , ( "url", Type.string )
+                    , ( "timeout", Type.maybe Type.float )
+                    , ( "tracker", Type.maybe Type.string )
+                    ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Request"
+                    [ Type.var "value" ]
+                )
+            )
+    , send =
+        Elm.valueWith
+            moduleName_
+            "send"
+            (Type.function
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Request"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    [ "Platform", "Cmd" ]
+                    "Cmd"
+                    [ Type.namedWith
+                        [ "Result" ]
+                        "Result"
+                        [ Type.namedWith [ "GraphQL", "Engine" ] "Error" []
+                        , Type.var "data"
+                        ]
+                    ]
+                )
+            )
+    , simulate =
+        Elm.valueWith
+            moduleName_
+            "simulate"
+            (Type.function
+                [ Type.record
+                    [ ( "toHeader"
+                      , Type.function
+                            [ Type.string, Type.string ]
+                            (Type.var "header")
+                      )
+                    , ( "toExpectation"
+                      , Type.function
+                            [ Type.function
+                                [ Type.namedWith
+                                    [ "Http" ]
+                                    "Response"
+                                    [ Type.string ]
+                                ]
+                                (Type.namedWith
+                                    [ "Result" ]
+                                    "Result"
+                                    [ Type.namedWith
+                                        [ "GraphQL", "Engine" ]
+                                        "Error"
+                                        []
+                                    , Type.var "value"
+                                    ]
+                                )
+                            ]
+                            (Type.var "expectation")
+                      )
+                    , ( "toBody"
+                      , Type.function
+                            [ Type.namedWith [ "Json", "Encode" ] "Value" [] ]
+                            (Type.var "body")
+                      )
+                    , ( "toRequest"
+                      , Type.function
+                            [ Type.record
+                                [ ( "method", Type.string )
+                                , ( "headers", Type.list (Type.var "header") )
+                                , ( "url", Type.string )
+                                , ( "body", Type.var "body" )
+                                , ( "expect", Type.var "expectation" )
+                                , ( "timeout", Type.maybe Type.float )
+                                , ( "tracker", Type.maybe Type.string )
+                                ]
+                            ]
+                            (Type.var "simulated")
+                      )
+                    ]
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Request"
+                    [ Type.var "value" ]
+                ]
+                (Type.var "simulated")
             )
     }
 
