@@ -54,10 +54,18 @@ mock (Schema schemaStr) premade =
 
                         Ok canAST ->
                             case Mock.generate canAST of
-                                Ok val ->
+                                Ok [] ->
+                                    Err
+                                        { title = "No named queries present"
+                                        , description =
+                                            "Can't generate data if there are no queries"
+                                        }
+
+                                Ok (op :: _) ->
+                                    -- this throws away everything but the first named operation
+                                    -- But ultimately there should be only one named operation
                                     Ok
-                                        (Json.Encode.object
-                                            (List.map (\item -> ( item.name, item.body )) val)
+                                        (op.body
                                             |> Json.Encode.encode 4
                                         )
 

@@ -11,7 +11,8 @@ module GraphQL.Engine exposing
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeInputObject, encodeArgument
     , decodeNullable, getGql, mapPremade
-    , unsafe, selectTypeNameButSkip, toRequest, send, simulate
+    , unsafe, selectTypeNameButSkip
+    , Request, toRequest, send, simulate
     )
 
 {-|
@@ -42,7 +43,7 @@ module GraphQL.Engine exposing
 
 @docs unsafe, selectTypeNameButSkip
 
-@docs toRequest, send, simulate
+@docs Request, toRequest, send, simulate
 
 -}
 
@@ -749,10 +750,11 @@ premadeOperation sel config =
         }
 
 
-type Request value =
-    Request 
+{-| -}
+type Request value
+    = Request
         { method : String
-        , headers : List (String,String)
+        , headers : List ( String, String )
         , url : String
         , body : Encode.Value
         , expect : Http.Response String -> Result Error value
@@ -761,17 +763,15 @@ type Request value =
         }
 
 
-{-| 
-Return details that can be directly given to `Http.request`.
+{-| Return details that can be directly given to `Http.request`.
 
 This is so that wiring up [Elm Program Test](https://package.elm-lang.org/packages/avh4/elm-program-test/latest/ProgramTest) is relatively easy.
-
 
 -}
 toRequest :
     Premade value
     ->
-        { headers : List (String,String)
+        { headers : List ( String, String )
         , url : String
         , timeout : Maybe Float
         , tracker : Maybe String
@@ -789,27 +789,27 @@ toRequest sel config =
         }
 
 
-{-|-}
+{-| -}
 send : Request data -> Cmd (Result Error data)
 send (Request req) =
     Http.request
         { method = req.method
-        , headers = List.map (\(key, val) -> Http.header key val) req.headers
+        , headers = List.map (\( key, val ) -> Http.header key val) req.headers
         , url = req.url
         , body = Http.jsonBody req.body
-        , expect =  
+        , expect =
             Http.expectStringResponse identity req.expect
         , timeout = req.timeout
         , tracker = req.tracker
         }
 
 
-{-|-}
-simulate : 
+{-| -}
+simulate :
     { toHeader : String -> String -> header
     , toExpectation : (Http.Response String -> Result Error value) -> expectation
     , toBody : Encode.Value -> body
-    , toRequest : 
+    , toRequest :
         { method : String
         , headers : List header
         , url : String
@@ -819,21 +819,19 @@ simulate :
         , tracker : Maybe String
         }
         -> simulated
-    } -> Request value -> simulated
+    }
+    -> Request value
+    -> simulated
 simulate config (Request req) =
-    config.toRequest 
+    config.toRequest
         { method = req.method
-        , headers = List.map (\(key, val) -> config.toHeader key val) req.headers
+        , headers = List.map (\( key, val ) -> config.toHeader key val) req.headers
         , url = req.url
         , body = config.toBody req.body
         , expect = config.toExpectation req.expect
         , timeout = req.timeout
         , tracker = req.tracker
         }
-
-
-
-
 
 
 {-| -}
@@ -954,7 +952,7 @@ bodyPremade (Premade q) =
             [ Just ( "query", Encode.string q.gql )
             , Just ( "variables", Encode.object q.args )
             ]
-        )    
+        )
 
 
 {-|
@@ -1036,8 +1034,7 @@ expectPremade q =
     Http.expectStringResponse identity (decodePremade q)
 
 
-
-
+decodePremade : Premade value -> Http.Response String -> Result Error value
 decodePremade (Premade premadeQuery) response =
     case response of
         Http.BadUrl_ url ->

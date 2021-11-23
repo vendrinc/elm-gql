@@ -15,7 +15,8 @@ moduleName_ =
 
 
 types_ :
-    { argument : Type.Annotation -> Type.Annotation
+    { request : Type.Annotation -> Type.Annotation
+    , argument : Type.Annotation -> Type.Annotation
     , premade : Type.Annotation -> Type.Annotation
     , error : Type.Annotation
     , mutation : Type.Annotation
@@ -24,7 +25,8 @@ types_ :
     , selection : Type.Annotation -> Type.Annotation -> Type.Annotation
     }
 types_ =
-    { argument = \arg0 -> Type.namedWith moduleName_ "Argument" [ arg0 ]
+    { request = \arg0 -> Type.namedWith moduleName_ "Request" [ arg0 ]
+    , argument = \arg0 -> Type.namedWith moduleName_ "Argument" [ arg0 ]
     , premade = \arg0 -> Type.namedWith moduleName_ "Premade" [ arg0 ]
     , error = Type.named moduleName_ "Error"
     , mutation = Type.named moduleName_ "Mutation"
@@ -967,11 +969,9 @@ selectTypeNameButSkip =
         )
 
 
-{-| 
-Return details that can be directly given to `Http.request`.
+{-| Return details that can be directly given to `Http.request`.
 
 This is so that wiring up [Elm Program Test](https://package.elm-lang.org/packages/avh4/elm-program-test/latest/ProgramTest) is relatively easy.
-
 
 -}
 toRequest : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -1004,7 +1004,7 @@ toRequest arg1 arg2 =
         [ arg1, arg2 ]
 
 
-{-|-}
+{-| -}
 send : Elm.Expression -> Elm.Expression
 send arg1 =
     Elm.apply
@@ -1033,7 +1033,7 @@ send arg1 =
         [ arg1 ]
 
 
-{-|-}
+{-| -}
 simulate : Elm.Expression -> Elm.Expression -> Elm.Expression
 simulate arg1 arg2 =
     Elm.apply
