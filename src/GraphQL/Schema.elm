@@ -194,7 +194,24 @@ mockScalar : Type -> Json.Encode.Value
 mockScalar t =
     case t of
         Scalar name ->
-            Json.Encode.string ("SCALAR:" ++ name)
+            case String.toLower name of
+                "datetime" ->
+                    Json.Encode.string "2021-11-24"
+
+                "boolean" ->
+                    Json.Encode.bool True
+
+                "float" ->
+                    Json.Encode.float 42
+
+                "int" ->
+                    Json.Encode.int 42
+
+                "string" ->
+                    Json.Encode.string "Example string!"
+
+                _ ->
+                    Json.Encode.string ("SCALAR:" ++ name)
 
         InputObject name ->
             Json.Encode.null

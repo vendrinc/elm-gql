@@ -40,10 +40,40 @@ generate opts =
         List.map (generateDefinition opts) opts.document.definitions
 
 
+opTypeName : Can.OperationType -> String
+opTypeName op =
+    case op of
+        Can.Query ->
+            "Query"
+
+        Can.Mutation ->
+            "Mutation"
+
+
+opValueName : Can.OperationType -> String
+opValueName op =
+    case op of
+        Can.Query ->
+            "query"
+
+        Can.Mutation ->
+            "mutation"
+
+
+generateDefinition :
+    { namespace : Namespace
+    , schema : GraphQL.Schema.Schema
+    , base : List String
+    , queryStr : String
+    , document : Can.Document
+    , path : List String
+    }
+    -> Can.Definition
+    -> Elm.File
 generateDefinition { namespace, schema, base, queryStr, document, path } (Can.Operation op) =
     let
         opName =
-            Maybe.withDefault "Query"
+            Maybe.withDefault (opTypeName op.operationType)
                 (Maybe.map
                     Can.nameToString
                     op.name
@@ -52,7 +82,7 @@ generateDefinition { namespace, schema, base, queryStr, document, path } (Can.Op
         query =
             case List.concatMap (getVariables namespace schema) document.definitions of
                 [] ->
-                    Elm.declaration "query"
+                    Elm.declaration (opValueName op.operationType)
                         (Engine.prebakedQuery
                             (Elm.string queryStr)
                             (Elm.list
@@ -70,7 +100,7 @@ generateDefinition { namespace, schema, base, queryStr, document, path } (Can.Op
                         |> Elm.expose
 
                 vars ->
-                    Elm.fn "query"
+                    Elm.fn (opValueName op.operationType)
                         ( "input"
                         , Type.record
                             (List.concatMap (getVariables namespace schema) document.definitions)
@@ -296,6 +326,7 @@ generatePrimaryResultType namespace schema def =
                         op.fields
                     )
                 )
+                |> Elm.expose
             ]
 
 
