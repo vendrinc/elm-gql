@@ -4,8 +4,8 @@ module Generate exposing (main)
 
 import Dict
 import Elm
-import Elm.Gen
 import Elm.Annotation
+import Elm.Gen
 import Generate.Args
 import Generate.Enums
 import Generate.Input as Input
@@ -103,7 +103,6 @@ main =
                                     }
                                 )
 
-
                     SchemaReceived flagDetails (Err err) ->
                         ( model
                         , Elm.Gen.error
@@ -150,7 +149,7 @@ generatePlatform namespace schema schemaAsJson flagDetails =
                         Generate.Operations.generateFiles namespace Input.Mutation schema
                 in
                 Elm.Gen.files
-                    (saveSchema namespace schemaAsJson 
+                    (saveSchema namespace schemaAsJson
                         :: unionFiles
                         ++ enumFiles
                         ++ objectFiles
@@ -162,18 +161,20 @@ generatePlatform namespace schema schemaAsJson flagDetails =
 
             else
                 Elm.Gen.files
-                    (gqlFiles)
+                    gqlFiles
+
 
 saveSchema : String -> Json.Encode.Value -> Elm.File
 saveSchema namespace val =
-    Elm.file [ namespace, "Meta", "Schema"]
+    Elm.file [ namespace, "Meta", "Schema" ]
         [ Elm.declaration "schema"
-            (Elm.apply 
-                (Elm.valueWith ["GraphQL", "Mock"] "schemaFromString" 
+            (Elm.apply
+                (Elm.valueWith [ "GraphQL", "Mock" ]
+                    "schemaFromString"
                     (Elm.Annotation.function
                         [ Elm.Annotation.string
                         ]
-                        (Elm.Annotation.named ["GraphQL", "Mock"] "Schema" )
+                        (Elm.Annotation.named [ "GraphQL", "Mock" ] "Schema")
                     )
                 )
                 [ Elm.string (Json.Encode.encode 4 val) ]
@@ -243,7 +244,7 @@ flagsDecoder =
                                         Json.Decode.fail "Schema Url lacks http-based protocol"
                                 )
                         )
-                    , Json.Decode.map2 Schema 
+                    , Json.Decode.map2 Schema
                         Json.Decode.value
                         GraphQL.Schema.decoder
                     ]
