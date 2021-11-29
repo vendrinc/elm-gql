@@ -1,6 +1,7 @@
 import * as commander from "commander";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto"
 import chalk from "chalk";
 import { XMLHttpRequest } from "./vendor/XMLHttpRequest";
 const schema_generator = require("./generators/schema");
@@ -88,14 +89,27 @@ function format_block(content: string[]) {
   return "\n    " + content.join("\n    ") + "\n";
 }
 
+function writeIfChanged(filepath: string, content: string) {
+    try {
+        const foundContents = fs.readFileSync(filepath)
+        const foundHash = crypto.createHash('md5').update(foundContents).digest("hex")
+        const desiredHash = crypto.createHash('md5').update(content).digest("hex")
+
+        if (foundHash != desiredHash) {
+            fs.writeFileSync(filepath, content)
+        }
+    } catch {
+        fs.writeFileSync(filepath, content)
+    }
+}
+
 async function action(options: Options, com: any) {
   let schema = options.schema;
   if (!schema.startsWith("http") && schema.endsWith("json")) {
     schema = JSON.parse(fs.readFileSync(schema).toString());
   }
   
-  // @ts-ignore
-  // let gql_operations = []
+
   if (options.gql) {
     const gql_filepaths = getFilesRecursively(options.gql)
     for (const file of gql_filepaths) {
@@ -107,7 +121,6 @@ async function action(options: Options, com: any) {
         const base = options.gql == path.dirname(file) ? [] : path.relative(options.gql, path.dirname(file)).split(path.sep);
         
         const src = fs.readFileSync(file).toString()
-        // gql_operations.push({src, path: file})
         run_generator(schema_generator.Elm.Generate, path.dirname(file), {
           namespace: options.namespace,
           // @ts-ignore
@@ -120,42 +133,48 @@ async function action(options: Options, com: any) {
     }
   }
 
-  // Copy gql engine to target dir 
+  // Copy gql engine to target dir
   fs.mkdirSync(path.join(options.output, "GraphQL", "Operations"), { recursive: true });
 
   // Standard engine
-  fs.writeFileSync(path.join(options.output, "GraphQL", "Engine.elm"), engine())
+  writeIfChanged(path.join(options.output, "GraphQL", "Engine.elm"), engine())
 
   // Everything required for auto-mocking
-  fs.writeFileSync(path.join(options.output, "GraphQL", "Mock.elm"), mock())
-  fs.writeFileSync(path.join(options.output, "GraphQL", "Schema.elm"), schemaModule())
+  writeIfChanged(path.join(options.output, "GraphQL", "Mock.elm"), mock())
+  writeIfChanged(path.join(options.output, "GraphQL", "Schema.elm"), schemaModule())
 
   const ops = path.join(options.output, "GraphQL", "Operations")
-  fs.writeFileSync(path.join(ops, "Mock.elm"), opsMock())
-  fs.writeFileSync(path.join(ops, "AST.elm"), opsAST())
-  fs.writeFileSync(path.join(ops, "Parse.elm"), opsParse())
-  fs.writeFileSync(path.join(ops, "CanonicalAST.elm"), opsCanAST())
-  fs.writeFileSync(path.join(ops, "Canonicalize.elm"), opsCanonicalize())
+  writeIfChanged(path.join(ops, "Mock.elm"), opsMock())
+  writeIfChanged(path.join(ops, "AST.elm"), opsAST())
+  writeIfChanged(path.join(ops, "Parse.elm"), opsParse())
+  writeIfChanged(path.join(ops, "CanonicalAST.elm"), opsCanAST())
+  writeIfChanged(path.join(ops, "Canonicalize.elm"), opsCanonicalize())
 
+  if (!options.onlyGqlFiles) {
+      // Generate the Elm form of the schema that can be used to construc queries
+      run_generator(schema_generator.Elm.Generate, options.output, {
+        namespace: options.namespace,
+        // @ts-ignore
+        gql: [],
+        schema: schema,
+        generatePlatform: true,
+        base: [],
+        existingEnumDefinitions: options.existingEnumDefinitions
+      });
+  }
 
-
-  // Generate the Elm form of the schema that can be used to construc queries
-  run_generator(schema_generator.Elm.Generate, options.output, {
-    namespace: options.namespace,
-    // @ts-ignore
-    gql: [],
-    schema: schema,
-    generatePlatform: true,
-    base: [],
-    existingEnumDefinitions: options.existingEnumDefinitions
-  });
 }
+
+
+
+
 
 const program = new commander.Command();
 
 type Options = {
   schema: string;
   gql: string | null;
+  onlyGqlFiles: boolean;
   output: string;
   namespace: string;
   existingEnumDefinitions: string | null;
@@ -164,10 +183,13 @@ type Options = {
 program
   .version("0.1.0")
   .option("--schema <fileOrUrl>")
- 
   .option(
     "--gql <dir>",
     "Search a directory for GQL files and generate Elm bindings"
+  )
+  .option(
+    "--only-gql-files",
+    "This option isn't used very commonly. Only regenerate elm code from .gql files. Skip generating the full set of schema helpers"
   )
   .option(
     "--namespace <namespace>",
