@@ -297,6 +297,41 @@ reduceOld isValid items res =
                     reduceOld isValid remain newResult
 
 
+reduceConcat :
+    (item -> Result (List Error) (List result))
+    -> List item
+    -> Result (List Error) (List result)
+    -> Result (List Error) (List result)
+reduceConcat isValid items res =
+    case items of
+        [] ->
+            res
+
+        top :: remain ->
+            case isValid top of
+                Ok valid ->
+                    case res of
+                        Ok existing ->
+                            reduceConcat isValid
+                                remain
+                                (Ok (valid ++ existing))
+
+                        Err _ ->
+                            res
+
+                Err errorMessage ->
+                    let
+                        newResult =
+                            case res of
+                                Ok _ ->
+                                    Err errorMessage
+
+                                Err existingErrors ->
+                                    Err (errorMessage ++ existingErrors)
+                    in
+                    reduceConcat isValid remain newResult
+
+
 convertName : AST.Name -> Can.Name
 convertName (AST.Name str) =
     Can.Name str
@@ -388,7 +423,7 @@ canonicalizeOperation schema op selection =
                                 Just obj ->
                                     let
                                         argValidation =
-                                            reduceOld (validateArg query) field.arguments (Ok [])
+                                            reduceConcat (validateArg schema query) field.arguments (Ok [])
 
                                         selectionResult =
                                             reduce (canonicalizeField schema obj) field.selection emptySuccess
@@ -438,26 +473,33 @@ canonicalizeOperation schema op selection =
 
                                         Just vars ->
                                             let
-                                                -- args = reduceOld (validateArg union) field.arguments (Ok [])
+                                                argValidation =
+                                                    reduceConcat (validateArg schema query) field.arguments (Ok [])
+
                                                 selectionResult =
                                                     reduce (canonicalizeUnionField schema union vars) field.selection emptySuccess
                                             in
-                                            case selectionResult of
-                                                CanSuccess cache canSelection ->
-                                                    CanSuccess cache
-                                                        (Can.FieldUnion
-                                                            { alias_ = Maybe.map convertName field.alias_
-                                                            , name = convertName field.name
-                                                            , arguments = []
-                                                            , directives = List.map convertDirective field.directives
-                                                            , selection = canSelection
-                                                            , union = union
-                                                            , wrapper = GraphQL.Schema.getWrap query.type_
-                                                            }
-                                                        )
+                                            case argValidation of
+                                                Ok validatedArgs ->
+                                                    case selectionResult of
+                                                        CanSuccess cache canSelection ->
+                                                            CanSuccess (addVars validatedArgs cache)
+                                                                (Can.FieldUnion
+                                                                    { alias_ = Maybe.map convertName field.alias_
+                                                                    , name = convertName field.name
+                                                                    , arguments = []
+                                                                    , directives = List.map convertDirective field.directives
+                                                                    , selection = canSelection
+                                                                    , union = union
+                                                                    , wrapper = GraphQL.Schema.getWrap query.type_
+                                                                    }
+                                                                )
 
-                                                CanError errorMsg ->
-                                                    CanError errorMsg
+                                                        CanError errorMsg ->
+                                                            CanError errorMsg
+
+                                                Err errors ->
+                                                    CanError errors
 
                         GraphQL.Schema.Interface name ->
                             err [ todo "Handle more object types!" ]
@@ -475,23 +517,78 @@ canonicalizeOperation schema op selection =
             err [ todo "Unions not supported yet" ]
 
 
-validateArg : { node | arguments : List GraphQL.Schema.Argument } -> AST.Argument -> Result (List Error) ( String, GraphQL.Schema.Type )
-validateArg spec argInGql =
-    case argInGql.value of
+{-|
+
+    schema:
+        The actual schema
+
+    spec:
+        The schema definitions for the arguments present on this node
+
+    argsInQuery:
+        The arguments in the operation itself(i.e. the gql file)
+
+This function is just gathering what the type should be for the top level arguments.
+
+-}
+validateArg : GraphQL.Schema.Schema -> { node | arguments : List GraphQL.Schema.Argument } -> AST.Argument -> Result (List Error) (List ( String, GraphQL.Schema.Type ))
+validateArg schema spec argInQuery =
+    let
+        fieldname =
+            AST.nameToString argInQuery.name
+    in
+    case argInQuery.value of
         AST.Var var ->
             let
                 varname =
                     AST.nameToString var.name
-
-                fieldname =
-                    AST.nameToString argInGql.name
             in
             case List.head (List.filter (\a -> a.name == fieldname) spec.arguments) of
                 Nothing ->
-                    Err [ error (UnknownArgName varname) ]
+                    Err [ error (UnknownArgName fieldname) ]
 
                 Just schemaVar ->
-                    Ok ( varname, schemaVar.type_ )
+                    Ok [ ( varname, schemaVar.type_ ) ]
+
+        AST.Object keyValues ->
+            case List.head (List.filter (\a -> a.name == fieldname) spec.arguments) of
+                Nothing ->
+                    Err [ error (UnknownArgName fieldname) ]
+
+                Just schemaVar ->
+                    case schemaVar.type_ of
+                        GraphQL.Schema.InputObject inputObjectName ->
+                            case Dict.get inputObjectName schema.inputObjects of
+                                Nothing ->
+                                    Err [ error (UnknownArgName fieldname) ]
+
+                                Just inputObject ->
+                                    reduceOld
+                                        (\( keyName, value ) ->
+                                            case value of
+                                                AST.Var var ->
+                                                    let
+                                                        varname =
+                                                            AST.nameToString var.name
+
+                                                        key =
+                                                            AST.nameToString keyName
+                                                    in
+                                                    case List.head (List.filter (\a -> a.name == key) inputObject.fields) of
+                                                        Nothing ->
+                                                            Err [ error (Todo "All inputs must be variables for now.  No inline values.") ]
+
+                                                        Just field ->
+                                                            Ok ( varname, field.type_ )
+
+                                                _ ->
+                                                    Err [ error (Todo "All inputs must be variables for now.  No inline values.") ]
+                                        )
+                                        keyValues
+                                        (Ok [])
+
+                        _ ->
+                            Err [ error (UnknownArgName fieldname) ]
 
         _ ->
             Err [ error (Todo "All inputs must be variables for now.  No inline values.") ]
@@ -579,7 +676,6 @@ canonicalizeFieldType schema object field type_ selection originalType =
 
                 Just obj ->
                     let
-                        -- argValidation = reduceOld (validateArg obj) field.arguments (Ok [])
                         selectionResult =
                             reduce (canonicalizeField schema obj) field.selection emptySuccess
                     in
@@ -630,7 +726,6 @@ canonicalizeFieldType schema object field type_ selection originalType =
 
                         Just vars ->
                             let
-                                --     args = reduce (validateArg queryObj) field.arguments (Ok [])
                                 selectionResult =
                                     reduce (canonicalizeUnionField schema union vars) field.selection emptySuccess
                             in
