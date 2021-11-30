@@ -49,12 +49,18 @@ async function run_generator(generator: any, output_dir: string, flags: any) {
 
       const lines = []
       if (files_written_count > 0) {
-          const s = files_written_count == 1 ? "" : "s";
-          lines.push(`${chalk.yellow(files_written_count)} file${s} generated!`)
+          if (files_written_count == 1) {
+             lines.push(`${chalk.yellow(files_written_count)} file generated!`)
+          } else {
+             lines.push(`${chalk.yellow(files_written_count)} files generated!`)
+          }
       }
       if (files_skipped > 0) {
-        const s = files_skipped == 1 ? "" : "s";
-        lines.push(`${chalk.gray(files_skipped)} file${s} skipped because they were already present and up-to-date`)
+        if (files_skipped == 1) {
+            lines.push(`${chalk.gray(files_skipped)} file skipped because it was already present and up-to-date`)
+        } else {
+            lines.push(`${chalk.gray(files_skipped)} files skipped because they were already present and up-to-date`)
+        }
       }
       console.log(
         format_block(lines)
