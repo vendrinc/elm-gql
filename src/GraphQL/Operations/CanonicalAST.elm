@@ -179,15 +179,13 @@ toString (Operation def) =
                     in
                     "(" ++ renderedVars ++ ")"
     in
-    Debug.log "\n   Query\n"
-        (operationName def.operationType
-            ++ " "
-            ++ opName
-            ++ variableDefinitions
-            ++ " "
-            ++ brackets
-                (foldToString "\n" selectionToString def.fields)
-        )
+    operationName def.operationType
+        ++ " "
+        ++ opName
+        ++ variableDefinitions
+        ++ " "
+        ++ brackets
+            (foldToString "\n" selectionToString def.fields)
 
 
 selectionToString : Selection -> String
