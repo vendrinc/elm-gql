@@ -35,15 +35,29 @@ async function run_generator(generator: any, output_dir: string, flags: any) {
     }
   })
     .then((files: any) => {
+      let files_written_count = 0
+      let files_skipped = 0
       for (const file of files) {
         const fullpath = path.join(output_dir, file.path);
         fs.mkdirSync(path.dirname(fullpath), { recursive: true });
-        fs.writeFileSync(fullpath, file.contents);
+        if (writeIfChanged(fullpath, file.contents)) {
+            files_written_count = files_written_count + 1
+        } else {
+            files_skipped = files_skipped + 1
+        }
       }
 
-      const s = files.length == 1 ? "" : "s";
+      const lines = []
+      if (files_written_count > 0) {
+          const s = files_written_count == 1 ? "" : "s";
+          lines.push(`${chalk.yellow(files_written_count)} file${s} generated!`)
+      }
+      if (files_skipped > 0) {
+        const s = files_skipped == 1 ? "" : "s";
+        lines.push(`${chalk.gray(files_skipped)} file${s} skipped because they were already present and up-to-date`)
+      }
       console.log(
-        format_block([`${chalk.yellow(files.length)} file${s} generated!`])
+        format_block(lines)
       );
     })
     .catch((reason) => {
@@ -89,7 +103,7 @@ function format_block(content: string[]) {
   return "\n    " + content.join("\n    ") + "\n";
 }
 
-function writeIfChanged(filepath: string, content: string) {
+function writeIfChanged(filepath: string, content: string): boolean {
     try {
         const foundContents = fs.readFileSync(filepath)
         const foundHash = crypto.createHash('md5').update(foundContents).digest("hex")
@@ -97,9 +111,12 @@ function writeIfChanged(filepath: string, content: string) {
 
         if (foundHash != desiredHash) {
             fs.writeFileSync(filepath, content)
+            return true
         }
+        return false
     } catch {
         fs.writeFileSync(filepath, content)
+        return true
     }
 }
 
