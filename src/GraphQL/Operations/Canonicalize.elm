@@ -400,13 +400,17 @@ canonicalizeOperation schema op selection =
                     err [ error (QueryUnknown (AST.nameToString field.name)) ]
 
                 Just query ->
+                    let
+                        argValidation =
+                            reduceConcat (validateArg schema query) field.arguments (Ok [])
+                    in
                     case query.type_ of
                         GraphQL.Schema.Scalar name ->
                             CanSuccess emptyCache
                                 (Can.FieldScalar
                                     { alias_ = Maybe.map convertName field.alias_
                                     , name = convertName field.name
-                                    , arguments = []
+                                    , arguments = field.arguments
                                     , directives = List.map convertDirective field.directives
                                     , type_ = query.type_
                                     }
@@ -422,9 +426,6 @@ canonicalizeOperation schema op selection =
 
                                 Just obj ->
                                     let
-                                        argValidation =
-                                            reduceConcat (validateArg schema query) field.arguments (Ok [])
-
                                         selectionResult =
                                             reduce (canonicalizeField schema obj) field.selection emptySuccess
                                     in
@@ -436,7 +437,7 @@ canonicalizeOperation schema op selection =
                                                         (Can.FieldObject
                                                             { alias_ = Maybe.map convertName field.alias_
                                                             , name = convertName field.name
-                                                            , arguments = []
+                                                            , arguments = field.arguments
                                                             , directives = List.map convertDirective field.directives
                                                             , selection = canSelection
                                                             , object = obj
@@ -455,7 +456,7 @@ canonicalizeOperation schema op selection =
                                 (Can.FieldScalar
                                     { alias_ = Maybe.map convertName field.alias_
                                     , name = convertName field.name
-                                    , arguments = []
+                                    , arguments = field.arguments
                                     , directives = List.map convertDirective field.directives
                                     , type_ = query.type_
                                     }
@@ -473,9 +474,6 @@ canonicalizeOperation schema op selection =
 
                                         Just vars ->
                                             let
-                                                argValidation =
-                                                    reduceConcat (validateArg schema query) field.arguments (Ok [])
-
                                                 selectionResult =
                                                     reduce (canonicalizeUnionField schema union vars) field.selection emptySuccess
                                             in
@@ -487,7 +485,7 @@ canonicalizeOperation schema op selection =
                                                                 (Can.FieldUnion
                                                                     { alias_ = Maybe.map convertName field.alias_
                                                                     , name = convertName field.name
-                                                                    , arguments = []
+                                                                    , arguments = field.arguments
                                                                     , directives = List.map convertDirective field.directives
                                                                     , selection = canSelection
                                                                     , union = union
@@ -637,13 +635,7 @@ canonicalizeField schema object selection =
 convertDirective dir =
     { name = convertName dir.name
     , arguments =
-        List.map
-            (\arg ->
-                { name = convertName arg.name
-                , value = arg.value
-                }
-            )
-            dir.arguments
+        dir.arguments
     }
 
 

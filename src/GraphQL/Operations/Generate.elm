@@ -30,7 +30,6 @@ generate :
     { namespace : Namespace
     , schema : GraphQL.Schema.Schema
     , base : List String
-    , queryStr : String
     , document : Can.Document
     , path : List String
     }
@@ -64,13 +63,12 @@ generateDefinition :
     { namespace : Namespace
     , schema : GraphQL.Schema.Schema
     , base : List String
-    , queryStr : String
     , document : Can.Document
     , path : List String
     }
     -> Can.Definition
     -> Elm.File
-generateDefinition { namespace, schema, base, queryStr, document, path } (Can.Operation op) =
+generateDefinition { namespace, schema, base, document, path } ((Can.Operation op) as def) =
     let
         opName =
             Maybe.withDefault (opTypeName op.operationType)
@@ -80,18 +78,18 @@ generateDefinition { namespace, schema, base, queryStr, document, path } (Can.Op
                 )
 
         query =
-            case List.concatMap (getVariables namespace schema) document.definitions of
+            case getVariables namespace schema def of
                 [] ->
                     Elm.declaration (opValueName op.operationType)
                         (Engine.prebakedQuery
-                            (Elm.string queryStr)
+                            (Elm.string (Can.toString def))
                             (Elm.list
-                                (List.concatMap
-                                    (encodeVariable namespace schema)
-                                    document.definitions
+                                (encodeVariable namespace
+                                    schema
+                                    def
                                 )
                             )
-                            (generateDecoder namespace schema document.definitions)
+                            (generateDecoder namespace schema def)
                             |> Elm.withType
                                 (Engine.types_.premade
                                     (Type.named [] opName)
@@ -103,18 +101,18 @@ generateDefinition { namespace, schema, base, queryStr, document, path } (Can.Op
                     Elm.fn (opValueName op.operationType)
                         ( "input"
                         , Type.record
-                            (List.concatMap (getVariables namespace schema) document.definitions)
+                            vars
                         )
                         (\var ->
                             Engine.prebakedQuery
-                                (Elm.string queryStr)
+                                (Elm.string (Can.toString def))
                                 (Elm.list
-                                    (List.concatMap
-                                        (encodeVariable namespace schema)
-                                        document.definitions
+                                    (encodeVariable namespace
+                                        schema
+                                        def
                                     )
                                 )
-                                (generateDecoder namespace schema document.definitions)
+                                (generateDecoder namespace schema def)
                                 |> Elm.withType
                                     (Engine.types_.premade
                                         (Type.named [] opName)
@@ -123,10 +121,10 @@ generateDefinition { namespace, schema, base, queryStr, document, path } (Can.Op
                         |> Elm.expose
 
         helpers =
-            List.concatMap (generateResultTypes namespace schema Set.empty) document.definitions
+            generateResultTypes namespace schema Set.empty def
 
         primaryResult =
-            List.concatMap (generatePrimaryResultType namespace schema) document.definitions
+            generatePrimaryResultType namespace schema def
     in
     Elm.fileWith (base ++ path ++ [ opName ])
         { aliases = []
@@ -619,29 +617,21 @@ schemaTypeToPrefab schemaType =
 {- DECODER -}
 
 
-generateDecoder : Namespace -> GraphQL.Schema.Schema -> List Can.Definition -> Elm.Expression
-generateDecoder namespace schema defs =
-    case defs of
-        [] ->
-            Decode.succeed Elm.unit
-
-        [ Can.Operation op ] ->
-            let
-                opName =
-                    Maybe.withDefault "Query"
-                        (Maybe.map
-                            Can.nameToString
-                            op.name
-                        )
-            in
-            decodeFields namespace
-                op.fields
-                (Decode.succeed
-                    (Elm.value opName)
+generateDecoder : Namespace -> GraphQL.Schema.Schema -> Can.Definition -> Elm.Expression
+generateDecoder namespace schema (Can.Operation op) =
+    let
+        opName =
+            Maybe.withDefault "Query"
+                (Maybe.map
+                    Can.nameToString
+                    op.name
                 )
-
-        _ ->
-            Decode.succeed Elm.unit
+    in
+    decodeFields namespace
+        op.fields
+        (Decode.succeed
+            (Elm.value opName)
+        )
 
 
 subobjectBuilderArgs : Can.Selection -> ( Pattern.Pattern, Type.Annotation )

@@ -2,11 +2,9 @@ module Generate exposing (main)
 
 {-| -}
 
-import Dict
 import Elm
 import Elm.Annotation
 import Elm.Gen
-import Generate.Args
 import Generate.Enums
 import Generate.Input as Input
 import Generate.InputObjects
@@ -14,10 +12,8 @@ import Generate.Objects
 import Generate.Operations
 import Generate.Paged
 import Generate.Unions
-import GraphQL.Operations.AST as AST
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Generate
-import GraphQL.Operations.Mock as Mock
 import GraphQL.Operations.Parse
 import GraphQL.Operations.Validate
 import GraphQL.Schema
@@ -320,7 +316,12 @@ type alias Error =
     }
 
 
-parseAndValidateQuery : String -> GraphQL.Schema.Schema -> FlagDetails -> { src : String, path : String } -> Result Error (List Elm.File)
+parseAndValidateQuery :
+    String
+    -> GraphQL.Schema.Schema
+    -> FlagDetails
+    -> { src : String, path : String }
+    -> Result Error (List Elm.File)
 parseAndValidateQuery namespace schema flags gql =
     case GraphQL.Operations.Parse.parse gql.src of
         Err err ->
@@ -359,7 +360,6 @@ parseAndValidateQuery namespace schema flags gql =
                                 }
                             , schema = schema
                             , base = flags.base
-                            , queryStr = gql.src
                             , document = canAST
                             , path = [ name ]
                             }
