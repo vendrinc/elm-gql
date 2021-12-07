@@ -744,12 +744,11 @@ decodeField =
     Json.map5 Field
         (Json.field "name" Json.string)
         (Json.field "description" (Json.maybe nonEmptyString))
-        --(Json.oneOf
-        --    [ Json.field "args" (Json.list decodeArgument)
-        --    , Json.succeed [] --Json.null []
-        --    ]
-        --)
-        (Json.succeed [])
+        (Json.oneOf
+            [ Json.field "args" (Json.list decodeArgument)
+            , Json.succeed []
+            ]
+        )
         (Json.field "type" decodeType)
         decodePermission
 
