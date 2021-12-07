@@ -64,6 +64,14 @@ type ErrorDetails
         { object : String
         , field : String
         }
+    | UnusedVariable
+        { name : String
+        , knownVariables : List String
+        }
+    | UndeclaredVariable
+        { name : String
+        , knownVariables : List String
+        }
 
 
 errorToString : Error -> String
@@ -89,6 +97,12 @@ errorToString (Error details) =
 
         FieldUnknown field ->
             "Unknown Field: " ++ field.object ++ "." ++ field.field
+
+        UnusedVariable unused ->
+            "Unused variable: " ++ unused.name
+
+        UndeclaredVariable undeclared ->
+            "Undeclared variable: "
 
 
 type CanResult success
@@ -350,36 +364,165 @@ canonicalizeDefinition schema def =
             in
             case fieldResult of
                 CanSuccess cache fields ->
-                    CanSuccess cache <|
-                        Can.Operation
-                            { operationType =
-                                case details.operationType of
-                                    AST.Query ->
-                                        Can.Query
+                    let
+                        variableResult =
+                            reduceOld verifyVariables
+                                (mergeVars cache.varTypes details.variableDefinitions)
+                                (Ok [])
+                    in
+                    case variableResult of
+                        Err errors ->
+                            CanError errors
 
-                                    AST.Mutation ->
-                                        Can.Mutation
-                            , name = Maybe.map convertName details.name
-                            , variableDefinitions =
-                                List.map
-                                    toCanonVariable
-                                    details.variableDefinitions
-                            , directives =
-                                List.map convertDirective details.directives
-                            , fields = fields
-                            }
+                        Ok canonicalVariableDefinitions ->
+                            CanSuccess cache <|
+                                Can.Operation
+                                    { operationType =
+                                        case details.operationType of
+                                            AST.Query ->
+                                                Can.Query
+
+                                            AST.Mutation ->
+                                                Can.Mutation
+                                    , name = Maybe.map convertName details.name
+                                    , variableDefinitions =
+                                        canonicalVariableDefinitions
+                                    , directives =
+                                        List.map convertDirective details.directives
+                                    , fields = fields
+                                    }
 
                 CanError errorMsg ->
                     CanError errorMsg
 
 
-toCanonVariable : AST.VariableDefinition -> Can.VariableDefinition
-toCanonVariable def =
-    { variable = { name = convertName def.variable.name }
-    , type_ = def.type_
-    , defaultValue = def.defaultValue
-    , schemaType = GraphQL.Schema.Scalar "Unknown"
+verifyVariables :
+    { name : String
+    , definition : Maybe AST.VariableDefinition
+    , inOperation : Maybe GraphQL.Schema.Type
     }
+    -> Result (List Error) Can.VariableDefinition
+verifyVariables item =
+    case ( item.definition, item.inOperation ) of
+        ( Just def, Just inOp ) ->
+            -- check to make sure the variables are unifiable
+            Ok
+                { variable = { name = convertName def.variable.name }
+                , type_ = def.type_
+                , defaultValue = def.defaultValue
+                , schemaType = inOp
+                }
+
+        ( Just def, Nothing ) ->
+            Err
+                [ error <|
+                    UnusedVariable
+                        { name = item.name
+                        , knownVariables = []
+                        }
+                ]
+
+        ( Nothing, Just def ) ->
+            Err
+                [ error <|
+                    UndeclaredVariable
+                        { name = item.name
+                        , knownVariables = []
+                        }
+                ]
+
+        ( Nothing, Nothing ) ->
+            Err
+                [ error (Todo "Compiler error")
+                ]
+
+
+mergeVars :
+    List ( String, GraphQL.Schema.Type )
+    -> List AST.VariableDefinition
+    ->
+        List
+            { name : String
+            , definition : Maybe AST.VariableDefinition
+            , inOperation : Maybe GraphQL.Schema.Type
+            }
+mergeVars varTypes variableDefinitions =
+    let
+        allNames =
+            List.foldl
+                (\varName found ->
+                    if List.member varName found then
+                        found
+
+                    else
+                        varName :: found
+                )
+                []
+                (List.map (.variable >> .name >> AST.nameToString) variableDefinitions
+                    ++ List.map Tuple.first varTypes
+                )
+                |> List.reverse
+    in
+    List.map
+        (\name ->
+            { name = name
+            , definition =
+                List.foldl
+                    (\def found ->
+                        case found of
+                            Nothing ->
+                                if AST.nameToString def.variable.name == name then
+                                    Just def
+
+                                else
+                                    found
+
+                            _ ->
+                                found
+                    )
+                    Nothing
+                    variableDefinitions
+            , inOperation =
+                find name varTypes
+            }
+        )
+        allNames
+
+
+validateTopLevelVariables cache varDef =
+    let
+        varName =
+            AST.nameToString varDef.variable.name
+    in
+    case find varName cache.varTypes of
+        Nothing ->
+            Err
+                [ UnusedVariable
+                    { name = varName
+                    , knownVariables = List.map Tuple.first cache.varTypes
+                    }
+                    |> error
+                ]
+
+        Just varType ->
+            Ok
+                { definition = varDef
+                , inOperation = varType
+                }
+
+
+find : String -> List ( String, a ) -> Maybe a
+find str items =
+    case items of
+        [] ->
+            Nothing
+
+        ( key, val ) :: remain ->
+            if str == key then
+                Just val
+
+            else
+                find str remain
 
 
 canonicalizeOperation : GraphQL.Schema.Schema -> AST.OperationType -> AST.Selection -> CanResult Can.Selection
