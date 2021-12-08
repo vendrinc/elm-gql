@@ -102,7 +102,7 @@ main =
                     SchemaReceived flagDetails (Err err) ->
                         ( model
                         , Elm.Gen.error
-                            { title = "Error retieving schema"
+                            { title = "Error retrieving schema"
                             , description =
                                 "Something went wrong with retrieving the schema.\n\n    " ++ httpErrorToString err
                             }
