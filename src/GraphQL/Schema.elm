@@ -194,24 +194,7 @@ mockScalar : Type -> Json.Encode.Value
 mockScalar t =
     case t of
         Scalar name ->
-            case String.toLower name of
-                "datetime" ->
-                    Json.Encode.string "2021-11-24"
-
-                "boolean" ->
-                    Json.Encode.bool True
-
-                "float" ->
-                    Json.Encode.float 42
-
-                "int" ->
-                    Json.Encode.int 42
-
-                "string" ->
-                    Json.Encode.string "Example string!"
-
-                _ ->
-                    Json.Encode.string ("SCALAR:" ++ name)
+            Json.Encode.string ("SCALAR:" ++ name)
 
         InputObject name ->
             Json.Encode.null
@@ -257,38 +240,109 @@ typeToElmString t =
             name
 
         List_ inner ->
-            "(List " ++ typeToString inner ++ ")"
+            "(List " ++ typeToElmString inner ++ ")"
 
         Nullable inner ->
-            "(Maybe " ++ typeToString inner ++ ")"
+            "(Maybe " ++ typeToElmString inner ++ ")"
 
 
 typeToString : Type -> String
 typeToString t =
+    typeToStringHelper (getWrapper t (Val { required = True })) t
+
+
+typeToStringHelper : Wrapper -> Type -> String
+typeToStringHelper wrapper t =
     case t of
         Scalar name ->
-            name
+            unwrapTypeToString wrapper name
 
         InputObject name ->
-            name
+            unwrapTypeToString wrapper name
 
         Object name ->
-            name
+            unwrapTypeToString wrapper name
 
         Enum name ->
-            name
+            unwrapTypeToString wrapper name
 
         Union name ->
-            name
+            unwrapTypeToString wrapper name
 
         Interface name ->
-            name
+            unwrapTypeToString wrapper name
 
         List_ inner ->
-            typeToString inner
+            typeToStringHelper wrapper inner
 
         Nullable inner ->
-            typeToString inner
+            typeToStringHelper wrapper inner
+
+
+unwrapTypeToString : Wrapper -> String -> String
+unwrapTypeToString wrapper str =
+    case wrapper of
+        Val { required } ->
+            str ++ "!"
+
+        WithinList { required } inner ->
+            if required then
+                unwrapTypeToString inner ("[" ++ str ++ "]!")
+
+            else
+                unwrapTypeToString inner ("[" ++ str ++ "]")
+
+
+brackets : String -> String
+brackets str =
+    "{" ++ str ++ "}"
+
+
+type Wrapper
+    = WithinList { required : Bool } Wrapper
+    | Val { required : Bool }
+
+
+{-|
+
+    Type ->
+        Required Val
+
+    Nullable Type ->
+        Val
+
+-}
+getWrapper : Type -> Wrapper -> Wrapper
+getWrapper t wrap =
+    case t of
+        Scalar name ->
+            wrap
+
+        InputObject name ->
+            wrap
+
+        Object name ->
+            wrap
+
+        Enum name ->
+            wrap
+
+        Union name ->
+            wrap
+
+        Interface name ->
+            wrap
+
+        List_ inner ->
+            getWrapper inner (WithinList { required = True } wrap)
+
+        Nullable inner ->
+            case wrap of
+                Val { required } ->
+                    getWrapper inner (Val { required = False })
+
+                WithinList { required } wrapper ->
+                    getWrapper inner (WithinList { required = False } wrapper)
 
 
 
