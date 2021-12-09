@@ -335,7 +335,7 @@ parseAndValidateQuery namespace schema flags gql =
             case Canonicalize.canonicalize schema query of
                 Err errors ->
                     Err
-                        { title = "Errors"
+                        { title = "Elm GQL"
                         , description =
                             List.map Canonicalize.errorToString errors
                                 |> String.join "\n\n    "
