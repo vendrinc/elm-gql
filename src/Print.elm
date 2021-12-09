@@ -16,7 +16,7 @@ module Print exposing
 -}
 block : List String -> String
 block lines =
-    "\n" ++ String.join "\n    " lines ++ "\n"
+    "\n    " ++ String.join "\n    " lines ++ "\n"
 
 
 
