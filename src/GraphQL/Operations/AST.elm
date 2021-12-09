@@ -110,3 +110,76 @@ type Type
     = Type_ Name
     | List_ Type
     | Nullable Type
+
+
+brackets : String -> String
+brackets str =
+    "{" ++ str ++ "}"
+
+
+type Wrapper
+    = InList { required : Bool } Wrapper
+    | Val { required : Bool }
+
+
+typeToGqlString : Type -> String
+typeToGqlString t =
+    typeToString (getWrapper t (Val { required = True })) t
+
+
+{-|
+
+    Type ->
+        Required Val
+
+    Nullable Type ->
+        Val
+
+-}
+getWrapper : Type -> Wrapper -> Wrapper
+getWrapper t wrap =
+    case t of
+        Type_ _ ->
+            wrap
+
+        List_ inner ->
+            getWrapper inner wrap
+
+        Nullable inner ->
+            case wrap of
+                Val { required } ->
+                    getWrapper inner (Val { required = False })
+
+                InList { required } wrapper ->
+                    getWrapper inner (InList { required = False } wrapper)
+
+
+typeToString : Wrapper -> Type -> String
+typeToString wrapper t =
+    case t of
+        Type_ (Name str) ->
+            unwrap wrapper str
+
+        List_ inner ->
+            typeToString wrapper inner
+
+        Nullable inner ->
+            typeToString wrapper inner
+
+
+unwrap : Wrapper -> String -> String
+unwrap wrapper str =
+    case wrapper of
+        Val { required } ->
+            if required then
+                str ++ "!"
+
+            else
+                str
+
+        InList { required } inner ->
+            if required then
+                unwrap inner ("[" ++ str ++ "]!")
+
+            else
+                unwrap inner ("[" ++ str ++ "]")

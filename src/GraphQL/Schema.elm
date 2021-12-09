@@ -283,7 +283,11 @@ unwrapTypeToString : Wrapper -> String -> String
 unwrapTypeToString wrapper str =
     case wrapper of
         Val { required } ->
-            str ++ "!"
+            if required then
+                str ++ "!"
+
+            else
+                str
 
         WithinList { required } inner ->
             if required then

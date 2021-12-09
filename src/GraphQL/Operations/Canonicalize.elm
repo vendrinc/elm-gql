@@ -6,6 +6,7 @@ import Dict exposing (Dict)
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
+import Print
 
 
 type Error
@@ -72,6 +73,37 @@ type ErrorDetails
         { name : String
         , knownVariables : List String
         }
+    | VariableIssueSummary VariableSummary
+
+
+type alias VariableSummary =
+    { declared : List DeclaredVariable
+    , valid : List Can.VariableDefinition
+    , issues : List VarIssue
+    , suggestions : List SuggestedVariable
+    }
+
+
+type alias DeclaredVariable =
+    { name : String
+    , type_ : Maybe String
+    }
+
+
+type VarIssue
+    = Unused { name : String, possibly : List String }
+    | UnexpectedType
+        { name : String
+        , found : Maybe String
+        , expected : String
+        }
+    | Undeclared { name : String, possibly : List String }
+
+
+type alias SuggestedVariable =
+    { name : String
+    , type_ : String
+    }
 
 
 errorToString : Error -> String
@@ -102,7 +134,89 @@ errorToString (Error details) =
             "Unused variable: " ++ unused.name
 
         UndeclaredVariable undeclared ->
-            "Undeclared variable: "
+            "Undeclared variable: " ++ undeclared.name
+
+        VariableIssueSummary summary ->
+            case summary.declared of
+                [] ->
+                    String.join "\n"
+                        [ "It looks like no variables are declared."
+                        , "Here's what I think the variables should be:"
+                        , Print.block
+                            (List.map
+                                renderSuggestion
+                                (List.reverse summary.suggestions)
+                            )
+                        ]
+
+                _ ->
+                    String.join "\n"
+                        [ "I found the following variables:"
+                        , Print.block
+                            (List.map
+                                renderDeclared
+                                (List.reverse summary.declared)
+                            )
+                        , if List.length summary.issues == 1 then
+                            "But I ran into an issue:"
+
+                          else
+                            "But I ran into a few issues:"
+                        , Print.block
+                            (List.concatMap
+                                renderIssue
+                                summary.issues
+                            )
+                        , "Here's what I think the variables should be:"
+                        , Print.block
+                            (List.map
+                                renderSuggestion
+                                (List.reverse summary.suggestions)
+                            )
+                        ]
+
+
+renderDeclared : DeclaredVariable -> String
+renderDeclared declared =
+    case declared.type_ of
+        Nothing ->
+            Print.yellow ("$" ++ declared.name)
+
+        Just declaredType ->
+            Print.yellow ("$" ++ declared.name) ++ Print.grey ": " ++ Print.cyan declaredType
+
+
+renderSuggestion : SuggestedVariable -> String
+renderSuggestion sug =
+    Print.yellow ("$" ++ sug.name) ++ Print.grey ": " ++ Print.cyan sug.type_
+
+
+renderIssue : VarIssue -> List String
+renderIssue issue =
+    case issue of
+        Unused var ->
+            [ Print.yellow ("$" ++ var.name) ++ " is unused." ]
+
+        UnexpectedType var ->
+            case var.found of
+                Nothing ->
+                    [ Print.yellow ("$" ++ var.name) ++ " has no type declaration" ]
+
+                Just foundType ->
+                    let
+                        variableName =
+                            "$" ++ var.name
+                    in
+                    [ Print.yellow variableName
+                        ++ " is declared as "
+                        ++ Print.cyan foundType
+                    , String.repeat (String.length variableName - 6) " "
+                        ++ "but is expected to be "
+                        ++ Print.cyan var.expected
+                    ]
+
+        Undeclared var ->
+            [ Print.yellow ("$" ++ var.name) ++ " is undeclared (missing from the top)." ]
 
 
 type CanResult success
@@ -221,6 +335,7 @@ getFragments schema doc =
     gatherFragmentsFromDefinitions schema emptyCache doc.definitions
 
 
+gatherFragmentsFromDefinitions : GraphQL.Schema.Schema -> VarCache -> List AST.Definition -> VarCache
 gatherFragmentsFromDefinitions schema cache defs =
     case defs of
         [] ->
@@ -365,35 +480,99 @@ canonicalizeDefinition schema def =
             case fieldResult of
                 CanSuccess cache fields ->
                     let
-                        variableResult =
-                            reduceOld verifyVariables
+                        variableSummary =
+                            List.foldl
+                                verifyVariables
+                                { declared = []
+                                , valid = []
+                                , issues = []
+                                , suggestions = []
+                                }
                                 (mergeVars cache.varTypes details.variableDefinitions)
-                                (Ok [])
                     in
-                    case variableResult of
-                        Err errors ->
-                            CanError errors
+                    if not (List.isEmpty variableSummary.issues) then
+                        CanError
+                            [ error
+                                (VariableIssueSummary variableSummary)
+                            ]
 
-                        Ok canonicalVariableDefinitions ->
-                            CanSuccess cache <|
-                                Can.Operation
-                                    { operationType =
-                                        case details.operationType of
-                                            AST.Query ->
-                                                Can.Query
+                    else
+                        CanSuccess cache <|
+                            Can.Operation
+                                { operationType =
+                                    case details.operationType of
+                                        AST.Query ->
+                                            Can.Query
 
-                                            AST.Mutation ->
-                                                Can.Mutation
-                                    , name = Maybe.map convertName details.name
-                                    , variableDefinitions =
-                                        canonicalVariableDefinitions
-                                    , directives =
-                                        List.map convertDirective details.directives
-                                    , fields = fields
-                                    }
+                                        AST.Mutation ->
+                                            Can.Mutation
+                                , name = Maybe.map convertName details.name
+                                , variableDefinitions =
+                                    variableSummary.valid
+                                , directives =
+                                    List.map convertDirective details.directives
+                                , fields = fields
+                                }
 
                 CanError errorMsg ->
                     CanError errorMsg
+
+
+{-| The AST.Type is the type declared at the top of the document.
+
+The Schema.Type is what is in the schema.
+
+-}
+doTypesMatch : GraphQL.Schema.Type -> AST.Type -> Bool
+doTypesMatch schemaType astType =
+    case astType of
+        AST.Type_ astName ->
+            case schemaType of
+                GraphQL.Schema.Scalar schemaName ->
+                    AST.nameToString astName
+                        == schemaName
+
+                GraphQL.Schema.InputObject schemaName ->
+                    AST.nameToString astName
+                        == schemaName
+
+                GraphQL.Schema.Object schemaName ->
+                    AST.nameToString astName
+                        == schemaName
+
+                GraphQL.Schema.Enum schemaName ->
+                    AST.nameToString astName
+                        == schemaName
+
+                GraphQL.Schema.Union schemaName ->
+                    AST.nameToString astName
+                        == schemaName
+
+                GraphQL.Schema.Interface schemaName ->
+                    AST.nameToString astName
+                        == schemaName
+
+                GraphQL.Schema.List_ inner ->
+                    False
+
+                GraphQL.Schema.Nullable inner ->
+                    False
+
+        AST.Nullable innerAST ->
+            case schemaType of
+                GraphQL.Schema.Nullable innerSchema ->
+                    doTypesMatch innerSchema innerAST
+
+                _ ->
+                    False
+
+        AST.List_ innerAST ->
+            case schemaType of
+                GraphQL.Schema.List_ innerSchema ->
+                    doTypesMatch innerSchema innerAST
+
+                _ ->
+                    False
 
 
 verifyVariables :
@@ -401,40 +580,91 @@ verifyVariables :
     , definition : Maybe AST.VariableDefinition
     , inOperation : Maybe GraphQL.Schema.Type
     }
-    -> Result (List Error) Can.VariableDefinition
-verifyVariables item =
+    -> VariableSummary
+    -> VariableSummary
+verifyVariables item summary =
     case ( item.definition, item.inOperation ) of
         ( Just def, Just inOp ) ->
             -- check to make sure the variables are unifiable
-            Ok
-                { variable = { name = convertName def.variable.name }
-                , type_ = def.type_
-                , defaultValue = def.defaultValue
-                , schemaType = inOp
-                }
+            let
+                valid =
+                    { variable = { name = convertName def.variable.name }
+                    , type_ = def.type_
+                    , defaultValue = def.defaultValue
+                    , schemaType = inOp
+                    }
+
+                typeString =
+                    GraphQL.Schema.typeToString inOp
+
+                declared =
+                    { name = AST.nameToString def.variable.name
+                    , type_ =
+                        Just
+                            (AST.typeToGqlString def.type_)
+                    }
+
+                suggestion =
+                    { name = AST.nameToString def.variable.name
+                    , type_ = typeString
+                    }
+
+                typesMatch =
+                    doTypesMatch inOp def.type_
+            in
+            { declared = declared :: summary.declared
+            , valid = valid :: summary.valid
+            , issues =
+                if typesMatch then
+                    summary.issues
+
+                else
+                    UnexpectedType
+                        { name = item.name
+                        , found = Just (AST.typeToGqlString def.type_)
+                        , expected = typeString
+                        }
+                        :: summary.issues
+            , suggestions = suggestion :: summary.suggestions
+            }
 
         ( Just def, Nothing ) ->
-            Err
-                [ error <|
-                    UnusedVariable
-                        { name = item.name
-                        , knownVariables = []
-                        }
-                ]
+            { declared =
+                { name = AST.nameToString def.variable.name
+                , type_ = Nothing
+                }
+                    :: summary.declared
+            , valid = summary.valid
+            , issues =
+                Unused
+                    { name = item.name
+                    , possibly = []
+                    }
+                    :: summary.issues
+            , suggestions =
+                summary.suggestions
+            }
 
-        ( Nothing, Just def ) ->
-            Err
-                [ error <|
-                    UndeclaredVariable
-                        { name = item.name
-                        , knownVariables = []
-                        }
-                ]
+        ( Nothing, Just inOp ) ->
+            let
+                suggestion =
+                    { name = item.name
+                    , type_ = GraphQL.Schema.typeToString inOp
+                    }
+            in
+            { declared = summary.declared
+            , valid = summary.valid
+            , issues =
+                Undeclared
+                    { name = item.name
+                    , possibly = []
+                    }
+                    :: summary.issues
+            , suggestions = suggestion :: summary.suggestions
+            }
 
         ( Nothing, Nothing ) ->
-            Err
-                [ error (Todo "Compiler error")
-                ]
+            summary
 
 
 mergeVars :
