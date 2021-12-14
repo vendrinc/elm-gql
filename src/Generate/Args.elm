@@ -1190,9 +1190,6 @@ createBuilder namespace schema name arguments returnType operation =
                 let
                     innerReturnType =
                         GraphQL.Schema.getInner returnType
-
-                    wrapper =
-                        GraphQL.Schema.getWrap returnType
                 in
                 Just
                     ( Generate.Common.selection namespace
@@ -1223,15 +1220,14 @@ createBuilder namespace schema name arguments returnType operation =
                     (GraphQL.Schema.getWrap returnType)
                     |> Engine.decode
 
+        returnWrapper =
+            GraphQL.Schema.getWrap returnType
+
         returnAnnotation =
             if needsInnerSelection returnType then
-                let
-                    wrapper =
-                        GraphQL.Schema.getWrap returnType
-                in
                 Generate.Common.selection namespace
                     (Input.operationToString operation)
-                    (wrapWith wrapper (Elm.Annotation.var "data"))
+                    (wrapWith returnWrapper (Elm.Annotation.var "data"))
 
             else
                 Generate.Common.selection namespace
@@ -1255,7 +1251,7 @@ createBuilder namespace schema name arguments returnType operation =
                     Elm.list []
                 )
                 (Elm.string name)
-                returnSelection
+                (decodeWrapper returnWrapper returnSelection)
                 |> Elm.withType returnAnnotation
     in
     Elm.functionWith (Utils.String.formatValue name)
@@ -1274,6 +1270,18 @@ createBuilder namespace schema name arguments returnType operation =
         )
         return
         |> Elm.expose
+
+
+decodeWrapper wrapper selection =
+    case wrapper of
+        GraphQL.Schema.UnwrappedValue ->
+            selection
+
+        GraphQL.Schema.InList innerWrap ->
+            Engine.list (decodeWrapper innerWrap selection)
+
+        GraphQL.Schema.InMaybe innerWrap ->
+            Engine.nullable (decodeWrapper innerWrap selection)
 
 
 wrapWith wrapper inner =
