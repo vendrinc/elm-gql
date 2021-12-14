@@ -581,10 +581,20 @@ toJsonValue namespace schema fieldType wrapped val =
             --
             encodeWrappedInverted wrapped
                 (\v ->
-                    Elm.apply
-                        (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "encode")
-                        [ v
-                        ]
+                    if namespace.namespace /= namespace.enums then
+                        -- we're encoding using code generated via dillonkearns/elm-graphql
+                        Encode.string
+                            (Elm.apply
+                                (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "toString")
+                                [ v
+                                ]
+                            )
+
+                    else
+                        Elm.apply
+                            (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "encode")
+                            [ v
+                            ]
                 )
                 val
 
