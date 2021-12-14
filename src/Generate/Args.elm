@@ -671,16 +671,20 @@ encodeEnum namespace wrapped val enumName =
         (\v ->
             if namespace.namespace /= namespace.enums then
                 -- we're encoding using code generated via dillonkearns/elm-graphql
-                Elm.lambda "enumValue"
-                    (Elm.Annotation.named [ namespace.enums, "Enum", enumName ] enumName)
-                    (\i ->
-                        Encode.string
-                            (Elm.apply
-                                (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "toString")
-                                [ i
-                                ]
-                            )
+                Elm.apply
+                    (Elm.lambda "enumValue"
+                        (Elm.Annotation.named [ namespace.enums, "Enum", enumName ] enumName)
+                        (\i ->
+                            Encode.string
+                                (Elm.apply
+                                    (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "toString")
+                                    [ i
+                                    ]
+                                )
+                        )
                     )
+                    [ v
+                    ]
 
             else
                 Elm.apply
