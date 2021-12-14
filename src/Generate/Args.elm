@@ -666,30 +666,20 @@ encodeWrappedJsonValue inputName wrapper encoder val =
                 val
 
 
-
--- (Elm.Gen.List.map
---         (\v ->
---             Elm.lambda valName
---                 Elm.Annotation.unit
---                 (\within ->
---                     encodeWrappedJsonValue valName inner encoder within
---                 )
---         )
---         val
--- )
--- (Elm.string (Input.gqlType wrapper inputName))
-
-
 encodeEnum namespace wrapped val enumName =
     encodeWrappedInverted wrapped
         (\v ->
             if namespace.namespace /= namespace.enums then
                 -- we're encoding using code generated via dillonkearns/elm-graphql
-                Encode.string
-                    (Elm.apply
-                        (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "toString")
-                        [ v
-                        ]
+                Elm.lambda "enumValue"
+                    (Elm.Annotation.named [ namespace.enums, "Enum", enumName ] enumName)
+                    (\i ->
+                        Encode.string
+                            (Elm.apply
+                                (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "toString")
+                                [ i
+                                ]
+                            )
                     )
 
             else
