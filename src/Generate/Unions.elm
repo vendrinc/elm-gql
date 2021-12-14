@@ -5,7 +5,7 @@ import Elm
 import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Common as Common
-import GraphQL.Schema
+import GraphQL.Schema exposing (Namespace)
 import Utils.String
 
 
@@ -14,7 +14,7 @@ enumNameToConstructorName =
     Utils.String.formatValue
 
 
-generateFiles : String -> GraphQL.Schema.Schema -> List Elm.File
+generateFiles : Namespace -> GraphQL.Schema.Schema -> List Elm.File
 generateFiles namespace graphQLSchema =
     graphQLSchema.unions
         |> Dict.toList
@@ -28,7 +28,7 @@ generateFiles namespace graphQLSchema =
                                 (List.map
                                     (\var ->
                                         ( GraphQL.Schema.kindToString var.kind
-                                        , Common.selection namespace
+                                        , Common.selection namespace.namespace
                                             (GraphQL.Schema.kindToString var.kind)
                                             (Elm.Annotation.var "data")
                                         )
@@ -52,7 +52,7 @@ generateFiles namespace graphQLSchema =
                                         )
                                     )
                                     |> Elm.withType
-                                        (Common.selection namespace
+                                        (Common.selection namespace.namespace
                                             unionDefinition.name
                                             (Elm.Annotation.var "data")
                                         )
@@ -62,5 +62,5 @@ generateFiles namespace graphQLSchema =
                     |> Elm.expose
                 ]
             )
-        |> Elm.file [ namespace, "Unions" ]
+        |> Elm.file [ namespace.namespace, "Unions" ]
         |> List.singleton

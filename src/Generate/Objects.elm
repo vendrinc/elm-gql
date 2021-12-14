@@ -7,12 +7,12 @@ import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Json
 import Generate.Common as Common
 import Generate.Decode
-import GraphQL.Schema
+import GraphQL.Schema exposing (Namespace)
 import Utils.String
 
 
 objectToModule :
-    String
+    Namespace
     -- this can be objects or interfaces
     -> { a | fields : List GraphQL.Schema.Field, name : String }
     -> Elm.Declaration
@@ -65,7 +65,7 @@ formatName str =
 
 
 implementField :
-    String
+    Namespace
     -> String
     -> String
     -> GraphQL.Schema.Type
@@ -102,7 +102,7 @@ implementField namespace objectName fieldName fieldType wrapped =
             { expression =
                 Engine.field
                     (Elm.string fieldName)
-                    (Elm.valueFrom [ namespace, "Enum", enumName ] "decoder"
+                    (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "decoder"
                         |> decodeWrapper wrapped
                     )
             , annotation = signature.annotation
@@ -111,7 +111,7 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Object nestedObjectName ->
             { expression =
                 Elm.lambda "selection_"
-                    (Common.selectionLocal namespace
+                    (Common.selectionLocal namespace.namespace
                         nestedObjectName
                         (Elm.Annotation.var "data")
                     )
@@ -122,11 +122,11 @@ implementField namespace objectName fieldName fieldType wrapped =
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ Common.selectionLocal namespace
+                    [ Common.selectionLocal namespace.namespace
                         nestedObjectName
                         (Elm.Annotation.var "data")
                     ]
-                    (Common.selectionLocal namespace
+                    (Common.selectionLocal namespace.namespace
                         objectName
                         (wrapAnnotation wrapped (Elm.Annotation.var "data"))
                     )
@@ -135,7 +135,7 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Interface interfaceName ->
             { expression =
                 Elm.lambda "selection_"
-                    (Common.selectionLocal namespace
+                    (Common.selectionLocal namespace.namespace
                         interfaceName
                         (Elm.Annotation.var "data")
                     )
@@ -146,11 +146,11 @@ implementField namespace objectName fieldName fieldType wrapped =
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ Common.selectionLocal namespace
+                    [ Common.selectionLocal namespace.namespace
                         interfaceName
                         (Elm.Annotation.var "data")
                     ]
-                    (Common.selectionLocal namespace
+                    (Common.selectionLocal namespace.namespace
                         objectName
                         (wrapAnnotation wrapped (Elm.Annotation.var "data"))
                     )
@@ -168,7 +168,7 @@ implementField namespace objectName fieldName fieldType wrapped =
         GraphQL.Schema.Union unionName ->
             { expression =
                 Elm.lambda "union_"
-                    (Common.selectionLocal namespace
+                    (Common.selectionLocal namespace.namespace
                         unionName
                         (Elm.Annotation.var "data")
                     )
@@ -179,11 +179,11 @@ implementField namespace objectName fieldName fieldType wrapped =
                     )
             , annotation =
                 Elm.Annotation.function
-                    [ Common.selectionLocal namespace
+                    [ Common.selectionLocal namespace.namespace
                         unionName
                         (Elm.Annotation.var "data")
                     ]
-                    (Common.selectionLocal namespace
+                    (Common.selectionLocal namespace.namespace
                         objectName
                         (wrapAnnotation wrapped (Elm.Annotation.var "data"))
                     )
@@ -219,7 +219,7 @@ wrapExpression wrap exp =
 
 
 fieldSignature :
-    String
+    Namespace
     -> String
     -> GraphQL.Schema.Wrapped
     -> GraphQL.Schema.Type
@@ -229,11 +229,11 @@ fieldSignature :
 fieldSignature namespace objectName wrapped fieldType =
     let
         dataType =
-            Common.localAnnotation namespace fieldType Nothing
+            Common.localAnnotation namespace.namespace fieldType Nothing
                 |> wrapAnnotation wrapped
 
         typeAnnotation =
-            Common.selectionLocal namespace
+            Common.selectionLocal namespace.namespace
                 objectName
                 dataType
     in
@@ -256,7 +256,7 @@ decodeWrapper wrap exp =
                 (decodeWrapper inner exp)
 
 
-generateFiles : String -> GraphQL.Schema.Schema -> List Elm.File
+generateFiles : Namespace -> GraphQL.Schema.Schema -> List Elm.File
 generateFiles namespace graphQLSchema =
     let
         objects =
@@ -424,7 +424,7 @@ generateFiles namespace graphQLSchema =
                 )
             ]
     in
-    [ Elm.file [ namespace ]
+    [ Elm.file [ namespace.namespace ]
         (engine
             ++ renderedObjects
             ++ proofsAndAliases

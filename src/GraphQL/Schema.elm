@@ -4,7 +4,7 @@ module GraphQL.Schema exposing
     , Kind(..), Schema, Type(..)
     , mockScalar
     , Wrapped(..), getWrap, getInner
-    , Argument, Field, InputObjectDetails, ObjectDetails, Operation, UnionDetails, Variant, kindToString, typeToElmString, typeToString
+    , Argument, Field, InputObjectDetails, Namespace, ObjectDetails, Operation, UnionDetails, Variant, kindToString, typeToElmString, typeToString
     )
 
 {-|
@@ -25,6 +25,12 @@ import Dict exposing (Dict)
 import Http
 import Json.Decode as Json
 import Json.Encode
+
+
+type alias Namespace =
+    { namespace : String
+    , enums : String
+    }
 
 
 

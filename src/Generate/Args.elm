@@ -132,7 +132,7 @@ Both -> record with a special field
 
 -}
 recursiveRequiredAnnotation :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     ->
         List
@@ -155,7 +155,7 @@ recursiveRequiredAnnotation namespace schema reqs =
 
 
 prepareRequiredRecursive :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> { a | name : String, type_ : GraphQL.Schema.Type }
     -> Elm.Expression
@@ -324,7 +324,7 @@ annotations =
 
 -}
 nullsRecord :
-    String
+    Namespace
     -> String
     ->
         List
@@ -344,7 +344,7 @@ nullsRecord namespace name fields =
                         |> Engine.optional
                             (Elm.string field.name)
                         |> Elm.withType
-                            (annotations.localOptional namespace name)
+                            (annotations.localOptional namespace.namespace name)
                     )
             )
             fields
@@ -359,7 +359,7 @@ nullsRecord namespace name fields =
 
 -}
 optionsRecursive :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> String
     ->
@@ -375,7 +375,7 @@ optionsRecursive namespace schema name options =
 
 
 optionsRecursiveHelper :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> String
     ->
@@ -417,7 +417,7 @@ optionsRecursiveHelper namespace schema name options fields =
                             wrapping
                             val
                             |> Elm.withType
-                                (annotations.arg namespace name)
+                                (annotations.arg namespace.namespace name)
                             |> Engine.optional
                                 (Elm.string arg.name)
                             |> Elm.withType
@@ -429,7 +429,7 @@ optionsRecursiveHelper namespace schema name options fields =
                 )
 
 
-inputAnnotationRecursive : String -> GraphQL.Schema.Schema -> GraphQL.Schema.Type -> GraphQL.Schema.Wrapped -> Elm.Annotation.Annotation
+inputAnnotationRecursive : Namespace -> GraphQL.Schema.Schema -> GraphQL.Schema.Type -> GraphQL.Schema.Wrapped -> Elm.Annotation.Annotation
 inputAnnotationRecursive namespace schema type_ wrapped =
     case type_ of
         GraphQL.Schema.Nullable newType ->
@@ -450,7 +450,7 @@ inputAnnotationRecursive namespace schema type_ wrapped =
         GraphQL.Schema.InputObject inputName ->
             case Dict.get inputName schema.inputObjects of
                 Nothing ->
-                    annotations.arg namespace inputName
+                    annotations.arg namespace.namespace inputName
                         |> unwrapWith wrapped
 
                 Just input ->
@@ -462,14 +462,14 @@ inputAnnotationRecursive namespace schema type_ wrapped =
 
         GraphQL.Schema.Object nestedObjectName ->
             -- not used as input
-            Generate.Common.selection namespace
+            Generate.Common.selection namespace.namespace
                 nestedObjectName
                 (Elm.Annotation.var "data")
 
         GraphQL.Schema.Union unionName ->
             -- not used as input
             -- Note, we need a discriminator instead of just `data`
-            Generate.Common.selection namespace
+            Generate.Common.selection namespace.namespace
                 unionName
                 (Elm.Annotation.var "data")
                 |> unwrapWith wrapped
@@ -480,7 +480,7 @@ inputAnnotationRecursive namespace schema type_ wrapped =
 
 
 inputObjectAnnotation :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> GraphQL.Schema.InputObjectDetails
     -> GraphQL.Schema.Wrapped
@@ -493,7 +493,7 @@ inputObjectAnnotation namespace schema input wrapped optForm =
     in
     case Input.splitRequired input.fields of
         ( [], [] ) ->
-            annotations.arg namespace inputName
+            annotations.arg namespace.namespace inputName
                 |> unwrapWith wrapped
 
         ( required, [] ) ->
@@ -510,12 +510,12 @@ inputObjectAnnotation namespace schema input wrapped optForm =
 
         ( [], optional ) ->
             if optForm.ergonomicOptionType then
-                annotations.ergonomicOptional namespace inputName
+                annotations.ergonomicOptional namespace.namespace inputName
                     |> Elm.Annotation.list
                     |> unwrapWith wrapped
 
             else
-                annotations.safeOptional namespace inputName
+                annotations.safeOptional namespace.namespace inputName
                     |> Elm.Annotation.list
                     |> unwrapWith wrapped
 
@@ -529,7 +529,7 @@ inputObjectAnnotation namespace schema input wrapped optForm =
                     )
                     required
                     ++ [ ( embeddedOptionsFieldName
-                         , annotations.optional namespace inputName
+                         , annotations.optional namespace.namespace inputName
                             |> Elm.Annotation.list
                          )
                        ]
@@ -569,34 +569,7 @@ toJsonValue namespace schema fieldType wrapped val =
                 val
 
         GraphQL.Schema.Enum enumName ->
-            --This can either be
-            --     val -> Enum.encode val
-            --     val ->
-            --          Encode.list Enum.encode val
-            --     val ->
-            --          Engine.encodeMaybe Enum.encode val
-            --     or some stack
-            --     val ->
-            --          Encode.list (Encode.list Enum.encode) val
-            --
-            encodeWrappedInverted wrapped
-                (\v ->
-                    if namespace.namespace /= namespace.enums then
-                        -- we're encoding using code generated via dillonkearns/elm-graphql
-                        Encode.string
-                            (Elm.apply
-                                (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "toString")
-                                [ v
-                                ]
-                            )
-
-                    else
-                        Elm.apply
-                            (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "encode")
-                            [ v
-                            ]
-                )
-                val
+            encodeEnum namespace wrapped val enumName
 
         GraphQL.Schema.InputObject inputName ->
             case Dict.get inputName schema.inputObjects of
@@ -707,8 +680,29 @@ encodeWrappedJsonValue inputName wrapper encoder val =
 -- (Elm.string (Input.gqlType wrapper inputName))
 
 
+encodeEnum namespace wrapped val enumName =
+    encodeWrappedInverted wrapped
+        (\v ->
+            if namespace.namespace /= namespace.enums then
+                -- we're encoding using code generated via dillonkearns/elm-graphql
+                Encode.string
+                    (Elm.apply
+                        (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "toString")
+                        [ v
+                        ]
+                    )
+
+            else
+                Elm.apply
+                    (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "encode")
+                    [ v
+                    ]
+        )
+        val
+
+
 toEngineArg :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> GraphQL.Schema.Type
     -> GraphQL.Schema.Wrapped
@@ -731,26 +725,8 @@ toEngineArg namespace schema fieldType wrapped val =
                 (Elm.string (Input.gqlType wrapped scalarName))
 
         GraphQL.Schema.Enum enumName ->
-            --This can either be
-            --     val -> Enum.encode val
-            --     val ->
-            --          Encode.list Enum.encode val
-            --     val ->
-            --          Engine.encodeMaybe Enum.encode val
-            --     or some stack
-            --     val ->
-            --          Encode.list (Encode.list Enum.encode) val
-            --
             Engine.arg
-                (encodeWrappedInverted wrapped
-                    (\v ->
-                        Elm.apply
-                            (Elm.valueFrom [ namespace, "Enum", enumName ] "encode")
-                            [ v
-                            ]
-                    )
-                    val
-                )
+                (encodeEnum namespace wrapped val enumName)
                 (Elm.string (Input.gqlType wrapped enumName))
 
         GraphQL.Schema.InputObject inputName ->
@@ -1119,7 +1095,7 @@ encodeWrappedInverted wrapper encoder val =
 
 
 annotation :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> GraphQL.Schema.InputObjectDetails
     -> Elm.Annotation.Annotation
@@ -1129,7 +1105,7 @@ annotation namespace schema input =
 
 {-| -}
 createBuilder :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> String
     ->
@@ -1192,7 +1168,7 @@ createBuilder namespace schema name arguments returnType operation =
                         GraphQL.Schema.getInner returnType
                 in
                 Just
-                    ( Generate.Common.selection namespace
+                    ( Generate.Common.selection namespace.namespace
                         (GraphQL.Schema.typeToElmString innerReturnType)
                         (Elm.Annotation.var "data")
                     , Elm.Pattern.var "selection"
@@ -1209,7 +1185,7 @@ createBuilder namespace schema name arguments returnType operation =
                 in
                 Elm.valueWith []
                     "selection"
-                    (Generate.Common.selection namespace
+                    (Generate.Common.selection namespace.namespace
                         (GraphQL.Schema.typeToElmString innerReturnType)
                         (Elm.Annotation.var "data")
                     )
@@ -1225,12 +1201,12 @@ createBuilder namespace schema name arguments returnType operation =
 
         returnAnnotation =
             if needsInnerSelection returnType then
-                Generate.Common.selection namespace
+                Generate.Common.selection namespace.namespace
                     (Input.operationToString operation)
                     (wrapWith returnWrapper (Elm.Annotation.var "data"))
 
             else
-                Generate.Common.selection namespace
+                Generate.Common.selection namespace.namespace
                     (Input.operationToString operation)
                     (Elm.Annotation.named [] (GraphQL.Schema.typeToElmString returnType))
 

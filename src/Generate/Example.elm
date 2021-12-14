@@ -5,7 +5,7 @@ import Elm
 import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Common
 import Generate.Input
-import GraphQL.Schema
+import GraphQL.Schema exposing (Namespace)
 import Set exposing (Set)
 import String
 import Utils.String
@@ -13,7 +13,7 @@ import Utils.String
 
 {-| -}
 operation :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> ( Generate.Input.Operation, GraphQL.Schema.Operation )
     -> Elm.Expression
@@ -26,10 +26,10 @@ operation namespace schema ( opType, op ) =
         (Elm.valueFrom
             (case opType of
                 Generate.Input.Mutation ->
-                    Generate.Common.modules.mutation namespace op.name
+                    Generate.Common.modules.mutation namespace.namespace op.name
 
                 Generate.Input.Query ->
-                    Generate.Common.modules.query namespace op.name
+                    Generate.Common.modules.query namespace.namespace op.name
             )
             (Utils.String.formatValue op.name)
         )
@@ -48,7 +48,7 @@ operation namespace schema ( opType, op ) =
 
 -}
 example :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> String
     ->
@@ -70,10 +70,10 @@ example namespace schema name arguments returnType op =
         (Elm.valueFrom
             (case op of
                 Generate.Input.Mutation ->
-                    Generate.Common.modules.mutation namespace name
+                    Generate.Common.modules.mutation namespace.namespace name
 
                 Generate.Input.Query ->
-                    Generate.Common.modules.query namespace name
+                    Generate.Common.modules.query namespace.namespace name
             )
             (Utils.String.formatValue name)
         )
@@ -82,7 +82,7 @@ example namespace schema name arguments returnType op =
 
 
 create :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> Set String
     -> String
@@ -156,7 +156,7 @@ create namespace schema called name operationType base fields return =
 
 
 createEmbedded :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> Set String
     -> String
@@ -220,7 +220,7 @@ denullable type_ =
 
 
 optionalArgsExample :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> Set String
     -> String.String
@@ -255,15 +255,15 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
                     optionalModule =
                         case isTopLevel of
                             Nothing ->
-                                [ namespace
+                                [ namespace.namespace
                                 , Utils.String.formatTypename parentName
                                 ]
 
                             Just Generate.Input.Mutation ->
-                                Generate.Common.modules.mutation namespace parentName
+                                Generate.Common.modules.mutation namespace.namespace parentName
 
                             Just Generate.Input.Query ->
-                                Generate.Common.modules.query namespace parentName
+                                Generate.Common.modules.query namespace.namespace parentName
 
                     unnullifiedType =
                         denullable field.type_
@@ -310,7 +310,7 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
 
 {-| -}
 requiredArgsExample :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> String
     -> Set String
@@ -372,7 +372,7 @@ requiredArgsExample namespace schema name called fields =
 
 
 requiredArgsExampleHelper :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> Set String
     -> GraphQL.Schema.Type
@@ -455,7 +455,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
             Nothing
 
 
-enumExample : String -> GraphQL.Schema.Schema -> String -> Elm.Expression
+enumExample : Namespace -> GraphQL.Schema.Schema -> String -> Elm.Expression
 enumExample namespace schema enumName =
     case Dict.get enumName schema.enums of
         Nothing ->

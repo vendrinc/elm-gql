@@ -8,7 +8,7 @@ import Utils.String
 modules =
     { enum =
         \namespace enumName ->
-            [ namespace
+            [ namespace.enums
             , "Enum"
             , Utils.String.formatTypename enumName
             ]

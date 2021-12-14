@@ -296,7 +296,7 @@ toElmTypeHelper namespace schema astType =
                         Type.named [ "Scalar" ] typename
 
                     Just input ->
-                        Generate.Args.annotation namespace.namespace schema input
+                        Generate.Args.annotation namespace schema input
 
         AST.List_ inner ->
             Type.list (toElmTypeHelper namespace schema inner)

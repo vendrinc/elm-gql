@@ -16,7 +16,7 @@ import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Generate
 import GraphQL.Operations.Parse
 import GraphQL.Operations.Validate
-import GraphQL.Schema
+import GraphQL.Schema exposing (Namespace)
 import Http
 import Json.Decode
 import Json.Encode
@@ -112,8 +112,13 @@ main =
 
 
 generatePlatform : String -> GraphQL.Schema.Schema -> Json.Encode.Value -> FlagDetails -> Cmd Msg
-generatePlatform namespace schema schemaAsJson flagDetails =
+generatePlatform namespaceStr schema schemaAsJson flagDetails =
     let
+        namespace =
+            { namespace = namespaceStr
+            , enums = Maybe.withDefault namespaceStr flagDetails.existingEnumDefinitions
+            }
+
         -- _ =
         --     Generate.Paged.generate namespace schema
         parsedGqlQueries =
@@ -160,9 +165,9 @@ generatePlatform namespace schema schemaAsJson flagDetails =
                     gqlFiles
 
 
-saveSchema : String -> Json.Encode.Value -> Elm.File
+saveSchema : Namespace -> Json.Encode.Value -> Elm.File
 saveSchema namespace val =
-    Elm.file [ namespace, "Meta", "Schema" ]
+    Elm.file [ namespace.namespace, "Meta", "Schema" ]
         [ Elm.declaration "schema"
             (Elm.apply
                 (Elm.valueWith [ "GraphQL", "Mock" ]
@@ -179,7 +184,7 @@ saveSchema namespace val =
         ]
 
 
-parseGql : String -> GraphQL.Schema.Schema -> FlagDetails -> List { src : String, path : String } -> List Elm.File -> Result Error (List Elm.File)
+parseGql : Namespace -> GraphQL.Schema.Schema -> FlagDetails -> List { src : String, path : String } -> List Elm.File -> Result Error (List Elm.File)
 parseGql namespace schema flagDetails gql rendered =
     case gql of
         [] ->
@@ -317,7 +322,7 @@ type alias Error =
 
 
 parseAndValidateQuery :
-    String
+    Namespace
     -> GraphQL.Schema.Schema
     -> FlagDetails
     -> { src : String, path : String }
@@ -355,9 +360,7 @@ parseAndValidateQuery namespace schema flags gql =
                     case
                         GraphQL.Operations.Generate.generate
                             { namespace =
-                                { namespace = namespace
-                                , enums = Maybe.withDefault namespace flags.existingEnumDefinitions
-                                }
+                                namespace
                             , schema = schema
                             , base = flags.base
                             , document = canAST

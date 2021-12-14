@@ -7,7 +7,7 @@ import Elm.Gen.Json.Decode as Decode
 import Elm.Gen.Json.Encode as Encode
 import Elm.Pattern
 import Generate.Common
-import GraphQL.Schema
+import GraphQL.Schema exposing (Namespace)
 import Utils.String
 
 
@@ -16,7 +16,7 @@ enumNameToConstructorName =
     Utils.String.formatTypename
 
 
-generateFiles : String -> GraphQL.Schema.Schema -> List Elm.File
+generateFiles : Namespace -> GraphQL.Schema.Schema -> List Elm.File
 generateFiles namespace graphQLSchema =
     graphQLSchema.enums
         |> Dict.toList

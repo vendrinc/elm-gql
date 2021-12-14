@@ -5,11 +5,11 @@ import Elm
 import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Args
-import GraphQL.Schema
+import GraphQL.Schema exposing (Namespace)
 import Utils.String
 
 
-inputObjectToOptionalBuilders : String -> GraphQL.Schema.Schema -> GraphQL.Schema.InputObjectDetails -> List Elm.File
+inputObjectToOptionalBuilders : Namespace -> GraphQL.Schema.Schema -> GraphQL.Schema.InputObjectDetails -> List Elm.File
 inputObjectToOptionalBuilders namespace schema input =
     let
         ( required, optional ) =
@@ -35,14 +35,14 @@ inputObjectToOptionalBuilders namespace schema input =
         optionalTypeAlias =
             Elm.alias "Optional"
                 (Engine.types_.optional
-                    (Elm.Annotation.named [ namespace ]
+                    (Elm.Annotation.named [ namespace.namespace ]
                         input.name
                     )
                 )
                 |> Elm.expose
     in
     if hasOptionalArgs then
-        [ Elm.file [ namespace, Utils.String.formatTypename input.name ]
+        [ Elm.file [ namespace.namespace, Utils.String.formatTypename input.name ]
             (optionalTypeAlias
                 :: Generate.Args.optionsRecursive namespace
                     schema
@@ -59,7 +59,7 @@ inputObjectToOptionalBuilders namespace schema input =
         []
 
 
-generateFiles : String -> GraphQL.Schema.Schema -> List Elm.File
+generateFiles : Namespace -> GraphQL.Schema.Schema -> List Elm.File
 generateFiles namespace schema =
     let
         objects =

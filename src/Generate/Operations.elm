@@ -7,11 +7,11 @@ import Elm.Gen.GraphQL.Engine as Engine
 import Generate.Args
 import Generate.Example
 import Generate.Input as Input
-import GraphQL.Schema
+import GraphQL.Schema exposing (Namespace)
 import Utils.String
 
 
-queryToModule : String -> Input.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation -> Elm.File
+queryToModule : Namespace -> Input.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation -> Elm.File
 queryToModule namespace op schema operation =
     let
         dir =
@@ -39,7 +39,7 @@ queryToModule namespace op schema operation =
                     topLevelAlias =
                         Elm.alias "Optional"
                             (Engine.types_.optional
-                                (Elm.Annotation.named [ namespace ]
+                                (Elm.Annotation.named [ namespace.namespace ]
                                     (case op of
                                         Input.Query ->
                                             operation.name ++ "_Option"
@@ -68,7 +68,7 @@ queryToModule namespace op schema operation =
                 []
     in
     Elm.fileWith
-        [ namespace
+        [ namespace.namespace
         , dir
         , Utils.String.formatTypename operation.name
         ]
@@ -93,7 +93,7 @@ directory op =
             "Mutations"
 
 
-generateFiles : String -> Input.Operation -> GraphQL.Schema.Schema -> List Elm.File
+generateFiles : Namespace -> Input.Operation -> GraphQL.Schema.Schema -> List Elm.File
 generateFiles namespace op schema =
     case op of
         Input.Mutation ->
