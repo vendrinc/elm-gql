@@ -78,7 +78,7 @@ example namespace schema name arguments returnType op =
             (Utils.String.formatValue name)
         )
         arguments
-        (Elm.value ("select" ++ GraphQL.Schema.typeToString returnType))
+        (Elm.value ("select" ++ GraphQL.Schema.typeToElmString (GraphQL.Schema.getInner returnType)))
 
 
 create :
