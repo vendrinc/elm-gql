@@ -1189,7 +1189,7 @@ createBuilder namespace schema name arguments returnType operation =
                 -- if we're selecting an object, we need the dev to pass a selection set in.
                 Just
                     ( Generate.Common.selection namespace
-                        (GraphQL.Schema.typeToString returnType)
+                        (GraphQL.Schema.typeToElmString returnType)
                         (Elm.Annotation.var "data")
                     , Elm.Pattern.var "selection"
                     )
@@ -1202,13 +1202,13 @@ createBuilder namespace schema name arguments returnType operation =
                 Elm.valueWith []
                     "selection"
                     (Generate.Common.selection namespace
-                        (GraphQL.Schema.typeToString returnType)
+                        (GraphQL.Schema.typeToElmString returnType)
                         (Elm.Annotation.var "data")
                     )
 
             else
                 Generate.Decode.scalar
-                    (GraphQL.Schema.typeToString returnType)
+                    (GraphQL.Schema.typeToElmString returnType)
                     (GraphQL.Schema.getWrap returnType)
                     |> Engine.decode
 

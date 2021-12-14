@@ -63,7 +63,7 @@ detectPagination schema =
                                             List.filterMap
                                                 (\field ->
                                                     if field.name == "edges" then
-                                                        Just (GraphQL.Schema.typeToString field.type_)
+                                                        Just (GraphQL.Schema.typeToElmString field.type_)
 
                                                     else
                                                         Nothing
