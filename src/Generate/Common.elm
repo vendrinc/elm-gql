@@ -12,6 +12,12 @@ modules =
             , "Enum"
             , Utils.String.formatTypename enumName
             ]
+    , enumSourceModule =
+        \namespace enumName ->
+            [ namespace.namespace
+            , "Enum"
+            , Utils.String.formatTypename enumName
+            ]
     , query =
         \namespace queryName ->
             [ namespace

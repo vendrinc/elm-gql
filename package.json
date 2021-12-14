@@ -18,7 +18,7 @@
 
     "elm-gql": "node ./dist/index.js",
     "elm-gql:test": "node ./dist/index.js --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
-    "elm-gql:test-json-schema-file": "node ./dist/index.js --namespace=Api2 --schema=schema.json --gql=gql-ops",
+    "elm-gql:test-json-schema-file": "node ./dist/index.js --namespace=Api2 --schema=schema.json --gql=gql-ops --existing-enum-definitions=GQL",
 
     "test:generate-api": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm  --debug --flags-from=./examples/playground/example-config.json)",
     "test:api": "yarn test:generate-api ; cd output ; elm make Main.elm",

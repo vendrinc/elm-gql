@@ -96,7 +96,7 @@ generateFiles namespace graphQLSchema =
                     in
                     Just <|
                         Elm.file
-                            (Generate.Common.modules.enum namespace enumDefinition.name)
+                            (Generate.Common.modules.enumSourceModule namespace enumDefinition.name)
                             [ enumTypeDeclaration
                                 |> Elm.exposeConstructor
                             , listOfValues
