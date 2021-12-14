@@ -264,14 +264,31 @@ toElmTypeHelper namespace schema astType =
                 typename =
                     AST.nameToString name
             in
-            if isPrimitive schema typename then
-                Type.named [] typename
+            if Dict.member typename schema.scalars then
+                case String.toLower typename of
+                    "int" ->
+                        Type.int
+
+                    "float" ->
+                        Type.float
+
+                    "boolean" ->
+                        Type.bool
+
+                    "string" ->
+                        Type.bool
+
+                    "id" ->
+                        Type.named [ "Scalar" ] typename
+
+                    _ ->
+                        Type.named [ "Scalar" ] typename
 
             else
                 case Dict.get typename schema.inputObjects of
                     Nothing ->
                         -- this should never happen because this is validated...
-                        Type.named [] typename
+                        Type.named [ "Scalar" ] typename
 
                     Just input ->
                         Generate.Args.annotation namespace.namespace schema input
