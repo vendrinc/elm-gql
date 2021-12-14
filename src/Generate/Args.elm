@@ -277,7 +277,7 @@ annotations :
     , safeOptional : String -> String -> Elm.Annotation.Annotation
     , ergonomicOptional : String -> String -> Elm.Annotation.Annotation
     , localOptional : a -> b -> Elm.Annotation.Annotation
-    , arg : String -> String -> Elm.Annotation.Annotation
+    , arg : Namespace -> String -> Elm.Annotation.Annotation
     }
 annotations =
     { optional =
@@ -417,7 +417,7 @@ optionsRecursiveHelper namespace schema name options fields =
                             wrapping
                             val
                             |> Elm.withType
-                                (annotations.arg namespace.namespace name)
+                                (annotations.arg namespace name)
                             |> Engine.optional
                                 (Elm.string arg.name)
                             |> Elm.withType
@@ -450,7 +450,7 @@ inputAnnotationRecursive namespace schema type_ wrapped =
         GraphQL.Schema.InputObject inputName ->
             case Dict.get inputName schema.inputObjects of
                 Nothing ->
-                    annotations.arg namespace.namespace inputName
+                    annotations.arg namespace inputName
                         |> unwrapWith wrapped
 
                 Just input ->
@@ -493,7 +493,7 @@ inputObjectAnnotation namespace schema input wrapped optForm =
     in
     case Input.splitRequired input.fields of
         ( [], [] ) ->
-            annotations.arg namespace.namespace inputName
+            annotations.arg namespace inputName
                 |> unwrapWith wrapped
 
         ( required, [] ) ->

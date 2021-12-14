@@ -229,7 +229,7 @@ fieldSignature :
 fieldSignature namespace objectName wrapped fieldType =
     let
         dataType =
-            Common.localAnnotation namespace.namespace fieldType Nothing
+            Common.localAnnotation namespace fieldType Nothing
                 |> wrapAnnotation wrapped
 
         typeAnnotation =

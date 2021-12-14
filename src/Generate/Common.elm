@@ -1,7 +1,7 @@
 module Generate.Common exposing (..)
 
 import Elm.Annotation
-import GraphQL.Schema
+import GraphQL.Schema exposing (Namespace)
 import Utils.String
 
 
@@ -54,17 +54,17 @@ selectionLocal namespace name data =
         [ data ]
 
 
-ref : String -> String -> Elm.Annotation.Annotation
+ref : Namespace -> String -> Elm.Annotation.Annotation
 ref namespace name =
-    Elm.Annotation.named [ namespace ] name
+    Elm.Annotation.named [ namespace.namespace ] name
 
 
-local : String -> String -> Elm.Annotation.Annotation
+local : Namespace -> String -> Elm.Annotation.Annotation
 local namespace name =
     Elm.Annotation.named [] name
 
 
-gqlTypeToElmTypeAnnotation : String -> GraphQL.Schema.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
+gqlTypeToElmTypeAnnotation : Namespace -> GraphQL.Schema.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
 gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
     let
         appliedToTypes =
@@ -91,7 +91,7 @@ gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
                         appliedToTypes
 
         GraphQL.Schema.Enum enumName ->
-            Elm.Annotation.namedWith [ namespace, "Enum", enumName ] enumName appliedToTypes
+            Elm.Annotation.namedWith [ namespace.enums, "Enum", enumName ] enumName appliedToTypes
 
         GraphQL.Schema.List_ listElementType ->
             let
@@ -120,7 +120,7 @@ gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
             ref namespace interfaceName
 
 
-localAnnotation : String -> GraphQL.Schema.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
+localAnnotation : Namespace -> GraphQL.Schema.Type -> Maybe (List Elm.Annotation.Annotation) -> Elm.Annotation.Annotation
 localAnnotation namespace gqlType maybeAppliedToTypes =
     let
         appliedToTypes =
@@ -147,7 +147,7 @@ localAnnotation namespace gqlType maybeAppliedToTypes =
                         appliedToTypes
 
         GraphQL.Schema.Enum enumName ->
-            Elm.Annotation.namedWith [ namespace, "Enum", enumName ] enumName appliedToTypes
+            Elm.Annotation.namedWith [ namespace.enums, "Enum", enumName ] enumName appliedToTypes
 
         GraphQL.Schema.List_ listElementType ->
             let
