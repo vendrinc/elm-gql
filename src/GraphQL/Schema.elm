@@ -3,7 +3,7 @@ module GraphQL.Schema exposing
     , Mutation, Query, decoder, empty
     , Kind(..), Schema, Type(..)
     , mockScalar
-    , Wrapped(..), getWrap
+    , Wrapped(..), getWrap, getInner
     , Argument, Field, InputObjectDetails, ObjectDetails, Operation, UnionDetails, Variant, kindToString, typeToElmString, typeToString
     )
 
@@ -17,7 +17,7 @@ module GraphQL.Schema exposing
 
 @docs mockScalar
 
-@docs Wrapped, getWrap
+@docs Wrapped, getWrap, getInner
 
 -}
 
@@ -188,6 +188,19 @@ getWrap type_ =
 
         _ ->
             UnwrappedValue
+
+
+getInner : Type -> Type
+getInner type_ =
+    case type_ of
+        Nullable newType ->
+            getInner newType
+
+        List_ newType ->
+            getInner newType
+
+        inner ->
+            inner
 
 
 mockScalar : Type -> Json.Encode.Value

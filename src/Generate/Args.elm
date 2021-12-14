@@ -1187,9 +1187,16 @@ createBuilder namespace schema name arguments returnType operation =
         selectionArg =
             if needsInnerSelection returnType then
                 -- if we're selecting an object, we need the dev to pass a selection set in.
+                let
+                    innerReturnType =
+                        GraphQL.Schema.getInner returnType
+
+                    wrapper =
+                        GraphQL.Schema.getWrap returnType
+                in
                 Just
                     ( Generate.Common.selection namespace
-                        (GraphQL.Schema.typeToElmString returnType)
+                        (GraphQL.Schema.typeToElmString innerReturnType)
                         (Elm.Annotation.var "data")
                     , Elm.Pattern.var "selection"
                     )
@@ -1199,10 +1206,14 @@ createBuilder namespace schema name arguments returnType operation =
 
         returnSelection =
             if needsInnerSelection returnType then
+                let
+                    innerReturnType =
+                        GraphQL.Schema.getInner returnType
+                in
                 Elm.valueWith []
                     "selection"
                     (Generate.Common.selection namespace
-                        (GraphQL.Schema.typeToElmString returnType)
+                        (GraphQL.Schema.typeToElmString innerReturnType)
                         (Elm.Annotation.var "data")
                     )
 
@@ -1214,9 +1225,13 @@ createBuilder namespace schema name arguments returnType operation =
 
         returnAnnotation =
             if needsInnerSelection returnType then
+                let
+                    wrapper =
+                        GraphQL.Schema.getWrap returnType
+                in
                 Generate.Common.selection namespace
                     (Input.operationToString operation)
-                    (Elm.Annotation.var "data")
+                    (wrapWith wrapper (Elm.Annotation.var "data"))
 
             else
                 Generate.Common.selection namespace
@@ -1259,6 +1274,18 @@ createBuilder namespace schema name arguments returnType operation =
         )
         return
         |> Elm.expose
+
+
+wrapWith wrapper inner =
+    case wrapper of
+        GraphQL.Schema.UnwrappedValue ->
+            inner
+
+        GraphQL.Schema.InList innerWrap ->
+            Elm.Annotation.list (wrapWith innerWrap inner)
+
+        GraphQL.Schema.InMaybe innerWrap ->
+            Elm.Annotation.maybe (wrapWith innerWrap inner)
 
 
 needsInnerSelection : GraphQL.Schema.Type -> Bool
