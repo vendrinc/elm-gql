@@ -95,13 +95,13 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                                     (Type.named [] opName)
                                 )
                         )
-                        |> Elm.expose
+                        |> Elm.exposeAndGroup "query"
                     ]
 
                 vars ->
                     [ Elm.alias "Input"
                         (Type.record vars)
-                        |> Elm.expose
+                        |> Elm.exposeAndGroup "input"
                     , Elm.fn (opValueName op.operationType)
                         ( "input"
                         , Type.record
@@ -122,11 +122,11 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                                         (Type.named [] opName)
                                     )
                         )
-                        |> Elm.expose
+                        |> Elm.exposeAndGroup "query"
                     ]
 
         helpers =
-            generateResultTypes namespace schema Set.empty def
+            generateResultTypes namespace schema (Set.fromList builtinNames) def
 
         primaryResult =
             generatePrimaryResultType namespace schema def
@@ -152,6 +152,18 @@ modifyFilePath pieces file =
     { file
         | path = String.join "/" pieces ++ ".elm"
     }
+
+
+builtinNames : List String
+builtinNames =
+    [ "List"
+    , "String"
+    , "Maybe"
+    , "Result"
+    , "Bool"
+    , "Float"
+    , "Int"
+    ]
 
 
 renderStandardComment :
@@ -333,6 +345,10 @@ generatePrimaryResultType : Namespace -> GraphQL.Schema.Schema -> Can.Definition
 generatePrimaryResultType namespace schema def =
     case def of
         Can.Operation op ->
+            let
+                ( _, record ) =
+                    fieldsToRecord namespace schema primitives Nothing op.fields []
+            in
             [ Elm.alias
                 (Maybe.withDefault "Query"
                     (Maybe.map
@@ -340,21 +356,30 @@ generatePrimaryResultType namespace schema def =
                         op.name
                     )
                 )
-                (Type.record
-                    (List.map
-                        (fieldAnnotation namespace schema Nothing)
-                        op.fields
-                    )
-                )
-                |> Elm.expose
+                record
+                |> Elm.exposeAndGroup "necessary"
             ]
+
+
+fieldsToRecord : Namespace -> GraphQL.Schema.Schema -> Set.Set String -> Maybe String -> List Can.Selection -> List (String, Type.Annotation) -> (Set.Set String, Type.Annotation)
+fieldsToRecord namespace schema knownNames maybeParent fieldList result =
+    case fieldList of
+        [] ->
+            ( knownNames, Type.record (List.reverse result) )
+
+        top :: remaining ->
+            let
+                new =
+                    fieldAnnotation namespace schema knownNames maybeParent top
+            in
+            fieldsToRecord namespace schema new.knownNames maybeParent remaining (( new.name, new.annotation ) :: result)
 
 
 generateResultTypes : Namespace -> GraphQL.Schema.Schema -> Set.Set String -> Can.Definition -> List Elm.Declaration
 generateResultTypes namespace schema usedNames def =
     case def of
         Can.Operation op ->
-            generateTypesForFields (generateChildTypes namespace schema) usedNames [] op.fields
+            generateTypesForFields (generateChildTypes namespace schema) usedNames [] (op.fields)
                 |> Tuple.second
 
 
@@ -375,102 +400,109 @@ generateTypesForFields fn set generated fields =
 
 
 generateChildTypes : Namespace -> GraphQL.Schema.Schema -> Set.Set String -> Can.Selection -> ( Set.Set String, List Elm.Declaration )
-generateChildTypes namespace schema generatedNames sel =
+generateChildTypes namespace schema knownNames sel =
     case sel of
         Can.FieldObject obj ->
-            let
-                ( newSet, newDecls ) =
-                    generateTypesForFields (generateChildTypes namespace schema) generatedNames [] obj.selection
+            -- let
+            --     ( newSet, newDecls ) =
+            generateTypesForFields (generateChildTypes namespace schema) knownNames [] obj.selection
 
-                desiredName =
-                    Maybe.withDefault (Can.nameToString obj.name)
-                        (Maybe.map
-                            Can.nameToString
-                            obj.alias_
-                        )
-            in
-            ( Set.insert desiredName newSet
-            , if Set.member desiredName newSet then
-                newDecls
-
-              else
-                (Elm.alias
-                    desiredName
-                    (Type.record
-                        (List.map
-                            (fieldAnnotation namespace schema Nothing)
-                            obj.selection
-                        )
-                    )
-                    |> Elm.expose
-                )
-                    :: newDecls
-            )
-
+        --     desiredName =
+        --         Maybe.withDefault (Can.nameToString obj.name)
+        --             (Maybe.map
+        --                 Can.nameToString
+        --                 obj.alias_
+        --             )
+        -- in
+        -- ( Set.insert desiredName newSet
+        -- , if Set.member desiredName newSet then
+        --     newDecls
+        --   else
+        --     (Elm.alias
+        --         desiredName
+        --         (Type.record
+        --             (List.map
+        --                 (fieldAnnotation namespace schema Nothing)
+        --                 obj.selection
+        --             )
+        --         )
+        --         |> Elm.expose
+        --     )
+        --         :: newDecls
+        -- )
         Can.FieldUnion field ->
             let
-                desiredName =
-                    Maybe.withDefault (Can.nameToString field.name)
-                        (Maybe.map
-                            Can.nameToString
-                            field.alias_
-                        )
+                ( desiredTypeName, newKnownNames2 ) =
+                    getDesiredTypeName knownNames sel
 
                 ( newSet, newDecls ) =
-                    generateTypesForFields (generateChildTypes namespace schema) generatedNames [] field.selection
-            in
-            ( Set.insert desiredName newSet
-            , if Set.member desiredName newSet then
-                newDecls
+                    generateTypesForFields (generateChildTypes namespace schema) newKnownNames2 [] field.selection
 
-              else
-                (Elm.customType
-                    desiredName
-                    (List.filterMap
-                        (unionVariant namespace schema)
-                        field.selection
-                    )
-                    |> Elm.exposeConstructor
-                )
-                    :: newDecls
+                ( finallyKnownNames, variants ) =
+                    unionVariants namespace schema newSet field.selection []
+            in
+            ( finallyKnownNames
+            , (Elm.customType
+                desiredTypeName
+                variants
+                |> Elm.exposeConstructorAndGroup "necessary"
+              )
+                :: newDecls
             )
 
         Can.UnionCase unionCase ->
-            generateTypesForFields (generateChildTypes namespace schema) generatedNames [] unionCase.selection
+            generateTypesForFields (generateChildTypes namespace schema) knownNames [] unionCase.selection
 
         _ ->
-            ( generatedNames, [] )
+            ( knownNames, [] )
 
 
-unionVariant : Namespace -> GraphQL.Schema.Schema -> Can.Selection -> Maybe Elm.Variant
-unionVariant namespace schema selection =
-    case selection of
-        Can.FieldScalar field ->
-            Nothing
+unionVariants :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> Set.Set String
+    -> List Can.Selection
+    -> List Elm.Variant
+    -> ( Set.Set String, List Elm.Variant )
+unionVariants namespace schema knownNames selections variants =
+    case selections of
+        [] ->
+            ( knownNames, List.reverse variants )
 
-        Can.UnionCase field ->
-            case List.filter removeTypename field.selection of
-                [] ->
-                    Just (Elm.variant (Can.nameToString field.tag))
+        (Can.FieldScalar field) :: remain ->
+            unionVariants namespace schema knownNames remain variants
 
-                fields ->
-                    Just
-                        (Elm.variantWith
-                            (Can.nameToString field.tag)
-                            [ Type.record
-                                (List.map
-                                    (fieldAnnotation namespace schema Nothing)
-                                    fields
-                                )
-                            ]
-                        )
-
-        _ ->
+        (Can.UnionCase field) :: remain ->
             let
-                _ =
-                    Debug.log "NOT IMPLEMENTED" selection
+                ( known, var ) =
+                    case List.filter removeTypename field.selection of
+                        [] ->
+                            ( knownNames
+                            , Elm.variant (Can.nameToString field.tag)
+                            )
+
+                        fields ->
+                            let
+                                ( knownNames2, record ) =
+                                    fieldsToRecord
+                                        namespace
+                                        schema
+                                        knownNames
+                                        Nothing
+                                        fields
+                                        []
+                            in
+                            ( knownNames2
+                            , Elm.variantWith
+                                (Can.nameToString field.tag)
+                                [ record
+                                ]
+                            )
             in
-            Debug.todo "Union variant not implemented!" selection
+            unionVariants namespace schema known remain (var :: variants)
+
+        _ :: remain ->
+            unionVariants namespace schema knownNames remain variants
 
 
 removeTypename : Can.Selection -> Bool
@@ -488,87 +520,239 @@ removeTypename field =
             True
 
 
-fieldAnnotation : Namespace -> GraphQL.Schema.Schema -> Maybe String -> Can.Selection -> ( String, Type.Annotation )
-fieldAnnotation namespace schema parent selection =
+getDesiredFieldName : Set.Set String -> Can.Selection -> ( String, Set.Set String )
+getDesiredFieldName knownNames selection =
     case selection of
         Can.FieldObject field ->
-            ( case field.alias_ of
-                Nothing ->
-                    Can.nameToString field.name
-
-                Just alias ->
-                    Can.nameToString alias
-            , case field.selection of
-                [] ->
-                    case parent of
-                        Nothing ->
-                            Type.unit
-
-                        Just par ->
-                            getScalarType par (Can.nameToString field.name) schema
-                                |> schemaTypeToPrefab
-
-                sels ->
-                    Input.wrapElmType field.wrapper
-                        (Type.record
-                            (List.map
-                                (fieldAnnotation namespace schema (Just (Can.nameToString field.name)))
-                                field.selection
-                            )
+            let
+                desired =
+                    Maybe.withDefault
+                        (Can.nameToString field.name)
+                        (Maybe.map
+                            Can.nameToString
+                            field.alias_
                         )
-            )
+            in
+            Tuple.pair desired knownNames
 
         Can.FieldScalar field ->
-            ( case field.alias_ of
-                Nothing ->
-                    Can.nameToString field.name
-
-                Just alias ->
-                    Can.nameToString alias
-            , schemaTypeToPrefab field.type_
-            )
+            let
+                desired =
+                    Maybe.withDefault
+                        (Can.nameToString field.name)
+                        (Maybe.map
+                            Can.nameToString
+                            field.alias_
+                        )
+            in
+            Tuple.pair desired knownNames
 
         Can.FieldEnum field ->
-            ( case field.alias_ of
-                Nothing ->
-                    Can.nameToString field.name
-
-                Just alias ->
-                    Can.nameToString alias
-            , enumType namespace field.enumName
-                |> Input.wrapElmType field.wrapper
-            )
+            let
+                desired =
+                    Maybe.withDefault
+                        (Can.nameToString field.name)
+                        (Maybe.map
+                            Can.nameToString
+                            field.alias_
+                        )
+            in
+            Tuple.pair desired knownNames
 
         Can.UnionCase field ->
-            ( Can.nameToString field.tag
-            , Type.named
-                []
-                (Can.nameToString field.tag)
-            )
+            let
+                desired =
+                    Can.nameToString field.tag
+            in
+            Tuple.pair desired knownNames
 
         Can.FieldUnion field ->
-            ( case field.alias_ of
-                Nothing ->
-                    Can.nameToString field.name
+            let
+                desired =
+                    Maybe.withDefault
+                        (Can.nameToString field.name)
+                        (Maybe.map
+                            Can.nameToString
+                            field.alias_
+                        )
+            in
+            Tuple.pair desired knownNames
 
-                Just alias ->
-                    Can.nameToString alias
-            , case field.selection of
+
+getDesiredTypeName : Set.Set String -> Can.Selection -> ( String, Set.Set String )
+getDesiredTypeName knownNames selection =
+    case selection of
+        Can.FieldObject field ->
+            let
+                desired =
+                    Maybe.withDefault
+                        field.object.name
+                        (Maybe.map
+                            Can.nameToString
+                            field.alias_
+                        )
+            in
+            resolveNewName desired knownNames
+
+        Can.FieldScalar field ->
+            let
+                desired =
+                    Maybe.withDefault
+                        (Can.nameToString field.name)
+                        (Maybe.map
+                            Can.nameToString
+                            field.alias_
+                        )
+            in
+            resolveNewName desired knownNames
+
+        Can.FieldEnum field ->
+            let
+                desired =
+                    Maybe.withDefault
+                        (Can.nameToString field.name)
+                        (Maybe.map
+                            Can.nameToString
+                            field.alias_
+                        )
+            in
+            resolveNewName desired knownNames
+
+        Can.UnionCase field ->
+            let
+                desired =
+                    Can.nameToString field.tag
+            in
+            resolveNewName desired knownNames
+
+        Can.FieldUnion field ->
+            let
+                desired =
+                    Maybe.withDefault
+                        field.union.name
+                        (Maybe.map
+                            Can.nameToString
+                            field.alias_
+                        )
+            in
+            resolveNewName desired knownNames
+
+
+resolveNewName : String -> Set.Set String -> ( String, Set.Set String )
+resolveNewName newName knownNames =
+    -- if  Set.member ( newName) knownNames then
+    --     resolveNewName (newName ++ "_") knownNames
+    -- else
+    ( newName, Set.insert newName knownNames )
+
+
+fieldAnnotation :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> Set.Set String
+    -> Maybe String
+    -> Can.Selection
+    ->
+        { name : String
+        , annotation : Type.Annotation
+        , knownNames : Set.Set String
+        }
+fieldAnnotation namespace schema knownNames parent selection =
+    let
+        ( desiredName, newKnownNames ) =
+            getDesiredFieldName knownNames selection
+    in
+    case selection of
+        Can.FieldObject field ->
+            case field.selection of
                 [] ->
-                    case parent of
-                        Nothing ->
-                            Type.unit
+                    let
+                        annotation =
+                            case parent of
+                                Nothing ->
+                                    Type.unit
 
-                        Just par ->
-                            getScalarType par (Can.nameToString field.name) schema
-                                |> schemaTypeToPrefab
+                                Just par ->
+                                    getScalarType par (Can.nameToString field.name) schema
+                                        |> schemaTypeToPrefab
+                    in
+                    { name = desiredName
+                    , annotation = annotation
+                    , knownNames = newKnownNames
+                    }
 
                 sels ->
-                    Type.named
-                        []
-                        (Can.nameToString field.name)
-                        |> Input.wrapElmType field.wrapper
-            )
+                    let
+                        ( knownNames2, record ) =
+                            fieldsToRecord namespace schema newKnownNames (Just (Can.nameToString field.name)) field.selection []
+
+                        annotation =
+                            Input.wrapElmType field.wrapper
+                                record
+                    in
+                    { name = desiredName
+                    , annotation = annotation
+                    , knownNames = knownNames2
+                    }
+
+        Can.FieldScalar field ->
+            { name = desiredName
+            , annotation =
+                schemaTypeToPrefab field.type_
+            , knownNames = newKnownNames
+            }
+
+        Can.FieldEnum field ->
+            { name = desiredName
+            , annotation =
+                enumType namespace field.enumName
+                    |> Input.wrapElmType field.wrapper
+            , knownNames = newKnownNames
+            }
+
+        Can.UnionCase field ->
+            { name = desiredName
+            , annotation =
+                Type.named
+                    []
+                    (Can.nameToString field.tag)
+            , knownNames = newKnownNames
+            }
+
+        Can.FieldUnion field ->
+            let
+                ( desiredTypeName, newKnownNames2 ) =
+                    getDesiredTypeName newKnownNames selection
+            in
+            case field.selection of
+                [] ->
+                    let
+                        annotation =
+                            case parent of
+                                Nothing ->
+                                    Type.unit
+
+                                Just par ->
+                                    getScalarType par (Can.nameToString field.name) schema
+                                        |> schemaTypeToPrefab
+                    in
+                    { name = desiredName
+                    , annotation = annotation
+                    , knownNames = newKnownNames2
+                    }
+
+                sels ->
+                    let
+                        annotation =
+                            Type.named
+                                []
+                                desiredTypeName
+                                |> Input.wrapElmType field.wrapper
+                    in
+                    { name = desiredName
+                    , annotation = annotation
+                    , knownNames = newKnownNames2
+                    }
 
 
 enumValue : Namespace -> String -> String -> Elm.Expression
