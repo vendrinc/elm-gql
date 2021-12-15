@@ -416,8 +416,11 @@ generateChildAuxRecords namespace schema knownNames sel =
     case sel of
         Can.FieldObject obj ->
             let
-                ( newSet, newDecls ) =
-                    generateTypesForFields (generateChildAuxRecords namespace schema) knownNames [] obj.selection
+                (resolvedName, knownNames2) = resolveNewName desiredName 
+                    knownNames
+
+                ( knownNames3, newDecls ) =
+                    generateTypesForFields (generateChildAuxRecords namespace schema) knownNames2 [] obj.selection
 
                 desiredName =
                     Maybe.withDefault (Can.nameToString obj.name)
@@ -426,11 +429,13 @@ generateChildAuxRecords namespace schema knownNames sel =
                             obj.alias_
                         )
 
+                
+
                 ( finalNames, fieldResult ) =
-                    fieldsToRecord namespace schema newSet Nothing obj.selection []
+                    fieldsToRecord namespace schema knownNames3 Nothing obj.selection []
             in
             ( finalNames
-            , (Elm.alias desiredName fieldResult
+            , (Elm.alias resolvedName fieldResult
                 |> Elm.expose
               )
                 :: newDecls
@@ -658,7 +663,7 @@ getDesiredTypeName knownNames selection =
                             field.alias_
                         )
             in
-            resolveNewName desired knownNames
+            Tuple.pair desired knownNames
 
         Can.FieldScalar field ->
             let
@@ -670,7 +675,7 @@ getDesiredTypeName knownNames selection =
                             field.alias_
                         )
             in
-            resolveNewName desired knownNames
+            Tuple.pair desired knownNames
 
         Can.FieldEnum field ->
             let
@@ -682,14 +687,14 @@ getDesiredTypeName knownNames selection =
                             field.alias_
                         )
             in
-            resolveNewName desired knownNames
+            Tuple.pair desired knownNames
 
         Can.UnionCase field ->
             let
                 desired =
                     Can.nameToString field.tag
             in
-            resolveNewName desired knownNames
+            Tuple.pair desired knownNames
 
         Can.FieldUnion field ->
             let
@@ -701,15 +706,15 @@ getDesiredTypeName knownNames selection =
                             field.alias_
                         )
             in
-            resolveNewName desired knownNames
+            Tuple.pair desired knownNames
 
 
 resolveNewName : String -> Set.Set String -> ( String, Set.Set String )
 resolveNewName newName knownNames =
-    -- if  Set.member ( newName) knownNames then
-    --     resolveNewName (newName ++ "_") knownNames
-    -- else
-    ( newName, Set.insert newName knownNames )
+    if  Set.member ( newName) knownNames then
+        resolveNewName (newName ++ "_") knownNames
+    else
+        ( newName, Set.insert newName knownNames )
 
 
 fieldAnnotation :
