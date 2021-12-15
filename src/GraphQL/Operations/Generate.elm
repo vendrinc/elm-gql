@@ -853,8 +853,9 @@ generateDecoder namespace schema (Can.Operation op) =
                     op.name
                 )
     in
-    decodeFields namespace
+    decodeFields namespace initIndex
         op.fields
+        
         (Decode.succeed
             (Elm.value opName)
         )
@@ -883,19 +884,41 @@ subobjectBuilderBody fields =
         )
 
 
-decodeFields : Namespace -> List Can.Selection -> Elm.Expression -> Elm.Expression
-decodeFields namespace fields exp =
+type Index =
+    Index Int (List Int)
+
+indexToString : Index -> String
+indexToString (Index top tail) =
+    String.fromInt top ++ "_" ++ String.join "_" (List.map String.fromInt tail)
+
+
+initIndex : Index
+initIndex =
+    Index 0 []
+
+next : Index -> Index
+next (Index top total) =
+    Index (top + 1) total
+
+
+child : Index -> Index
+child (Index top total) =
+    Index (0) (top:: total)
+
+decodeFields : Namespace -> Index -> List Can.Selection -> Elm.Expression -> Elm.Expression
+decodeFields namespace index fields exp =
     case fields of
         [] ->
             exp
 
         ((Can.FieldObject obj) as field) :: remain ->
-            decodeFields namespace
+            decodeFields namespace (next index)
                 remain
                 (andField
                     (Can.Name (Can.getAliasedName field))
                     (Input.decodeWrapper obj.wrapper
                         (decodeFields namespace
+                            (child index)
                             obj.selection
                             (Decode.succeed
                                 (Elm.lambdaWith
@@ -916,7 +939,7 @@ decodeFields namespace fields exp =
                         (decodeScalarType scal.type_)
                         exp
             in
-            decodeFields namespace
+            decodeFields namespace (next index)
                 remain
                 decoded
 
@@ -955,17 +978,17 @@ decodeFields namespace fields exp =
                         )
                         exp
             in
-            decodeFields namespace
+            decodeFields namespace (next index)
                 remain
                 decoded
 
         ((Can.FieldUnion union) as field) :: remain ->
-            decodeFields namespace
+            decodeFields namespace (next index)
                 remain
                 (andField
                     (Can.Name (Can.getAliasedName field))
                     (Input.decodeWrapper union.wrapper
-                        (decodeUnion namespace (Can.getAliasedName field) union)
+                        (decodeUnion namespace (child index) (Can.getAliasedName field) union)
                     )
                     exp
                 )
@@ -974,18 +997,20 @@ decodeFields namespace fields exp =
             exp
 
 
-decodeUnion : Namespace -> String -> Can.FieldUnionDetails -> Elm.Expression
-decodeUnion namespace fieldName union =
+decodeUnion : Namespace -> Index -> String -> Can.FieldUnionDetails -> Elm.Expression
+decodeUnion namespace index fieldName union =
     Decode.field (Elm.string "__typename") Decode.string
         |> Decode.andThen
             (\_ ->
-                Elm.lambda ("typename" ++ fieldName)
+                Elm.lambda ("typename" ++ fieldName ++ indexToString index)
                     Type.string
                     (\typename ->
                         Elm.caseOf typename
-                            (List.filterMap
-                                (toUnionVariantPattern namespace union.alias_)
+                            (toUnionVariantPattern namespace 
+                                (child index)
+                                union.alias_
                                 union.selection
+                                []
                                 ++ [ ( Pattern.wildcard
                                      , Decode.fail (Elm.string "Unknown union type")
                                      )
@@ -995,10 +1020,14 @@ decodeUnion namespace fieldName union =
             )
 
 
-toUnionVariantPattern : Namespace -> Maybe Can.Name-> Can.Selection -> Maybe ( Pattern.Pattern, Elm.Expression )
-toUnionVariantPattern namespace maybeAlias selection =
-    case selection of
-        Can.UnionCase var ->
+toUnionVariantPattern : Namespace -> Index -> Maybe Can.Name-> List Can.Selection -> List ( Pattern.Pattern, Elm.Expression ) -> List ( Pattern.Pattern, Elm.Expression )
+toUnionVariantPattern namespace index maybeAlias sels patterns =
+    case sels of
+        [] ->
+            List.reverse patterns
+
+        
+        (Can.UnionCase var :: remain) ->
             let
 
                 tag =
@@ -1010,28 +1039,31 @@ toUnionVariantPattern namespace maybeAlias selection =
 
                         Just (Can.Name alias_) ->
                             Utils.String.formatTypename (alias_ ++ (Can.nameToString var.tag) )
-            in
-            Just
-                ( Pattern.string tag
-                , case List.filter removeTypename var.selection of
-                    [] ->
-                        Decode.succeed (Elm.value tagTypeName)
 
-                    fields ->
-                        Decode.succeed
-                            (Elm.lambdaWith
-                                (List.map fieldParameters fields)
-                                (Elm.apply (Elm.value tagTypeName)
-                                    [ Elm.record
-                                        (List.map buildRecordFromVariantFields fields)
-                                    ]
+                newPattern =
+                    ( Pattern.string tag
+                    , case List.filter removeTypename var.selection of
+                        [] ->
+                            Decode.succeed (Elm.value tagTypeName)
+
+                        fields ->
+                            Decode.succeed
+                                (Elm.lambdaWith
+                                    (List.map fieldParameters fields)
+                                    (Elm.apply (Elm.value tagTypeName)
+                                        [ Elm.record
+                                            (List.map buildRecordFromVariantFields fields)
+                                        ]
+                                    )
                                 )
-                            )
-                            |> decodeFields namespace fields
-                )
+                                |> decodeFields namespace (child index) fields 
+                    )
+            in
+            toUnionVariantPattern namespace (next index) maybeAlias remain (newPattern :: patterns)
+                
 
-        _ ->
-            Nothing
+        (_:: remain) ->
+            toUnionVariantPattern namespace index maybeAlias remain patterns
 
 
 fieldParameters : Can.Selection -> ( Pattern.Pattern, Type.Annotation )
