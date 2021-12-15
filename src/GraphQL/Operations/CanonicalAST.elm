@@ -173,7 +173,7 @@ toString (Operation def) =
                                     "$"
                                         ++ nameToString var.variable.name
                                         ++ ": "
-                                        ++ typeToString (Val { required = True }) var.type_
+                                        ++ typeToString (getWrapper var.type_ (Val { required = True })) var.type_
                                 )
                                 vars
                     in
@@ -382,7 +382,10 @@ unwrap : Wrapper -> String -> String
 unwrap wrapper str =
     case wrapper of
         Val { required } ->
-            str ++ "!"
+            if required then
+                str ++ "!"
+            else
+                str
 
         InList { required } inner ->
             if required then
