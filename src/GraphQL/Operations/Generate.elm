@@ -128,7 +128,8 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
         helpers =
             generateResultTypes namespace schema (Set.fromList builtinNames) def
 
-        -- auxHelpers are record alises that aren't *essential* to the return type, but are useful in some cases
+        -- auxHelpers are record alises that aren't *essential* to the return type, 
+        -- but are useful in some cases
         auxHelpers =
             generateAuxTypes namespace schema (Set.fromList builtinNames) def
 
