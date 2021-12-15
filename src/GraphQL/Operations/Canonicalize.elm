@@ -1070,7 +1070,7 @@ canonicalizeFieldType schema object field type_ selection schemaField =
                                         (Can.FieldObject
                                             { alias_ = Maybe.map convertName field.alias_
                                             , name = convertName field.name
-                                            , arguments = []
+                                            , arguments = field.arguments
                                             , directives = List.map convertDirective field.directives
                                             , selection = canSelection
                                             , object = obj
@@ -1091,7 +1091,7 @@ canonicalizeFieldType schema object field type_ selection schemaField =
                                 (Can.FieldEnum
                                     { alias_ = Maybe.map convertName field.alias_
                                     , name = convertName field.name
-                                    , arguments = []
+                                    , arguments = field.arguments
                                     , directives = List.map convertDirective field.directives
                                     , enumName = enum.name
                                     , values = enum.values
@@ -1120,7 +1120,7 @@ canonicalizeFieldType schema object field type_ selection schemaField =
                                                 (Can.FieldUnion
                                                     { alias_ = Maybe.map convertName field.alias_
                                                     , name = convertName field.name
-                                                    , arguments = []
+                                                    , arguments = field.arguments
                                                     , directives = List.map convertDirective field.directives
                                                     , selection = canSelection
                                                     , union = union
