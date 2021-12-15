@@ -974,7 +974,7 @@ decodeFields namespace fields exp =
             exp
 
 
-decodeUnion : Namespace -> String -> { a | selection : List Can.Selection } -> Elm.Expression
+decodeUnion : Namespace -> String -> Can.FieldUnionDetails -> Elm.Expression
 decodeUnion namespace fieldName union =
     Decode.field (Elm.string "__typename") Decode.string
         |> Decode.andThen
@@ -984,7 +984,7 @@ decodeUnion namespace fieldName union =
                     (\typename ->
                         Elm.caseOf typename
                             (List.filterMap
-                                (toUnionVariantPattern namespace)
+                                (toUnionVariantPattern namespace union.alias_)
                                 union.selection
                                 ++ [ ( Pattern.wildcard
                                      , Decode.fail (Elm.string "Unknown union type")
@@ -995,25 +995,33 @@ decodeUnion namespace fieldName union =
             )
 
 
-toUnionVariantPattern : Namespace -> Can.Selection -> Maybe ( Pattern.Pattern, Elm.Expression )
-toUnionVariantPattern namespace selection =
+toUnionVariantPattern : Namespace -> Maybe Can.Name-> Can.Selection -> Maybe ( Pattern.Pattern, Elm.Expression )
+toUnionVariantPattern namespace maybeAlias selection =
     case selection of
         Can.UnionCase var ->
             let
+
                 tag =
                     Utils.String.formatTypename (Can.nameToString var.tag)
+                tagTypeName =
+                    case maybeAlias of
+                        Nothing ->
+                            Utils.String.formatTypename (Can.nameToString var.tag)
+
+                        Just (Can.Name alias_) ->
+                            Utils.String.formatTypename (alias_ ++ (Can.nameToString var.tag) )
             in
             Just
                 ( Pattern.string tag
                 , case List.filter removeTypename var.selection of
                     [] ->
-                        Decode.succeed (Elm.value tag)
+                        Decode.succeed (Elm.value tagTypeName)
 
                     fields ->
                         Decode.succeed
                             (Elm.lambdaWith
                                 (List.map fieldParameters fields)
-                                (Elm.apply (Elm.value tag)
+                                (Elm.apply (Elm.value tagTypeName)
                                     [ Elm.record
                                         (List.map buildRecordFromVariantFields fields)
                                     ]
