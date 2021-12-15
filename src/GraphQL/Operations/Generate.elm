@@ -435,11 +435,17 @@ generateChildTypes namespace schema knownNames sel =
                 ( desiredTypeName, newKnownNames2 ) =
                     getDesiredTypeName knownNames sel
 
+                aliasName =
+                    (Maybe.map
+                            Can.nameToString
+                            field.alias_
+                        )
+
                 ( newSet, newDecls ) =
                     generateTypesForFields (generateChildTypes namespace schema) newKnownNames2 [] field.selection
 
                 ( finallyKnownNames, variants ) =
-                    unionVariants namespace schema newSet field.selection []
+                    unionVariants namespace schema newSet aliasName field.selection []
             in
             ( finallyKnownNames
             , (Elm.customType
@@ -461,16 +467,17 @@ unionVariants :
     Namespace
     -> GraphQL.Schema.Schema
     -> Set.Set String
+    -> Maybe String
     -> List Can.Selection
     -> List Elm.Variant
     -> ( Set.Set String, List Elm.Variant )
-unionVariants namespace schema knownNames selections variants =
+unionVariants namespace schema knownNames alias_ selections variants =
     case selections of
         [] ->
             ( knownNames, List.reverse variants )
 
         (Can.FieldScalar field) :: remain ->
-            unionVariants namespace schema knownNames remain variants
+            unionVariants namespace schema knownNames alias_ remain variants
 
         (Can.UnionCase field) :: remain ->
             let
@@ -478,7 +485,14 @@ unionVariants namespace schema knownNames selections variants =
                     case List.filter removeTypename field.selection of
                         [] ->
                             ( knownNames
-                            , Elm.variant (Can.nameToString field.tag)
+                            , Elm.variant 
+                                (case alias_ of
+                                    Nothing ->
+                                        (Can.nameToString field.tag)
+                                    Just prefix ->
+                                        prefix ++ (Can.nameToString field.tag)
+                                
+                                )
                             )
 
                         fields ->
@@ -494,15 +508,21 @@ unionVariants namespace schema knownNames selections variants =
                             in
                             ( knownNames2
                             , Elm.variantWith
-                                (Can.nameToString field.tag)
+                                (case alias_ of
+                                    Nothing ->
+                                        (Can.nameToString field.tag)
+                                    Just prefix ->
+                                        prefix ++ (Can.nameToString field.tag)
+                                
+                                )
                                 [ record
                                 ]
                             )
             in
-            unionVariants namespace schema known remain (var :: variants)
+            unionVariants namespace schema known alias_ remain (var :: variants)
 
         _ :: remain ->
-            unionVariants namespace schema knownNames remain variants
+            unionVariants namespace schema knownNames alias_ remain variants
 
 
 removeTypename : Can.Selection -> Bool
