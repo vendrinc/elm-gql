@@ -825,15 +825,27 @@ canonicalizeOperation schema op selection =
                                             CanError errors
 
                         GraphQL.Schema.Enum name ->
-                            CanSuccess emptyCache
-                                (Can.FieldScalar
-                                    { alias_ = Maybe.map convertName field.alias_
-                                    , name = convertName field.name
-                                    , arguments = field.arguments
-                                    , directives = List.map convertDirective field.directives
-                                    , type_ = query.type_
-                                    }
-                                )
+                             case Dict.get name schema.enums of
+                                Nothing ->
+                                    err [ error (EnumUnknown name) ]
+
+                                Just enum ->
+                                     case argValidation of
+                                        Ok vars ->
+                                            CanSuccess (addVars vars emptyCache)
+                                                (Can.FieldEnum
+                                                    { alias_ = Maybe.map convertName field.alias_
+                                                    , name = convertName field.name
+                                                    , arguments = field.arguments
+                                                    , directives = List.map convertDirective field.directives
+                                                    , enumName = enum.name
+                                                    , values = enum.values
+                                                    , wrapper = GraphQL.Schema.getWrap query.type_
+                                                    }
+                                                )
+
+                                        Err errors ->
+                                            CanError errors
 
                         GraphQL.Schema.Union name ->
                             case Dict.get name schema.unions of
@@ -1120,7 +1132,7 @@ canonicalizeFieldType schema object field type_ selection schemaField =
                                                 (Can.FieldUnion
                                                     { alias_ = Maybe.map convertName field.alias_
                                                     , name = convertName field.name
-                                                    , arguments = field.arguments
+                                                    , arguments = []
                                                     , directives = List.map convertDirective field.directives
                                                     , selection = canSelection
                                                     , union = union
