@@ -8,6 +8,8 @@ import Elm
 import Elm.Annotation as Type
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Decode
+import Elm.Gen.List
+import Elm.Gen.Maybe
 import Elm.Gen.String
 import Elm.Pattern as Pattern
 import Generate.Args
@@ -110,10 +112,17 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                         (\var ->
                             Engine.prebakedQuery
                                 (Elm.string (Can.toString def))
-                                (Elm.list
-                                    (encodeVariable namespace
-                                        schema
-                                        def
+                                (Elm.Gen.List.filterMap
+                                    (\_ ->
+                                        Elm.lambda "ident"
+                                            Type.unit
+                                            identity
+                                    )
+                                    (Elm.list
+                                        (encodeVariable namespace
+                                            schema
+                                            def
+                                        )
                                     )
                                 )
                                 (generateDecoder namespace schema def)
@@ -128,7 +137,7 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
         helpers =
             generateResultTypes namespace schema (Set.fromList builtinNames) def
 
-        -- auxHelpers are record alises that aren't *essential* to the return type, 
+        -- auxHelpers are record alises that aren't *essential* to the return type,
         -- but are useful in some cases
         auxHelpers =
             generateAuxTypes namespace schema (Set.fromList builtinNames) def
@@ -202,14 +211,40 @@ toVariableEncoder namespace schema var =
     let
         name =
             Can.nameToString var.variable.name
+
+        wrapper =
+            Input.getWrapFromAst var.type_
     in
-    Elm.get name (Elm.value "input")
-        |> Generate.Args.toJsonValue
-            namespace
-            schema
-            var.schemaType
-            (Input.getWrapFromAst var.type_)
-        |> Elm.tuple (Elm.string name)
+    case wrapper of
+        GraphQL.Schema.InMaybe _ ->
+            Elm.get name (Elm.value "input")
+                |> Elm.Gen.Maybe.map
+                    (\_ ->
+                        Elm.lambda "lambdaArgs"
+                            Type.unit
+                            (\maybeVal ->
+                                maybeVal
+                                    |> Just
+                                    |> Elm.maybe
+                                    |> Generate.Args.toJsonValue
+                                        namespace
+                                        schema
+                                        var.schemaType
+                                        wrapper
+                                    |> Elm.tuple (Elm.string name)
+                            )
+                    )
+
+        _ ->
+            Elm.get name (Elm.value "input")
+                |> Generate.Args.toJsonValue
+                    namespace
+                    schema
+                    var.schemaType
+                    wrapper
+                |> Elm.tuple (Elm.string name)
+                |> Just
+                |> Elm.maybe
 
 
 andField : Can.Name -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -417,8 +452,9 @@ generateChildAuxRecords namespace schema knownNames sel =
     case sel of
         Can.FieldObject obj ->
             let
-                (resolvedName, knownNames2) = resolveNewName desiredName 
-                    knownNames
+                ( resolvedName, knownNames2 ) =
+                    resolveNewName desiredName
+                        knownNames
 
                 ( knownNames3, newDecls ) =
                     generateTypesForFields (generateChildAuxRecords namespace schema) knownNames2 [] obj.selection
@@ -429,8 +465,6 @@ generateChildAuxRecords namespace schema knownNames sel =
                             Can.nameToString
                             obj.alias_
                         )
-
-                
 
                 ( finalNames, fieldResult ) =
                     fieldsToRecord namespace schema knownNames3 Nothing obj.selection []
@@ -712,8 +746,9 @@ getDesiredTypeName knownNames selection =
 
 resolveNewName : String -> Set.Set String -> ( String, Set.Set String )
 resolveNewName newName knownNames =
-    if  Set.member ( newName) knownNames then
+    if Set.member newName knownNames then
         resolveNewName (newName ++ "_") knownNames
+
     else
         ( newName, Set.insert newName knownNames )
 
@@ -987,11 +1022,11 @@ decodeFields namespace index fields exp =
                     exp
                 )
 
-        (Can.FieldScalar scal) :: remain ->
+        ((Can.FieldScalar scal) as field) :: remain ->
             let
                 decoded =
                     andField
-                        scal.name
+                        (Can.Name (Can.getAliasedName field))
                         (decodeScalarType scal.type_)
                         exp
             in
