@@ -77,6 +77,12 @@ type Name
     = Name String
 
 
+getAliasedName : FieldDetails -> String
+getAliasedName deets =
+    Maybe.withDefault deets.name deets.alias_
+        |> nameToString
+
+
 nameToString : Name -> String
 nameToString (Name str) =
     str
