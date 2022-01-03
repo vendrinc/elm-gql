@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, enum, field, fieldWith, getGql, id_, list, make_, map, map2, mapPremade, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, types_, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, id_, list, make_, map, map2, mapPremade, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, types_, union, unsafe, with)
 
 {-| 
 -}
@@ -819,6 +819,32 @@ encodeOptionals arg1 =
 
 
 {-| -}
+encodeOptionalsAsJson : Elm.Expression -> Elm.Expression
+encodeOptionalsAsJson arg1 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "encodeOptionalsAsJson"
+            (Type.function
+                [ Type.list
+                    (Type.namedWith
+                        [ "GraphQL", "Engine" ]
+                        "Optional"
+                        [ Type.var "arg" ]
+                    )
+                ]
+                (Type.list
+                    (Type.tuple
+                        Type.string
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                    )
+                )
+            )
+        )
+        [ arg1 ]
+
+
+{-| -}
 encodeInputObject : Elm.Expression -> Elm.Expression -> Elm.Expression
 encodeInputObject arg1 arg2 =
     Elm.apply
@@ -1127,6 +1153,7 @@ id_ :
     , queryString : Elm.Expression
     , maybeScalarEncode : Elm.Expression
     , encodeOptionals : Elm.Expression
+    , encodeOptionalsAsJson : Elm.Expression
     , encodeInputObject : Elm.Expression
     , encodeArgument : Elm.Expression
     , decodeNullable : Elm.Expression
@@ -1638,6 +1665,25 @@ id_ =
                             "Argument"
                             [ Type.var "arg" ]
                         )
+                    )
+                )
+            )
+    , encodeOptionalsAsJson =
+        Elm.valueWith
+            moduleName_
+            "encodeOptionalsAsJson"
+            (Type.function
+                [ Type.list
+                    (Type.namedWith
+                        [ "GraphQL", "Engine" ]
+                        "Optional"
+                        [ Type.var "arg" ]
+                    )
+                ]
+                (Type.list
+                    (Type.tuple
+                        Type.string
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
                     )
                 )
             )
