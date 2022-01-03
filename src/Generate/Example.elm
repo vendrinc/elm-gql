@@ -354,7 +354,7 @@ requiredArgsExample namespace schema name called fields =
                         []
 
                     _ ->
-                        [ Elm.field "with_"
+                        [ Elm.field "optional_"
                             (optionalArgsExample
                                 namespace
                                 schema

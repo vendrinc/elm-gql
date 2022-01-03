@@ -27,7 +27,7 @@ import Utils.String
 
 embeddedOptionsFieldName : String
 embeddedOptionsFieldName =
-    "with_"
+    "optional_"
 
 
 encodeScalar : String -> GraphQL.Schema.Wrapped -> (Elm.Expression -> Elm.Expression)
@@ -608,7 +608,7 @@ toJsonValue namespace schema fieldType wrapped val =
                                         if List.any Input.isOptional input.fields then
                                             Elm.Gen.List.append
                                                 requiredVals
-                                                (Engine.encodeOptionals
+                                                (Engine.encodeOptionalsAsJson
                                                     (Elm.get embeddedOptionsFieldName v)
                                                 )
                                                 |> Encode.object
