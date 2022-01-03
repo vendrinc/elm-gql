@@ -8,23 +8,17 @@
     "example": "examples"
   },
   "scripts": {
-    
     "prefab:pull": "git submodule update --init --recursive",
     "elm-prefab": "node ./elm-prefab/dist/index.js",
     "clean": "rm -rf ./output",
-    
     "build": "tsc ; yarn build:elm ; cp cli/package.json dist/package.json",
     "build:elm": "elm make src/Generate.elm --output=./dist/generators/schema.js",
-
     "elm-gql": "node ./dist/index.js",
     "elm-gql:test": "node ./dist/index.js --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
-    "elm-gql:test-json-schema-file": "node ./dist/index.js --namespace=Api2 --schema=schema.json --gql=gql-ops --existing-enum-definitions=GQL",
-
+    "elm-gql:test-json-schema-file": "node ./dist/index.js --namespace=Api2 --schema=schema.json --gql=gql-ops",
     "test:generate-api": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm  --debug --flags-from=./examples/playground/example-config.json)",
     "test:api": "yarn test:generate-api ; cd output ; elm make Main.elm",
     "test:fuzz": "(yarn test:generate-api ; node ./elm-prefab/dist/index.js src/Fuzzish.elm  --debug --flags-from=./examples/playground/example-config.json ; cd output ; elm make RunFuzz.elm) ",
-    
-    
     "generate:engine-bindings": "yarn generate:engine-docs; yarn elm-prefab install templates/engine-docs.json ; node cli/build.js",
     "generate:engine-docs": "cd templates ; rm -rf elm-stuff ; elm-doc-preview --output engine-docs.json ; cd .."
   },
