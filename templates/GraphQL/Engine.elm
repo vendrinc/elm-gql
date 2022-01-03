@@ -9,7 +9,7 @@ module GraphQL.Engine exposing
     , prebakedQuery, Premade, premadeOperation
     , queryString
     , Argument(..), maybeScalarEncode
-    , encodeOptionals, encodeInputObject, encodeArgument
+    , encodeOptionals, encodeOptionalsAsJson, encodeInputObject, encodeArgument
     , decodeNullable, getGql, mapPremade
     , unsafe, selectTypeNameButSkip
     , Request, toRequest, send, simulate
@@ -37,7 +37,7 @@ module GraphQL.Engine exposing
 
 @docs Argument, maybeScalarEncode
 
-@docs encodeOptionals, encodeInputObject, encodeArgument
+@docs encodeOptionals, encodeOptionalsAsJson, encodeInputObject, encodeArgument
 
 @docs decodeNullable, getGql, mapPremade
 
@@ -602,6 +602,25 @@ encodeOptionals opts =
         ( Set.empty, [] )
         opts
         |> Tuple.second
+
+
+{-| -}
+encodeOptionalsAsJson : List (Optional arg) -> List ( String, Encode.Value )
+encodeOptionalsAsJson opts =
+    List.foldl
+        (\(Optional optName argument) (( found, gathered ) as skip) ->
+            if Set.member optName found then
+                skip
+
+            else
+                ( Set.insert optName found
+                , ( optName, argument ) :: gathered
+                )
+        )
+        ( Set.empty, [] )
+        opts
+        |> Tuple.second
+        |> List.map (Tuple.mapSecond encodeArgument)
 
 
 {-|
