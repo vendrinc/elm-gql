@@ -147,7 +147,12 @@ recursiveRequiredAnnotation namespace schema reqs =
         (List.map
             (\field ->
                 ( field.name
-                , inputAnnotationRecursive namespace schema field.type_ (GraphQL.Schema.getWrap field.type_)
+                , inputAnnotationRecursive
+                    namespace
+                    schema
+                    field.type_
+                    (GraphQL.Schema.getWrap field.type_)
+                    { ergonomicOptionType = False }
                 )
             )
             reqs
@@ -408,7 +413,7 @@ optionsRecursiveHelper namespace schema name options fields =
                 remain
                 ((Elm.fn (Utils.String.formatValue arg.name)
                     ( "val"
-                    , inputAnnotationRecursive namespace schema arg.type_ wrapping
+                    , inputAnnotationRecursive namespace schema arg.type_ wrapping { ergonomicOptionType = False }
                     )
                     (\val ->
                         toEngineArg namespace
@@ -429,14 +434,20 @@ optionsRecursiveHelper namespace schema name options fields =
                 )
 
 
-inputAnnotationRecursive : Namespace -> GraphQL.Schema.Schema -> GraphQL.Schema.Type -> GraphQL.Schema.Wrapped -> Elm.Annotation.Annotation
-inputAnnotationRecursive namespace schema type_ wrapped =
+inputAnnotationRecursive :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> GraphQL.Schema.Type
+    -> GraphQL.Schema.Wrapped
+    -> { ergonomicOptionType : Bool }
+    -> Elm.Annotation.Annotation
+inputAnnotationRecursive namespace schema type_ wrapped optForm =
     case type_ of
         GraphQL.Schema.Nullable newType ->
-            inputAnnotationRecursive namespace schema newType wrapped
+            inputAnnotationRecursive namespace schema newType wrapped optForm
 
         GraphQL.Schema.List_ newType ->
-            inputAnnotationRecursive namespace schema newType wrapped
+            inputAnnotationRecursive namespace schema newType wrapped optForm
 
         GraphQL.Schema.Scalar scalarName ->
             scalarType wrapped scalarName
@@ -458,7 +469,7 @@ inputAnnotationRecursive namespace schema type_ wrapped =
                         schema
                         input
                         wrapped
-                        { ergonomicOptionType = False }
+                        optForm
 
         GraphQL.Schema.Object nestedObjectName ->
             -- not used as input
@@ -501,7 +512,12 @@ inputObjectAnnotation namespace schema input wrapped optForm =
                 (List.map
                     (\field ->
                         ( field.name
-                        , inputAnnotationRecursive namespace schema field.type_ (GraphQL.Schema.getWrap field.type_)
+                        , inputAnnotationRecursive
+                            namespace
+                            schema
+                            field.type_
+                            (GraphQL.Schema.getWrap field.type_)
+                            optForm
                         )
                     )
                     input.fields
@@ -524,7 +540,12 @@ inputObjectAnnotation namespace schema input wrapped optForm =
                 (List.map
                     (\field ->
                         ( field.name
-                        , inputAnnotationRecursive namespace schema field.type_ (GraphQL.Schema.getWrap field.type_)
+                        , inputAnnotationRecursive
+                            namespace
+                            schema
+                            field.type_
+                            (GraphQL.Schema.getWrap field.type_)
+                            optForm
                         )
                     )
                     required
