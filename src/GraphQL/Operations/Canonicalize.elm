@@ -6,7 +6,6 @@ import Dict exposing (Dict)
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
-import Print
 
 
 type Error
@@ -113,6 +112,63 @@ type alias SuggestedVariable =
     }
 
 
+
+{- Error rendering -}
+
+
+{-| An indented block with a newline above and below
+-}
+block : List String -> String
+block lines =
+    "\n    " ++ String.join "\n    " lines ++ "\n"
+
+
+
+{-
+   If more colors are wanted, this is a good reference:
+   https://github.com/chalk/chalk/blob/main/source/vendor/ansi-styles/index.js
+-}
+
+
+cyan : String -> String
+cyan str =
+    color 36 39 str
+
+
+yellow : String -> String
+yellow str =
+    color 33 39 str
+
+
+green : String -> String
+green str =
+    color 32 39 str
+
+
+red : String -> String
+red str =
+    color 31 39 str
+
+
+grey : String -> String
+grey str =
+    color 90 39 str
+
+
+color : Int -> Int -> String -> String
+color openCode closeCode content =
+    let
+        delim code =
+            --"\\u001B[" ++ String.fromInt code ++ "m"
+            "\u{001B}[" ++ String.fromInt code ++ "m"
+    in
+    delim openCode ++ content ++ delim closeCode
+
+
+
+{- -}
+
+
 errorToString : Error -> String
 errorToString (Error details) =
     case details.error of
@@ -146,16 +202,16 @@ errorToString (Error details) =
         FieldAliasRequired deets ->
             String.join "\n"
                 [ "I found two fields that have the same name:"
-                , Print.block
-                    [ Print.yellow deets.fieldName ]
+                , block
+                    [ yellow deets.fieldName ]
                 , "Add an alias to one of them so there's no confusion!"
                 ]
 
         NonExhaustiveVariants deets ->
             String.join "\n"
-                [ "There are still some variants that have not been covered for " ++ Print.cyan deets.unionName
-                , Print.block
-                    (List.map Print.yellow deets.leftOver)
+                [ "There are still some variants that have not been covered for " ++ cyan deets.unionName
+                , block
+                    (List.map yellow deets.leftOver)
                 , "Add them to your query so that we know what data to select if they show up!"
                 ]
 
@@ -165,7 +221,7 @@ errorToString (Error details) =
                     String.join "\n"
                         [ "It looks like no variables are declared."
                         , "Here's what I think the variables should be:"
-                        , Print.block
+                        , block
                             (List.map
                                 renderSuggestion
                                 (List.reverse summary.suggestions)
@@ -175,7 +231,7 @@ errorToString (Error details) =
                 _ ->
                     String.join "\n"
                         [ "I found the following variables:"
-                        , Print.block
+                        , block
                             (List.map
                                 renderDeclared
                                 (List.reverse summary.declared)
@@ -185,13 +241,13 @@ errorToString (Error details) =
 
                           else
                             "But I ran into a few issues:"
-                        , Print.block
+                        , block
                             (List.concatMap
                                 renderIssue
                                 summary.issues
                             )
                         , "Here's what I think the variables should be:"
-                        , Print.block
+                        , block
                             (List.map
                                 renderSuggestion
                                 (List.reverse summary.suggestions)
@@ -203,43 +259,43 @@ renderDeclared : DeclaredVariable -> String
 renderDeclared declared =
     case declared.type_ of
         Nothing ->
-            Print.yellow ("$" ++ declared.name)
+            yellow ("$" ++ declared.name)
 
         Just declaredType ->
-            Print.yellow ("$" ++ declared.name) ++ Print.grey ": " ++ Print.cyan declaredType
+            yellow ("$" ++ declared.name) ++ grey ": " ++ cyan declaredType
 
 
 renderSuggestion : SuggestedVariable -> String
 renderSuggestion sug =
-    Print.yellow ("$" ++ sug.name) ++ Print.grey ": " ++ Print.cyan sug.type_
+    yellow ("$" ++ sug.name) ++ grey ": " ++ cyan sug.type_
 
 
 renderIssue : VarIssue -> List String
 renderIssue issue =
     case issue of
         Unused var ->
-            [ Print.yellow ("$" ++ var.name) ++ " is unused." ]
+            [ yellow ("$" ++ var.name) ++ " is unused." ]
 
         UnexpectedType var ->
             case var.found of
                 Nothing ->
-                    [ Print.yellow ("$" ++ var.name) ++ " has no type declaration" ]
+                    [ yellow ("$" ++ var.name) ++ " has no type declaration" ]
 
                 Just foundType ->
                     let
                         variableName =
                             "$" ++ var.name
                     in
-                    [ Print.yellow variableName
+                    [ yellow variableName
                         ++ " is declared as "
-                        ++ Print.cyan foundType
+                        ++ cyan foundType
                     , String.repeat (String.length variableName - 6) " "
                         ++ "but is expected to be "
-                        ++ Print.cyan var.expected
+                        ++ cyan var.expected
                     ]
 
         Undeclared var ->
-            [ Print.yellow ("$" ++ var.name) ++ " is undeclared (missing from the top)." ]
+            [ yellow ("$" ++ var.name) ++ " is undeclared (missing from the top)." ]
 
 
 type CanResult success
@@ -919,13 +975,13 @@ canonicalizeOperation schema op selection =
                                                     CanError errors
 
                         GraphQL.Schema.Interface name ->
-                            err [ todo "Handle more object types!" ]
+                            err [ todo "Top level interfaces are not yet supported" ]
 
                         GraphQL.Schema.List_ inner ->
-                            err [ todo "Handle more object types!" ]
+                            err [ todo "Top level lists are not yet supported" ]
 
                         GraphQL.Schema.Nullable inner ->
-                            err [ todo "Handle more object types!" ]
+                            err [ todo "Top level nullables are not yet supported" ]
 
         AST.FragmentSpreadSelection frag ->
             err [ todo "Fragments in unions aren't suported yet!" ]
