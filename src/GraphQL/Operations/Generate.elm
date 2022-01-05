@@ -339,7 +339,7 @@ toElmTypeHelper namespace schema astType =
                         Type.bool
 
                     "id" ->
-                        Type.named [ "Scalar" ] typename
+                        Type.named [ "Scalar" ] "Id"
 
                     _ ->
                         Type.named [ "Scalar" ] typename
