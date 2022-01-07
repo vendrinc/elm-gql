@@ -7,9 +7,6 @@ import GraphQL.Operations.Parse as Parse
 import Test exposing (..)
 
 
-
-
-
 suite : Test
 suite =
     describe "Operational GQL"
@@ -18,47 +15,45 @@ suite =
                 let
                     parsed =
                         Parse.parse queries.simple
-                            
                 in
                 Expect.true
                     "Expected the simple query to parse"
                     (case parsed of
                         Ok _ ->
                             True
+
                         Err _ ->
                             False
-
                     )
-        ,  test "Parse the blissfully dashboard query" <|
-                \_ ->
-                    let
-                        parsed =
-                            Parse.parse queries.dashboard
-                                |> Debug.log "DASH"
-                                
-                    in
-                    Expect.true
-                        "Expected the blissfully dashboard to parse"
-                        (case parsed of
-                            Ok _ ->
-                                True
-                            Err _ ->
-                                False
+        , test "Parse the blissfully dashboard query" <|
+            \_ ->
+                let
+                    parsed =
+                        Parse.parse queries.dashboard
+                in
+                Expect.true
+                    "Expected the blissfully dashboard to parse"
+                    (case parsed of
+                        Ok _ ->
+                            True
 
-                        )
+                        Err _ ->
+                            False
+                    )
         ]
-
 
 
 queries =
     { simple =
         """query {
   organization {
+    # Comment
     isActive
     domain
     teams {
       name
     }
+# comment
   }
 }
 

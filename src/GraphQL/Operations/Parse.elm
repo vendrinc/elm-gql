@@ -190,6 +190,8 @@ loopItems contentParser items =
     ifProgress List.reverse <|
         Parser.oneOf
             [ Parser.map (\d -> d :: items) contentParser
+            , Parser.succeed items
+                |. comment
             , Parser.map (\_ -> items) ws
             ]
 
@@ -212,6 +214,17 @@ selectionSet =
             )
         |. ws
         |. Parser.symbol "}"
+
+
+comment : Parser ()
+comment =
+    Parser.succeed ()
+        |. Parser.symbol "#"
+        |. Parser.chompWhile
+            (\c ->
+                c /= '\n'
+            )
+        |. Parser.symbol "\n"
 
 
 inlineOrSpread_ : Parser AST.Selection
