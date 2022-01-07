@@ -1,5 +1,8 @@
 module GraphQL.Operations.Parse exposing (..)
 
+{-| This code was originally borrowed from <https://github.com/lukewestby/elm-graphql-parser>
+-}
+
 import Char
 import GraphQL.Operations.AST as AST
 import Parser exposing (..)

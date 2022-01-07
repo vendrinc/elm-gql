@@ -1,3 +1,1 @@
-To setup/run:
-
-`yarn pull`
+# Welcome to `elm-gql`
