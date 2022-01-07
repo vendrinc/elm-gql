@@ -12,7 +12,7 @@ module GraphQL.Engine exposing
     , encodeOptionals, encodeOptionalsAsJson, encodeInputObject, encodeArgument
     , decodeNullable, getGql, mapPremade
     , unsafe, selectTypeNameButSkip
-    , Request, toRequest, send, simulate
+    , Request, toRequest, send, simulate, mapRequest
     )
 
 {-|
@@ -43,7 +43,7 @@ module GraphQL.Engine exposing
 
 @docs unsafe, selectTypeNameButSkip
 
-@docs Request, toRequest, send, simulate
+@docs Request, toRequest, send, simulate, mapRequest
 
 -}
 
@@ -779,6 +779,19 @@ type Request value
         , expect : Http.Response String -> Result Error value
         , timeout : Maybe Float
         , tracker : Maybe String
+        }
+
+{-|-}
+mapRequest : (a -> b) -> Request a -> Request b
+mapRequest fn (Request request) =
+    Request
+        { method = request.method
+        , headers = request.headers
+        , url = request.url
+        , body = request.body
+        , expect = request.expect >> Result.map fn
+        , timeout = request.timeout
+        , tracker = request.tracker
         }
 
 
