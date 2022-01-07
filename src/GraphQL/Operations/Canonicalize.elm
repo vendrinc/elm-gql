@@ -64,10 +64,6 @@ type ErrorDetails
         { object : String
         , field : String
         }
-    | UnusedVariable
-        { name : String
-        , knownVariables : List String
-        }
     | UndeclaredVariable
         { name : String
         , knownVariables : List String
@@ -176,25 +172,48 @@ errorToString (Error details) =
             "Todo: " ++ msg
 
         EnumUnknown name ->
-            "Unknown Enum: " ++ name
+            String.join "\n"
+                [ "I don't recognize this name:"
+                , block
+                    [ yellow name ]
+                , "Add an alias to one of them so there's no confusion!"
+                ]
 
         QueryUnknown name ->
-            "Unknown Query: " ++ name
+            String.join "\n"
+                [ "I don't recognize this query:"
+                , block
+                    [ yellow name ]
+                , "Add an alias to one of them so there's no confusion!"
+                ]
 
         ObjectUnknown name ->
-            "Unknown Object: " ++ name
+            String.join "\n"
+                [ "I don't recognize this object:"
+                , block
+                    [ yellow name ]
+                , "Add an alias to one of them so there's no confusion!"
+                ]
 
         UnionUnknown name ->
-            "Unknown Union: " ++ name
+            String.join "\n"
+                [ "I don't recognize this union:"
+                , block
+                    [ yellow name ]
+                , "Add an alias to one of them so there's no confusion!"
+                ]
 
         UnknownArgName name ->
             "Unknown argument named: " ++ name
 
         FieldUnknown field ->
-            "Unknown Field: " ++ field.object ++ "." ++ field.field
-
-        UnusedVariable unused ->
-            "Unused variable: " ++ unused.name
+            String.join "\n"
+                [ "You're trying to access"
+                , block
+                    [ cyan (field.object ++ "." ++ field.field)
+                    ]
+                , "But I don't see a " ++ cyan field.field ++ " field on " ++ cyan field.object
+                ]
 
         UndeclaredVariable undeclared ->
             "Undeclared variable: " ++ undeclared.name
@@ -796,28 +815,6 @@ mergeVars varTypes variableDefinitions =
             }
         )
         allNames
-
-
-validateTopLevelVariables cache varDef =
-    let
-        varName =
-            AST.nameToString varDef.variable.name
-    in
-    case find varName cache.varTypes of
-        Nothing ->
-            Err
-                [ UnusedVariable
-                    { name = varName
-                    , knownVariables = List.map Tuple.first cache.varTypes
-                    }
-                    |> error
-                ]
-
-        Just varType ->
-            Ok
-                { definition = varDef
-                , inOperation = varType
-                }
 
 
 find : String -> List ( String, a ) -> Maybe a
