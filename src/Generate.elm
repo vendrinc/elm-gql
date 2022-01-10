@@ -44,6 +44,7 @@ main =
                           }
                         , Elm.Gen.error
                             { title = "Error decoding flags"
+                            , file = Nothing
                             , description = Json.Decode.errorToString err
                             }
                         )
@@ -57,6 +58,7 @@ main =
                                   }
                                 , Elm.Gen.error
                                     { title = "Error decoding flags"
+                                    , file = Nothing
                                     , description = ""
                                     }
                                 )
@@ -94,6 +96,7 @@ main =
                                 ( model
                                 , Elm.Gen.error
                                     { title = "Error decoding schema"
+                                    , file = Nothing
                                     , description =
                                         "Something went wrong with decoding the schema.\n\n    " ++ Json.Decode.errorToString decodingError
                                     }
@@ -103,6 +106,7 @@ main =
                         ( model
                         , Elm.Gen.error
                             { title = "Error retrieving schema"
+                            , file = Nothing
                             , description =
                                 "Something went wrong with retrieving the schema.\n\n    " ++ httpErrorToString err
                             }
@@ -317,6 +321,7 @@ httpErrorToString err =
 
 type alias Error =
     { title : String
+    , file : Maybe String
     , description : String
     }
 
@@ -332,6 +337,7 @@ parseAndValidateQuery namespace schema flags gql =
         Err err ->
             Err
                 { title = "Malformed query"
+                , file = Just gql.path
                 , description =
                     GraphQL.Operations.Parse.errorToString err
                 }
@@ -341,6 +347,7 @@ parseAndValidateQuery namespace schema flags gql =
                 Err errors ->
                     Err
                         { title = "Elm GQL"
+                        , file = Just gql.path
                         , description =
                             List.map Canonicalize.errorToString errors
                                 |> String.join "\n\n    "
@@ -370,6 +377,7 @@ parseAndValidateQuery namespace schema flags gql =
                         Err validationError ->
                             Err
                                 { title = "Invalid query"
+                                , file = Just gql.path
                                 , description =
                                     List.map GraphQL.Operations.Validate.errorToString validationError
                                         |> String.join "\n\n    "

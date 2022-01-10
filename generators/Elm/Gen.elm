@@ -33,7 +33,7 @@ files list =
      Report an error.  The script will end
 
 -}
-error : { title : String, description : String } -> Cmd msg
+error : { title : String, file : Maybe String, description : String } -> Cmd msg
 error err =
     onFailureSend err
 
@@ -48,7 +48,7 @@ info err =
 port onSuccessSend : List Json.Value -> Cmd msg
 
 
-port onFailureSend : { title : String, description : String } -> Cmd msg
+port onFailureSend : { title : String, file : Maybe String, description : String } -> Cmd msg
 
 
 port onInfoSend : String -> Cmd msg
