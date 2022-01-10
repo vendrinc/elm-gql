@@ -258,7 +258,6 @@ errorToString (Error details) =
                 , block
                     [ "... on " ++ deets.tag ++ " {"
                     , yellow "    __typename"
-                    , grey "    # ... other fields"
                     , "}"
                     ]
                 , "If you don't need any more data, just add " ++ yellow "__typename"
