@@ -76,6 +76,12 @@ type ErrorDetails
         { unionName : String
         , leftOver : List String
         }
+    | MissingTypename
+        { tag : String
+        }
+    | EmptyUnionVariantSelection
+        { tag : String
+        }
 
 
 type alias VariableSummary =
@@ -232,6 +238,30 @@ errorToString (Error details) =
                 , block
                     (List.map yellow deets.leftOver)
                 , "Add them to your query so that we know what data to select if they show up!"
+                ]
+
+        MissingTypename deets ->
+            String.join "\n"
+                [ cyan deets.tag ++ " needs to select for " ++ yellow "__typename"
+                , block
+                    [ "... on " ++ deets.tag ++ " {"
+                    , yellow "    __typename"
+                    , grey "    # ... other fields"
+                    , "}"
+                    ]
+                , "If we don't have this, then we can't be totally sure what type is returned."
+                ]
+
+        EmptyUnionVariantSelection deets ->
+            String.join "\n"
+                [ cyan deets.tag ++ " needs to select at least one field."
+                , block
+                    [ "... on " ++ deets.tag ++ " {"
+                    , yellow "    __typename"
+                    , grey "    # ... other fields"
+                    , "}"
+                    ]
+                , "If you don't need any more data, just add " ++ yellow "__typename"
                 ]
 
         VariableIssueSummary summary ->
@@ -940,12 +970,30 @@ canonicalizeOperation schema op selection =
 
                                         Just vars ->
                                             let
+                                                selectsForTypename =
+                                                    List.any
+                                                        (\sel ->
+                                                            case sel of
+                                                                AST.Field firstField ->
+                                                                    case AST.nameToString firstField.name of
+                                                                        "__typename" ->
+                                                                            True
+
+                                                                        _ ->
+                                                                            False
+
+                                                                _ ->
+                                                                    False
+                                                        )
+                                                        field.selection
+
                                                 selectionResult =
                                                     List.foldl
                                                         (canonicalizeUnionField schema union)
                                                         { result = emptySuccess
                                                         , fieldNames = emptyUsedNames
                                                         , variants = vars
+                                                        , typenameAlreadySelected = selectsForTypename
                                                         }
                                                         field.selection
                                             in
@@ -1292,12 +1340,30 @@ canonicalizeFieldType schema object field type_ usedNames selection schemaField 
 
                                 Just variants ->
                                     let
+                                        selectsForTypename =
+                                            List.any
+                                                (\sel ->
+                                                    case sel of
+                                                        AST.Field firstField ->
+                                                            case AST.nameToString firstField.name of
+                                                                "__typename" ->
+                                                                    True
+
+                                                                _ ->
+                                                                    False
+
+                                                        _ ->
+                                                            False
+                                                )
+                                                field.selection
+
                                         selectionResult =
                                             List.foldl
                                                 (canonicalizeUnionField schema union)
                                                 { result = emptySuccess
                                                 , fieldNames = emptyUsedNames
                                                 , variants = variants
+                                                , typenameAlreadySelected = selectsForTypename
                                                 }
                                                 field.selection
                                     in
@@ -1374,11 +1440,13 @@ canonicalizeUnionField :
         { result : CanResult (List Can.Selection)
         , fieldNames : UsedNames
         , variants : List String
+        , typenameAlreadySelected : Bool
         }
     ->
         { result : CanResult (List Can.Selection)
         , fieldNames : UsedNames
         , variants : List String
+        , typenameAlreadySelected : Bool
         }
 canonicalizeUnionField schema union selection found =
     case selection of
@@ -1402,6 +1470,7 @@ canonicalizeUnionField schema union selection found =
                         found.result
                 , fieldNames = found.fieldNames
                 , variants = found.variants
+                , typenameAlreadySelected = found.typenameAlreadySelected
                 }
 
             else
@@ -1409,6 +1478,7 @@ canonicalizeUnionField schema union selection found =
                     err [ todo "Common selections not allowed for gql unions" ]
                 , fieldNames = found.fieldNames
                 , variants = found.variants
+                , typenameAlreadySelected = found.typenameAlreadySelected
                 }
 
         AST.FragmentSpreadSelection frag ->
@@ -1416,63 +1486,108 @@ canonicalizeUnionField schema union selection found =
                 err [ todo "Fragments in objects aren't suported yet!" ]
             , fieldNames = found.fieldNames
             , variants = found.variants
+            , typenameAlreadySelected = found.typenameAlreadySelected
             }
 
         AST.InlineFragmentSelection inline ->
-            let
-                tag =
-                    AST.nameToString inline.tag
+            case inline.selection of
+                [] ->
+                    { result =
+                        err [ error (EmptyUnionVariantSelection { tag = AST.nameToString inline.tag }) ]
+                    , fieldNames = found.fieldNames
+                    , variants = found.variants
+                    , typenameAlreadySelected = found.typenameAlreadySelected
+                    }
 
-                ( tagMatches, leftOvertags ) =
-                    matchTag tag found.variants ( False, [] )
-            in
-            if tagMatches then
-                case Dict.get tag schema.objects of
-                    Nothing ->
-                        { result =
-                            err [ error (ObjectUnknown tag) ]
-                        , fieldNames = found.fieldNames
-                        , variants = leftOvertags
-                        }
+                _ ->
+                    let
+                        tag =
+                            AST.nameToString inline.tag
 
-                    Just obj ->
-                        let
-                            selectionResult =
-                                List.foldl
-                                    (canonicalizeField schema obj)
-                                    { result = emptySuccess
-                                    , fieldNames = found.fieldNames
-                                    }
-                                    inline.selection
-                        in
-                        case selectionResult.result of
-                            CanSuccess cache canSelection ->
+                        ( tagMatches, leftOvertags ) =
+                            matchTag tag found.variants ( False, [] )
+                    in
+                    if tagMatches then
+                        case Dict.get tag schema.objects of
+                            Nothing ->
                                 { result =
-                                    addToResult cache
-                                        (Can.UnionCase
-                                            { tag = Can.Name tag
-                                            , directives = List.map convertDirective inline.directives
-                                            , selection = canSelection
+                                    err [ error (ObjectUnknown tag) ]
+                                , fieldNames = found.fieldNames
+                                , variants = leftOvertags
+                                , typenameAlreadySelected = found.typenameAlreadySelected
+                                }
+
+                            Just obj ->
+                                let
+                                    selectsForTypename =
+                                        if found.typenameAlreadySelected then
+                                            True
+
+                                        else
+                                            List.any
+                                                (\sel ->
+                                                    case sel of
+                                                        AST.Field firstField ->
+                                                            case AST.nameToString firstField.name of
+                                                                "__typename" ->
+                                                                    True
+
+                                                                _ ->
+                                                                    False
+
+                                                        _ ->
+                                                            False
+                                                )
+                                                inline.selection
+
+                                    selectionResult =
+                                        List.foldl
+                                            (canonicalizeField schema obj)
+                                            { result = emptySuccess
+                                            , fieldNames = found.fieldNames
                                             }
-                                        )
-                                        found.result
-                                , fieldNames = selectionResult.fieldNames
-                                , variants = leftOvertags
-                                }
+                                            inline.selection
+                                in
+                                if selectsForTypename then
+                                    case selectionResult.result of
+                                        CanSuccess cache canSelection ->
+                                            { result =
+                                                addToResult cache
+                                                    (Can.UnionCase
+                                                        { tag = Can.Name tag
+                                                        , directives = List.map convertDirective inline.directives
+                                                        , selection = canSelection
+                                                        }
+                                                    )
+                                                    found.result
+                                            , fieldNames = selectionResult.fieldNames
+                                            , variants = leftOvertags
+                                            , typenameAlreadySelected = found.typenameAlreadySelected
+                                            }
 
-                            CanError errorMsg ->
-                                { result =
-                                    CanError errorMsg
-                                , fieldNames = selectionResult.fieldNames
-                                , variants = leftOvertags
-                                }
+                                        CanError errorMsg ->
+                                            { result =
+                                                CanError errorMsg
+                                            , fieldNames = selectionResult.fieldNames
+                                            , variants = leftOvertags
+                                            , typenameAlreadySelected = found.typenameAlreadySelected
+                                            }
 
-            else
-                { result =
-                    err [ todo (tag ++ " does not match!") ]
-                , fieldNames = found.fieldNames
-                , variants = found.variants
-                }
+                                else
+                                    { result =
+                                        err [ error (MissingTypename { tag = AST.nameToString inline.tag }) ]
+                                    , fieldNames = found.fieldNames
+                                    , variants = found.variants
+                                    , typenameAlreadySelected = found.typenameAlreadySelected
+                                    }
+
+                    else
+                        { result =
+                            err [ todo (tag ++ " does not match!") ]
+                        , fieldNames = found.fieldNames
+                        , variants = found.variants
+                        , typenameAlreadySelected = found.typenameAlreadySelected
+                        }
 
 
 matchTag : String -> List String -> ( Bool, List String ) -> ( Bool, List String )
