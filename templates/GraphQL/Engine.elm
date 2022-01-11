@@ -13,6 +13,7 @@ module GraphQL.Engine exposing
     , decodeNullable, getGql, mapPremade
     , unsafe, selectTypeNameButSkip
     , Request, toRequest, send, simulate, mapRequest
+    , Option(..)
     )
 
 {-|
@@ -44,6 +45,8 @@ module GraphQL.Engine exposing
 @docs unsafe, selectTypeNameButSkip
 
 @docs Request, toRequest, send, simulate, mapRequest
+
+@docs Option
 
 -}
 
@@ -524,6 +527,12 @@ But we can define anything else in terms of these:
 type Argument obj
     = ArgValue Encode.Value String
     | Var String
+
+{-|-}
+type Option value 
+    = Present value
+    | Null
+    | Absent
 
 
 {-| -}

@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, id_, list, make_, map, map2, mapPremade, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, types_, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, id_, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, types_, union, unsafe, with)
 
 {-| 
 -}
@@ -15,7 +15,8 @@ moduleName_ =
 
 
 types_ :
-    { request : Type.Annotation -> Type.Annotation
+    { option : Type.Annotation -> Type.Annotation
+    , request : Type.Annotation -> Type.Annotation
     , argument : Type.Annotation -> Type.Annotation
     , premade : Type.Annotation -> Type.Annotation
     , error : Type.Annotation
@@ -25,7 +26,8 @@ types_ :
     , selection : Type.Annotation -> Type.Annotation -> Type.Annotation
     }
 types_ =
-    { request = \arg0 -> Type.namedWith moduleName_ "Request" [ arg0 ]
+    { option = \arg0 -> Type.namedWith moduleName_ "Option" [ arg0 ]
+    , request = \arg0 -> Type.namedWith moduleName_ "Request" [ arg0 ]
     , argument = \arg0 -> Type.namedWith moduleName_ "Argument" [ arg0 ]
     , premade = \arg0 -> Type.namedWith moduleName_ "Premade" [ arg0 ]
     , error = Type.named moduleName_ "Error"
@@ -38,7 +40,12 @@ types_ =
 
 
 make_ :
-    { argument :
+    { option :
+        { present : Elm.Expression -> Elm.Expression
+        , null : Elm.Expression
+        , absent : Elm.Expression
+        }
+    , argument :
         { argValue : Elm.Expression -> Elm.Expression -> Elm.Expression
         , var : Elm.Expression -> Elm.Expression
         }
@@ -51,7 +58,28 @@ make_ :
         }
     }
 make_ =
-    { argument =
+    { option =
+        { present =
+            \ar0 ->
+                Elm.apply
+                    (Elm.valueWith
+                        moduleName_
+                        "Present"
+                        (Type.namedWith [] "Option" [ Type.var "value" ])
+                    )
+                    [ ar0 ]
+        , null =
+            Elm.valueWith
+                moduleName_
+                "Null"
+                (Type.namedWith [] "Option" [ Type.var "value" ])
+        , absent =
+            Elm.valueWith
+                moduleName_
+                "Absent"
+                (Type.namedWith [] "Option" [ Type.var "value" ])
+        }
+    , argument =
         { argValue =
             \ar0 ar1 ->
                 Elm.apply
@@ -1125,6 +1153,31 @@ simulate arg1 arg2 =
         [ arg1, arg2 ]
 
 
+{-|-}
+mapRequest :
+    (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
+mapRequest arg1 arg2 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "mapRequest"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "b")
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Request"
+                    [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Request"
+                    [ Type.var "b" ]
+                )
+            )
+        )
+        [ arg1 Elm.pass, arg2 ]
+
+
 {-| Every value/function in this module in case you need to refer to it directly. -}
 id_ :
     { batch : Elm.Expression
@@ -1164,6 +1217,7 @@ id_ :
     , toRequest : Elm.Expression
     , send : Elm.Expression
     , simulate : Elm.Expression
+    , mapRequest : Elm.Expression
     }
 id_ =
     { batch =
@@ -1895,6 +1949,23 @@ id_ =
                     [ Type.var "value" ]
                 ]
                 (Type.var "simulated")
+            )
+    , mapRequest =
+        Elm.valueWith
+            moduleName_
+            "mapRequest"
+            (Type.function
+                [ Type.function [ Type.var "a" ] (Type.var "b")
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Request"
+                    [ Type.var "a" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Request"
+                    [ Type.var "b" ]
+                )
             )
     }
 
