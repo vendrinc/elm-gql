@@ -226,9 +226,6 @@ mockScalar t =
                 "id" ->
                     Json.Encode.string "<id>"
 
-                -- "datetime" ->
-                --     Json.string "<dateti"
-                -- "" ->
                 _ ->
                     Json.Encode.string ("SCALAR:" ++ name)
 
