@@ -14,7 +14,7 @@ import Elm.Gen.String
 import Elm.Pattern as Pattern
 import Generate.Args
 import Generate.Input as Input
-import GraphQL.Operations.AST as AST
+import GraphQL.Operations.AST as AST exposing (nameToString)
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Validate as Validate
 import GraphQL.Schema
@@ -61,6 +61,26 @@ opValueName op =
             "mutation"
 
 
+option =
+    { annotation =
+        -- \inner ->
+        -- Type.namedWith []
+        --     "Option"
+        --     [ inner ]
+        Engine.types_.option
+    , absent =
+        Engine.make_.option.absent
+    , null =
+        Engine.make_.option.null
+    , present =
+        -- \contents ->
+        --     Elm.apply
+        --         (Elm.valueFrom [] "Present")
+        --         [ contents ]
+        Engine.make_.option.present
+    }
+
+
 generateDefinition :
     { namespace : Namespace
     , schema : GraphQL.Schema.Schema
@@ -79,8 +99,115 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                     op.name
                 )
 
+        variables =
+            getVariables namespace schema def
+
+        input =
+            case variables of
+                [] ->
+                    []
+
+                _ ->
+                    let
+                        optionalBuilders =
+                            List.filterMap .optionalBuilder variables
+                    in
+                    List.concat
+                        [ [ Elm.comment """  Inputs """
+                          , case List.filter (\var -> var.default == Nothing) variables of
+                                [] ->
+                                    Elm.declaration "input"
+                                        (Elm.record
+                                            (List.map
+                                                (\var ->
+                                                    Elm.field var.name
+                                                        option.absent
+                                                )
+                                                variables
+                                            )
+                                            |> Elm.withType
+                                                (Type.named [] "Input")
+                                        )
+
+                                required ->
+                                    Elm.fn "input"
+                                        ( "args"
+                                        , Type.record
+                                            (List.map
+                                                (\req ->
+                                                    ( req.name
+                                                    , req.type_
+                                                    )
+                                                )
+                                                required
+                                            )
+                                        )
+                                        (\reqd ->
+                                            Elm.record
+                                                (List.map
+                                                    (\var ->
+                                                        Elm.field var.name
+                                                            (case var.default of
+                                                                Just default ->
+                                                                    default
+
+                                                                Nothing ->
+                                                                    reqd |> Elm.get var.name
+                                                            )
+                                                    )
+                                                    variables
+                                                )
+                                                |> Elm.withType
+                                                    (Type.named [] "Input")
+                                        )
+                          ]
+                        , optionalBuilders
+                        , case optionalBuilders of
+                            [] ->
+                                []
+
+                            _ ->
+                                [ Elm.declaration "null"
+                                    (Elm.record
+                                        (List.filterMap
+                                            (\var ->
+                                                case var.default of
+                                                    Nothing ->
+                                                        Nothing
+
+                                                    Just _ ->
+                                                        Just
+                                                            (Elm.field var.name
+                                                                (Elm.lambda "record"
+                                                                    (Type.named [] "Input")
+                                                                    (\val ->
+                                                                        Elm.updateRecord "record"
+                                                                            [ ( var.name, option.null )
+                                                                            ]
+                                                                            |> Elm.withType (Type.named [] "Input")
+                                                                    )
+                                                                )
+                                                            )
+                                            )
+                                            variables
+                                        )
+                                    )
+                                ]
+                        , [ Elm.alias "Input"
+                                (Type.record
+                                    (List.map
+                                        (\var ->
+                                            ( var.name, var.type_ )
+                                        )
+                                        variables
+                                    )
+                                )
+                                |> Elm.exposeAndGroup "input"
+                          ]
+                        ]
+
         query =
-            case getVariables namespace schema def of
+            case variables of
                 [] ->
                     [ Elm.declaration (opValueName op.operationType)
                         (Engine.prebakedQuery
@@ -101,13 +228,9 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                     ]
 
                 vars ->
-                    [ Elm.alias "Input"
-                        (Type.record vars)
-                        |> Elm.exposeAndGroup "input"
-                    , Elm.fn (opValueName op.operationType)
-                        ( "input"
-                        , Type.record
-                            vars
+                    [ Elm.fn (opValueName op.operationType)
+                        ( "args"
+                        , Type.named [] "Input"
                         )
                         (\var ->
                             Engine.prebakedQuery
@@ -146,7 +269,8 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
 
         primaryResult =
             -- if we no longer want aliased versions, there's also one without aliases
-            generatePrimaryResultTypeAliased namespace schema def
+            Elm.comment """ Return data """
+                :: generatePrimaryResultTypeAliased namespace schema def
     in
     Elm.fileWith (base ++ path ++ [ opName ])
         { aliases = []
@@ -160,7 +284,7 @@ This file can be regenerated by running `yarn api` or `yarn api-from-file`
 
 """ ++ renderStandardComment docs
         }
-        (primaryResult ++ helpers ++ auxHelpers ++ query ++ [ decodeHelper ])
+        (input ++ primaryResult ++ helpers ++ auxHelpers ++ query ++ [ decodeHelper ])
         |> modifyFilePath (path ++ [ opName ])
 
 
@@ -220,7 +344,7 @@ toVariableEncoder namespace schema var =
     in
     case wrapper of
         GraphQL.Schema.InMaybe _ ->
-            Elm.get name (Elm.value "input")
+            Elm.get name (Elm.value "args")
                 |> Elm.Gen.Maybe.map
                     (\_ ->
                         Elm.lambda "lambdaArgs"
@@ -239,7 +363,7 @@ toVariableEncoder namespace schema var =
                     )
 
         _ ->
-            Elm.get name (Elm.value "input")
+            Elm.get name (Elm.value "args")
                 |> Generate.Args.toJsonValue
                     namespace
                     schema
@@ -289,18 +413,75 @@ decodeHelper =
         )
 
 
-getVariables : Namespace -> GraphQL.Schema.Schema -> Can.Definition -> List ( String, Type.Annotation )
+getVariables :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> Can.Definition
+    ->
+        List
+            { name : String
+            , type_ : Type.Annotation
+            , default : Maybe Elm.Expression
+            , optionalBuilder : Maybe Elm.Declaration
+            }
 getVariables namespace schema def =
     case def of
         Can.Operation op ->
             List.map (toVariableAnnotation namespace schema) op.variableDefinitions
 
 
-toVariableAnnotation : Namespace -> GraphQL.Schema.Schema -> Can.VariableDefinition -> ( String, Type.Annotation )
+toVariableAnnotation :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> Can.VariableDefinition
+    ->
+        { name : String
+        , type_ : Type.Annotation
+        , default : Maybe Elm.Expression
+        , optionalBuilder : Maybe Elm.Declaration
+        }
 toVariableAnnotation namespace schema var =
-    ( Can.nameToString var.variable.name
-    , toElmType namespace schema var.type_
-    )
+    let
+        varName =
+            Can.nameToString var.variable.name
+    in
+    { name = varName
+    , type_ = toElmType namespace schema var.type_
+    , optionalBuilder =
+        case var.type_ of
+            AST.Nullable inner ->
+                let
+                    innerType =
+                        toElmType namespace schema inner
+                in
+                Just
+                    (Elm.fn2 varName
+                        ( "var"
+                        , innerType
+                        )
+                        ( "record"
+                        , Type.named [] "Input"
+                        )
+                        (\val record ->
+                            Elm.updateRecord "record"
+                                [ ( varName, option.present val )
+                                ]
+                                |> Elm.withType (Type.named [] "Input")
+                        )
+                        |> Elm.exposeAndGroup "inputBuilders"
+                        |> Elm.withDocumentation ""
+                    )
+
+            _ ->
+                Nothing
+    , default =
+        case var.type_ of
+            AST.Nullable _ ->
+                Just option.absent
+
+            _ ->
+                Nothing
+    }
 
 
 toElmType : Namespace -> GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
@@ -313,7 +494,8 @@ toElmType namespace schema astType =
             Type.list (toElmTypeHelper namespace schema inner)
 
         AST.Nullable inner ->
-            Type.maybe (toElmTypeHelper namespace schema inner)
+            -- Type.maybe
+            option.annotation (toElmTypeHelper namespace schema inner)
 
 
 toElmTypeHelper : Namespace -> GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
