@@ -14,6 +14,7 @@ import Elm.Gen.String
 import Elm.Pattern as Pattern
 import Generate.Args
 import Generate.Input as Input
+import Generate.InputObjects
 import GraphQL.Operations.AST as AST exposing (nameToString)
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Validate as Validate
@@ -63,20 +64,12 @@ opValueName op =
 
 option =
     { annotation =
-        -- \inner ->
-        -- Type.namedWith []
-        --     "Option"
-        --     [ inner ]
         Engine.types_.option
     , absent =
         Engine.make_.option.absent
     , null =
         Engine.make_.option.null
     , present =
-        -- \contents ->
-        --     Elm.apply
-        --         (Elm.valueFrom [] "Present")
-        --         [ contents ]
         Engine.make_.option.present
     }
 
@@ -235,18 +228,8 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                         (\var ->
                             Engine.prebakedQuery
                                 (Elm.string (Can.toString def))
-                                (Elm.Gen.List.filterMap
-                                    (\_ ->
-                                        Elm.lambda "ident"
-                                            Type.unit
-                                            identity
-                                    )
-                                    (Elm.list
-                                        (encodeVariable namespace
-                                            schema
-                                            def
-                                        )
-                                    )
+                                (Engine.inputObject
+                                    |> addEncodedVariables namespace schema def
                                 )
                                 (generateDecoder namespace schema def)
                                 |> Elm.withType
@@ -326,6 +309,63 @@ renderStandardComment groups =
             groups
 
 
+{--}
+addEncodedVariables : Namespace -> GraphQL.Schema.Schema -> Can.Definition -> Elm.Expression -> Elm.Expression
+addEncodedVariables namespace schema def inputObj =
+    case def of
+        Can.Operation op ->
+            addEncodedVariablesHelper namespace schema op.variableDefinitions inputObj
+
+
+addEncodedVariablesHelper :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> List Can.VariableDefinition
+    -> Elm.Expression
+    -> Elm.Expression
+addEncodedVariablesHelper namespace schema variables inputObj =
+    case variables of
+        [] ->
+            inputObj
+
+        var :: remain ->
+            let
+                name =
+                    Can.nameToString var.variable.name
+            in
+            case var.schemaType of
+                GraphQL.Schema.Nullable type_ ->
+                    let
+                        newInput =
+                            inputObj
+                                |> Engine.addOptionalField (Elm.string name)
+                                    (Elm.get name (Elm.value "args"))
+                                    (\x ->
+                                        Generate.InputObjects.encode
+                                            namespace
+                                            schema
+                                            type_
+                                            x
+                                    )
+                    in
+                    addEncodedVariablesHelper namespace schema remain newInput
+
+                _ ->
+                    let
+                        newInput =
+                            inputObj
+                                |> Engine.addField (Elm.string name)
+                                    (Elm.get name (Elm.value "args")
+                                        |> Generate.InputObjects.encode
+                                            namespace
+                                            schema
+                                            var.schemaType
+                                    )
+                    in
+                    addEncodedVariablesHelper namespace schema remain newInput
+
+
+{--}
 encodeVariable : Namespace -> GraphQL.Schema.Schema -> Can.Definition -> List Elm.Expression
 encodeVariable namespace schema def =
     case def of
@@ -533,7 +573,8 @@ toElmTypeHelper namespace schema astType =
                         Type.named [ "Scalar" ] typename
 
                     Just input ->
-                        Generate.Args.annotation namespace schema input
+                        -- Generate.Args.annotation namespace schema input
+                        Type.named [ namespace.namespace, "Input" ] typename
 
         AST.List_ inner ->
             Type.list (toElmTypeHelper namespace schema inner)

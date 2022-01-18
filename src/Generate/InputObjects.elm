@@ -1,4 +1,4 @@
-module Generate.InputObjects exposing (generateFiles)
+module Generate.InputObjects exposing (encode, generateFiles)
 
 import Dict
 import Elm
@@ -7,58 +7,8 @@ import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Encode as Encode
 import Generate.Args
 import Generate.Common
-import GraphQL.Schema exposing (Namespace, getWrap)
+import GraphQL.Schema exposing (Namespace)
 import Utils.String
-
-
-inputObjectToOptionalBuilders : Namespace -> GraphQL.Schema.Schema -> GraphQL.Schema.InputObjectDetails -> List Elm.File
-inputObjectToOptionalBuilders namespace schema input =
-    let
-        ( required, optional ) =
-            List.partition
-                (\arg ->
-                    case arg.type_ of
-                        GraphQL.Schema.Nullable innerType ->
-                            False
-
-                        _ ->
-                            True
-                )
-                input.fields
-
-        hasOptionalArgs =
-            case optional of
-                [] ->
-                    False
-
-                _ ->
-                    True
-
-        optionalTypeAlias =
-            Elm.alias "Optional"
-                (Engine.types_.optional
-                    (Type.named [ namespace.namespace ]
-                        input.name
-                    )
-                )
-                |> Elm.expose
-    in
-    if hasOptionalArgs then
-        [ Elm.file [ namespace.namespace, Utils.String.formatTypename input.name ]
-            (optionalTypeAlias
-                :: Generate.Args.optionsRecursive namespace
-                    schema
-                    input.name
-                    optional
-                ++ [ Generate.Args.nullsRecord namespace input.name optional
-                        |> Elm.declaration "null"
-                        |> Elm.expose
-                   ]
-            )
-        ]
-
-    else
-        []
 
 
 generateFiles : Namespace -> GraphQL.Schema.Schema -> List Elm.File
@@ -69,14 +19,12 @@ generateFiles namespace schema =
                 |> Dict.toList
                 |> List.map Tuple.second
 
-        -- optionalFiles =
-        --     objects
-        --         |> List.concatMap (inputObjectToOptionalBuilders namespace schema)
         newOptionalFiles =
             objects
                 |> List.filterMap (renderNewOptionalFiles namespace schema)
     in
-    newOptional namespace schema objects :: newOptionalFiles
+    inputMainFile namespace schema objects
+        :: newOptionalFiles
 
 
 
@@ -99,13 +47,17 @@ renderNewOptionalFiles namespace schema input =
         )
 
 
+
+{- THE MAIN INPUT.elm file -}
+
+
 {-| -}
-newOptional :
+inputMainFile :
     Namespace
     -> GraphQL.Schema.Schema
     -> List GraphQL.Schema.InputObjectDetails
     -> Elm.File
-newOptional namespace schema inputObjects =
+inputMainFile namespace schema inputObjects =
     Elm.file [ namespace.namespace, "Input" ]
         (List.concatMap
             (renderNewOptional namespace schema)
@@ -119,113 +71,15 @@ renderNewOptional :
     -> GraphQL.Schema.InputObjectDetails
     -> List Elm.Declaration
 renderNewOptional namespace schema input =
-    let
-        ( required, optional ) =
-            List.partition
-                (\arg ->
-                    case arg.type_ of
-                        GraphQL.Schema.Nullable innerType ->
-                            False
-
-                        _ ->
-                            True
-                )
-                input.fields
-    in
-    [ Elm.alias input.name
-        (Engine.types_.inputObject
-            (Type.named [ namespace.namespace ]
-                input.name
-            )
-        )
-        |> Elm.expose
-        |> Elm.withDocumentation """
-
-"""
-    , Elm.declaration input.name
-        (Elm.record
-            (List.concat
-                [ [ case required of
-                        [] ->
-                            Elm.field "input"
-                                (Engine.inputObject
-                                    -- Elm.record
-                                    -- (List.map
-                                    --     (\field ->
-                                    --         Elm.field field.name Engine.make_.option.absent
-                                    --     )
-                                    --     input.fields
-                                    -- )
-                                    |> Elm.withType (Type.named [] input.name)
-                                )
-
-                        _ ->
-                            Elm.field "input"
-                                (Elm.lambda "required"
-                                    (Type.record
-                                        (List.map
-                                            (\reqField ->
-                                                ( reqField.name
-                                                , toElmType namespace schema reqField.type_ (GraphQL.Schema.getWrap reqField.type_)
-                                                )
-                                            )
-                                            required
-                                        )
-                                    )
-                                    (\val ->
-                                        Elm.record
-                                            (List.map
-                                                (\field ->
-                                                    case field.type_ of
-                                                        GraphQL.Schema.Nullable innerType ->
-                                                            Elm.field field.name Engine.make_.option.absent
-
-                                                        _ ->
-                                                            Elm.field field.name
-                                                                (val
-                                                                    |> Elm.get field.name
-                                                                )
-                                                )
-                                                input.fields
-                                            )
-                                            |> Elm.withType (Type.named [] input.name)
-                                    )
-                                )
-                  ]
-                , List.map
-                    (\field ->
-                        Elm.field field.name
-                            (Elm.lambda2 "recordUpdate"
-                                (case field.type_ of
-                                    GraphQL.Schema.Nullable type_ ->
-                                        toElmType namespace schema type_ (GraphQL.Schema.getWrap type_)
-
-                                    _ ->
-                                        Type.unit
-                                )
-                                (Type.named [] input.name)
-                                (\new val ->
-                                    Elm.updateRecord "recordUpdate2"
-                                        [ ( field.name, Engine.make_.option.present new )
-                                        ]
-                                        |> Elm.withType (Type.named [] input.name)
-                                )
-                            )
-                    )
-                    optional
-                , case optional of
-                    [] ->
-                        []
-
-                    _ ->
-                        [ nullsRecord namespace input.name optional
-                            |> Elm.field "null"
-                        ]
-                ]
-            )
-        )
+    [ Elm.customType input.name
+        [ Elm.variant input.name
+        ]
         |> Elm.expose
     ]
+
+
+
+{- INDIVIDUAL INPUT FILES -}
 
 
 renderNewOptionalSingleFile :
@@ -250,7 +104,7 @@ renderNewOptionalSingleFile namespace schema input =
     List.concat
         [ [ Elm.alias input.name
                 (Engine.types_.inputObject
-                    (Type.named [ namespace.namespace ]
+                    (Type.named [ namespace.namespace, "Input" ]
                         input.name
                     )
                 )
@@ -282,20 +136,6 @@ renderNewOptionalSingleFile namespace schema input =
                                 )
                             )
                             (\val ->
-                                -- Elm.record
-                                --     (List.map
-                                --         (\field ->
-                                --             case field.type_ of
-                                --                 GraphQL.Schema.Nullable innerType ->
-                                --                     Elm.field field.name Engine.make_.option.absent
-                                --                 _ ->
-                                --                     Elm.field field.name
-                                -- (val
-                                --     |> Elm.get field.name
-                                -- )
-                                --         )
-                                --         input.fields
-                                --     )
                                 List.foldl
                                     (\field inputObj ->
                                         Engine.addField (Elm.string field.name)
