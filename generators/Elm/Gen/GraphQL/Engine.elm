@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, id_, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, types_, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (addField, addOptionalField, arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, id_, inputObject, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, types_, union, unsafe, with)
 
 {-| 
 -}
@@ -15,7 +15,8 @@ moduleName_ =
 
 
 types_ :
-    { option : Type.Annotation -> Type.Annotation
+    { inputObject : Type.Annotation -> Type.Annotation
+    , option : Type.Annotation -> Type.Annotation
     , request : Type.Annotation -> Type.Annotation
     , argument : Type.Annotation -> Type.Annotation
     , premade : Type.Annotation -> Type.Annotation
@@ -26,7 +27,8 @@ types_ :
     , selection : Type.Annotation -> Type.Annotation -> Type.Annotation
     }
 types_ =
-    { option = \arg0 -> Type.namedWith moduleName_ "Option" [ arg0 ]
+    { inputObject = \arg0 -> Type.namedWith moduleName_ "InputObject" [ arg0 ]
+    , option = \arg0 -> Type.namedWith moduleName_ "Option" [ arg0 ]
     , request = \arg0 -> Type.namedWith moduleName_ "Request" [ arg0 ]
     , argument = \arg0 -> Type.namedWith moduleName_ "Argument" [ arg0 ]
     , premade = \arg0 -> Type.namedWith moduleName_ "Premade" [ arg0 ]
@@ -1178,6 +1180,80 @@ mapRequest arg1 arg2 =
         [ arg1 Elm.pass, arg2 ]
 
 
+{-|-}
+inputObject : Elm.Expression
+inputObject =
+    Elm.valueWith
+        moduleName_
+        "inputObject"
+        (Type.namedWith
+            [ "GraphQL", "Engine" ]
+            "InputObject"
+            [ Type.var "value" ]
+        )
+
+
+{-|-}
+addField : Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+addField arg1 arg2 arg3 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "addField"
+            (Type.function
+                [ Type.string
+                , Type.namedWith [ "Json", "Encode" ] "Value" []
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "value" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "value" ]
+                )
+            )
+        )
+        [ arg1, arg2, arg3 ]
+
+
+{-|-}
+addOptionalField :
+    Elm.Expression
+    -> Elm.Expression
+    -> (Elm.Expression -> Elm.Expression)
+    -> Elm.Expression
+    -> Elm.Expression
+addOptionalField arg1 arg2 arg3 arg4 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "addOptionalField"
+            (Type.function
+                [ Type.string
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Option"
+                    [ Type.var "value" ]
+                , Type.function
+                    [ Type.var "value" ]
+                    (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "input" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "input" ]
+                )
+            )
+        )
+        [ arg1, arg2, arg3 Elm.pass, arg4 ]
+
+
 {-| Every value/function in this module in case you need to refer to it directly. -}
 id_ :
     { batch : Elm.Expression
@@ -1218,6 +1294,9 @@ id_ :
     , send : Elm.Expression
     , simulate : Elm.Expression
     , mapRequest : Elm.Expression
+    , inputObject : Elm.Expression
+    , addField : Elm.Expression
+    , addOptionalField : Elm.Expression
     }
 id_ =
     { batch =
@@ -1965,6 +2044,57 @@ id_ =
                     [ "GraphQL", "Engine" ]
                     "Request"
                     [ Type.var "b" ]
+                )
+            )
+    , inputObject =
+        Elm.valueWith
+            moduleName_
+            "inputObject"
+            (Type.namedWith
+                [ "GraphQL", "Engine" ]
+                "InputObject"
+                [ Type.var "value" ]
+            )
+    , addField =
+        Elm.valueWith
+            moduleName_
+            "addField"
+            (Type.function
+                [ Type.string
+                , Type.namedWith [ "Json", "Encode" ] "Value" []
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "value" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "value" ]
+                )
+            )
+    , addOptionalField =
+        Elm.valueWith
+            moduleName_
+            "addOptionalField"
+            (Type.function
+                [ Type.string
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Option"
+                    [ Type.var "value" ]
+                , Type.function
+                    [ Type.var "value" ]
+                    (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                , Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "input" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "input" ]
                 )
             )
     }

@@ -13,7 +13,7 @@ module GraphQL.Engine exposing
     , decodeNullable, getGql, mapPremade
     , unsafe, selectTypeNameButSkip
     , Request, toRequest, send, simulate, mapRequest
-    , Option(..)
+    , Option(..), InputObject, inputObject, addField, addOptionalField
     )
 
 {-|
@@ -46,7 +46,7 @@ module GraphQL.Engine exposing
 
 @docs Request, toRequest, send, simulate, mapRequest
 
-@docs Option
+@docs Option, InputObject, inputObject, addField, addOptionalField
 
 -}
 
@@ -528,11 +528,46 @@ type Argument obj
     = ArgValue Encode.Value String
     | Var String
 
+
+
+
+
 {-|-}
 type Option value 
     = Present value
     | Null
     | Absent
+
+
+{-|-}
+type InputObject value =
+    InputObject (List (String, Encode.Value))
+
+{-|-}
+inputObject : InputObject value 
+inputObject =
+    InputObject []
+
+
+{-|-}
+addField : String -> Encode.Value -> InputObject value -> InputObject value
+addField fieldName val (InputObject inputFields) =
+    InputObject
+        ((fieldName, val)
+            :: inputFields
+        )
+
+
+{-|-}
+addOptionalField : String -> Option value -> (value -> Encode.Value) -> InputObject input -> InputObject input
+addOptionalField fieldName optionalValue toJsonValue (InputObject inputFields) =
+    InputObject
+        (case optionalValue of
+            Absent -> inputFields
+            Null -> (fieldName, Encode.null) :: inputFields
+            Present val -> (fieldName, toJsonValue val) :: inputFields
+        )
+
 
 
 {-| -}

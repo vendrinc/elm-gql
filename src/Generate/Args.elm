@@ -1,10 +1,16 @@
 module Generate.Args exposing
     ( annotation
     , createBuilder
+    , encodeEnum
+    , encodeScalar
+    , encodeWrapped
+    , inputTypeToString
     , nullsRecord
     , optionsRecursive
+    , scalarType
     , toEngineArg
     , toJsonValue
+    , unwrapWith
     )
 
 import Dict
@@ -687,6 +693,7 @@ encodeWrappedJsonValue inputName wrapper encoder val =
                 val
 
 
+encodeEnum : Namespace -> GraphQL.Schema.Wrapped -> Elm.Expression -> String -> Elm.Expression
 encodeEnum namespace wrapped val enumName =
     encodeWrappedInverted wrapped
         (\v ->
