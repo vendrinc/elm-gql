@@ -13,7 +13,7 @@ module GraphQL.Engine exposing
     , decodeNullable, getGql, mapPremade
     , unsafe, selectTypeNameButSkip
     , Request, toRequest, send, simulate, mapRequest
-    , Option(..), InputObject, inputObject, addField, addOptionalField
+    , Option(..), InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
     )
 
 {-|
@@ -46,7 +46,7 @@ module GraphQL.Engine exposing
 
 @docs Request, toRequest, send, simulate, mapRequest
 
-@docs Option, InputObject, inputObject, addField, addOptionalField
+@docs Option, InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
 
 -}
 
@@ -598,6 +598,17 @@ argList fields typeName =
                 )
         )
         typeName
+
+{-|-}
+inputObjectToFieldList : InputObject a -> List (String, Json.Value)
+inputObjectToFieldList (InputObject fields) =
+    fields
+
+{-| -}
+encodeInputObjectAsJson : InputObject value -> Json.Value
+encodeInputObjectAsJson (InputObject fields) =
+    Encode.object fields
+
 
 
 {-| -}
