@@ -8,14 +8,11 @@ import Elm
 import Elm.Annotation as Type
 import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Decode as Decode
-import Elm.Gen.List
-import Elm.Gen.Maybe
 import Elm.Gen.String
 import Elm.Pattern as Pattern
-import Generate.Args
 import Generate.Input as Input
-import Generate.InputObjects
-import GraphQL.Operations.AST as AST exposing (nameToString)
+import Generate.Input.Encode
+import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Validate as Validate
 import GraphQL.Schema
@@ -92,115 +89,35 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                     op.name
                 )
 
-        variables =
-            getVariables namespace schema def
-
         input =
-            case variables of
+            case op.variableDefinitions of
                 [] ->
                     []
 
                 _ ->
-                    let
-                        optionalBuilders =
-                            List.filterMap .optionalBuilder variables
-                    in
                     List.concat
                         [ [ Elm.comment """  Inputs """
-                          , case List.filter (\var -> var.default == Nothing) variables of
-                                [] ->
-                                    Elm.declaration "input"
-                                        (Elm.record
-                                            (List.map
-                                                (\var ->
-                                                    Elm.field var.name
-                                                        option.absent
-                                                )
-                                                variables
-                                            )
-                                            |> Elm.withType
-                                                (Type.named [] "Input")
-                                        )
-
-                                required ->
-                                    Elm.fn "input"
-                                        ( "args"
-                                        , Type.record
-                                            (List.map
-                                                (\req ->
-                                                    ( req.name
-                                                    , req.type_
-                                                    )
-                                                )
-                                                required
-                                            )
-                                        )
-                                        (\reqd ->
-                                            Elm.record
-                                                (List.map
-                                                    (\var ->
-                                                        Elm.field var.name
-                                                            (case var.default of
-                                                                Just default ->
-                                                                    default
-
-                                                                Nothing ->
-                                                                    reqd |> Elm.get var.name
-                                                            )
-                                                    )
-                                                    variables
-                                                )
-                                                |> Elm.withType
-                                                    (Type.named [] "Input")
-                                        )
-                          ]
-                        , optionalBuilders
-                        , case optionalBuilders of
-                            [] ->
-                                []
-
-                            _ ->
-                                [ Elm.declaration "null"
-                                    (Elm.record
-                                        (List.filterMap
-                                            (\var ->
-                                                case var.default of
-                                                    Nothing ->
-                                                        Nothing
-
-                                                    Just _ ->
-                                                        Just
-                                                            (Elm.field var.name
-                                                                (Elm.lambda "record"
-                                                                    (Type.named [] "Input")
-                                                                    (\val ->
-                                                                        Elm.updateRecord "record"
-                                                                            [ ( var.name, option.null )
-                                                                            ]
-                                                                            |> Elm.withType (Type.named [] "Input")
-                                                                    )
-                                                                )
-                                                            )
-                                            )
-                                            variables
-                                        )
+                          , Generate.Input.Encode.toRecordInput namespace
+                                schema
+                                (List.map
+                                    (\varDef ->
+                                        { name = Can.nameToString varDef.variable.name
+                                        , schemaType = varDef.schemaType
+                                        }
                                     )
-                                ]
-                        , [ Elm.alias "Input"
-                                (Type.record
-                                    (List.map
-                                        (\var ->
-                                            ( var.name, var.type_ )
-                                        )
-                                        variables
-                                    )
+                                    op.variableDefinitions
                                 )
-                                |> Elm.exposeAndGroup "input"
+                          ]
+                        , Generate.Input.Encode.toRecordOptionals namespace
+                            schema
+                            op.variableDefinitions
+                        , Generate.Input.Encode.toRecordNulls op.variableDefinitions
+                        , [ Generate.Input.Encode.toInputRecordAlias namespace schema "Input" op.variableDefinitions
                           ]
                         ]
 
         query =
-            case variables of
+            case op.variableDefinitions of
                 [] ->
                     [ Elm.declaration (opValueName op.operationType)
                         (Engine.prebakedQuery
@@ -215,7 +132,7 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                         |> Elm.exposeAndGroup "query"
                     ]
 
-                vars ->
+                _ ->
                     [ Elm.fn (opValueName op.operationType)
                         ( "args"
                         , Type.named [] "Input"
@@ -223,10 +140,7 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                         (\var ->
                             Engine.prebakedQuery
                                 (Elm.string (Can.toString def))
-                                (Engine.inputObject
-                                    |> addEncodedVariables namespace schema def
-                                    |> Engine.inputObjectToFieldList
-                                )
+                                (Generate.Input.Encode.fullRecordToFieldList namespace schema def (Elm.value "args"))
                                 (generateDecoder namespace schema def)
                                 |> Elm.withType
                                     (Engine.types_.premade
@@ -305,111 +219,6 @@ renderStandardComment groups =
             groups
 
 
-{--}
-addEncodedVariables : Namespace -> GraphQL.Schema.Schema -> Can.Definition -> Elm.Expression -> Elm.Expression
-addEncodedVariables namespace schema def inputObj =
-    case def of
-        Can.Operation op ->
-            addEncodedVariablesHelper namespace schema op.variableDefinitions inputObj
-
-
-addEncodedVariablesHelper :
-    Namespace
-    -> GraphQL.Schema.Schema
-    -> List Can.VariableDefinition
-    -> Elm.Expression
-    -> Elm.Expression
-addEncodedVariablesHelper namespace schema variables inputObj =
-    case variables of
-        [] ->
-            inputObj
-
-        var :: remain ->
-            let
-                name =
-                    Can.nameToString var.variable.name
-            in
-            case var.schemaType of
-                GraphQL.Schema.Nullable type_ ->
-                    let
-                        newInput =
-                            inputObj
-                                |> Engine.addOptionalField (Elm.string name)
-                                    (Elm.get name (Elm.value "args"))
-                                    (\x ->
-                                        Generate.InputObjects.encode
-                                            namespace
-                                            schema
-                                            type_
-                                            x
-                                    )
-                    in
-                    addEncodedVariablesHelper namespace schema remain newInput
-
-                _ ->
-                    let
-                        newInput =
-                            inputObj
-                                |> Engine.addField (Elm.string name)
-                                    (Elm.get name (Elm.value "args")
-                                        |> Generate.InputObjects.encode
-                                            namespace
-                                            schema
-                                            var.schemaType
-                                    )
-                    in
-                    addEncodedVariablesHelper namespace schema remain newInput
-
-
-{--}
-encodeVariable : Namespace -> GraphQL.Schema.Schema -> Can.Definition -> List Elm.Expression
-encodeVariable namespace schema def =
-    case def of
-        Can.Operation op ->
-            List.map (toVariableEncoder namespace schema) op.variableDefinitions
-
-
-toVariableEncoder : Namespace -> GraphQL.Schema.Schema -> Can.VariableDefinition -> Elm.Expression
-toVariableEncoder namespace schema var =
-    let
-        name =
-            Can.nameToString var.variable.name
-
-        wrapper =
-            Input.getWrapFromAst var.type_
-    in
-    case wrapper of
-        GraphQL.Schema.InMaybe _ ->
-            Elm.get name (Elm.value "args")
-                |> Elm.Gen.Maybe.map
-                    (\_ ->
-                        Elm.lambda "lambdaArgs"
-                            Type.unit
-                            (\maybeVal ->
-                                maybeVal
-                                    |> Just
-                                    |> Elm.maybe
-                                    |> Generate.Args.toJsonValue
-                                        namespace
-                                        schema
-                                        var.schemaType
-                                        wrapper
-                                    |> Elm.tuple (Elm.string name)
-                            )
-                    )
-
-        _ ->
-            Elm.get name (Elm.value "args")
-                |> Generate.Args.toJsonValue
-                    namespace
-                    schema
-                    var.schemaType
-                    wrapper
-                |> Elm.tuple (Elm.string name)
-                |> Just
-                |> Elm.maybe
-
-
 andField : Can.Name -> Elm.Expression -> Elm.Expression -> Elm.Expression
 andField name decoder builder =
     Elm.pipe
@@ -447,145 +256,6 @@ decodeHelper =
                     )
                 |> Elm.withType (Decode.types_.decoder (Type.var "b"))
         )
-
-
-getVariables :
-    Namespace
-    -> GraphQL.Schema.Schema
-    -> Can.Definition
-    ->
-        List
-            { name : String
-            , type_ : Type.Annotation
-            , default : Maybe Elm.Expression
-            , optionalBuilder : Maybe Elm.Declaration
-            }
-getVariables namespace schema def =
-    case def of
-        Can.Operation op ->
-            List.map (toVariableAnnotation namespace schema) op.variableDefinitions
-
-
-toVariableAnnotation :
-    Namespace
-    -> GraphQL.Schema.Schema
-    -> Can.VariableDefinition
-    ->
-        { name : String
-        , type_ : Type.Annotation
-        , default : Maybe Elm.Expression
-        , optionalBuilder : Maybe Elm.Declaration
-        }
-toVariableAnnotation namespace schema var =
-    let
-        varName =
-            Can.nameToString var.variable.name
-    in
-    { name = varName
-    , type_ = toElmType namespace schema var.type_
-    , optionalBuilder =
-        case var.type_ of
-            AST.Nullable inner ->
-                let
-                    innerType =
-                        toElmType namespace schema inner
-                in
-                Just
-                    (Elm.fn2 varName
-                        ( "var"
-                        , innerType
-                        )
-                        ( "record"
-                        , Type.named [] "Input"
-                        )
-                        (\val record ->
-                            Elm.updateRecord "record"
-                                [ ( varName, option.present val )
-                                ]
-                                |> Elm.withType (Type.named [] "Input")
-                        )
-                        |> Elm.exposeAndGroup "inputBuilders"
-                        |> Elm.withDocumentation ""
-                    )
-
-            _ ->
-                Nothing
-    , default =
-        case var.type_ of
-            AST.Nullable _ ->
-                Just option.absent
-
-            _ ->
-                Nothing
-    }
-
-
-toElmType : Namespace -> GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
-toElmType namespace schema astType =
-    case astType of
-        AST.Type_ name ->
-            toElmTypeHelper namespace schema astType
-
-        AST.List_ inner ->
-            Type.list (toElmTypeHelper namespace schema inner)
-
-        AST.Nullable inner ->
-            -- Type.maybe
-            option.annotation (toElmTypeHelper namespace schema inner)
-
-
-toElmTypeHelper : Namespace -> GraphQL.Schema.Schema -> AST.Type -> Type.Annotation
-toElmTypeHelper namespace schema astType =
-    case astType of
-        AST.Type_ name ->
-            let
-                typename =
-                    AST.nameToString name
-            in
-            if Dict.member typename schema.scalars then
-                case String.toLower typename of
-                    "int" ->
-                        Type.int
-
-                    "float" ->
-                        Type.float
-
-                    "boolean" ->
-                        Type.bool
-
-                    "string" ->
-                        Type.bool
-
-                    "id" ->
-                        Type.named [ "Scalar" ] "Id"
-
-                    _ ->
-                        Type.named [ "Scalar" ] typename
-
-            else
-                case Dict.get typename schema.inputObjects of
-                    Nothing ->
-                        -- this should never happen because this is validated...
-                        Type.named [ "Scalar" ] typename
-
-                    Just input ->
-                        -- Generate.Args.annotation namespace schema input
-                        Type.named [ namespace.namespace, "Input" ] typename
-
-        AST.List_ inner ->
-            Type.list (toElmTypeHelper namespace schema inner)
-
-        AST.Nullable inner ->
-            Type.maybe (toElmTypeHelper namespace schema inner)
-
-
-isPrimitive : GraphQL.Schema.Schema -> String -> Bool
-isPrimitive schema name =
-    if Dict.member name schema.scalars then
-        True
-
-    else
-        Set.member name primitives
 
 
 primitives : Set.Set String
