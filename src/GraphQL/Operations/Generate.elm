@@ -205,12 +205,7 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                     [ Elm.declaration (opValueName op.operationType)
                         (Engine.prebakedQuery
                             (Elm.string (Can.toString def))
-                            (Elm.list
-                                (encodeVariable namespace
-                                    schema
-                                    def
-                                )
-                            )
+                            (Elm.list [])
                             (generateDecoder namespace schema def)
                             |> Elm.withType
                                 (Engine.types_.premade
@@ -230,6 +225,7 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                                 (Elm.string (Can.toString def))
                                 (Engine.inputObject
                                     |> addEncodedVariables namespace schema def
+                                    |> Engine.inputObjectToFieldList
                                 )
                                 (generateDecoder namespace schema def)
                                 |> Elm.withType

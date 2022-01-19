@@ -71,8 +71,19 @@ renderNewOptional :
     -> GraphQL.Schema.InputObjectDetails
     -> List Elm.Declaration
 renderNewOptional namespace schema input =
-    [ Elm.customType input.name
-        [ Elm.variant input.name
+    let
+        lockName =
+            input.name ++ "_"
+    in
+    [ Elm.alias input.name
+        (Engine.types_.inputObject
+            (Type.named []
+                lockName
+            )
+        )
+        |> Elm.expose
+    , Elm.customType lockName
+        [ Elm.variant lockName
         ]
         |> Elm.expose
     ]
@@ -103,10 +114,8 @@ renderNewOptionalSingleFile namespace schema input =
     in
     List.concat
         [ [ Elm.alias input.name
-                (Engine.types_.inputObject
-                    (Type.named [ namespace.namespace, "Input" ]
-                        input.name
-                    )
+                (Type.named [ namespace.namespace, "Input" ]
+                    input.name
                 )
                 |> Elm.expose
                 |> Elm.withDocumentation """
@@ -309,9 +318,7 @@ encodeHelper namespace schema type_ wrapped val =
                 (\_ ->
                     Elm.lambda ("inlist" ++ wrappedToStringIndex wrapped)
                         Type.unit
-                        (\v ->
-                            Engine.encodeInputObject v (Elm.string inputName)
-                        )
+                        Engine.encodeInputObjectAsJson
                 )
                 val
 
