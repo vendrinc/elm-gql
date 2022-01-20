@@ -90,6 +90,7 @@ implementField namespace objectName fieldName fieldType wrapped =
             { expression =
                 Engine.field
                     (Elm.string fieldName)
+                    (Elm.string scalarName)
                     (Generate.Decode.scalar scalarName wrapped)
             , annotation = signature.annotation
             }
@@ -102,6 +103,7 @@ implementField namespace objectName fieldName fieldType wrapped =
             { expression =
                 Engine.field
                     (Elm.string fieldName)
+                    (Elm.string enumName)
                     (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "decoder"
                         |> decodeWrapper wrapped
                     )

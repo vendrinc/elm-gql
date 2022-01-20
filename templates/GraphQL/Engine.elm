@@ -1,6 +1,7 @@
 module GraphQL.Engine exposing
     ( batch
-    , nullable, list, field, fieldWith, object, objectWith, decode
+    , nullable, list, object, objectWith, decode
+    , field, fieldWith
     , enum, maybeEnum
     , union
     , Selection, select, with, map, map2, recover
@@ -20,9 +21,11 @@ module GraphQL.Engine exposing
 
 @docs batch
 
-@docs nullable, list, field, fieldWith, object, objectWith, decode
+@docs nullable, list, object, objectWith, decode
 
 @docs enum, maybeEnum
+
+@docs field, fieldWith
 
 @docs union
 
@@ -52,7 +55,7 @@ module GraphQL.Engine exposing
 
 import Dict exposing (Dict)
 import Http
-import Json.Decode as Json
+import Json.Decode as Decode
 import Json.Encode as Encode
 import Set
 
@@ -86,9 +89,9 @@ batch selections =
                         in
                         ( newCtxt
                         , cursorFieldsDecoder
-                            |> Json.andThen
+                            |> Decode.andThen
                                 (\existingList ->
-                                    Json.map
+                                    Decode.map
                                         (\item ->
                                             item :: existingList
                                         )
@@ -96,7 +99,7 @@ batch selections =
                                 )
                         )
                     )
-                    ( context, Json.succeed [] )
+                    ( context, Decode.succeed [] )
                     selections
             )
 
@@ -112,9 +115,9 @@ recover default wrapValue (Selection (Details toQuery toDecoder)) =
                         toDecoder context
                 in
                 ( newContext
-                , Json.oneOf
-                    [ Json.map wrapValue decoder
-                    , Json.succeed default
+                , Decode.oneOf
+                    [ Decode.map wrapValue decoder
+                    , Decode.succeed default
                     ]
                 )
             )
@@ -166,14 +169,14 @@ union options =
                                         toFragDecoder currentContext
 
                                     fragDecoderWithTypename =
-                                        Json.field "__typename" Json.string
-                                            |> Json.andThen
+                                        Decode.field "__typename" Decode.string
+                                            |> Decode.andThen
                                                 (\typename ->
                                                     if typename == name then
                                                         fragDecoder
 
                                                     else
-                                                        Json.fail "Unknown union variant"
+                                                        Decode.fail "Unknown union variant"
                                                 )
                                 in
                                 ( fragDecoderWithTypename :: frags
@@ -184,37 +187,37 @@ union options =
                             options
                 in
                 ( fragmentContext
-                , Json.oneOf fragmentDecoders
+                , Decode.oneOf fragmentDecoders
                 )
             )
 
 
 {-| -}
-maybeEnum : List ( String, item ) -> Json.Decoder (Maybe item)
+maybeEnum : List ( String, item ) -> Decode.Decoder (Maybe item)
 maybeEnum options =
-    Json.oneOf
-        [ Json.map Just (enum options)
-        , Json.succeed Nothing
+    Decode.oneOf
+        [ Decode.map Just (enum options)
+        , Decode.succeed Nothing
         ]
 
 
 {-| -}
-enum : List ( String, item ) -> Json.Decoder item
+enum : List ( String, item ) -> Decode.Decoder item
 enum options =
-    Json.string
-        |> Json.andThen
+    Decode.string
+        |> Decode.andThen
             (findFirstMatch options)
 
 
-findFirstMatch : List ( String, item ) -> String -> Json.Decoder item
+findFirstMatch : List ( String, item ) -> String -> Decode.Decoder item
 findFirstMatch options str =
     case options of
         [] ->
-            Json.fail ("Unexpected enum value: " ++ str)
+            Decode.fail ("Unexpected enum value: " ++ str)
 
         ( name, value ) :: remaining ->
             if name == str then
-                Json.succeed value
+                Decode.succeed value
 
             else
                 findFirstMatch remaining str
@@ -233,9 +236,9 @@ nullable (Selection (Details toFieldsGql toFieldsDecoder)) =
                         toFieldsDecoder context
                 in
                 ( fieldContext
-                , Json.oneOf
-                    [ Json.map Just fieldsDecoder
-                    , Json.succeed Nothing
+                , Decode.oneOf
+                    [ Decode.map Just fieldsDecoder
+                    , Decode.succeed Nothing
                     ]
                 )
             )
@@ -254,7 +257,7 @@ list (Selection (Details toFieldsGql toFieldsDecoder)) =
                         toFieldsDecoder context
                 in
                 ( fieldContext
-                , Json.list fieldsDecoder
+                , Decode.list fieldsDecoder
                 )
             )
 
@@ -262,12 +265,14 @@ list (Selection (Details toFieldsGql toFieldsDecoder)) =
 {-| -}
 object : String -> Selection source data -> Selection otherSource data
 object =
-    objectWith []
+    objectWith (inputObject "NoArgs")
 
+
+type Variable = Variable String
 
 {-| -}
-objectWith : List ( String, Argument arg ) -> String -> Selection source data -> Selection otherSource data
-objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
+objectWith : InputObject args -> String -> Selection source data -> Selection otherSource data
+objectWith inputObj name (Selection (Details toFieldsGql toFieldsDecoder)) =
     Selection <|
         Details
             (\context ->
@@ -276,7 +281,7 @@ objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
                         toFieldsGql { context | aliases = Dict.empty }
 
                     new =
-                        applyContext args name { fieldContext | aliases = context.aliases }
+                        applyContext inputObj name { fieldContext | aliases = context.aliases }
                 in
                 ( new.context
                 , [ Field name new.aliasString new.args fields
@@ -289,13 +294,13 @@ objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
                         toFieldsDecoder { context | aliases = Dict.empty }
 
                     new =
-                        applyContext args name { fieldContext | aliases = context.aliases }
+                        applyContext inputObj name { fieldContext | aliases = context.aliases }
 
                     aliasedName =
                         Maybe.withDefault name new.aliasString
                 in
                 ( new.context
-                , Json.field aliasedName fieldsDecoder
+                , Decode.field aliasedName fieldsDecoder
                 )
             )
 
@@ -305,7 +310,7 @@ objectWith args name (Selection (Details toFieldsGql toFieldsDecoder)) =
 Note, this is rarely needed! So far, only when a query or mutation returns a scalar directly without selecting any fields.
 
 -}
-decode : Json.Decoder data -> Selection source data
+decode : Decode.Decoder data -> Selection source data
 decode decoder =
     Selection <|
         Details
@@ -334,20 +339,20 @@ selectTypeNameButSkip =
             )
             (\context ->
                 ( context
-                , Json.succeed ()
+                , Decode.succeed ()
                 )
             )
 
 
 {-| -}
-field : String -> Json.Decoder data -> Selection source data
-field =
-    fieldWith []
+field : String -> String -> Decode.Decoder data -> Selection source data
+field name gqlTypeName decoder =
+    fieldWith (inputObject gqlTypeName) name gqlTypeName decoder
 
 
 {-| -}
-fieldWith : List ( String, Argument arg ) -> String -> Json.Decoder data -> Selection source data
-fieldWith args name decoder =
+fieldWith : InputObject args -> String -> String -> Decode.Decoder data -> Selection source data
+fieldWith args name gqlType decoder =
     Selection <|
         Details
             (\context ->
@@ -369,19 +374,19 @@ fieldWith args name decoder =
                         Maybe.withDefault name new.aliasString
                 in
                 ( new.context
-                , Json.field aliasedName decoder
+                , Decode.field aliasedName decoder
                 )
             )
 
 
 applyContext :
-    List ( String, Argument arg )
+    InputObject args
     -> String
     -> Context
     ->
         { context : Context
         , aliasString : Maybe String
-        , args : List ( String, Argument Free )
+        , args : List ( String, Variable )
         }
 applyContext args name context =
     let
@@ -399,9 +404,21 @@ applyContext args name context =
     , args = vars
     }
 
+{-|
 
-captureArgs : List ( String, Argument arg ) -> Dict String (Argument Free) -> ( List ( String, Argument Free ), Dict String (Argument Free) )
-captureArgs args context =
+This is the piece of code that's responsible for swapping real argument values (i.e. json values)
+
+with variables.
+
+
+-}
+captureArgs :
+    InputObject args
+        -> Dict String VariableDetails
+        -> ( List ( String, Variable )
+           , Dict String VariableDetails
+           )
+captureArgs (InputObject objname args) context =
     case args of
         [] ->
             ( [], context )
@@ -409,8 +426,15 @@ captureArgs args context =
         _ ->
             captureArgsHelper args context []
 
-
-captureArgsHelper : List ( String, Argument arg ) -> Dict String (Argument Free) -> List ( String, Argument Free ) -> ( List ( String, Argument Free ), Dict String (Argument Free) )
+{-|-}
+captureArgsHelper : 
+    List ( String, VariableDetails )
+        -> Dict String VariableDetails
+        -> List ( String, Variable )
+        -> 
+           ( List ( String, Variable )
+           , Dict String VariableDetails
+           )
 captureArgsHelper args context alreadyPassed =
     case args of
         [] ->
@@ -422,12 +446,13 @@ captureArgsHelper args context alreadyPassed =
                     getValidVariableName name 0 context
 
                 newContext =
-                    Dict.insert varname (toFree value) context
+                    Dict.insert varname value context
             in
-            captureArgsHelper remaining newContext (( name, Var varname ) :: alreadyPassed)
+            captureArgsHelper remaining newContext 
+                (( name, Variable varname ) :: alreadyPassed)
 
 
-getValidVariableName : String -> Int -> Dict String (Argument Free) -> String
+getValidVariableName : String -> Int -> Dict String val -> String
 getValidVariableName str index used =
     let
         attemptedName =
@@ -463,7 +488,13 @@ type Selection source selected
 
 type alias Context =
     { aliases : Dict String Int
-    , variables : Dict String (Argument Free)
+    , variables : Dict String VariableDetails
+        
+    }
+
+type alias VariableDetails =
+    { gqlTypeName : String
+    , value : Encode.Value
     }
 
 
@@ -503,12 +534,12 @@ type Details selected
         -- How to make the gql query
         (Context -> ( Context, List Field ))
         -- How to decode the data coming back
-        (Context -> ( Context, Json.Decoder selected ))
+        (Context -> ( Context, Decode.Decoder selected ))
 
 
 type Field
     = --    name   alias          args                        children
-      Field String (Maybe String) (List ( String, Argument Free )) (List Field)
+      Field String (Maybe String) (List ( String, Variable )) (List Field)
       --        ...on FragmentName
     | Fragment String (List Field)
       -- a piece of GQL that has been validated separately
@@ -541,32 +572,38 @@ type Option value
 
 {-|-}
 type InputObject value =
-    InputObject (List (String, Encode.Value))
+    InputObject String (List (String, VariableDetails))
 
 {-|-}
-inputObject : InputObject value 
-inputObject =
-    InputObject []
+inputObject : String -> InputObject value 
+inputObject name =
+    InputObject name []
 
 
 {-|-}
-addField : String -> Encode.Value -> InputObject value -> InputObject value
-addField fieldName val (InputObject inputFields) =
-    InputObject
-        ((fieldName, val)
+addField : String -> String -> Encode.Value -> InputObject value -> InputObject value
+addField fieldName gqlFieldType val (InputObject name inputFields) =
+    InputObject name
+        ((fieldName
+          , { gqlTypeName = gqlFieldType
+            , value = val
+            }
+          )
             :: inputFields
         )
 
 
 {-|-}
-addOptionalField : String -> Option value -> (value -> Encode.Value) -> InputObject input -> InputObject input
-addOptionalField fieldName optionalValue toJsonValue (InputObject inputFields) =
-    InputObject
+addOptionalField : String -> String -> Option value -> (value -> Encode.Value) -> InputObject input -> InputObject input
+addOptionalField fieldName gqlFieldType optionalValue toJsonValue (InputObject name inputFields) =
+    InputObject name
         (case optionalValue of
             Absent -> inputFields
-            Null -> (fieldName, Encode.null) :: inputFields
-            Present val -> (fieldName, toJsonValue val) :: inputFields
+            Null -> (fieldName, { value = Encode.null, gqlTypeName = gqlFieldType }) :: inputFields
+            Present val -> (fieldName, { value = toJsonValue val, gqlTypeName = gqlFieldType }) :: inputFields
         )
+
+
 
 
 
@@ -600,14 +637,14 @@ argList fields typeName =
         typeName
 
 {-|-}
-inputObjectToFieldList : InputObject a -> List (String, Json.Value)
-inputObjectToFieldList (InputObject fields) =
+inputObjectToFieldList : InputObject a -> List (String, VariableDetails)
+inputObjectToFieldList (InputObject _ fields) =
     fields
 
 {-| -}
-encodeInputObjectAsJson : InputObject value -> Json.Value
-encodeInputObjectAsJson (InputObject fields) =
-    Encode.object fields
+encodeInputObjectAsJson : InputObject value -> Decode.Value
+encodeInputObjectAsJson (InputObject _ fields) =
+    Encode.object (List.map (\(fieldName, details) -> (fieldName, details.value)) fields)
 
 
 
@@ -697,7 +734,7 @@ select data =
                 ( context, [] )
             )
             (\context ->
-                ( context, Json.succeed data )
+                ( context, Decode.succeed data )
             )
         )
 
@@ -718,7 +755,7 @@ map fn (Selection (Details fields decoder)) =
                     ( newAliases, newDecoder ) =
                         decoder aliases
                 in
-                ( newAliases, Json.map fn newDecoder )
+                ( newAliases, Decode.map fn newDecoder )
             )
 
 
@@ -748,17 +785,17 @@ map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields
                         twoDecoder oneAliasesNew
                 in
                 ( twoAliasesNew
-                , Json.map2 fn oneDecoderNew twoDecoderNew
+                , Decode.map2 fn oneDecoderNew twoDecoderNew
                 )
             )
 
 
 {-| -}
-prebakedQuery : String -> List ( String, Encode.Value ) -> Json.Decoder data -> Premade data
+prebakedQuery : String -> List ( String, VariableDetails ) -> Decode.Decoder data -> Premade data
 prebakedQuery gql args decoder =
     Premade
         { gql = gql
-        , args = args
+        , args = List.map (Tuple.mapSecond .value) args
         , decoder = decoder
         }
 
@@ -771,7 +808,7 @@ prebakedQuery gql args decoder =
 type Premade data
     = Premade
         { gql : String
-        , decoder : Json.Decoder data
+        , decoder : Decode.Decoder data
         , args : List ( String, Encode.Value )
         }
 
@@ -797,7 +834,7 @@ mapPremade : (a -> b) -> Premade a -> Premade b
 mapPremade fn (Premade details) =
     Premade
         { gql = details.gql
-        , decoder = Json.map fn details.decoder
+        , decoder = Decode.map fn details.decoder
         , args = details.args
         }
 
@@ -988,25 +1025,17 @@ body operation maybeUnformattedName q =
                 |> Maybe.map
                     sanitizeOperationName
 
-        variables : Dict String (Argument Free)
+        variables : Dict String VariableDetails
         variables =
             (getContext q).variables
 
-        encodedVariables : Json.Value
+        encodedVariables : Decode.Value
         encodedVariables =
             variables
                 |> Dict.toList
-                |> List.map (Tuple.mapSecond toValue)
+                |> List.map (Tuple.mapSecond .value)
                 |> Encode.object
 
-        toValue : Argument arg -> Json.Value
-        toValue arg_ =
-            case arg_ of
-                ArgValue value str ->
-                    value
-
-                Var str ->
-                    Encode.string str
     in
     Http.jsonBody
         (Encode.object
@@ -1102,7 +1131,7 @@ expect toMsg (Selection (Details gql toDecoder)) =
                         )
 
                 Http.GoodStatus_ metadata responseBody ->
-                    case Json.decodeString (Json.field "data" decoder) responseBody of
+                    case Decode.decodeString (Decode.field "data" decoder) responseBody of
                         Ok value ->
                             Ok value
 
@@ -1110,7 +1139,7 @@ expect toMsg (Selection (Details gql toDecoder)) =
                             Err
                                 (BadBody
                                     { responseBody = responseBody
-                                    , decodingError = Json.errorToString err
+                                    , decodingError = Decode.errorToString err
                                     }
                                 )
 
@@ -1142,7 +1171,7 @@ decodePremade (Premade premadeQuery) response =
                 )
 
         Http.GoodStatus_ metadata responseBody ->
-            case Json.decodeString (Json.field "data" premadeQuery.decoder) responseBody of
+            case Decode.decodeString (Decode.field "data" premadeQuery.decoder) responseBody of
                 Ok value ->
                     Ok value
 
@@ -1150,7 +1179,7 @@ decodePremade (Premade premadeQuery) response =
                     Err
                         (BadBody
                             { responseBody = responseBody
-                            , decodingError = Json.errorToString err
+                            , decodingError = Decode.errorToString err
                             }
                         )
 
@@ -1186,7 +1215,7 @@ queryString operation queryName (Selection (Details gql _)) =
         ++ "}"
 
 
-renderParameters : Dict String (Argument arg) -> String
+renderParameters : Dict String VariableDetails -> String
 renderParameters dict =
     let
         paramList =
@@ -1200,7 +1229,7 @@ renderParameters dict =
             "(" ++ renderParametersHelper paramList "" ++ ")"
 
 
-renderParametersHelper : List ( String, Argument arg ) -> String -> String
+renderParametersHelper : List ( String, VariableDetails ) -> String -> String
 renderParametersHelper args rendered =
     case args of
         [] ->
@@ -1208,10 +1237,10 @@ renderParametersHelper args rendered =
 
         ( name, value ) :: remaining ->
             if String.isEmpty rendered then
-                renderParametersHelper remaining ("$" ++ name ++ ":" ++ argToTypeString value)
+                renderParametersHelper remaining ("$" ++ name ++ ":" ++ value.gqlTypeName)
 
             else
-                renderParametersHelper remaining (rendered ++ ", $" ++ name ++ ":" ++ argToTypeString value)
+                renderParametersHelper remaining (rendered ++ ", $" ++ name ++ ":" ++ value.gqlTypeName)
 
 
 fieldsToQueryString : List Field -> String -> String
@@ -1267,18 +1296,18 @@ renderField myField =
             aliasString ++ name ++ argString ++ selection
 
 
-renderArgs : List ( String, Argument arg ) -> String -> String
+renderArgs : List ( String, Variable ) -> String -> String
 renderArgs args rendered =
     case args of
         [] ->
             rendered
 
-        ( name, top ) :: remaining ->
+        ( name, (Variable varName) ) :: remaining ->
             if String.isEmpty rendered then
-                renderArgs remaining (rendered ++ name ++ ": " ++ argToString top)
+                renderArgs remaining (rendered ++ name ++ ": $" ++ varName)
 
             else
-                renderArgs remaining (rendered ++ ", " ++ name ++ ": " ++ argToString top)
+                renderArgs remaining (rendered ++ ", " ++ name ++ ": $" ++ varName)
 
 
 argToString : Argument arg -> String
@@ -1310,6 +1339,6 @@ maybeScalarEncode encoder maybeA =
 
 
 {-| -}
-decodeNullable : Json.Decoder data -> Json.Decoder (Maybe data)
+decodeNullable : Decode.Decoder data -> Decode.Decoder (Maybe data)
 decodeNullable =
-    Json.nullable
+    Decode.nullable

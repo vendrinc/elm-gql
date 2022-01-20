@@ -12,7 +12,6 @@ import Elm.Gen.String
 import Elm.Pattern as Pattern
 import Generate.Input as Input
 import Generate.Input.Encode
-import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Validate as Validate
 import GraphQL.Schema
@@ -71,6 +70,14 @@ option =
     }
 
 
+toArgument : Can.VariableDefinition -> GraphQL.Schema.Argument
+toArgument varDef =
+    { name = Can.nameToString varDef.variable.name
+    , description = Nothing
+    , type_ = varDef.schemaType
+    }
+
+
 generateDefinition :
     { namespace : Namespace
     , schema : GraphQL.Schema.Schema
@@ -89,6 +96,9 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                     op.name
                 )
 
+        arguments =
+            List.map toArgument op.variableDefinitions
+
         input =
             case op.variableDefinitions of
                 [] ->
@@ -99,20 +109,13 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                         [ [ Elm.comment """  Inputs """
                           , Generate.Input.Encode.toRecordInput namespace
                                 schema
-                                (List.map
-                                    (\varDef ->
-                                        { name = Can.nameToString varDef.variable.name
-                                        , schemaType = varDef.schemaType
-                                        }
-                                    )
-                                    op.variableDefinitions
-                                )
+                                arguments
                           ]
                         , Generate.Input.Encode.toRecordOptionals namespace
                             schema
-                            op.variableDefinitions
-                        , Generate.Input.Encode.toRecordNulls op.variableDefinitions
-                        , [ Generate.Input.Encode.toInputRecordAlias namespace schema "Input" op.variableDefinitions
+                            arguments
+                        , Generate.Input.Encode.toRecordNulls arguments
+                        , [ Generate.Input.Encode.toInputRecordAlias namespace schema "Input" arguments
                           ]
                         ]
 
@@ -140,7 +143,13 @@ generateDefinition { namespace, schema, base, document, path } ((Can.Operation o
                         (\var ->
                             Engine.prebakedQuery
                                 (Elm.string (Can.toString def))
-                                (Generate.Input.Encode.fullRecordToFieldList namespace schema def (Elm.value "args"))
+                                (Generate.Input.Encode.fullRecordToInputObject
+                                    namespace
+                                    schema
+                                    arguments
+                                    (Elm.value "args")
+                                    |> Engine.inputObjectToFieldList
+                                )
                                 (generateDecoder namespace schema def)
                                 |> Elm.withType
                                     (Engine.types_.premade

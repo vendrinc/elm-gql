@@ -1,4 +1,4 @@
-module Elm.Gen.GraphQL.Engine exposing (addField, addOptionalField, arg, argList, batch, beFree, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, id_, inputObject, inputObjectToFieldList, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, types_, union, unsafe, with)
+module Elm.Gen.GraphQL.Engine exposing (addField, addOptionalField, arg, argList, batch, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, id_, inputObject, inputObjectToFieldList, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, types_, union, unsafe, with)
 
 {-| 
 -}
@@ -215,63 +215,6 @@ list arg1 =
 
 
 {-| -}
-field : Elm.Expression -> Elm.Expression -> Elm.Expression
-field arg1 arg2 =
-    Elm.apply
-        (Elm.valueWith
-            moduleName_
-            "field"
-            (Type.function
-                [ Type.string
-                , Type.namedWith
-                    [ "Json", "Decode" ]
-                    "Decoder"
-                    [ Type.var "data" ]
-                ]
-                (Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "Selection"
-                    [ Type.var "source", Type.var "data" ]
-                )
-            )
-        )
-        [ arg1, arg2 ]
-
-
-{-| -}
-fieldWith : Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
-fieldWith arg1 arg2 arg3 =
-    Elm.apply
-        (Elm.valueWith
-            moduleName_
-            "fieldWith"
-            (Type.function
-                [ Type.list
-                    (Type.tuple
-                        Type.string
-                        (Type.namedWith
-                            [ "GraphQL", "Engine" ]
-                            "Argument"
-                            [ Type.var "arg" ]
-                        )
-                    )
-                , Type.string
-                , Type.namedWith
-                    [ "Json", "Decode" ]
-                    "Decoder"
-                    [ Type.var "data" ]
-                ]
-                (Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "Selection"
-                    [ Type.var "source", Type.var "data" ]
-                )
-            )
-        )
-        [ arg1, arg2, arg3 ]
-
-
-{-| -}
 object : Elm.Expression -> Elm.Expression -> Elm.Expression
 object arg1 arg2 =
     Elm.apply
@@ -304,15 +247,10 @@ objectWith arg1 arg2 arg3 =
             moduleName_
             "objectWith"
             (Type.function
-                [ Type.list
-                    (Type.tuple
-                        Type.string
-                        (Type.namedWith
-                            [ "GraphQL", "Engine" ]
-                            "Argument"
-                            [ Type.var "arg" ]
-                        )
-                    )
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "args" ]
                 , Type.string
                 , Type.namedWith
                     [ "GraphQL", "Engine" ]
@@ -392,6 +330,65 @@ maybeEnum arg1 =
             )
         )
         [ arg1 ]
+
+
+{-| -}
+field : Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+field arg1 arg2 arg3 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "field"
+            (Type.function
+                [ Type.string
+                , Type.string
+                , Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Selection"
+                    [ Type.var "source", Type.var "data" ]
+                )
+            )
+        )
+        [ arg1, arg2, arg3 ]
+
+
+{-| -}
+fieldWith :
+    Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+fieldWith arg1 arg2 arg3 arg4 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "fieldWith"
+            (Type.function
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "args" ]
+                , Type.string
+                , Type.string
+                , Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Selection"
+                    [ Type.var "source", Type.var "data" ]
+                )
+            )
+        )
+        [ arg1, arg2, arg3, arg4 ]
 
 
 {-| -}
@@ -722,7 +719,11 @@ prebakedQuery arg1 arg2 arg3 =
                 , Type.list
                     (Type.tuple
                         Type.string
-                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                        (Type.namedWith
+                            [ "GraphQL", "Engine" ]
+                            "VariableDetails"
+                            []
+                        )
                     )
                 , Type.namedWith
                     [ "Json", "Decode" ]
@@ -1181,27 +1182,39 @@ mapRequest arg1 arg2 =
 
 
 {-|-}
-inputObject : Elm.Expression
-inputObject =
-    Elm.valueWith
-        moduleName_
-        "inputObject"
-        (Type.namedWith
-            [ "GraphQL", "Engine" ]
-            "InputObject"
-            [ Type.var "value" ]
+inputObject : Elm.Expression -> Elm.Expression
+inputObject arg1 =
+    Elm.apply
+        (Elm.valueWith
+            moduleName_
+            "inputObject"
+            (Type.function
+                [ Type.string ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "value" ]
+                )
+            )
         )
+        [ arg1 ]
 
 
 {-|-}
-addField : Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
-addField arg1 arg2 arg3 =
+addField :
+    Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+addField arg1 arg2 arg3 arg4 =
     Elm.apply
         (Elm.valueWith
             moduleName_
             "addField"
             (Type.function
                 [ Type.string
+                , Type.string
                 , Type.namedWith [ "Json", "Encode" ] "Value" []
                 , Type.namedWith
                     [ "GraphQL", "Engine" ]
@@ -1215,23 +1228,25 @@ addField arg1 arg2 arg3 =
                 )
             )
         )
-        [ arg1, arg2, arg3 ]
+        [ arg1, arg2, arg3, arg4 ]
 
 
 {-|-}
 addOptionalField :
     Elm.Expression
     -> Elm.Expression
+    -> Elm.Expression
     -> (Elm.Expression -> Elm.Expression)
     -> Elm.Expression
     -> Elm.Expression
-addOptionalField arg1 arg2 arg3 arg4 =
+addOptionalField arg1 arg2 arg3 arg4 arg5 =
     Elm.apply
         (Elm.valueWith
             moduleName_
             "addOptionalField"
             (Type.function
                 [ Type.string
+                , Type.string
                 , Type.namedWith
                     [ "GraphQL", "Engine" ]
                     "Option"
@@ -1251,7 +1266,7 @@ addOptionalField arg1 arg2 arg3 arg4 =
                 )
             )
         )
-        [ arg1, arg2, arg3 Elm.pass, arg4 ]
+        [ arg1, arg2, arg3, arg4 Elm.pass, arg5 ]
 
 
 {-| -}
@@ -1274,29 +1289,6 @@ encodeInputObjectAsJson arg1 =
 
 
 {-|-}
-beFree : Elm.Expression -> Elm.Expression
-beFree arg1 =
-    Elm.apply
-        (Elm.valueWith
-            moduleName_
-            "beFree"
-            (Type.function
-                [ Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "InputObject"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "InputObject"
-                    [ Type.var "b" ]
-                )
-            )
-        )
-        [ arg1 ]
-
-
-{-|-}
 inputObjectToFieldList : Elm.Expression -> Elm.Expression
 inputObjectToFieldList arg1 =
     Elm.apply
@@ -1312,7 +1304,11 @@ inputObjectToFieldList arg1 =
                 (Type.list
                     (Type.tuple
                         Type.string
-                        (Type.namedWith [ "Json", "Decode" ] "Value" [])
+                        (Type.namedWith
+                            [ "GraphQL", "Engine" ]
+                            "VariableDetails"
+                            []
+                        )
                     )
                 )
             )
@@ -1325,13 +1321,13 @@ id_ :
     { batch : Elm.Expression
     , nullable : Elm.Expression
     , list : Elm.Expression
-    , field : Elm.Expression
-    , fieldWith : Elm.Expression
     , object : Elm.Expression
     , objectWith : Elm.Expression
     , decode : Elm.Expression
     , enum : Elm.Expression
     , maybeEnum : Elm.Expression
+    , field : Elm.Expression
+    , fieldWith : Elm.Expression
     , union : Elm.Expression
     , select : Elm.Expression
     , with : Elm.Expression
@@ -1364,7 +1360,6 @@ id_ :
     , addField : Elm.Expression
     , addOptionalField : Elm.Expression
     , encodeInputObjectAsJson : Elm.Expression
-    , beFree : Elm.Expression
     , inputObjectToFieldList : Elm.Expression
     }
 id_ =
@@ -1418,49 +1413,6 @@ id_ =
                     [ Type.var "source", Type.list (Type.var "data") ]
                 )
             )
-    , field =
-        Elm.valueWith
-            moduleName_
-            "field"
-            (Type.function
-                [ Type.string
-                , Type.namedWith
-                    [ "Json", "Decode" ]
-                    "Decoder"
-                    [ Type.var "data" ]
-                ]
-                (Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "Selection"
-                    [ Type.var "source", Type.var "data" ]
-                )
-            )
-    , fieldWith =
-        Elm.valueWith
-            moduleName_
-            "fieldWith"
-            (Type.function
-                [ Type.list
-                    (Type.tuple
-                        Type.string
-                        (Type.namedWith
-                            [ "GraphQL", "Engine" ]
-                            "Argument"
-                            [ Type.var "arg" ]
-                        )
-                    )
-                , Type.string
-                , Type.namedWith
-                    [ "Json", "Decode" ]
-                    "Decoder"
-                    [ Type.var "data" ]
-                ]
-                (Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "Selection"
-                    [ Type.var "source", Type.var "data" ]
-                )
-            )
     , object =
         Elm.valueWith
             moduleName_
@@ -1483,15 +1435,10 @@ id_ =
             moduleName_
             "objectWith"
             (Type.function
-                [ Type.list
-                    (Type.tuple
-                        Type.string
-                        (Type.namedWith
-                            [ "GraphQL", "Engine" ]
-                            "Argument"
-                            [ Type.var "arg" ]
-                        )
-                    )
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "args" ]
                 , Type.string
                 , Type.namedWith
                     [ "GraphQL", "Engine" ]
@@ -1542,6 +1489,46 @@ id_ =
                     [ "Json", "Decode" ]
                     "Decoder"
                     [ Type.maybe (Type.var "item") ]
+                )
+            )
+    , field =
+        Elm.valueWith
+            moduleName_
+            "field"
+            (Type.function
+                [ Type.string
+                , Type.string
+                , Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Selection"
+                    [ Type.var "source", Type.var "data" ]
+                )
+            )
+    , fieldWith =
+        Elm.valueWith
+            moduleName_
+            "fieldWith"
+            (Type.function
+                [ Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "args" ]
+                , Type.string
+                , Type.string
+                , Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.var "data" ]
+                ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "Selection"
+                    [ Type.var "source", Type.var "data" ]
                 )
             )
     , union =
@@ -1778,7 +1765,11 @@ id_ =
                 , Type.list
                     (Type.tuple
                         Type.string
-                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                        (Type.namedWith
+                            [ "GraphQL", "Engine" ]
+                            "VariableDetails"
+                            []
+                        )
                     )
                 , Type.namedWith
                     [ "Json", "Decode" ]
@@ -2119,10 +2110,13 @@ id_ =
         Elm.valueWith
             moduleName_
             "inputObject"
-            (Type.namedWith
-                [ "GraphQL", "Engine" ]
-                "InputObject"
-                [ Type.var "value" ]
+            (Type.function
+                [ Type.string ]
+                (Type.namedWith
+                    [ "GraphQL", "Engine" ]
+                    "InputObject"
+                    [ Type.var "value" ]
+                )
             )
     , addField =
         Elm.valueWith
@@ -2130,6 +2124,7 @@ id_ =
             "addField"
             (Type.function
                 [ Type.string
+                , Type.string
                 , Type.namedWith [ "Json", "Encode" ] "Value" []
                 , Type.namedWith
                     [ "GraphQL", "Engine" ]
@@ -2148,6 +2143,7 @@ id_ =
             "addOptionalField"
             (Type.function
                 [ Type.string
+                , Type.string
                 , Type.namedWith
                     [ "GraphQL", "Engine" ]
                     "Option"
@@ -2178,22 +2174,6 @@ id_ =
                 ]
                 (Type.namedWith [ "Json", "Decode" ] "Value" [])
             )
-    , beFree =
-        Elm.valueWith
-            moduleName_
-            "beFree"
-            (Type.function
-                [ Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "InputObject"
-                    [ Type.var "a" ]
-                ]
-                (Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "InputObject"
-                    [ Type.var "b" ]
-                )
-            )
     , inputObjectToFieldList =
         Elm.valueWith
             moduleName_
@@ -2207,7 +2187,11 @@ id_ =
                 (Type.list
                     (Type.tuple
                         Type.string
-                        (Type.namedWith [ "Json", "Decode" ] "Value" [])
+                        (Type.namedWith
+                            [ "GraphQL", "Engine" ]
+                            "VariableDetails"
+                            []
+                        )
                     )
                 )
             )

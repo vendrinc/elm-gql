@@ -4,18 +4,47 @@ import Dict
 import Elm
 import Elm.Annotation
 import Elm.Gen.GraphQL.Engine as Engine
+import Elm.Pattern
 import Generate.Args
+import Generate.Common
+import Generate.Decode
 import Generate.Example
 import Generate.Input as Input
+import Generate.Input.Encode
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
 
 
-queryToModule : Namespace -> Input.Operation -> GraphQL.Schema.Schema -> GraphQL.Schema.Operation -> Elm.File
+queryToModule :
+    Namespace
+    -> Input.Operation
+    -> GraphQL.Schema.Schema
+    -> GraphQL.Schema.Operation
+    -> Elm.File
 queryToModule namespace op schema operation =
     let
         dir =
             directory op
+
+        input =
+            case operation.arguments of
+                [] ->
+                    []
+
+                _ ->
+                    List.concat
+                        [ [ Elm.comment """  Inputs """
+                          , Generate.Input.Encode.toRecordInput namespace
+                                schema
+                                operation.arguments
+                          ]
+                        , Generate.Input.Encode.toRecordOptionals namespace
+                            schema
+                            operation.arguments
+                        , Generate.Input.Encode.toRecordNulls operation.arguments
+                        , [ Generate.Input.Encode.toInputRecordAlias namespace schema "Input" operation.arguments
+                          ]
+                        ]
 
         queryFunction =
             Generate.Args.createBuilder namespace
@@ -25,47 +54,43 @@ queryToModule namespace op schema operation =
                 operation.type_
                 op
 
-        example =
-            Generate.Example.example namespace
-                schema
-                operation.name
-                operation.arguments
-                operation.type_
-                op
-
-        optionalHelpers =
-            if List.any Input.isOptional operation.arguments then
-                let
-                    topLevelAlias =
-                        Elm.alias "Optional"
-                            (Engine.types_.optional
-                                (Elm.Annotation.named [ namespace.namespace ]
-                                    (case op of
-                                        Input.Query ->
-                                            operation.name ++ "_Option"
-
-                                        Input.Mutation ->
-                                            operation.name ++ "_MutOption"
-                                    )
-                                )
-                            )
-                            |> Elm.expose
-
-                    optional =
-                        List.filter Input.isOptional operation.arguments
-                in
-                topLevelAlias
-                    :: Generate.Args.optionsRecursive namespace
-                        schema
-                        operation.name
-                        optional
-                    ++ [ Generate.Args.nullsRecord namespace operation.name optional
-                            |> Elm.declaration "null"
-                            |> Elm.expose
-                       ]
-
-            else
-                []
+        -- example =
+        --     Generate.Example.example namespace
+        --         schema
+        --         operation.name
+        --         operation.arguments
+        --         operation.type_
+        --         op
+        -- optionalHelpers =
+        --     if List.any Input.isOptional operation.arguments then
+        --         let
+        --             topLevelAlias =
+        --                 Elm.alias "Optional"
+        --                     (Engine.types_.optional
+        --                         (Elm.Annotation.named [ namespace.namespace ]
+        --                             (case op of
+        --                                 Input.Query ->
+        --                                     operation.name ++ "_Option"
+        --                                 Input.Mutation ->
+        --                                     operation.name ++ "_MutOption"
+        --                             )
+        --                         )
+        --                     )
+        --                     |> Elm.expose
+        --             optional =
+        --                 List.filter Input.isOptional operation.arguments
+        --         in
+        --         topLevelAlias
+        --             :: Generate.Args.optionsRecursive namespace
+        --                 schema
+        --                 operation.name
+        --                 optional
+        --             ++ [ Generate.Args.nullsRecord namespace operation.name optional
+        --                     |> Elm.declaration "null"
+        --                     |> Elm.expose
+        --                ]
+        --     else
+        --         []
     in
     Elm.fileWith
         [ namespace.namespace
@@ -73,14 +98,17 @@ queryToModule namespace op schema operation =
         , Utils.String.formatTypename operation.name
         ]
         { docs =
-            \docs ->
-                "\n\nExample usage:\n\n"
-                    ++ Elm.expressionImports example
-                    ++ "\n\n\n"
-                    ++ Elm.toString example
+            \docs -> ""
+
+        -- "\n\nExample usage:\n\n"
+        --     -- ++ Elm.expressionImports example
+        --     ++ "\n\n\n"
+        -- ++ Elm.toString example
         , aliases = []
         }
-        (queryFunction :: optionalHelpers)
+        (input ++ [ queryFunction ]
+         -- :: optionalHelpers
+        )
 
 
 directory : Input.Operation -> String
@@ -111,3 +139,6 @@ generateFiles namespace op schema =
                     (\( _, oper ) ->
                         queryToModule namespace op schema oper
                     )
+
+
+{--}
