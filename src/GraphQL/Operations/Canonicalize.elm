@@ -771,7 +771,20 @@ verifyVariables item summary =
                         , expected = typeString
                         }
                         :: summary.issues
-            , suggestions = suggestion :: summary.suggestions
+            , suggestions =
+                if typesMatch then
+                    -- we do this so that when we print an error message
+                    -- If the user has specified that this is a required value
+                    -- but the schema says it's optional
+                    -- we maintain the required-ness
+                    { name = AST.nameToString def.variable.name
+                    , type_ =
+                        AST.typeToGqlString def.type_
+                    }
+                        :: summary.suggestions
+
+                else
+                    suggestion :: summary.suggestions
             }
 
         ( Just def, Nothing ) ->
