@@ -6,6 +6,7 @@ import Dict exposing (Dict)
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
+import Internal.Compiler exposing (formatValue)
 
 
 type Error
@@ -81,6 +82,11 @@ type ErrorDetails
         }
     | EmptyUnionVariantSelection
         { tag : String
+        }
+    | IncorrectInlineInput
+        { schema : GraphQL.Schema.Type
+        , arg : String
+        , found : AST.Value
         }
 
 
@@ -261,6 +267,19 @@ errorToString (Error details) =
                     , "}"
                     ]
                 , "If you don't need any more data, just add " ++ yellow "__typename"
+                ]
+
+        IncorrectInlineInput deets ->
+            String.join "\n"
+                [ cyan deets.arg ++ " has the wrong type."
+                , "I was expecting:"
+                , block
+                    [ yellow (GraphQL.Schema.typeToString deets.schema)
+                    ]
+                , "But found:"
+                , block
+                    [ yellow (AST.valueToString deets.found)
+                    ]
                 ]
 
         VariableIssueSummary summary ->
@@ -682,8 +701,9 @@ doTypesMatch schemaType astType =
                 GraphQL.Schema.List_ inner ->
                     False
 
-                GraphQL.Schema.Nullable inner ->
-                    False
+                GraphQL.Schema.Nullable innerSchema ->
+                    -- the query can mark something as required even if it's optional in the schema
+                    doTypesMatch innerSchema astType
 
         AST.Nullable innerAST ->
             case schemaType of
@@ -1045,7 +1065,9 @@ canonicalizeOperation schema op selection =
     argsInQuery:
         The arguments in the operation itself(i.e. the gql file)
 
-This function is just gathering what the type should be for the top level arguments.
+This function both
+
+1.  gathers variables that should be at the top of the query.
 
 -}
 validateArg :
@@ -1058,61 +1080,179 @@ validateArg schema spec argInQuery =
         fieldname =
             AST.nameToString argInQuery.name
     in
-    case argInQuery.value of
+    case List.head (List.filter (\a -> a.name == fieldname) spec.arguments) of
+        Nothing ->
+            Err [ error (UnknownArgName fieldname) ]
+
+        Just schemaVar ->
+            case validateInput schema schemaVar.type_ fieldname argInQuery.value of
+                Valid vars ->
+                    Ok vars
+
+                InputError errorDetails ->
+                    Err [ error errorDetails ]
+
+                Mismatch ->
+                    Err
+                        [ error
+                            (IncorrectInlineInput
+                                { schema = schemaVar.type_
+                                , arg = fieldname
+                                , found = argInQuery.value
+                                }
+                            )
+                        ]
+
+
+type InputValidation
+    = Valid (List ( String, GraphQL.Schema.Type ))
+    | InputError ErrorDetails
+    | Mismatch
+
+
+validateInput :
+    GraphQL.Schema.Schema
+    -> GraphQL.Schema.Type
+    -> String
+    -> AST.Value
+    -> InputValidation
+validateInput schema schemaType fieldName astValue =
+    case astValue of
         AST.Var var ->
             let
                 varname =
                     AST.nameToString var.name
             in
-            case List.head (List.filter (\a -> a.name == fieldname) spec.arguments) of
-                Nothing ->
-                    Err [ error (UnknownArgName fieldname) ]
-
-                Just schemaVar ->
-                    Ok [ ( varname, schemaVar.type_ ) ]
+            Valid [ ( varname, schemaType ) ]
 
         AST.Object keyValues ->
-            case List.head (List.filter (\a -> a.name == fieldname) spec.arguments) of
-                Nothing ->
-                    Err [ error (UnknownArgName fieldname) ]
+            case schemaType of
+                GraphQL.Schema.InputObject inputObjectName ->
+                    case Dict.get inputObjectName schema.inputObjects of
+                        Nothing ->
+                            InputError (UnknownArgName fieldName)
 
-                Just schemaVar ->
-                    case schemaVar.type_ of
-                        GraphQL.Schema.InputObject inputObjectName ->
-                            case Dict.get inputObjectName schema.inputObjects of
-                                Nothing ->
-                                    Err [ error (UnknownArgName fieldname) ]
+                        Just inputObject ->
+                            List.foldl
+                                (\( keyName, value ) current ->
+                                    let
+                                        key =
+                                            AST.nameToString keyName
+                                    in
+                                    case current of
+                                        Valid argValues ->
+                                            case List.head (List.filter (\a -> a.name == key) inputObject.fields) of
+                                                Nothing ->
+                                                    InputError (Todo "1. All inputs must be variables for now.  No inline values.")
 
-                                Just inputObject ->
-                                    reduceOld
-                                        (\( keyName, value ) ->
-                                            case value of
-                                                AST.Var var ->
-                                                    let
-                                                        varname =
-                                                            AST.nameToString var.name
+                                                Just field ->
+                                                    case validateInput schema field.type_ fieldName value of
+                                                        Valid fieldArgs ->
+                                                            Valid (argValues ++ fieldArgs)
 
-                                                        key =
-                                                            AST.nameToString keyName
-                                                    in
-                                                    case List.head (List.filter (\a -> a.name == key) inputObject.fields) of
-                                                        Nothing ->
-                                                            Err [ error (Todo "All inputs must be variables for now.  No inline values.") ]
+                                                        validationError ->
+                                                            validationError
 
-                                                        Just field ->
-                                                            Ok ( varname, field.type_ )
+                                        _ ->
+                                            current
+                                )
+                                (Valid [])
+                                keyValues
 
-                                                _ ->
-                                                    Err [ error (Todo "All inputs must be variables for now.  No inline values.") ]
-                                        )
-                                        keyValues
-                                        (Ok [])
+                _ ->
+                    InputError (UnknownArgName fieldName)
 
-                        _ ->
-                            Err [ error (UnknownArgName fieldname) ]
+        AST.Str str ->
+            case schemaType of
+                GraphQL.Schema.Scalar "String" ->
+                    Valid []
 
-        _ ->
-            Err [ error (Todo "All inputs must be variables for now.  No inline values.") ]
+                GraphQL.Schema.Nullable inner ->
+                    validateInput schema inner fieldName astValue
+
+                _ ->
+                    Mismatch
+
+        AST.Integer int ->
+            case schemaType of
+                GraphQL.Schema.Scalar "Int" ->
+                    Valid []
+
+                GraphQL.Schema.Scalar "Float" ->
+                    Valid []
+
+                GraphQL.Schema.Nullable inner ->
+                    validateInput schema inner fieldName astValue
+
+                _ ->
+                    Mismatch
+
+        AST.Decimal float ->
+            case schemaType of
+                GraphQL.Schema.Scalar "Float" ->
+                    Valid []
+
+                GraphQL.Schema.Nullable inner ->
+                    validateInput schema inner fieldName astValue
+
+                _ ->
+                    Mismatch
+
+        AST.Boolean bool ->
+            case schemaType of
+                GraphQL.Schema.Scalar "Boolean" ->
+                    Valid []
+
+                GraphQL.Schema.Nullable inner ->
+                    validateInput schema inner fieldName astValue
+
+                _ ->
+                    Mismatch
+
+        AST.Null ->
+            case schemaType of
+                GraphQL.Schema.Nullable _ ->
+                    Valid []
+
+                _ ->
+                    Mismatch
+
+        AST.Enum enumName ->
+            case schemaType of
+                GraphQL.Schema.Enum _ ->
+                    Valid []
+
+                GraphQL.Schema.Nullable inner ->
+                    validateInput schema inner fieldName astValue
+
+                _ ->
+                    Mismatch
+
+        AST.ListValue list ->
+            case schemaType of
+                GraphQL.Schema.List_ innerList ->
+                    List.foldl
+                        (\item current ->
+                            case current of
+                                Valid validArgs ->
+                                    case validateInput schema innerList fieldName item of
+                                        Valid newArgs ->
+                                            Valid (newArgs ++ validArgs)
+
+                                        validationError ->
+                                            validationError
+
+                                _ ->
+                                    current
+                        )
+                        (Valid [])
+                        list
+
+                GraphQL.Schema.Nullable inner ->
+                    validateInput schema inner fieldName astValue
+
+                _ ->
+                    Mismatch
 
 
 type alias UsedNames =
