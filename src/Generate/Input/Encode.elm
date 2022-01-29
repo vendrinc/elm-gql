@@ -476,7 +476,7 @@ toNulls inputName fields =
                                         |> Engine.addField
                                             (Elm.string field.name)
                                             (Elm.string (GraphQL.Schema.typeToString field.type_))
-                                            Engine.make_.option.null
+                                            Encode.null
                                         |> Elm.withType (Type.named [] inputName)
                                 )
                             )
