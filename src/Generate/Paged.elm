@@ -29,7 +29,7 @@ generate namespace schema =
 
 
 type alias Pagination =
-    { query : GraphQL.Schema.Operation
+    { query : GraphQL.Schema.Field
     , edges : GraphQL.Schema.ObjectDetails
     , connection : GraphQL.Schema.ObjectDetails
     }

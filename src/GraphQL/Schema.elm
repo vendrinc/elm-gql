@@ -4,7 +4,7 @@ module GraphQL.Schema exposing
     , Kind(..), Schema, Type(..)
     , mockScalar
     , Wrapped(..), getWrap, getInner
-    , Argument, Field, InputObjectDetails, Namespace, ObjectDetails, Operation, UnionDetails, Variant, kindToString, typeToElmString, typeToString
+    , Argument, Field, InputObjectDetails, Namespace, ObjectDetails, UnionDetails, Variant, kindToString, typeToElmString, typeToString
     )
 
 {-|
@@ -89,6 +89,7 @@ type alias Argument =
 
 type alias Field =
     { name : String
+    , deprecation : Deprecation
     , description : Maybe String
     , arguments : List Argument
     , type_ : Type
@@ -145,16 +146,6 @@ type alias InputObjectDetails =
     { name : String
     , description : Maybe String
     , fields : List Field
-    }
-
-
-type alias Operation =
-    { name : String
-    , deprecation : Deprecation
-    , description : Maybe String
-    , arguments : List Argument
-    , type_ : Type
-    , permissions : List Permission
     }
 
 
@@ -402,11 +393,11 @@ type SchemaGrouping
 
 
 type alias Query =
-    Operation
+    Field
 
 
 type alias Mutation =
-    Operation
+    Field
 
 
 decoder : Json.Decoder Schema
@@ -792,38 +783,19 @@ decodeValue =
         (Json.field "description" (Json.maybe nonEmptyString))
 
 
-decodeOperation : Json.Decoder (Dict String Operation)
+decodeOperation : Json.Decoder (Dict String Field)
 decodeOperation =
     let
-        tupleDecoder : Json.Decoder ( String, Maybe Operation )
+        tupleDecoder : Json.Decoder ( String, Field )
         tupleDecoder =
             Json.map2 Tuple.pair
                 (Json.field "name" Json.string)
-                internalOperationDecoder
+                decodeField
     in
     Json.map Dict.fromList
         (Json.field "fields"
-            (Json.list tupleDecoder
-                |> Json.map
-                    (List.filterMap
-                        (\( name, maybeOperation ) ->
-                            maybeOperation |> Maybe.map (Tuple.pair name)
-                        )
-                    )
-            )
+            (Json.list tupleDecoder)
         )
-
-
-internalOperationDecoder : Json.Decoder (Maybe Operation)
-internalOperationDecoder =
-    filterHidden <|
-        Json.map6 Operation
-            (Json.field "name" Json.string)
-            decodeDeprecation
-            (Json.field "description" (Json.maybe nonEmptyString))
-            (Json.field "args" (Json.list decodeArgument))
-            (Json.field "type" decodeType)
-            decodePermission
 
 
 
@@ -832,8 +804,19 @@ internalOperationDecoder =
 
 decodeField : Json.Decoder Field
 decodeField =
-    Json.map5 Field
+    Json.map6 Field
         (Json.field "name" Json.string)
+        (Json.maybe decodeDeprecation
+            |> Json.map
+                (\maybeDeprecated ->
+                    case maybeDeprecated of
+                        Nothing ->
+                            Active
+
+                        Just dep ->
+                            dep
+                )
+        )
         (Json.field "description" (Json.maybe nonEmptyString))
         (Json.oneOf
             [ Json.field "args" (Json.list decodeArgument)

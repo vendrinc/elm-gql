@@ -19,7 +19,7 @@ queryToModule :
     Namespace
     -> Input.Operation
     -> GraphQL.Schema.Schema
-    -> GraphQL.Schema.Operation
+    -> GraphQL.Schema.Field
     -> Elm.File
 queryToModule namespace op schema operation =
     let

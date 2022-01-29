@@ -15,7 +15,7 @@ import Utils.String
 operation :
     Namespace
     -> GraphQL.Schema.Schema
-    -> ( Generate.Input.Operation, GraphQL.Schema.Operation )
+    -> ( Generate.Input.Operation, GraphQL.Schema.Field )
     -> Elm.Expression
 operation namespace schema ( opType, op ) =
     create namespace
