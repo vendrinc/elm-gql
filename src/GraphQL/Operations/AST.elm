@@ -100,6 +100,50 @@ type Value
     | ListValue (List Value)
 
 
+valueToString : Value -> String
+valueToString v =
+    case v of
+        Str str ->
+            "\"" ++ str ++ "\""
+
+        Integer i ->
+            String.fromInt i
+
+        Decimal f ->
+            String.fromFloat f
+
+        Boolean True ->
+            "true"
+
+        Boolean False ->
+            "false"
+
+        Null ->
+            "null"
+
+        Enum name ->
+            nameToString name
+
+        Var variable ->
+            "$" ++ nameToString variable.name
+
+        Object fields ->
+            "{ "
+                ++ String.join ", "
+                    (List.map
+                        (\( name, value ) ->
+                            nameToString name
+                                ++ ": "
+                                ++ valueToString value
+                        )
+                        fields
+                    )
+                ++ " }"
+
+        ListValue vals ->
+            "[ " ++ String.join ", " (List.map valueToString vals) ++ " ]"
+
+
 type alias Argument =
     { name : Name
     , value : Value

@@ -271,8 +271,7 @@ errorToString (Error details) =
 
         IncorrectInlineInput deets ->
             String.join "\n"
-                [ cyan deets.arg ++ " has the wrong type."
-                , "I was expecting:"
+                [ cyan deets.arg ++ " has the wrong type. I was expecting:"
                 , block
                     [ yellow (GraphQL.Schema.typeToString deets.schema)
                     ]
