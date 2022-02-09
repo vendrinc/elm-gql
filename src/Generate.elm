@@ -350,7 +350,7 @@ parseAndValidateQuery namespace schema flags gql =
                         , file = Just gql.path
                         , description =
                             List.map Canonicalize.errorToString errors
-                                |> String.join "\n\n    "
+                                |> String.join (Canonicalize.cyan "\n-------------------\n\n")
                         }
 
                 Ok canAST ->
