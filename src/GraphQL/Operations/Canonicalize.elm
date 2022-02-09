@@ -1,4 +1,4 @@
-module GraphQL.Operations.Canonicalize exposing (canonicalize, errorToString)
+module GraphQL.Operations.Canonicalize exposing (canonicalize, cyan, errorToString)
 
 {-| -}
 
@@ -952,7 +952,7 @@ validateArg schema spec argInQuery =
     in
     case List.head (List.filter (\a -> a.name == fieldname) spec.arguments) of
         Nothing ->
-            Err [ error (UnknownArgName fieldname) ]
+            Err [ error (UnknownArgName ("truly unknown" ++ fieldname)) ]
 
         Just schemaVar ->
             case validateInput schema schemaVar.type_ fieldname argInQuery.value of
@@ -1003,38 +1003,31 @@ validateInput schema schemaType fieldName astValue =
                             InputError (UnknownArgName fieldName)
 
                         Just inputObject ->
-                            List.foldl
-                                (\( keyName, value ) current ->
-                                    let
-                                        key =
-                                            AST.nameToString keyName
-                                    in
-                                    case current of
-                                        Valid argValues ->
-                                            case List.head (List.filter (\a -> a.name == key) inputObject.fields) of
-                                                Nothing ->
-                                                    InputError (Todo "1. All inputs must be variables for now.  No inline values.")
+                            validateObject schema fieldName keyValues inputObject
 
-                                                Just field ->
-                                                    case validateInput schema field.type_ fieldName value of
-                                                        Valid fieldArgs ->
-                                                            Valid (argValues ++ fieldArgs)
+                GraphQL.Schema.Nullable (GraphQL.Schema.InputObject inputObjectName) ->
+                    case Dict.get inputObjectName schema.inputObjects of
+                        Nothing ->
+                            InputError (UnknownArgName fieldName)
 
-                                                        validationError ->
-                                                            validationError
-
-                                        _ ->
-                                            current
-                                )
-                                (Valid [])
-                                keyValues
+                        Just inputObject ->
+                            validateObject schema fieldName keyValues inputObject
 
                 _ ->
                     InputError (UnknownArgName fieldName)
 
         AST.Str str ->
             case schemaType of
-                GraphQL.Schema.Scalar "String" ->
+                GraphQL.Schema.Scalar "Int" ->
+                    Mismatch
+
+                GraphQL.Schema.Scalar "Float" ->
+                    Mismatch
+
+                GraphQL.Schema.Scalar "Boolean" ->
+                    Mismatch
+
+                GraphQL.Schema.Scalar _ ->
                     Valid []
 
                 GraphQL.Schema.Nullable inner ->
@@ -1123,6 +1116,34 @@ validateInput schema schemaType fieldName astValue =
 
                 _ ->
                     Mismatch
+
+
+validateObject schema fieldName keyValues inputObject =
+    List.foldl
+        (\( keyName, value ) current ->
+            let
+                key =
+                    AST.nameToString keyName
+            in
+            case current of
+                Valid argValues ->
+                    case List.head (List.filter (\a -> a.name == key) inputObject.fields) of
+                        Nothing ->
+                            InputError (Todo "1. All inputs must be variables for now.  No inline values.")
+
+                        Just field ->
+                            case validateInput schema field.type_ fieldName value of
+                                Valid fieldArgs ->
+                                    Valid (argValues ++ fieldArgs)
+
+                                validationError ->
+                                    validationError
+
+                _ ->
+                    current
+        )
+        (Valid [])
+        keyValues
 
 
 type alias UsedNames =
