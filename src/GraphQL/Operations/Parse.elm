@@ -164,7 +164,7 @@ listValue valueParser =
     Parser.map AST.ListValue <|
         Parser.sequence
             { start = "["
-            , separator = ","
+            , separator = ""
             , end = "]"
             , spaces = ws
             , item = lazy valueParser
@@ -204,6 +204,7 @@ value : Parser AST.Value
 value =
     Parser.oneOf
         [ boolValue
+        , nullValue
         , intOrFloat
         , stringValue
         , enumValue
