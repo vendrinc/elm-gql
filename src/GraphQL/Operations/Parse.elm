@@ -6,6 +6,7 @@ module GraphQL.Operations.Parse exposing (..)
 import Char
 import GraphQL.Operations.AST as AST
 import Parser exposing (..)
+import Parser.Advanced
 import Set exposing (Set)
 
 
@@ -81,8 +82,8 @@ ws =
 name : Parser AST.Name
 name =
     Parser.variable
-        { start = multiOr [ Char.isLower, Char.isUpper, (==) '_' ]
-        , inner = multiOr [ Char.isLower, Char.isUpper, Char.isDigit, (==) '_' ]
+        { start = multiOr [ Char.isAlpha, (==) '_' ]
+        , inner = multiOr [ Char.isAlphaNum, (==) '_' ]
         , reserved = keywords
         }
         |> Parser.map AST.Name
@@ -103,14 +104,45 @@ boolValue =
         ]
 
 
-floatValue : Parser AST.Value
-floatValue =
-    Parser.map AST.Decimal Parser.float
+{-|
 
+    Of note!
 
-intValue : Parser AST.Value
-intValue =
-    Parser.map AST.Integer Parser.int
+    The Elm Parser.int and Parser.float parsers are broken as they can accept values that start with 'e'
+
+    : https://github.com/elm/parser/issues/25
+
+-}
+intOrFloat : Parser AST.Value
+intOrFloat =
+    Parser.succeed
+        (\firstPart maybeSecond ->
+            case maybeSecond of
+                Nothing ->
+                    String.toInt firstPart
+                        |> Maybe.withDefault 0
+                        |> AST.Integer
+
+                Just second ->
+                    String.toFloat (firstPart ++ second)
+                        |> Maybe.withDefault 0
+                        |> AST.Decimal
+        )
+        |= Parser.getChompedString
+            (Parser.succeed identity
+                |. Parser.chompIf Char.isDigit
+                |. Parser.chompWhile Char.isDigit
+            )
+        |= Parser.oneOf
+            [ Parser.map Just
+                (Parser.getChompedString
+                    (Parser.succeed ()
+                        |. Parser.chompIf (\c -> c == '.')
+                        |. Parser.chompWhile Char.isDigit
+                    )
+                )
+            , Parser.succeed Nothing
+            ]
 
 
 stringValue : Parser AST.Value
@@ -131,7 +163,7 @@ listValue valueParser =
     Parser.map AST.ListValue <|
         Parser.sequence
             { start = "["
-            , separator = ""
+            , separator = ","
             , end = "]"
             , spaces = ws
             , item = lazy valueParser
@@ -142,7 +174,7 @@ listValue valueParser =
 kvp_ : (() -> Parser AST.Value) -> Parser ( AST.Name, AST.Value )
 kvp_ valueParser =
     succeed Tuple.pair
-        |= name
+        |= peek "name:" name
         |. ws
         |. symbol ":"
         |. ws
@@ -169,16 +201,19 @@ nullValue =
 
 value : Parser AST.Value
 value =
-    oneOf
-        [ boolValue
-        , intValue
-        , floatValue
-        , stringValue
-        , enumValue
-        , Parser.map AST.Var variable
-        , listValue (\() -> value)
-        , objectValue (\() -> value)
-        ]
+    peek "value" <|
+        Parser.oneOf
+            [ boolValue
+            , intOrFloat
+
+            -- , intValue
+            -- , floatValue
+            , stringValue
+            , enumValue
+            , Parser.map AST.Var variable
+            , listValue (\() -> value)
+            , objectValue (\() -> value)
+            ]
 
 
 kvp : Parser ( AST.Name, AST.Value )
@@ -261,7 +296,7 @@ field_ =
             , selection = sels
             }
         )
-        |= aliasedName
+        |= peek "alias" aliasedName
         |. ws
         |= argumentsOpt
         |. ws
@@ -306,7 +341,7 @@ arguments =
         , separator = ""
         , end = ")"
         , spaces = ws
-        , item = argument
+        , item = peek "arg" argument
         , trailing = Parser.Optional
         }
 
@@ -464,11 +499,11 @@ operation =
         |. ws
         |= nameOpt
         |. ws
-        |= variableDefinitions
+        |= peek "Vars??" variableDefinitions
         |. ws
         |= directives
         |. ws
-        |= selectionSet
+        |= peek "wut be here??" selectionSet
 
 
 definition : Parser AST.Definition
@@ -524,7 +559,11 @@ errorToString deadEnds =
 
 deadEndToString : Parser.DeadEnd -> String
 deadEndToString deadend =
-    problemToString deadend.problem ++ " at row " ++ String.fromInt deadend.row ++ ", col " ++ String.fromInt deadend.col
+    problemToString deadend.problem
+        ++ " at row "
+        ++ String.fromInt deadend.row
+        ++ ", col "
+        ++ String.fromInt deadend.col
 
 
 problemToString : Parser.Problem -> String
@@ -571,3 +610,44 @@ problemToString p =
 
         BadRepeat ->
             "bad repeat"
+
+
+peek : String -> Parser thing -> Parser thing
+peek tag parser =
+    Parser.succeed
+        (\start val end src ->
+            let
+                highlightParsed =
+                    String.repeat (start.column - 1) " " ++ String.repeat (max 0 (end.column - start.column)) "^"
+
+                fullLine =
+                    String.slice (max 0 (start.offset - start.column)) end.offset src
+
+                _ =
+                    Debug.log tag
+                        -- fullLine
+                        (String.slice start.offset end.offset src)
+
+                -- _ =
+                --     Debug.log name
+                --         highlightParsed
+            in
+            val
+        )
+        |= getPosition
+        |= parser
+        |= getPosition
+        |= Parser.Advanced.getSource
+
+
+getPosition =
+    Parser.succeed
+        (\row col offset ->
+            { row = row
+            , column = col
+            , offset = offset
+            }
+        )
+        |= Parser.getRow
+        |= Parser.getCol
+        |= Parser.getOffset
