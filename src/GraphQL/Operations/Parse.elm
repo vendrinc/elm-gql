@@ -149,7 +149,8 @@ stringValue : Parser AST.Value
 stringValue =
     succeed AST.Str
         |. symbol "\""
-        |= Parser.getChompedString (Parser.chompIf (\c -> c /= chars.cr && c /= '\n' && c /= '"'))
+        |= Parser.getChompedString
+            (Parser.chompWhile (\c -> c /= chars.cr && c /= '\n' && c /= '"'))
         |. symbol "\""
 
 
@@ -174,7 +175,7 @@ listValue valueParser =
 kvp_ : (() -> Parser AST.Value) -> Parser ( AST.Name, AST.Value )
 kvp_ valueParser =
     succeed Tuple.pair
-        |= peek "name:" name
+        |= name
         |. ws
         |. symbol ":"
         |. ws
@@ -201,19 +202,15 @@ nullValue =
 
 value : Parser AST.Value
 value =
-    peek "value" <|
-        Parser.oneOf
-            [ boolValue
-            , intOrFloat
-
-            -- , intValue
-            -- , floatValue
-            , stringValue
-            , enumValue
-            , Parser.map AST.Var variable
-            , listValue (\() -> value)
-            , objectValue (\() -> value)
-            ]
+    Parser.oneOf
+        [ boolValue
+        , intOrFloat
+        , stringValue
+        , enumValue
+        , Parser.map AST.Var variable
+        , listValue (\() -> value)
+        , objectValue (\() -> value)
+        ]
 
 
 kvp : Parser ( AST.Name, AST.Value )
@@ -296,7 +293,7 @@ field_ =
             , selection = sels
             }
         )
-        |= peek "alias" aliasedName
+        |= aliasedName
         |. ws
         |= argumentsOpt
         |. ws
@@ -341,7 +338,7 @@ arguments =
         , separator = ""
         , end = ")"
         , spaces = ws
-        , item = peek "arg" argument
+        , item = argument
         , trailing = Parser.Optional
         }
 
@@ -499,11 +496,11 @@ operation =
         |. ws
         |= nameOpt
         |. ws
-        |= peek "Vars??" variableDefinitions
+        |= variableDefinitions
         |. ws
         |= directives
         |. ws
-        |= peek "wut be here??" selectionSet
+        |= selectionSet
 
 
 definition : Parser AST.Definition
@@ -612,8 +609,8 @@ problemToString p =
             "bad repeat"
 
 
-peek : String -> Parser thing -> Parser thing
-peek tag parser =
+peek : (String -> String) -> Parser thing -> Parser thing
+peek log parser =
     Parser.succeed
         (\start val end src ->
             let
@@ -624,7 +621,7 @@ peek tag parser =
                     String.slice (max 0 (start.offset - start.column)) end.offset src
 
                 _ =
-                    Debug.log tag
+                    log
                         -- fullLine
                         (String.slice start.offset end.offset src)
 
