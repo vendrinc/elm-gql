@@ -12,6 +12,7 @@ import Elm.Gen.String
 import Elm.Pattern as Pattern
 import Generate.Input as Input
 import Generate.Input.Encode
+import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Validate as Validate
 import GraphQL.Schema
@@ -72,9 +73,26 @@ option =
 
 toArgument : Can.VariableDefinition -> GraphQL.Schema.Argument
 toArgument varDef =
+    -- if the declared type is required, and the schema is optional
+    -- adjust the schema type to also be required for this variable defintiion
+    -- This will make the generated code cleaner
+    let
+        adjustedSchemaType =
+            case varDef.type_ of
+                AST.Nullable _ ->
+                    varDef.schemaType
+
+                _ ->
+                    case varDef.schemaType of
+                        GraphQL.Schema.Nullable schemaType ->
+                            schemaType
+
+                        _ ->
+                            varDef.schemaType
+    in
     { name = Can.nameToString varDef.variable.name
     , description = Nothing
-    , type_ = varDef.schemaType
+    , type_ = adjustedSchemaType
     }
 
 
