@@ -1435,7 +1435,15 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
                                 CanSuccess cache canSelection ->
                                     case getName aliasedName selectionResult.fieldNames of
                                         Nothing ->
-                                            Debug.log "NOT THE RIGHT ERROR!" ( usedNames, err [ error (ObjectUnknown name) ] )
+                                            ( usedNames
+                                            , err
+                                                [ error
+                                                    (FieldAliasRequired
+                                                        { fieldName = aliasedName
+                                                        }
+                                                    )
+                                                ]
+                                            )
 
                                         Just used ->
                                             ( dropLevel selectionResult.fieldNames
