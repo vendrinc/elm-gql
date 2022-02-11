@@ -7,6 +7,7 @@ import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
 import Internal.Compiler exposing (formatValue)
+import Utils.String
 
 
 type Error
@@ -914,7 +915,17 @@ canonicalizeOperation schema op selection =
                     err [ error (QueryUnknown (AST.nameToString field.name)) ]
 
                 Just query ->
-                    canonicalizeFieldType schema field query.type_ [] selection query
+                    canonicalizeFieldType schema
+                        field
+                        query.type_
+                        (UsedNames
+                            { siblingAliases = []
+                            , breadcrumbs = []
+                            , globalNames = []
+                            }
+                        )
+                        selection
+                        query
                         |> Tuple.second
 
         AST.FragmentSpreadSelection frag ->
@@ -1146,13 +1157,104 @@ validateObject schema fieldName keyValues inputObject =
         keyValues
 
 
-type alias UsedNames =
-    List String
+type UsedNames
+    = UsedNames
+        -- sibling errors will cause a compiler error if there is a collision
+        { siblingAliases : List String
+
+        -- All parent aliased names
+        , breadcrumbs : List String
+
+        -- All global field aliases
+        , globalNames : List String
+        }
 
 
-emptyUsedNames : UsedNames
-emptyUsedNames =
-    []
+{-|
+
+    This will retrieve a globally unique name.
+    The intention is that an aliased name is passed in.
+    If it's used, then this returns nothing
+    and the query should fail to compile.
+    If not, then a new globally unique name is returend that can be used for code generation.
+
+-}
+getName : String -> UsedNames -> Maybe { globalName : String, used : UsedNames }
+getName name (UsedNames used) =
+    if name == "__typename" then
+        Just
+            { used = UsedNames used
+            , globalName = "__typename"
+            }
+
+    else if List.member name used.siblingAliases then
+        Nothing
+
+    else
+        let
+            crumbs =
+                List.reverse used.breadcrumbs
+
+            newGlobalName =
+                if List.member name used.globalNames then
+                    let
+                        tempGlobalName =
+                            case crumbs of
+                                [] ->
+                                    name
+
+                                top :: remain ->
+                                    -- we do this to havea better chance of having
+                                    -- a nice top level name
+                                    -- The name with full breadcrumbs is pretty big.
+                                    top ++ "_" ++ Utils.String.formatTypename name
+                    in
+                    if List.member tempGlobalName used.globalNames then
+                        -- we know that breadcrumbs are unique themselves
+                        String.join "_" crumbs ++ "_" ++ Utils.String.formatTypename name
+
+                    else
+                        tempGlobalName
+
+                else
+                    name
+
+            -- String.join "_" used.breadcrumbs ++ "_" ++ name
+        in
+        Just
+            { used =
+                UsedNames
+                    { used
+                        | siblingAliases = name :: used.siblingAliases
+                        , globalNames =
+                            newGlobalName :: used.globalNames
+                    }
+            , globalName = newGlobalName
+            }
+
+
+{-|
+
+    levels should be the alias name
+
+-}
+addLevel : String -> UsedNames -> UsedNames
+addLevel level (UsedNames used) =
+    UsedNames
+        { used
+            | breadcrumbs = level :: used.breadcrumbs
+            , siblingAliases = []
+        }
+
+
+{-| -}
+dropLevel : UsedNames -> UsedNames
+dropLevel (UsedNames used) =
+    UsedNames
+        { used
+            | breadcrumbs = List.drop 1 used.breadcrumbs
+            , siblingAliases = []
+        }
 
 
 canonicalizeField :
@@ -1177,73 +1279,77 @@ canonicalizeField schema object selection found =
                 aliased =
                     AST.getAliasedName field
             in
-            if List.member aliased found.fieldNames then
-                { result =
-                    err
-                        [ error
-                            (FieldAliasRequired
-                                { fieldName = aliased
-                                }
-                            )
-                        ]
-                , fieldNames = found.fieldNames
-                }
+            case getName aliased found.fieldNames of
+                Nothing ->
+                    -- There has been a collision, abort!
+                    { result =
+                        err
+                            [ error
+                                (FieldAliasRequired
+                                    { fieldName = aliased
+                                    }
+                                )
+                            ]
+                    , fieldNames = found.fieldNames
+                    }
 
-            else if fieldName == "__typename" then
-                { result =
-                    addToResult emptyCache
-                        (Can.FieldScalar
-                            { alias_ = Maybe.map convertName field.alias_
-                            , name = convertName field.name
-                            , arguments = []
-                            , directives = List.map convertDirective field.directives
-                            , type_ = GraphQL.Schema.Scalar "typename"
-                            }
-                        )
-                        found.result
-                , fieldNames = found.fieldNames
-                }
+                Just names ->
+                    if fieldName == "__typename" then
+                        { result =
+                            addToResult emptyCache
+                                (Can.FieldScalar
+                                    { alias_ = Maybe.map convertName field.alias_
+                                    , name = convertName field.name
+                                    , arguments = []
+                                    , directives = List.map convertDirective field.directives
+                                    , type_ = GraphQL.Schema.Scalar "typename"
+                                    }
+                                )
+                                found.result
+                        , fieldNames = names.used
+                        }
 
-            else
-                let
-                    matchedField =
-                        object.fields
-                            |> List.filter (\fld -> fld.name == fieldName)
-                            |> List.head
-                in
-                case matchedField of
-                    Just matched ->
+                    else
                         let
-                            ( newNames, cannedSelection ) =
-                                canonicalizeFieldType schema
-                                    field
-                                    matched.type_
-                                    (aliased :: found.fieldNames)
-                                    selection
-                                    matched
+                            matchedField =
+                                object.fields
+                                    |> List.filter (\fld -> fld.name == fieldName)
+                                    |> List.head
                         in
-                        { result =
-                            case cannedSelection of
-                                CanSuccess cache sel ->
-                                    addToResult cache sel found.result
+                        case matchedField of
+                            Just matched ->
+                                let
+                                    ( newNames, cannedSelection ) =
+                                        canonicalizeFieldType schema
+                                            field
+                                            matched.type_
+                                            -- (aliased :: found.fieldNames)
+                                            (addLevel aliased names.used)
+                                            selection
+                                            matched
+                                in
+                                { result =
+                                    case cannedSelection of
+                                        CanSuccess cache sel ->
+                                            addToResult cache sel found.result
 
-                                CanError errMsg ->
-                                    CanError errMsg
-                        , fieldNames = newNames
-                        }
+                                        CanError errMsg ->
+                                            CanError errMsg
+                                , fieldNames = dropLevel newNames
+                                }
 
-                    Nothing ->
-                        { result =
-                            err
-                                [ error
-                                    (FieldUnknown
-                                        { object = object.name
-                                        , field = fieldName
-                                        }
-                                    )
-                                ]
-                        , fieldNames = found.fieldNames
-                        }
+                            Nothing ->
+                                { result =
+                                    err
+                                        [ error
+                                            (FieldUnknown
+                                                { object = object.name
+                                                , field = fieldName
+                                                }
+                                            )
+                                        ]
+                                , fieldNames = names.used
+                                }
 
         AST.FragmentSpreadSelection frag ->
             { result = err [ todo "Fragments in objects aren't suported yet!" ]
@@ -1310,29 +1416,42 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
 
                         Just obj ->
                             let
+                                aliasedName =
+                                    field.alias_
+                                        |> Maybe.withDefault field.name
+                                        |> convertName
+                                        |> Can.nameToString
+
                                 selectionResult =
                                     List.foldl
                                         (canonicalizeField schema obj)
                                         { result = emptySuccess
-                                        , fieldNames = emptyUsedNames
+                                        , fieldNames =
+                                            addLevel aliasedName usedNames
                                         }
                                         field.selection
                             in
                             case selectionResult.result of
                                 CanSuccess cache canSelection ->
-                                    ( usedNames
-                                    , CanSuccess (addVars vars cache)
-                                        (Can.FieldObject
-                                            { alias_ = Maybe.map convertName field.alias_
-                                            , name = convertName field.name
-                                            , arguments = field.arguments
-                                            , directives = List.map convertDirective field.directives
-                                            , selection = canSelection
-                                            , object = obj
-                                            , wrapper = GraphQL.Schema.getWrap schemaField.type_
-                                            }
-                                        )
-                                    )
+                                    case getName aliasedName selectionResult.fieldNames of
+                                        Nothing ->
+                                            Debug.log "NOT THE RIGHT ERROR!" ( usedNames, err [ error (ObjectUnknown name) ] )
+
+                                        Just used ->
+                                            ( dropLevel selectionResult.fieldNames
+                                            , CanSuccess (addVars vars cache)
+                                                (Can.FieldObject
+                                                    { alias_ = Maybe.map convertName field.alias_
+                                                    , name = convertName field.name
+                                                    , globalAlias = Can.Name used.globalName
+                                                    , arguments = field.arguments
+                                                    , directives = List.map convertDirective field.directives
+                                                    , selection = canSelection
+                                                    , object = obj
+                                                    , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                                    }
+                                                )
+                                            )
 
                                 CanError errorMsg ->
                                     ( usedNames, CanError errorMsg )
@@ -1390,7 +1509,7 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
                                             List.foldl
                                                 (canonicalizeUnionField schema union)
                                                 { result = emptySuccess
-                                                , fieldNames = emptyUsedNames
+                                                , fieldNames = usedNames
                                                 , variants = variants
                                                 , typenameAlreadySelected = selectsForTypename
                                                 }

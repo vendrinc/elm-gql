@@ -67,9 +67,19 @@ type alias FieldDetails =
     }
 
 
+{-|
+
+    - name        -> the field name in the schema
+    - alias_      -> the alias provided in the query
+    - globalAlias ->
+            The name that's guaranteed to be unique for the query.
+            This is used to generate record types for the results of an operation.
+
+-}
 type alias FieldObjectDetails =
     { alias_ : Maybe Name
     , name : Name
+    , globalAlias : Name
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection
@@ -384,6 +394,7 @@ unwrap wrapper str =
         Val { required } ->
             if required then
                 str ++ "!"
+
             else
                 str
 

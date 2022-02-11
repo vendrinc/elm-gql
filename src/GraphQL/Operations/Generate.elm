@@ -356,9 +356,19 @@ fieldsToRecord namespace schema knownNames maybeParent fieldList result =
         top :: remaining ->
             let
                 new =
-                    fieldAnnotation namespace schema knownNames maybeParent top
+                    fieldAnnotation
+                        namespace
+                        schema
+                        knownNames
+                        maybeParent
+                        top
             in
-            fieldsToRecord namespace schema new.knownNames maybeParent remaining (( new.name, new.annotation ) :: result)
+            fieldsToRecord namespace
+                schema
+                new.knownNames
+                maybeParent
+                remaining
+                (( new.name, new.annotation ) :: result)
 
 
 generateResultTypes : Namespace -> GraphQL.Schema.Schema -> Set.Set String -> Can.Definition -> List Elm.Declaration
@@ -406,11 +416,7 @@ generateChildAuxRecords namespace schema knownNames sel =
                     generateTypesForFields (generateChildAuxRecords namespace schema) knownNames2 [] obj.selection
 
                 desiredName =
-                    Maybe.withDefault (Can.nameToString obj.name)
-                        (Maybe.map
-                            Can.nameToString
-                            obj.alias_
-                        )
+                    Can.nameToString obj.globalAlias
 
                 ( finalNames, fieldResult ) =
                     fieldsToRecord namespace schema knownNames3 Nothing obj.selection []
@@ -453,11 +459,7 @@ genAliasedTypes namespace schema knownNames sel =
                     generateTypesForFields (genAliasedTypes namespace schema) knownNames2 [] obj.selection
 
                 desiredName =
-                    Maybe.withDefault (Can.nameToString obj.name)
-                        (Maybe.map
-                            Can.nameToString
-                            obj.alias_
-                        )
+                    Can.nameToString obj.globalAlias
 
                 ( finalNames, fieldResult ) =
                     fieldsToAliasedRecord namespace
@@ -528,7 +530,8 @@ fieldAliasedAnnotation namespace schema knownNames parent selection =
                     Input.wrapElmType field.wrapper
                         (Type.named
                             []
-                            desiredName
+                            -- desiredName
+                            (Can.nameToString field.globalAlias)
                         )
             in
             { name = desiredName
@@ -901,7 +904,12 @@ fieldAnnotation namespace schema knownNames parent selection =
                 sels ->
                     let
                         ( knownNames2, record ) =
-                            fieldsToRecord namespace schema newKnownNames (Just (Can.nameToString field.name)) field.selection []
+                            fieldsToRecord namespace
+                                schema
+                                newKnownNames
+                                (Just (Can.nameToString field.name))
+                                field.selection
+                                []
 
                         annotation =
                             Input.wrapElmType field.wrapper
