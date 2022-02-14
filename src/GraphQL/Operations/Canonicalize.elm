@@ -965,6 +965,7 @@ canonicalizeOperation schema op used selection =
                         (addLevel aliasedName used)
                         selection
                         query
+                        |> Tuple.mapFirst dropLevel
 
         AST.FragmentSpreadSelection frag ->
             ( used, err [ todo "Fragments in unions aren't suported yet!" ] )
