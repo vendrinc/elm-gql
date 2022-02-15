@@ -261,7 +261,7 @@ argValToString : AST.Value -> String
 argValToString val =
     case val of
         AST.Str str ->
-            str
+            "\"" ++ str ++ "\""
 
         AST.Integer int ->
             String.fromInt int
