@@ -54,37 +54,36 @@ suite =
                         Err _ ->
                             False
                     )
-        , only <|
-            test "Round trip -> Parse -> Canonicalize -> Can.toString -> Parse" <|
-                \_ ->
-                    case Parse.parse queries.deals of
-                        Err err ->
-                            Expect.fail "Deals failed to parse"
+        , test "Round trip -> Parse -> Canonicalize -> Can.toString -> Parse" <|
+            \_ ->
+                case Parse.parse queries.deals of
+                    Err err ->
+                        Expect.fail "Deals failed to parse"
 
-                        Ok query ->
-                            case Canonicalize.canonicalize schema query of
-                                Err errors ->
-                                    Expect.fail "Deals failed to canonicalize"
+                    Ok query ->
+                        case Canonicalize.canonicalize schema query of
+                            Err errors ->
+                                Expect.fail "Deals failed to canonicalize"
 
-                                Ok canAST ->
-                                    case canAST.definitions of
-                                        [] ->
-                                            Expect.fail "Can AST has no defintions!"
+                            Ok canAST ->
+                                case canAST.definitions of
+                                    [] ->
+                                        Expect.fail "Can AST has no defintions!"
 
-                                        [ def ] ->
-                                            let
-                                                newString =
-                                                    Can.toString def
-                                            in
-                                            case Parse.parse newString of
-                                                Err err ->
-                                                    Expect.fail "Unable to parse Can.toString version of parsed query"
+                                    [ def ] ->
+                                        let
+                                            newString =
+                                                Can.toString def
+                                        in
+                                        case Parse.parse newString of
+                                            Err err ->
+                                                Expect.fail "Unable to parse Can.toString version of parsed query"
 
-                                                Ok parsedAgain ->
-                                                    Expect.equal query parsedAgain
+                                            Ok parsedAgain ->
+                                                Expect.equal query parsedAgain
 
-                                        _ ->
-                                            Expect.fail "Can AST has too many definitions"
+                                    _ ->
+                                        Expect.fail "Can AST has too many definitions"
         ]
 
 
