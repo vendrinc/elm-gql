@@ -3,8 +3,22 @@ module Operations exposing (..)
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import GraphQL.Operations.AST as AST
+import GraphQL.Operations.CanonicalAST as Can
+import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Parse as Parse
+import GraphQL.Schema
+import Json.Decode
+import Schema
 import Test exposing (..)
+
+
+schema =
+    case Json.Decode.decodeString GraphQL.Schema.decoder Schema.schemaString of
+        Ok parsed ->
+            parsed
+
+        Err errs ->
+            Debug.todo (Debug.toString errs)
 
 
 suite : Test
@@ -40,11 +54,95 @@ suite =
                         Err _ ->
                             False
                     )
+        , only <|
+            test "Round trip -> Parse -> Canonicalize -> Can.toString -> Parse" <|
+                \_ ->
+                    case Parse.parse queries.deals of
+                        Err err ->
+                            Expect.fail "Deals failed to parse"
+
+                        Ok query ->
+                            case Canonicalize.canonicalize schema query of
+                                Err errors ->
+                                    Expect.fail "Deals failed to canonicalize"
+
+                                Ok canAST ->
+                                    case canAST.definitions of
+                                        [] ->
+                                            Expect.fail "Can AST has no defintions!"
+
+                                        [ def ] ->
+                                            let
+                                                newString =
+                                                    Can.toString def
+                                            in
+                                            case Parse.parse newString of
+                                                Err err ->
+                                                    Expect.fail "Unable to parse Can.toString version of parsed query"
+
+                                                Ok parsedAgain ->
+                                                    Expect.equal query parsedAgain
+
+                                        _ ->
+                                            Expect.fail "Can AST has too many definitions"
         ]
 
 
 queries =
-    { simple =
+    { deals = """query DealDetailsInit(
+   $id: ID!
+) {
+  deal(id: $id) {
+    ... on Deal {
+      __typename
+      app {
+          name
+          logo
+      }
+
+      dealType
+      stage
+      stakeholders {
+        name
+        email
+      }
+      primaryStakeholder {
+        name
+        email
+      }
+      financialStakeholder {
+        name
+        email
+      }
+      legalStakeholder {
+        name
+        email
+      }
+      securityStakeholder {
+        name
+        email
+      }
+      dueBy
+      contractEndDate
+      renewal
+      previousContractValue
+      supplierQuote
+      negotiatedPrice
+
+      activity {
+        title
+        created
+      }
+    }
+    ... on NotFoundError {
+        __typename
+        message
+    }
+
+  }
+}
+"""
+    , simple =
         """query {
   organization {
     # Comment
