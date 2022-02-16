@@ -6,8 +6,6 @@ import Dict exposing (Dict)
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
-import Internal.Compiler exposing (formatValue)
-import Utils.String
 
 
 type Error
@@ -1210,6 +1208,15 @@ type UsedNames
         }
 
 
+formatTypename : String -> String
+formatTypename name =
+    let
+        first =
+            String.left 1 name
+    in
+    String.toUpper first ++ String.dropLeft 1 name
+
+
 {-|
 
     This will retrieve a globally unique name.
@@ -1243,11 +1250,11 @@ getGlobalName name (UsedNames used) =
                                     -- we do this to havea better chance of having
                                     -- a nice top level name
                                     -- The name with full breadcrumbs is pretty big.
-                                    top ++ "_" ++ Utils.String.formatTypename name
+                                    top ++ "_" ++ formatTypename name
                     in
                     if List.member tempGlobalName used.globalNames then
                         -- we know that breadcrumbs are unique themselves
-                        String.join "_" crumbs ++ "_" ++ Utils.String.formatTypename name
+                        String.join "_" crumbs ++ "_" ++ formatTypename name
 
                     else
                         tempGlobalName
@@ -1449,7 +1456,7 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
                         (Can.FieldScalar
                             { alias_ = Maybe.map convertName field.alias_
                             , name = convertName field.name
-                            , arguments = []
+                            , arguments = field.arguments
                             , directives = List.map convertDirective field.directives
                             , type_ = schemaField.type_
                             }
@@ -1585,7 +1592,7 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
                                                         (Can.FieldUnion
                                                             { alias_ = Maybe.map convertName field.alias_
                                                             , name = convertName field.name
-                                                            , arguments = []
+                                                            , arguments = field.arguments
                                                             , directives = List.map convertDirective field.directives
                                                             , selection = canSelection
                                                             , union = union
