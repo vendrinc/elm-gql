@@ -95,6 +95,7 @@ type alias FieldUnionDetails =
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection
+    , remainingTags : List String
     , union : GraphQL.Schema.UnionDetails
     , wrapper : GraphQL.Schema.Wrapped
     }

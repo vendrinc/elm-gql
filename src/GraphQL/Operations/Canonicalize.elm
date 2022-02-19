@@ -1605,30 +1605,19 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
                                     case selectionResult.result of
                                         CanSuccess cache canSelection ->
                                             ( selectionResult.fieldNames
-                                            , case selectionResult.variants of
-                                                [] ->
-                                                    CanSuccess (addVars vars cache)
-                                                        (Can.FieldUnion
-                                                            { alias_ = Maybe.map convertName field.alias_
-                                                            , name = convertName field.name
-                                                            , globalAlias = Can.Name global.globalName
-                                                            , arguments = field.arguments
-                                                            , directives = List.map convertDirective field.directives
-                                                            , selection = canSelection
-                                                            , union = union
-                                                            , wrapper = GraphQL.Schema.getWrap schemaField.type_
-                                                            }
-                                                        )
-
-                                                leftover ->
-                                                    err
-                                                        [ error
-                                                            (NonExhaustiveVariants
-                                                                { unionName = name
-                                                                , leftOver = leftover
-                                                                }
-                                                            )
-                                                        ]
+                                            , CanSuccess (addVars vars cache)
+                                                (Can.FieldUnion
+                                                    { alias_ = Maybe.map convertName field.alias_
+                                                    , name = convertName field.name
+                                                    , globalAlias = Can.Name global.globalName
+                                                    , arguments = field.arguments
+                                                    , directives = List.map convertDirective field.directives
+                                                    , selection = canSelection
+                                                    , remainingTags = selectionResult.variants
+                                                    , union = union
+                                                    , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                                    }
+                                                )
                                             )
 
                                         CanError errorMsg ->

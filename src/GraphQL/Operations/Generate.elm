@@ -499,12 +499,17 @@ genAliasedTypes namespace schema knownNames sel =
                         field.alias_
 
                 ( finallyKnownNames, variants ) =
-                    unionVariants namespace schema knownNames3 aliasName field.selection []
+                    unionVariants namespace
+                        schema
+                        knownNames3
+                        aliasName
+                        field.selection
+                        []
             in
             ( finallyKnownNames
             , (Elm.customType
                 desiredTypeName
-                variants
+                (variants ++ ghostVariants field.alias_ field)
                 |> Elm.expose
               )
                 :: newDecls
@@ -515,6 +520,24 @@ genAliasedTypes namespace schema knownNames sel =
 
         _ ->
             ( knownNames, [] )
+
+
+ghostVariants : Maybe Can.Name -> Can.FieldUnionDetails -> List Elm.Variant
+ghostVariants maybeAlias union =
+    let
+        toVariant tag =
+            Elm.variant (unionVariantName maybeAlias tag)
+    in
+    List.map toVariant union.remainingTags
+
+
+unionVariantName maybeAlias tag =
+    case maybeAlias of
+        Nothing ->
+            Utils.String.formatTypename tag
+
+        Just alis ->
+            Utils.String.formatTypename (Can.nameToString alis ++ tag)
 
 
 fieldsToAliasedRecord :
@@ -1237,6 +1260,16 @@ decodeUnion namespace index fieldName union =
                                 union.alias_
                                 union.selection
                                 []
+                                ++ List.map
+                                    (\tag ->
+                                        ( Pattern.string tag
+                                        , Decode.succeed
+                                            (Elm.value
+                                                (unionVariantName union.alias_ tag)
+                                            )
+                                        )
+                                    )
+                                    union.remainingTags
                                 ++ [ ( Pattern.wildcard
                                      , Decode.fail (Elm.string "Unknown union type")
                                      )
@@ -1246,7 +1279,13 @@ decodeUnion namespace index fieldName union =
             )
 
 
-toUnionVariantPattern : Namespace -> Index -> Maybe Can.Name -> List Can.Selection -> List ( Pattern.Pattern, Elm.Expression ) -> List ( Pattern.Pattern, Elm.Expression )
+toUnionVariantPattern :
+    Namespace
+    -> Index
+    -> Maybe Can.Name
+    -> List Can.Selection
+    -> List ( Pattern.Pattern, Elm.Expression )
+    -> List ( Pattern.Pattern, Elm.Expression )
 toUnionVariantPattern namespace index maybeAlias sels patterns =
     case sels of
         [] ->
