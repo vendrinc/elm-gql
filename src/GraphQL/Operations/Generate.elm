@@ -446,20 +446,25 @@ aliasedTypes namespace schema usedNames def =
                 |> Tuple.second
 
 
-genAliasedTypes : Namespace -> GraphQL.Schema.Schema -> Set.Set String -> Can.Selection -> ( Set.Set String, List Elm.Declaration )
+genAliasedTypes :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> Set.Set String
+    -> Can.Selection
+    -> ( Set.Set String, List Elm.Declaration )
 genAliasedTypes namespace schema knownNames sel =
     case sel of
         Can.FieldObject obj ->
             let
+                desiredName =
+                    Can.nameToString obj.globalAlias
+
                 ( resolvedName, knownNames2 ) =
                     resolveNewName desiredName
                         knownNames
 
                 ( knownNames3, newDecls ) =
                     generateTypesForFields (genAliasedTypes namespace schema) knownNames2 [] obj.selection
-
-                desiredName =
-                    Can.nameToString obj.globalAlias
 
                 ( finalNames, fieldResult ) =
                     fieldsToAliasedRecord namespace
@@ -477,7 +482,33 @@ genAliasedTypes namespace schema knownNames sel =
             )
 
         Can.FieldUnion field ->
-            generateTypesForFields (genAliasedTypes namespace schema) knownNames [] field.selection
+            let
+                desiredName =
+                    Can.nameToString field.globalAlias
+
+                ( desiredTypeName, newKnownNames2 ) =
+                    resolveNewName desiredName
+                        knownNames
+
+                ( knownNames3, newDecls ) =
+                    generateTypesForFields (genAliasedTypes namespace schema) newKnownNames2 [] field.selection
+
+                aliasName =
+                    Maybe.map
+                        Can.nameToString
+                        field.alias_
+
+                ( finallyKnownNames, variants ) =
+                    unionVariants namespace schema knownNames3 aliasName field.selection []
+            in
+            ( finallyKnownNames
+            , (Elm.customType
+                desiredTypeName
+                variants
+                |> Elm.expose
+              )
+                :: newDecls
+            )
 
         Can.UnionCase unionCase ->
             generateTypesForFields (genAliasedTypes namespace schema) knownNames [] unionCase.selection
@@ -565,41 +596,26 @@ fieldAliasedAnnotation namespace schema knownNames parent selection =
 
         Can.FieldUnion field ->
             let
-                ( desiredTypeName, newKnownNames2 ) =
-                    getDesiredTypeName newKnownNames selection
+                annotation =
+                    Input.wrapElmType field.wrapper
+                        (Type.named
+                            []
+                            -- desiredName
+                            (Can.nameToString field.globalAlias)
+                        )
             in
-            case field.selection of
-                [] ->
-                    let
-                        annotation =
-                            case parent of
-                                Nothing ->
-                                    Type.unit
-
-                                Just par ->
-                                    getScalarType par (Can.nameToString field.name) schema
-                                        |> schemaTypeToPrefab
-                    in
-                    { name = desiredName
-                    , annotation = annotation
-                    , knownNames = newKnownNames2
-                    }
-
-                sels ->
-                    let
-                        annotation =
-                            Type.named
-                                []
-                                desiredTypeName
-                                |> Input.wrapElmType field.wrapper
-                    in
-                    { name = desiredName
-                    , annotation = annotation
-                    , knownNames = newKnownNames2
-                    }
+            { name = desiredName
+            , annotation = annotation
+            , knownNames = newKnownNames
+            }
 
 
-generateChildTypes : Namespace -> GraphQL.Schema.Schema -> Set.Set String -> Can.Selection -> ( Set.Set String, List Elm.Declaration )
+generateChildTypes :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> Set.Set String
+    -> Can.Selection
+    -> ( Set.Set String, List Elm.Declaration )
 generateChildTypes namespace schema knownNames sel =
     case sel of
         Can.FieldObject obj ->
@@ -631,29 +647,27 @@ generateChildTypes namespace schema knownNames sel =
         --         :: newDecls
         -- )
         Can.FieldUnion field ->
-            let
-                ( desiredTypeName, newKnownNames2 ) =
-                    getDesiredTypeName knownNames sel
-
-                aliasName =
-                    Maybe.map
-                        Can.nameToString
-                        field.alias_
-
-                ( newSet, newDecls ) =
-                    generateTypesForFields (generateChildTypes namespace schema) newKnownNames2 [] field.selection
-
-                ( finallyKnownNames, variants ) =
-                    unionVariants namespace schema newSet aliasName field.selection []
-            in
-            ( finallyKnownNames
-            , (Elm.customType
-                desiredTypeName
-                variants
-                |> Elm.exposeConstructorAndGroup "necessary"
-              )
-                :: newDecls
-            )
+            -- let
+            --     ( desiredTypeName, newKnownNames2 ) =
+            --         getDesiredTypeName knownNames sel
+            --     aliasName =
+            --         Maybe.map
+            --             Can.nameToString
+            --             field.alias_
+            --     ( newSet, newDecls ) =
+            --         generateTypesForFields (generateChildTypes namespace schema) newKnownNames2 [] field.selection
+            --     ( finallyKnownNames, variants ) =
+            --         unionVariants namespace schema newSet aliasName field.selection []
+            -- in
+            -- ( finallyKnownNames
+            -- , (Elm.customType
+            --     desiredTypeName
+            --     variants
+            --     |> Elm.exposeConstructorAndGroup "necessary"
+            --   )
+            --     :: newDecls
+            -- )
+            ( knownNames, [] )
 
         Can.UnionCase unionCase ->
             generateTypesForFields (generateChildTypes namespace schema) knownNames [] unionCase.selection
@@ -697,7 +711,7 @@ unionVariants namespace schema knownNames alias_ selections variants =
                         fields ->
                             let
                                 ( knownNames2, record ) =
-                                    fieldsToRecord
+                                    fieldsToAliasedRecord
                                         namespace
                                         schema
                                         knownNames
@@ -1282,7 +1296,7 @@ fieldParameters field =
         name =
             Can.getAliasedName field
     in
-    ( Pattern.var name, Type.unit )
+    ( Pattern.var (Utils.String.formatValue name), Type.unit )
 
 
 buildRecordFromVariantFields : Can.Selection -> Elm.Field

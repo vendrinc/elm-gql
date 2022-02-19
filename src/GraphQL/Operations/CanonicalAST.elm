@@ -91,6 +91,7 @@ type alias FieldObjectDetails =
 type alias FieldUnionDetails =
     { alias_ : Maybe Name
     , name : Name
+    , globalAlias : Name
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection

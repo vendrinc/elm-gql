@@ -1314,6 +1314,16 @@ dropLevel (UsedNames used) =
         }
 
 
+{-| -}
+resetSiblings : UsedNames -> UsedNames -> UsedNames
+resetSiblings (UsedNames to) (UsedNames used) =
+    UsedNames
+        { used
+            | siblingAliases =
+                to.siblingAliases
+        }
+
+
 canonicalizeField :
     GraphQL.Schema.Schema
     -> GraphQL.Schema.ObjectDetails
@@ -1556,6 +1566,15 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
 
                                 Just variants ->
                                     let
+                                        aliasedName =
+                                            field.alias_
+                                                |> Maybe.withDefault field.name
+                                                |> convertName
+                                                |> Can.nameToString
+
+                                        global =
+                                            getGlobalName aliasedName usedNames
+
                                         selectsForTypename =
                                             List.any
                                                 (\sel ->
@@ -1577,7 +1596,7 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
                                             List.foldl
                                                 (canonicalizeUnionField schema union)
                                                 { result = emptySuccess
-                                                , fieldNames = usedNames
+                                                , fieldNames = global.used
                                                 , variants = variants
                                                 , typenameAlreadySelected = selectsForTypename
                                                 }
@@ -1592,6 +1611,7 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
                                                         (Can.FieldUnion
                                                             { alias_ = Maybe.map convertName field.alias_
                                                             , name = convertName field.name
+                                                            , globalAlias = Can.Name global.globalName
                                                             , arguments = field.arguments
                                                             , directives = List.map convertDirective field.directives
                                                             , selection = canSelection
@@ -1758,7 +1778,20 @@ canonicalizeUnionField schema union selection found =
 
                                     selectionResult =
                                         List.foldl
-                                            (canonicalizeField schema obj)
+                                            (\sel cursor ->
+                                                let
+                                                    canoned =
+                                                        canonicalizeField schema obj sel cursor
+                                                in
+                                                { canoned
+                                                    | fieldNames =
+                                                        -- the weird thing we're doing here is so that field-name-collision
+                                                        -- does not occur within a UnionCase
+                                                        -- meaning separate UnionCases can use the same names and not collide.
+                                                        resetSiblings cursor.fieldNames
+                                                            canoned.fieldNames
+                                                }
+                                            )
                                             { result = emptySuccess
                                             , fieldNames = found.fieldNames
                                             }
