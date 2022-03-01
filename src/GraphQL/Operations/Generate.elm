@@ -510,7 +510,7 @@ genAliasedTypes namespace schema knownNames sel =
             , (Elm.customType
                 desiredTypeName
                 (variants ++ ghostVariants field.alias_ field)
-                |> Elm.expose
+                |> Elm.exposeConstructorAndGroup "unions"
               )
                 :: newDecls
             )
