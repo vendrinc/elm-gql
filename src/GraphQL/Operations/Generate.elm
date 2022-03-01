@@ -1024,7 +1024,7 @@ enumValue namespace enumName val =
         , "Enum"
         , Utils.String.formatTypename enumName
         ]
-        val
+        (Utils.String.formatTypename val)
 
 
 enumType : Namespace -> String -> Type.Annotation
