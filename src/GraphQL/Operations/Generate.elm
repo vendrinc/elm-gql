@@ -642,54 +642,9 @@ generateChildTypes :
 generateChildTypes namespace schema knownNames sel =
     case sel of
         Can.FieldObject obj ->
-            -- let
-            --     ( newSet, newDecls ) =
             generateTypesForFields (generateChildTypes namespace schema) knownNames [] obj.selection
 
-        --     desiredName =
-        --         Maybe.withDefault (Can.nameToString obj.name)
-        --             (Maybe.map
-        --                 Can.nameToString
-        --                 obj.alias_
-        --             )
-        -- in
-        -- ( Set.insert desiredName newSet
-        -- , if Set.member desiredName newSet then
-        --     newDecls
-        --   else
-        --     (Elm.alias
-        --         desiredName
-        --         (Type.record
-        --             (List.map
-        --                 (fieldAnnotation namespace schema Nothing)
-        --                 obj.selection
-        --             )
-        --         )
-        --         |> Elm.expose
-        --     )
-        --         :: newDecls
-        -- )
         Can.FieldUnion field ->
-            -- let
-            --     ( desiredTypeName, newKnownNames2 ) =
-            --         getDesiredTypeName knownNames sel
-            --     aliasName =
-            --         Maybe.map
-            --             Can.nameToString
-            --             field.alias_
-            --     ( newSet, newDecls ) =
-            --         generateTypesForFields (generateChildTypes namespace schema) newKnownNames2 [] field.selection
-            --     ( finallyKnownNames, variants ) =
-            --         unionVariants namespace schema newSet aliasName field.selection []
-            -- in
-            -- ( finallyKnownNames
-            -- , (Elm.customType
-            --     desiredTypeName
-            --     variants
-            --     |> Elm.exposeConstructorAndGroup "necessary"
-            --   )
-            --     :: newDecls
-            -- )
             ( knownNames, [] )
 
         Can.UnionCase unionCase ->
