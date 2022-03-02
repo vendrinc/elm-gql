@@ -60,6 +60,11 @@ type ErrorDetails
     | ObjectUnknown String
     | UnionUnknown String
     | UnknownArgName String
+    | EmptySelection
+        { field : String
+        , fieldType : String
+        , options : List { field : String, type_ : String }
+        }
     | FieldUnknown
         { object : String
         , field : String
@@ -187,7 +192,6 @@ errorToString (Error details) =
                 [ "I don't recognize this name:"
                 , block
                     [ yellow name ]
-                , "Add an alias to one of them so there's no confusion!"
                 ]
 
         QueryUnknown name ->
@@ -195,7 +199,6 @@ errorToString (Error details) =
                 [ "I don't recognize this query:"
                 , block
                     [ yellow name ]
-                , "Add an alias to one of them so there's no confusion!"
                 ]
 
         ObjectUnknown name ->
@@ -203,7 +206,6 @@ errorToString (Error details) =
                 [ "I don't recognize this object:"
                 , block
                     [ yellow name ]
-                , "Add an alias to one of them so there's no confusion!"
                 ]
 
         UnionUnknown name ->
@@ -211,7 +213,6 @@ errorToString (Error details) =
                 [ "I don't recognize this union:"
                 , block
                     [ yellow name ]
-                , "Add an alias to one of them so there's no confusion!"
                 ]
 
         UnknownArgName name ->
@@ -228,6 +229,22 @@ errorToString (Error details) =
 
         UndeclaredVariable undeclared ->
             "Undeclared variable: " ++ undeclared.name
+
+        EmptySelection deets ->
+            String.join "\n"
+                [ "This field isn't selecting anything"
+                , block
+                    [ yellow deets.field ]
+                , "But it is a " ++ yellow deets.fieldType ++ ", which needs to select some fields."
+                , "You can either remove it or select one of the following fields:"
+                , block
+                    (List.map
+                        (\opt ->
+                            yellow opt.field ++ ": " ++ cyan opt.type_
+                        )
+                        deets.options
+                    )
+                ]
 
         FieldAliasRequired deets ->
             String.join "\n"
@@ -389,58 +406,12 @@ canonicalize schema doc =
         fragments =
             getFragments schema doc
     in
-    case reduce (canonicalizeDefinition schema) doc.definitions (CanSuccess fragments []) of
+    case reduce2 (canonicalizeDefinition schema) doc.definitions (CanSuccess fragments []) of
         CanSuccess cache defs ->
-            case reduceOld (replaceVarTypes cache) defs (Ok []) of
-                Ok defsWithVars ->
-                    Ok { definitions = defsWithVars }
-
-                Err errorMsg ->
-                    Err errorMsg
+            Ok { definitions = defs }
 
         CanError errorMsg ->
             Err errorMsg
-
-
-replaceVarTypes : VarCache -> Can.Definition -> Result (List Error) Can.Definition
-replaceVarTypes cache (Can.Operation def) =
-    case reduceOld (getVarTypeNamed cache.varTypes) def.variableDefinitions (Ok []) of
-        Ok varDefs ->
-            Ok
-                (Can.Operation
-                    { def
-                        | variableDefinitions =
-                            varDefs
-                    }
-                )
-
-        Err errMsg ->
-            Err errMsg
-
-
-getVarTypeNamed : List ( String, GraphQL.Schema.Type ) -> Can.VariableDefinition -> Result (List Error) Can.VariableDefinition
-getVarTypeNamed vars target =
-    let
-        targetName =
-            Can.nameToString target.variable.name
-
-        found =
-            List.filter
-                (\( varName, var ) ->
-                    varName == targetName
-                )
-                vars
-                |> List.head
-    in
-    case found of
-        Nothing ->
-            Err [ error (UnknownArgName ("CANON" ++ targetName)) ]
-
-        Just ( _, varType ) ->
-            Ok
-                { target
-                    | schemaType = varType
-                }
 
 
 type alias VarCache =
@@ -500,12 +471,12 @@ gatherFragmentsFromDefinitions schema cache defs =
                 remain
 
 
-reduce :
+reduce2 :
     (item -> CanResult result)
     -> List item
     -> CanResult (List result)
     -> CanResult (List result)
-reduce isValid items res =
+reduce2 isValid items res =
     case items of
         [] ->
             res
@@ -515,7 +486,7 @@ reduce isValid items res =
                 CanSuccess cache valid ->
                     case res of
                         CanSuccess existingCache existing ->
-                            reduce isValid
+                            reduce2 isValid
                                 remain
                                 (CanSuccess (mergeCaches cache existingCache) (valid :: existing))
 
@@ -532,7 +503,7 @@ reduce isValid items res =
                                 CanError existingErrors ->
                                     CanError (errorMessage ++ existingErrors)
                     in
-                    reduce isValid remain newResult
+                    reduce2 isValid remain newResult
 
 
 reduceOld :
@@ -1482,57 +1453,88 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
                             ( usedNames, err [ error (ObjectUnknown name) ] )
 
                         Just obj ->
-                            let
-                                aliasedName =
-                                    field.alias_
-                                        |> Maybe.withDefault field.name
-                                        |> convertName
-                                        |> Can.nameToString
+                            case field.selection of
+                                [] ->
+                                    -- This is an object with no selection, which isn't allowed for gql.
+                                    ( usedNames
+                                    , err
+                                        [ error
+                                            (EmptySelection
+                                                { field =
+                                                    case field.alias_ of
+                                                        Nothing ->
+                                                            AST.nameToString field.name
 
-                                global =
-                                    getGlobalName aliasedName usedNames
-
-                                selectionResult =
-                                    List.foldl
-                                        (canonicalizeField schema obj)
-                                        { result = emptySuccess
-                                        , fieldNames =
-                                            global.used
-                                        }
-                                        field.selection
-                            in
-                            case selectionResult.result of
-                                CanSuccess cache canSelection ->
-                                    if siblingCollision aliasedName global.used then
-                                        ( selectionResult.fieldNames
-                                        , err
-                                            [ error
-                                                (FieldAliasRequired
-                                                    { fieldName = aliasedName
-                                                    }
-                                                )
-                                            ]
-                                        )
-
-                                    else
-                                        ( selectionResult.fieldNames
-                                            |> saveSibling aliasedName
-                                        , CanSuccess (addVars vars cache)
-                                            (Can.FieldObject
-                                                { alias_ = Maybe.map convertName field.alias_
-                                                , name = convertName field.name
-                                                , globalAlias = Can.Name global.globalName
-                                                , arguments = field.arguments
-                                                , directives = List.map convertDirective field.directives
-                                                , selection = canSelection
-                                                , object = obj
-                                                , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                                        Just alias ->
+                                                            AST.nameToString alias
+                                                                ++ ": "
+                                                                ++ AST.nameToString field.name
+                                                , fieldType = name
+                                                , options =
+                                                    List.map
+                                                        (\f ->
+                                                            { field = f.name
+                                                            , type_ = GraphQL.Schema.typeToString f.type_
+                                                            }
+                                                        )
+                                                        obj.fields
                                                 }
                                             )
-                                        )
+                                        ]
+                                    )
 
-                                CanError errorMsg ->
-                                    ( global.used, CanError errorMsg )
+                                _ ->
+                                    let
+                                        aliasedName =
+                                            field.alias_
+                                                |> Maybe.withDefault field.name
+                                                |> convertName
+                                                |> Can.nameToString
+
+                                        global =
+                                            getGlobalName aliasedName usedNames
+
+                                        selectionResult =
+                                            List.foldl
+                                                (canonicalizeField schema obj)
+                                                { result = emptySuccess
+                                                , fieldNames =
+                                                    global.used
+                                                }
+                                                field.selection
+                                    in
+                                    case selectionResult.result of
+                                        CanSuccess cache canSelection ->
+                                            if siblingCollision aliasedName global.used then
+                                                ( selectionResult.fieldNames
+                                                , err
+                                                    [ error
+                                                        (FieldAliasRequired
+                                                            { fieldName = aliasedName
+                                                            }
+                                                        )
+                                                    ]
+                                                )
+
+                                            else
+                                                ( selectionResult.fieldNames
+                                                    |> saveSibling aliasedName
+                                                , CanSuccess (addVars vars cache)
+                                                    (Can.FieldObject
+                                                        { alias_ = Maybe.map convertName field.alias_
+                                                        , name = convertName field.name
+                                                        , globalAlias = Can.Name global.globalName
+                                                        , arguments = field.arguments
+                                                        , directives = List.map convertDirective field.directives
+                                                        , selection = canSelection
+                                                        , object = obj
+                                                        , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                                        }
+                                                    )
+                                                )
+
+                                        CanError errorMsg ->
+                                            ( global.used, CanError errorMsg )
 
                 GraphQL.Schema.Enum name ->
                     case Dict.get name schema.enums of
