@@ -315,10 +315,10 @@ unwrapTypeToString wrapper str =
 
         WithinList { required } inner ->
             if required then
-                unwrapTypeToString inner ("[" ++ str ++ "]!")
+                "[" ++ unwrapTypeToString inner str ++ "]!"
 
             else
-                unwrapTypeToString inner ("[" ++ str ++ "]")
+                "[" ++ unwrapTypeToString inner str ++ "]"
 
 
 brackets : String -> String
