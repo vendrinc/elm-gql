@@ -584,7 +584,6 @@ fieldAliasedAnnotation namespace schema knownNames parent selection =
                     Input.wrapElmType field.wrapper
                         (Type.named
                             []
-                            -- desiredName
                             (Can.nameToString field.globalAlias)
                         )
             in
