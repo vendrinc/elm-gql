@@ -263,7 +263,7 @@ errorToString (Error details) =
                 , block
                     [ yellow deets.field ]
                 , "But it is a " ++ yellow deets.fieldType ++ ", which needs to select some fields."
-                , "You can either remove it or select one of the following fields:"
+                , "You can either remove it or select some of the following fields:"
                 , block
                     (List.map
                         (\opt ->
