@@ -366,7 +366,7 @@ getWrapper t wrap =
             wrap
 
         AST.List_ inner ->
-            getWrapper inner wrap
+            getWrapper inner (InList { required = True } wrap)
 
         AST.Nullable inner ->
             case wrap of
@@ -402,7 +402,7 @@ unwrap wrapper str =
 
         InList { required } inner ->
             if required then
-                unwrap inner ("[" ++ str ++ "]!")
+                unwrap inner ("[" ++ str ++ "!]")
 
             else
                 unwrap inner ("[" ++ str ++ "]")
