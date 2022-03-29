@@ -58,6 +58,7 @@ type ErrorDetails
     | QueryUnknown String
     | EnumUnknown String
     | ObjectUnknown String
+    | InterfaceUnknown String
     | UnionUnknown String
     | UnknownArgs
         { field : String
@@ -208,6 +209,13 @@ errorToString (Error details) =
         ObjectUnknown name ->
             String.join "\n"
                 [ "I don't recognize this object:"
+                , block
+                    [ yellow name ]
+                ]
+
+        InterfaceUnknown name ->
+            String.join "\n"
+                [ "I don't recognize this interface:"
                 , block
                     [ yellow name ]
                 ]
@@ -1462,88 +1470,7 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
                         ( usedNames, err [ error (ObjectUnknown name) ] )
 
                     Just obj ->
-                        case field.selection of
-                            [] ->
-                                -- This is an object with no selection, which isn't allowed for gql.
-                                ( usedNames
-                                , err
-                                    [ error
-                                        (EmptySelection
-                                            { field =
-                                                case field.alias_ of
-                                                    Nothing ->
-                                                        AST.nameToString field.name
-
-                                                    Just alias ->
-                                                        AST.nameToString alias
-                                                            ++ ": "
-                                                            ++ AST.nameToString field.name
-                                            , fieldType = name
-                                            , options =
-                                                List.map
-                                                    (\f ->
-                                                        { field = f.name
-                                                        , type_ = GraphQL.Schema.typeToString f.type_
-                                                        }
-                                                    )
-                                                    obj.fields
-                                            }
-                                        )
-                                    ]
-                                )
-
-                            _ ->
-                                let
-                                    aliasedName =
-                                        field.alias_
-                                            |> Maybe.withDefault field.name
-                                            |> convertName
-                                            |> Can.nameToString
-
-                                    global =
-                                        getGlobalName aliasedName usedNames
-
-                                    selectionResult =
-                                        List.foldl
-                                            (canonicalizeField schema obj)
-                                            { result = emptySuccess
-                                            , fieldNames =
-                                                global.used
-                                            }
-                                            field.selection
-                                in
-                                case selectionResult.result of
-                                    CanSuccess cache canSelection ->
-                                        if siblingCollision aliasedName global.used then
-                                            ( selectionResult.fieldNames
-                                            , err
-                                                [ error
-                                                    (FieldAliasRequired
-                                                        { fieldName = aliasedName
-                                                        }
-                                                    )
-                                                ]
-                                            )
-
-                                        else
-                                            ( selectionResult.fieldNames
-                                                |> saveSibling aliasedName
-                                            , CanSuccess (addVars vars cache)
-                                                (Can.FieldObject
-                                                    { alias_ = Maybe.map convertName field.alias_
-                                                    , name = convertName field.name
-                                                    , globalAlias = Can.Name global.globalName
-                                                    , arguments = field.arguments
-                                                    , directives = List.map convertDirective field.directives
-                                                    , selection = canSelection
-                                                    , object = obj
-                                                    , wrapper = GraphQL.Schema.getWrap schemaField.type_
-                                                    }
-                                                )
-                                            )
-
-                                    CanError errorMsg ->
-                                        ( global.used, CanError errorMsg )
+                        canonicalizeObject schema field usedNames schemaField vars obj
 
             GraphQL.Schema.Enum name ->
                 case Dict.get name schema.enums of
@@ -1635,13 +1562,141 @@ canonicalizeFieldType schema field type_ usedNames selection schemaField =
                                         ( selectionResult.fieldNames, CanError errorMsg )
 
             GraphQL.Schema.Interface name ->
-                ( usedNames, err [ todo "Field Interfaces!" ] )
+                let
+                    usesFragmentSelection : Bool
+                    usesFragmentSelection =
+                        List.any
+                            (\sel ->
+                                case sel of
+                                    AST.Field _ ->
+                                        False
+
+                                    AST.FragmentSpreadSelection _ ->
+                                        True
+
+                                    AST.InlineFragmentSelection _ ->
+                                        True
+                            )
+                            field.selection
+                in
+                if usesFragmentSelection then
+                    ( usedNames, err [ todo "Fragment selection on interfaces" ] )
+
+                else
+                    case Dict.get name schema.interfaces of
+                        Nothing ->
+                            ( usedNames, err [ error (InterfaceUnknown name) ] )
+
+                        Just iface ->
+                            canonicalizeObject schema
+                                field
+                                usedNames
+                                schemaField
+                                vars
+                                { name = iface.name
+                                , description = iface.description
+                                , fields = iface.fields
+                                , interfaces = []
+                                }
 
             GraphQL.Schema.List_ inner ->
                 canonicalizeFieldType schema field inner usedNames selection schemaField
 
             GraphQL.Schema.Nullable inner ->
                 canonicalizeFieldType schema field inner usedNames selection schemaField
+
+
+canonicalizeObject :
+    GraphQL.Schema.Schema
+    -> AST.FieldDetails
+    -> UsedNames
+    -> GraphQL.Schema.Field
+    -> List ( String, GraphQL.Schema.Type )
+    -> GraphQL.Schema.ObjectDetails
+    -> ( UsedNames, CanResult Can.Selection )
+canonicalizeObject schema field usedNames schemaField vars obj =
+    case field.selection of
+        [] ->
+            -- This is an object with no selection, which isn't allowed for gql.
+            ( usedNames
+            , err
+                [ error
+                    (EmptySelection
+                        { field =
+                            case field.alias_ of
+                                Nothing ->
+                                    AST.nameToString field.name
+
+                                Just alias ->
+                                    AST.nameToString alias
+                                        ++ ": "
+                                        ++ AST.nameToString field.name
+                        , fieldType = obj.name
+                        , options =
+                            List.map
+                                (\f ->
+                                    { field = f.name
+                                    , type_ = GraphQL.Schema.typeToString f.type_
+                                    }
+                                )
+                                obj.fields
+                        }
+                    )
+                ]
+            )
+
+        _ ->
+            let
+                aliasedName =
+                    field.alias_
+                        |> Maybe.withDefault field.name
+                        |> convertName
+                        |> Can.nameToString
+
+                global =
+                    getGlobalName aliasedName usedNames
+
+                selectionResult =
+                    List.foldl
+                        (canonicalizeField schema obj)
+                        { result = emptySuccess
+                        , fieldNames =
+                            global.used
+                        }
+                        field.selection
+            in
+            case selectionResult.result of
+                CanSuccess cache canSelection ->
+                    if siblingCollision aliasedName global.used then
+                        ( selectionResult.fieldNames
+                        , err
+                            [ error
+                                (FieldAliasRequired
+                                    { fieldName = aliasedName
+                                    }
+                                )
+                            ]
+                        )
+
+                    else
+                        ( selectionResult.fieldNames
+                            |> saveSibling aliasedName
+                        , CanSuccess (addVars vars cache)
+                            (Can.FieldObject
+                                { alias_ = Maybe.map convertName field.alias_
+                                , name = convertName field.name
+                                , globalAlias = Can.Name global.globalName
+                                , arguments = field.arguments
+                                , directives = List.map convertDirective field.directives
+                                , selection = canSelection
+                                , object = obj
+                                , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                }
+                            )
+                        )
+
+                CanError errorMsg ->
+                    ( global.used, CanError errorMsg )
 
 
 extractUnionTags : List GraphQL.Schema.Variant -> List String -> Maybe (List String)
