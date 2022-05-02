@@ -76,6 +76,7 @@ async function run_generator(generator: any, output_dir: string, flags: any) {
         format_title(reason.title, reason.file),
         "\n\n" + reason.description + "\n"
       );
+      process.exit(1)
     });
   return promise;
 }
