@@ -55,7 +55,7 @@ type Selection
     | FieldUnion FieldUnionDetails
     | FieldScalar FieldScalarDetails
     | FieldEnum FieldEnumDetails
-    | UnionCase UnionCaseDetails
+    | FieldInterface FieldInterfaceDetails
 
 
 type alias FieldDetails =
@@ -95,9 +95,31 @@ type alias FieldUnionDetails =
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection
+    , variants : List UnionCaseDetails
     , remainingTags : List String
     , union : GraphQL.Schema.UnionDetails
     , wrapper : GraphQL.Schema.Wrapped
+    }
+
+
+type alias FieldInterfaceDetails =
+    { alias_ : Maybe Name
+    , name : Name
+    , globalAlias : Name
+    , arguments : List Argument
+    , directives : List Directive
+    , selection : List Selection
+    , selectedDetails : List InterfaceCase
+    , remainingTags : List String
+    , interface : GraphQL.Schema.InterfaceDetails
+    , wrapper : GraphQL.Schema.Wrapped
+    }
+
+
+type alias InterfaceCase =
+    { tag : Name
+    , directives : List Directive
+    , selection : List Selection
     }
 
 
@@ -147,8 +169,8 @@ getAliasedName sel =
         FieldEnum details ->
             nameToString (Maybe.withDefault details.name details.alias_)
 
-        UnionCase details ->
-            nameToString details.tag
+        FieldInterface details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
 
 
 nameToString : Name -> String
@@ -207,7 +229,11 @@ selectionToString sel =
             selectFieldToString details
 
         FieldUnion details ->
-            selectFieldToString details
+            aliasedName details
+                ++ brackets
+                    (foldToString "\n" selectionToString details.selection
+                        ++ foldToString "\n" unionCaseToString details.variants
+                    )
 
         FieldScalar details ->
             aliasedName details
@@ -215,11 +241,28 @@ selectionToString sel =
         FieldEnum details ->
             aliasedName details
 
-        UnionCase details ->
-            "... on "
-                ++ nameToString details.tag
-                ++ " "
-                ++ brackets (foldToString "\n" selectionToString details.selection)
+        FieldInterface details ->
+            aliasedName details
+                ++ brackets
+                    (foldToString "\n" selectionToString details.selection
+                        ++ foldToString "\n" interfaceCaseToString details.selectedDetails
+                    )
+
+
+unionCaseToString : UnionCaseDetails -> String
+unionCaseToString instance =
+    "... on "
+        ++ nameToString instance.tag
+        ++ " "
+        ++ brackets (foldToString "\n" selectionToString instance.selection)
+
+
+interfaceCaseToString : InterfaceCase -> String
+interfaceCaseToString instance =
+    "... on "
+        ++ nameToString instance.tag
+        ++ " "
+        ++ brackets (foldToString "\n" selectionToString instance.selection)
 
 
 selectFieldToString :
