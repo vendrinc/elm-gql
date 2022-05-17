@@ -4,7 +4,7 @@ module GraphQL.Schema exposing
     , Kind(..), Schema, Type(..)
     , mockScalar
     , Wrapped(..), getWrap, getInner
-    , Argument, Field, InputObjectDetails, Namespace, ObjectDetails, UnionDetails, Variant, kindToString, typeToElmString, typeToString
+    , Argument, Field, InputObjectDetails, InterfaceDetails, Namespace, ObjectDetails, UnionDetails, Variant, kindToString, typeToElmString, typeToString
     )
 
 {-|
