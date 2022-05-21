@@ -1326,31 +1326,6 @@ decodeFields namespace index fields exp =
                                 , Utils.String.formatTypename enum.enumName
                                 ]
                                 "decoder"
-                             -- Decode.string
-                             -- |> Decode.andThen
-                             --     (\_ ->
-                             --         Elm.lambda "enum"
-                             --             Type.string
-                             --             (\str ->
-                             --                 Elm.caseOf (Elm.Gen.String.toLower str)
-                             --                     (List.map
-                             --                         (\value ->
-                             --                             ( Pattern.string (String.toLower value.name)
-                             --                             , Decode.succeed
-                             --                                 (enumValue namespace
-                             --                                     enum.enumName
-                             --                                     value.name
-                             --                                 )
-                             --                             )
-                             --                         )
-                             --                         enum.values
-                             --                         ++ [ ( Pattern.wildcard
-                             --                              , Decode.fail (Elm.string "I don't recognize this enum!")
-                             --                              )
-                             --                            ]
-                             --                     )
-                             --             )
-                             --     )
                             )
                         )
                         exp
