@@ -11,8 +11,9 @@
     "prefab:pull": "git submodule update --init --recursive",
     "elm-prefab": "node ./elm-prefab/dist/index.js",
     "clean": "rm -rf ./output",
-    "build": "node cli/build.js ; tsc ; yarn build:elm ; cp cli/package.json dist/package.json",
+    "build": "node cli/build.js ; tsc ; yarn build:elm:opt ; cp cli/package.json dist/package.json",
     "build:elm": "elm make src/Generate.elm --output=./dist/generators/schema.js",
+    "build:elm:opt": "elm-optimize-level-2 src/Generate.elm --output=./dist/generators/schema.js",
     "elm-gql": "node ./dist/index.js",
     "elm-gql:test": "node ./dist/index.js --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
     "elm-gql:test-json-schema-file": "node ./dist/index.js --namespace=Api2 --schema=schema.json --gql=gql-ops",
@@ -32,6 +33,7 @@
   "homepage": "https://github.com/Blissfully/elm-gql#readme",
   "devDependencies": {
     "elm-doc-preview": "^5.0.5",
+    "elm-optimize-level-2": "^0.3.4",
     "typescript": "^4.2.4"
   },
   "dependencies": {
