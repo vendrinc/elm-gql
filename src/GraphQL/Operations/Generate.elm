@@ -498,24 +498,43 @@ genAliasedTypes namespace schema knownNames sel =
                         Can.nameToString
                         field.alias_
 
+                -- Generate the record
+                ( knownNames4, interfaceRecord ) =
+                    fieldsToAliasedRecord namespace
+                        schema
+                        knownNames3
+                        Nothing
+                        field.selection
+                        [ ( "specifics_"
+                          , Type.named [] (desiredTypeName ++ "_Specifics")
+                          )
+                        ]
+
                 final =
                     List.foldl
                         (interfaceVariants namespace schema aliasName)
-                        { names = knownNames3
+                        { names = knownNames4
                         , variants = []
                         , declarations = []
                         }
-                        field.selectedDetails
+                        field.variants
 
                 ghostVariants =
                     List.map (Elm.variant << unionVariantName field.alias_) field.remainingTags
             in
             ( final.names
-            , (Elm.customType
+            , Elm.alias
                 desiredTypeName
-                (final.variants ++ ghostVariants)
-                |> Elm.exposeConstructorAndGroup "unions"
-              )
+                (interfaceRecord
+                 -- ++ [ Elm.field "specifics_"
+                 --         (Type.named [] (desiredTypeName ++ "_Specifics"))
+                 --    ]
+                )
+                :: (Elm.customType
+                        (desiredTypeName ++ "_Specifics")
+                        (final.variants ++ ghostVariants)
+                        |> Elm.exposeConstructorAndGroup "unions"
+                   )
                 :: final.declarations
                 ++ newDecls
             )
@@ -547,16 +566,26 @@ fieldsToAliasedRecord namespace schema knownNames maybeParent fieldList result =
             ( knownNames, Type.record (List.reverse result) )
 
         top :: remaining ->
-            let
-                new =
-                    fieldAliasedAnnotation namespace schema knownNames maybeParent top
-            in
-            fieldsToAliasedRecord namespace
-                schema
-                new.knownNames
-                maybeParent
-                remaining
-                (( new.name, new.annotation ) :: result)
+            if Can.isTypeNameSelection top then
+                -- skip it!
+                fieldsToAliasedRecord namespace
+                    schema
+                    knownNames
+                    maybeParent
+                    remaining
+                    result
+
+            else
+                let
+                    new =
+                        fieldAliasedAnnotation namespace schema knownNames maybeParent top
+                in
+                fieldsToAliasedRecord namespace
+                    schema
+                    new.knownNames
+                    maybeParent
+                    remaining
+                    (( new.name, new.annotation ) :: result)
 
 
 fieldAliasedAnnotation :
@@ -1313,8 +1342,103 @@ decodeFields namespace index fields exp =
                     exp
                 )
 
-        _ ->
-            exp
+        ((Can.FieldInterface interface) as field) :: remain ->
+            decodeFields namespace
+                (next index)
+                remain
+                (andField
+                    (Can.Name (Can.getAliasedName field))
+                    (Input.decodeWrapper interface.wrapper
+                        (decodeInterface namespace (child index) (Can.getAliasedName field) interface)
+                    )
+                    exp
+                )
+
+
+decodeInterface : Namespace -> Index -> String -> Can.FieldInterfaceDetails -> Elm.Expression
+decodeInterface namespace index fieldName interface =
+    decodeInterfaceSpecifics namespace index fieldName interface
+
+
+decodeInterfaceSpecifics namespace index fieldName interface =
+    Decode.field (Elm.string "__typename") Decode.string
+        |> Decode.andThen
+            (\_ ->
+                Elm.lambda ("typename" ++ fieldName ++ indexToString index)
+                    Type.string
+                    (\typename ->
+                        Elm.caseOf typename
+                            (List.map
+                                (interfacePattern namespace
+                                    (child index)
+                                    interface.alias_
+                                    interface.selection
+                                )
+                                interface.variants
+                                ++ List.map
+                                    (\tag ->
+                                        ( Pattern.string tag
+                                        , Decode.succeed
+                                            (Elm.value
+                                                (unionVariantName interface.alias_ tag)
+                                            )
+                                        )
+                                    )
+                                    interface.remainingTags
+                                ++ [ ( Pattern.wildcard
+                                     , Decode.fail (Elm.string "Unknown interface type")
+                                     )
+                                   ]
+                            )
+                    )
+            )
+
+
+interfacePattern namespace index maybeAlias commonFields var =
+    let
+        tag =
+            Utils.String.formatTypename (Can.nameToString var.tag)
+
+        tagTypeName =
+            case maybeAlias of
+                Nothing ->
+                    Utils.String.formatTypename (Can.nameToString var.tag)
+
+                Just (Can.Name alias_) ->
+                    Utils.String.formatTypename (alias_ ++ Can.nameToString var.tag)
+
+        allFields =
+            var.selection
+    in
+    ( Pattern.string tag
+    , case List.filter removeTypename allFields of
+        [] ->
+            Decode.succeed (Elm.value tagTypeName)
+
+        fields ->
+            Decode.succeed
+                (Elm.lambdaWith
+                    (List.map fieldParameters fields)
+                    (Elm.record
+                        (List.map
+                            buildRecordFromVariantFields
+                            var.selection
+                        )
+                     -- Elm.apply (Elm.value tagTypeName)
+                     -- ([ Elm.record
+                     --     (List.map buildRecordFromVariantFields commonFields
+                     -- ++ [Elm.field "specifics_"
+                     --         (Elm.record
+                     --             List.map buildRecordFromVariantFields commonFields
+                     --         )
+                     --         ]
+                     --     )
+                     -- ]
+                     -- )
+                    )
+                )
+                |> decodeFields namespace (child index) fields
+    )
 
 
 decodeUnion : Namespace -> Index -> String -> Can.FieldUnionDetails -> Elm.Expression
@@ -1326,11 +1450,12 @@ decodeUnion namespace index fieldName union =
                     Type.string
                     (\typename ->
                         Elm.caseOf typename
-                            (toUnionVariantPattern namespace
-                                (child index)
-                                union.alias_
-                                union.selection
-                                []
+                            (List.map
+                                (unionPattern namespace
+                                    (child index)
+                                    union.alias_
+                                )
+                                union.variants
                                 ++ List.map
                                     (\tag ->
                                         ( Pattern.string tag
@@ -1350,70 +1475,21 @@ decodeUnion namespace index fieldName union =
             )
 
 
-toUnionVariantPattern :
-    Namespace
-    -> Index
-    -> Maybe Can.Name
-    -> List Can.Selection
-    -> List ( Pattern.Pattern, Elm.Expression )
-    -> List ( Pattern.Pattern, Elm.Expression )
-toUnionVariantPattern namespace index maybeAlias sels patterns =
-    case sels of
-        [] ->
-            List.reverse patterns
-
-        (Can.FieldUnion union) :: remain ->
-            (List.map (toUnionVariantPatternHelper namespace index maybeAlias) union.variants ++ patterns)
-                |> toUnionVariantPattern namespace (next index) maybeAlias remain
-
-        -- (Can.UnionCase var) :: remain ->
-        --     let
-        --         tag =
-        --             Utils.String.formatTypename (Can.nameToString var.tag)
-        --         tagTypeName =
-        --             case maybeAlias of
-        --                 Nothing ->
-        --                     Utils.String.formatTypename (Can.nameToString var.tag)
-        --                 Just (Can.Name alias_) ->
-        --                     Utils.String.formatTypename (alias_ ++ Can.nameToString var.tag)
-        --         newPattern =
-        --             ( Pattern.string tag
-        --             , case List.filter removeTypename var.selection of
-        --                 [] ->
-        --                     Decode.succeed (Elm.value tagTypeName)
-        --                 fields ->
-        --                     Decode.succeed
-        --                         (Elm.lambdaWith
-        --                             (List.map fieldParameters fields)
-        --                             (Elm.apply (Elm.value tagTypeName)
-        --                                 [ Elm.record
-        --                                     (List.map buildRecordFromVariantFields fields)
-        --                                 ]
-        --                             )
-        --                         )
-        --                         |> decodeFields namespace (child index) fields
-        --             )
-        --     in
-        --     toUnionVariantPattern namespace (next index) maybeAlias remain (newPattern :: patterns)
-        _ :: remain ->
-            toUnionVariantPattern namespace index maybeAlias remain patterns
-
-
-toUnionVariantPatternHelper namespace index maybeAlias variant =
+unionPattern namespace index maybeAlias var =
     let
         tag =
-            Utils.String.formatTypename (Can.nameToString variant.tag)
+            Utils.String.formatTypename (Can.nameToString var.tag)
 
         tagTypeName =
             case maybeAlias of
                 Nothing ->
-                    Utils.String.formatTypename (Can.nameToString variant.tag)
+                    Utils.String.formatTypename (Can.nameToString var.tag)
 
                 Just (Can.Name alias_) ->
-                    Utils.String.formatTypename (alias_ ++ Can.nameToString variant.tag)
+                    Utils.String.formatTypename (alias_ ++ Can.nameToString var.tag)
     in
     ( Pattern.string tag
-    , case List.filter removeTypename variant.selection of
+    , case List.filter removeTypename var.selection of
         [] ->
             Decode.succeed (Elm.value tagTypeName)
 

@@ -58,6 +58,16 @@ type Selection
     | FieldInterface FieldInterfaceDetails
 
 
+isTypeNameSelection : Selection -> Bool
+isTypeNameSelection sel =
+    case sel of
+        FieldScalar scal ->
+            nameToString scal.name == "__typename"
+
+        _ ->
+            False
+
+
 type alias FieldDetails =
     { alias_ : Maybe Name
     , name : Name
@@ -109,7 +119,7 @@ type alias FieldInterfaceDetails =
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection
-    , selectedDetails : List InterfaceCase
+    , variants : List InterfaceCase
     , remainingTags : List String
     , interface : GraphQL.Schema.InterfaceDetails
     , wrapper : GraphQL.Schema.Wrapped
@@ -245,7 +255,7 @@ selectionToString sel =
             aliasedName details
                 ++ brackets
                     (foldToString "\n" selectionToString details.selection
-                        ++ foldToString "\n" interfaceCaseToString details.selectedDetails
+                        ++ foldToString "\n" interfaceCaseToString details.variants
                     )
 
 
