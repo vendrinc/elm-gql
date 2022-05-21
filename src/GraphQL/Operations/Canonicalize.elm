@@ -543,7 +543,10 @@ canonicalizeDefinition : GraphQL.Schema.Schema -> AST.Definition -> CanResult Ca
 canonicalizeDefinition schema def =
     case def of
         AST.Fragment details ->
-            Debug.todo "There is no concept of fragment in Can.Definition"
+            CanError
+                [ error
+                    (Todo "Fragments are not yet supported in elm-gql!")
+                ]
 
         AST.Operation details ->
             let
