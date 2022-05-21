@@ -666,7 +666,6 @@ fieldAliasedAnnotation namespace schema knownNames parent selection =
                     Input.wrapElmType field.wrapper
                         (Type.named
                             []
-                            -- desiredName
                             (Can.nameToString field.globalAlias)
                         )
             in
@@ -681,7 +680,6 @@ fieldAliasedAnnotation namespace schema knownNames parent selection =
                     Input.wrapElmType field.wrapper
                         (Type.named
                             []
-                            -- desiredName
                             (Can.nameToString field.globalAlias)
                         )
             in
@@ -1322,31 +1320,37 @@ decodeFields namespace index fields exp =
                     andField
                         (Can.Name (Can.getAliasedName field))
                         (Input.decodeWrapper enum.wrapper
-                            (Decode.string
-                                |> Decode.andThen
-                                    (\_ ->
-                                        Elm.lambda "enum"
-                                            Type.string
-                                            (\str ->
-                                                Elm.caseOf (Elm.Gen.String.toLower str)
-                                                    (List.map
-                                                        (\value ->
-                                                            ( Pattern.string (String.toLower value.name)
-                                                            , Decode.succeed
-                                                                (enumValue namespace
-                                                                    enum.enumName
-                                                                    value.name
-                                                                )
-                                                            )
-                                                        )
-                                                        enum.values
-                                                        ++ [ ( Pattern.wildcard
-                                                             , Decode.fail (Elm.string "I don't recognize this enum!")
-                                                             )
-                                                           ]
-                                                    )
-                                            )
-                                    )
+                            (Elm.valueFrom
+                                [ namespace.enums
+                                , "Enum"
+                                , Utils.String.formatTypename enum.enumName
+                                ]
+                                "decoder"
+                             -- Decode.string
+                             -- |> Decode.andThen
+                             --     (\_ ->
+                             --         Elm.lambda "enum"
+                             --             Type.string
+                             --             (\str ->
+                             --                 Elm.caseOf (Elm.Gen.String.toLower str)
+                             --                     (List.map
+                             --                         (\value ->
+                             --                             ( Pattern.string (String.toLower value.name)
+                             --                             , Decode.succeed
+                             --                                 (enumValue namespace
+                             --                                     enum.enumName
+                             --                                     value.name
+                             --                                 )
+                             --                             )
+                             --                         )
+                             --                         enum.values
+                             --                         ++ [ ( Pattern.wildcard
+                             --                              , Decode.fail (Elm.string "I don't recognize this enum!")
+                             --                              )
+                             --                            ]
+                             --                     )
+                             --             )
+                             --     )
                             )
                         )
                         exp
