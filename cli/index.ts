@@ -19,7 +19,7 @@ import opsCanonicalize from "./templates/Operations/Canonicalize.elm";
 globalThis["XMLHttpRequest"] = XMLHttpRequest.XMLHttpRequest;
 
 // Run a standard generator made by elm-prefab
-async function run_generator(generator: any, output_dir: string, flags: any) {
+async function run_generator(generator: any, flags: any) {
   const promise = new Promise((resolve, reject) => {
     // @ts-ignore
     const app = generator.init({ flags: flags });
@@ -37,9 +37,8 @@ async function run_generator(generator: any, output_dir: string, flags: any) {
       let files_written_count = 0;
       let files_skipped = 0;
       for (const file of files) {
-        const fullpath = path.join(output_dir, file.path);
-        fs.mkdirSync(path.dirname(fullpath), { recursive: true });
-        if (writeIfChanged(fullpath, file.contents)) {
+        fs.mkdirSync(path.dirname(file.path), { recursive: true });
+        if (writeIfChanged(file.path, file.contents)) {
           files_written_count = files_written_count + 1;
         } else {
           files_skipped = files_skipped + 1;
@@ -76,7 +75,7 @@ async function run_generator(generator: any, output_dir: string, flags: any) {
         format_title(reason.title, reason.file),
         "\n\n" + reason.description + "\n"
       );
-      process.exit(1)
+      process.exit(1);
     });
   return promise;
 }
@@ -147,27 +146,22 @@ async function action(options: Options, com: any) {
 
   if (options.gql) {
     const gql_filepaths = getFilesRecursively(options.gql);
+    const fileSources = [];
     for (const file of gql_filepaths) {
-      // The base is a list of strings that represents
-      // all the folders between options.gql and the discovered `.gql` file
-      // This is needed to figure out where to generate the elm file
-      // and what to specify as the qualified name of the module
-      const base =
-        options.gql == path.dirname(file)
-          ? []
-          : path.relative(options.gql, path.dirname(file)).split(path.sep);
-
       const src = fs.readFileSync(file).toString();
-      run_generator(schema_generator.Elm.Generate, path.dirname(file), {
-        namespace: options.namespace,
-        // @ts-ignore
-        gql: [{ src, path: file }],
-        base: base,
-        schema: schema,
-        generatePlatform: false,
-        existingEnumDefinitions: options.existingEnumDefinitions,
-      });
+      fileSources.push({ src, path: file });
     }
+
+    run_generator(schema_generator.Elm.Generate, {
+      namespace: options.namespace,
+      // @ts-ignore
+      gql: fileSources,
+      elmBase: options.gql.split(path.sep),
+      elmBaseSchema: options.output.split(path.sep),
+      schema: schema,
+      generatePlatform: !options.onlyGqlFiles,
+      existingEnumDefinitions: options.existingEnumDefinitions,
+    });
   }
 
   // Copy gql engine to target dir
@@ -191,19 +185,6 @@ async function action(options: Options, com: any) {
   writeIfChanged(path.join(ops, "Parse.elm"), opsParse());
   writeIfChanged(path.join(ops, "CanonicalAST.elm"), opsCanAST());
   writeIfChanged(path.join(ops, "Canonicalize.elm"), opsCanonicalize());
-
-  if (!options.onlyGqlFiles) {
-    // Generate the Elm form of the schema that can be used to construc queries
-    run_generator(schema_generator.Elm.Generate, options.output, {
-      namespace: options.namespace,
-      // @ts-ignore
-      gql: [],
-      schema: schema,
-      generatePlatform: true,
-      base: [],
-      existingEnumDefinitions: options.existingEnumDefinitions,
-    });
-  }
 }
 
 const program = new commander.Command();
