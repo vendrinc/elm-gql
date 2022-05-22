@@ -198,6 +198,14 @@ const isDev = () => {
   return false;
 };
 
+const clearDirecctory = (dir: string) => {
+  const files = fs.readdirSync(dir);
+
+  for (const file of files) {
+    fs.unlinkSync(path.join(dir, file));
+  }
+};
+
 async function action(options: Options, com: any) {
   let newCache = emptyCache;
 
@@ -223,10 +231,16 @@ async function action(options: Options, com: any) {
       }
       newCache.files[file] = { modified: modified.at };
     }
+
     if (
       fileSources.length > 0 ||
       (!options.onlyGqlFiles && schemaWasModified.was)
     ) {
+      for (const file of fileSources) {
+        const targetDir = file.path.replace(".gql", "");
+        clearDirecctory(targetDir);
+      }
+
       run_generator(schema_generator.Elm.Generate, {
         namespace: options.namespace,
         // @ts-ignore
