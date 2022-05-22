@@ -550,13 +550,30 @@ canonicalizeDefinition schema def =
 
         AST.Operation details ->
             let
-                initialUsedNames =
+                globalOperationName =
+                    Maybe.map convertName details.name
+
+                operationType =
+                    case details.operationType of
+                        AST.Query ->
+                            Can.Query
+
+                        AST.Mutation ->
+                            Can.Mutation
+
+                initialNameCache =
                     UsedNames
                         { siblingAliases = []
                         , siblingStack = []
                         , breadcrumbs = []
-                        , globalNames = []
+                        , globalNames =
+                            []
                         }
+                        |> getGlobalName
+                            (globalOperationName
+                                |> Maybe.map Can.nameToString
+                                |> Maybe.withDefault (opTypeName operationType)
+                            )
 
                 fieldResult =
                     List.foldl
@@ -585,7 +602,7 @@ canonicalizeDefinition schema def =
                                 CanError _ ->
                                     ( used, result )
                         )
-                        ( initialUsedNames
+                        ( initialNameCache.used
                         , emptySuccess
                         )
                         details.fields
@@ -613,13 +630,8 @@ canonicalizeDefinition schema def =
                         CanSuccess cache <|
                             Can.Operation
                                 { operationType =
-                                    case details.operationType of
-                                        AST.Query ->
-                                            Can.Query
-
-                                        AST.Mutation ->
-                                            Can.Mutation
-                                , name = Maybe.map convertName details.name
+                                    operationType
+                                , name = globalOperationName
                                 , variableDefinitions =
                                     variableSummary.valid
                                 , directives =
@@ -629,6 +641,16 @@ canonicalizeDefinition schema def =
 
                 CanError errorMsg ->
                     CanError errorMsg
+
+
+opTypeName : Can.OperationType -> String
+opTypeName op =
+    case op of
+        Can.Query ->
+            "Query"
+
+        Can.Mutation ->
+            "Mutation"
 
 
 {-| The AST.Type is the type declared at the top of the document.
@@ -870,12 +892,14 @@ canonicalizeOperation schema op used selection =
     case selection of
         AST.Field field ->
             let
-                aliasedName =
+                desiredName =
                     field.alias_
                         |> Maybe.withDefault field.name
                         |> convertName
                         |> Can.nameToString
 
+                -- global =
+                --     getGlobalName desiredName used
                 matched =
                     case op of
                         AST.Query ->
@@ -891,7 +915,7 @@ canonicalizeOperation schema op used selection =
                 Just query ->
                     canonicalizeFieldType schema
                         field
-                        (addLevel aliasedName used)
+                        (addLevel desiredName used)
                         query
                         |> Tuple.mapFirst dropLevel
 
@@ -1107,8 +1131,8 @@ formatTypename name =
 
 -}
 getGlobalName : String -> UsedNames -> { globalName : String, used : UsedNames }
-getGlobalName name (UsedNames used) =
-    if name == "__typename" then
+getGlobalName rawName (UsedNames used) =
+    if rawName == "__typename" then
         { used = UsedNames used
         , globalName = "__typename"
         }
@@ -1117,6 +1141,9 @@ getGlobalName name (UsedNames used) =
         let
             crumbs =
                 List.reverse used.breadcrumbs
+
+            name =
+                formatTypename rawName
 
             newGlobalName =
                 if List.member name used.globalNames then
@@ -1130,11 +1157,11 @@ getGlobalName name (UsedNames used) =
                                     -- we do this to havea better chance of having
                                     -- a nice top level name
                                     -- The name with full breadcrumbs is pretty big.
-                                    top ++ "_" ++ formatTypename name
+                                    top ++ "_" ++ name
                     in
                     if List.member tempGlobalName used.globalNames then
                         -- we know that breadcrumbs are unique themselves
-                        String.join "_" crumbs ++ "_" ++ formatTypename name
+                        String.join "_" crumbs ++ "_" ++ name
 
                     else
                         tempGlobalName
@@ -1157,13 +1184,13 @@ saveSibling : String -> UsedNames -> UsedNames
 saveSibling name (UsedNames used) =
     UsedNames
         { used
-            | siblingAliases = name :: used.siblingAliases
+            | siblingAliases = formatTypename name :: used.siblingAliases
         }
 
 
 siblingCollision : String -> UsedNames -> Bool
 siblingCollision name (UsedNames used) =
-    List.member name used.siblingAliases
+    List.member (formatTypename name) used.siblingAliases
 
 
 {-|
@@ -1175,7 +1202,7 @@ addLevel : String -> UsedNames -> UsedNames
 addLevel level (UsedNames used) =
     UsedNames
         { used
-            | breadcrumbs = level :: used.breadcrumbs
+            | breadcrumbs = formatTypename level :: used.breadcrumbs
             , siblingStack = used.siblingAliases :: used.siblingStack
             , siblingAliases = []
         }
@@ -1546,7 +1573,8 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                                     |> Can.nameToString
 
                             global =
-                                getGlobalName aliasedName usedNames
+                                getGlobalName aliasedName (Debug.log ("USED NAMES - " ++ name) usedNames)
+                                    |> Debug.log "RECEIVED"
 
                             selectsForTypename =
                                 List.any
