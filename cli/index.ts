@@ -18,6 +18,18 @@ import opsCanonicalize from "./templates/Operations/Canonicalize.elm";
 // @ts-ignore
 globalThis["XMLHttpRequest"] = XMLHttpRequest.XMLHttpRequest;
 
+const version: string = "0.1.0";
+
+type Cache = {
+  engineVersion: string;
+  files: { [name: string]: { modified: Date } };
+};
+
+const emptyCache: Cache = {
+  engineVersion: version,
+  files: {},
+};
+
 // Run a standard generator made by elm-prefab
 async function run_generator(generator: any, flags: any) {
   const promise = new Promise((resolve, reject) => {
@@ -47,10 +59,28 @@ async function run_generator(generator: any, flags: any) {
 
       const lines = [];
       if (files_written_count > 0) {
-        if (files_written_count == 1) {
-          lines.push(`${chalk.yellow(files_written_count)} file generated!`);
+        let modifiedFileNames = "";
+
+        if (flags.generatePlatform) {
+          modifiedFileNames = `The ${chalk.cyan("GQL schema")} has changed, `;
+        } else if (flags.gql.length == 1) {
+          modifiedFileNames = `${chalk.cyan(flags.gql[0].path)} was modified, `;
         } else {
-          lines.push(`${chalk.yellow(files_written_count)} files generated!`);
+          modifiedFileNames = `${flags.gql.length} GQL files were modified, `;
+        }
+
+        if (files_written_count == 1) {
+          lines.push(
+            `${modifiedFileNames}${chalk.yellow(
+              files_written_count
+            )} file generated!`
+          );
+        } else {
+          lines.push(
+            `${modifiedFileNames}${chalk.yellow(
+              files_written_count
+            )} files generated!`
+          );
         }
       }
       if (files_skipped > 0) {
@@ -138,53 +168,114 @@ function writeIfChanged(filepath: string, content: string): boolean {
   }
 }
 
+const wasModified = (cache: Cache, file: string) => {
+  const stat = fs.statSync(file);
+  if (file in cache.files) {
+    if (+cache.files[file].modified == +stat.mtime) {
+      return { at: stat.mtime, was: false };
+    } else {
+      return { at: stat.mtime, was: true };
+    }
+  } else {
+    return { at: stat.mtime, was: true };
+  }
+};
+
+const readCache = () => {
+  let cache = emptyCache;
+  try {
+    cache = JSON.parse(fs.readFileSync(".elm-gql-cache").toString());
+
+    for (const path in cache.files) {
+      cache.files[path] = { modified: new Date(cache.files[path].modified) };
+    }
+  } catch {}
+
+  return cache;
+};
+
+const isDev = () => {
+  return false;
+};
+
 async function action(options: Options, com: any) {
+  let newCache = emptyCache;
+
+  let cache = readCache();
+
   let schema = options.schema;
+  let schemaWasModified = { at: new Date(), was: false };
   if (!schema.startsWith("http") && schema.endsWith("json")) {
+    schemaWasModified = wasModified(cache, schema);
+    newCache.files[schema] = { modified: schemaWasModified.at };
     schema = JSON.parse(fs.readFileSync(schema).toString());
   }
 
   if (options.gql) {
     const gql_filepaths = getFilesRecursively(options.gql);
     const fileSources = [];
-    for (const file of gql_filepaths) {
-      const src = fs.readFileSync(file).toString();
-      fileSources.push({ src, path: file });
-    }
 
-    run_generator(schema_generator.Elm.Generate, {
-      namespace: options.namespace,
-      // @ts-ignore
-      gql: fileSources,
-      elmBase: options.gql.split(path.sep),
-      elmBaseSchema: options.output.split(path.sep),
-      schema: schema,
-      generatePlatform: !options.onlyGqlFiles,
-      existingEnumDefinitions: options.existingEnumDefinitions,
-    });
+    for (const file of gql_filepaths) {
+      const modified = wasModified(cache, file);
+      if (modified.was) {
+        const src = fs.readFileSync(file).toString();
+        fileSources.push({ src, path: file });
+      }
+      newCache.files[file] = { modified: modified.at };
+    }
+    if (
+      fileSources.length > 0 ||
+      (!options.onlyGqlFiles && schemaWasModified.was)
+    ) {
+      run_generator(schema_generator.Elm.Generate, {
+        namespace: options.namespace,
+        // @ts-ignore
+        gql: fileSources,
+        elmBase: options.gql.split(path.sep),
+        elmBaseSchema: options.output.split(path.sep),
+        schema: schema,
+        generatePlatform: !options.onlyGqlFiles && schemaWasModified.was,
+        existingEnumDefinitions: options.existingEnumDefinitions,
+      });
+    } else {
+      console.log(
+        format_block([
+          `${chalk.cyan(
+            "elm-gql: "
+          )} No files were modified, skipping codegen.`,
+        ])
+      );
+    }
   }
 
-  // Copy gql engine to target dir
-  fs.mkdirSync(path.join(options.output, "GraphQL", "Operations"), {
-    recursive: true,
-  });
+  if (cache.engineVersion != newCache.engineVersion || isDev()) {
+    // Copy gql engine to target dir
+    fs.mkdirSync(path.join(options.output, "GraphQL", "Operations"), {
+      recursive: true,
+    });
 
-  // Standard engine
-  writeIfChanged(path.join(options.output, "GraphQL", "Engine.elm"), engine());
+    // Standard engine
+    writeIfChanged(
+      path.join(options.output, "GraphQL", "Engine.elm"),
+      engine()
+    );
 
-  // Everything required for auto-mocking
-  writeIfChanged(path.join(options.output, "GraphQL", "Mock.elm"), mock());
-  writeIfChanged(
-    path.join(options.output, "GraphQL", "Schema.elm"),
-    schemaModule()
-  );
+    // Everything required for auto-mocking
+    writeIfChanged(path.join(options.output, "GraphQL", "Mock.elm"), mock());
+    writeIfChanged(
+      path.join(options.output, "GraphQL", "Schema.elm"),
+      schemaModule()
+    );
 
-  const ops = path.join(options.output, "GraphQL", "Operations");
-  writeIfChanged(path.join(ops, "Mock.elm"), opsMock());
-  writeIfChanged(path.join(ops, "AST.elm"), opsAST());
-  writeIfChanged(path.join(ops, "Parse.elm"), opsParse());
-  writeIfChanged(path.join(ops, "CanonicalAST.elm"), opsCanAST());
-  writeIfChanged(path.join(ops, "Canonicalize.elm"), opsCanonicalize());
+    const ops = path.join(options.output, "GraphQL", "Operations");
+    writeIfChanged(path.join(ops, "Mock.elm"), opsMock());
+    writeIfChanged(path.join(ops, "AST.elm"), opsAST());
+    writeIfChanged(path.join(ops, "Parse.elm"), opsParse());
+    writeIfChanged(path.join(ops, "CanonicalAST.elm"), opsCanAST());
+    writeIfChanged(path.join(ops, "Canonicalize.elm"), opsCanonicalize());
+  }
+
+  fs.writeFileSync(".elm-gql-cache", JSON.stringify(newCache));
 }
 
 const program = new commander.Command();
@@ -199,7 +290,7 @@ type Options = {
 };
 
 program
-  .version("0.1.0")
+  .version(version)
   .option("--schema <fileOrUrl>")
   .option(
     "--gql <dir>",
