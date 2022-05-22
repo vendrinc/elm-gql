@@ -106,7 +106,11 @@ type alias FieldUnionDetails =
     , directives : List Directive
     , selection : List Selection
     , variants : List UnionCaseDetails
-    , remainingTags : List String
+    , remainingTags :
+        List
+            { tag : Name
+            , globalAlias : Name
+            }
     , union : GraphQL.Schema.UnionDetails
     , wrapper : GraphQL.Schema.Wrapped
     }
@@ -120,7 +124,11 @@ type alias FieldInterfaceDetails =
     , directives : List Directive
     , selection : List Selection
     , variants : List InterfaceCase
-    , remainingTags : List String
+    , remainingTags :
+        List
+            { tag : Name
+            , globalAlias : Name
+            }
     , interface : GraphQL.Schema.InterfaceDetails
     , wrapper : GraphQL.Schema.Wrapped
     }
@@ -128,6 +136,7 @@ type alias FieldInterfaceDetails =
 
 type alias InterfaceCase =
     { tag : Name
+    , globalAlias : Name
     , directives : List Directive
     , selection : List Selection
     }
@@ -155,6 +164,7 @@ type alias FieldEnumDetails =
 
 type alias UnionCaseDetails =
     { tag : Name
+    , globalAlias : Name
     , directives : List Directive
     , selection : List Selection
     }

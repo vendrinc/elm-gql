@@ -1533,10 +1533,16 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                                             , typenameAlreadySelected = selectsForTypename
                                             }
                                             field.selection
+
+                                    ( remainingUsedNames, remaining ) =
+                                        List.foldl
+                                            gatherRemaining
+                                            ( selectionResult.fieldNames, [] )
+                                            selectionResult.variants
                                 in
                                 case selectionResult.result of
                                     CanSuccess cache canSelection ->
-                                        ( selectionResult.fieldNames
+                                        ( remainingUsedNames
                                         , CanSuccess (addVars vars cache)
                                             (Can.FieldUnion
                                                 { alias_ = Maybe.map convertName field.alias_
@@ -1546,7 +1552,8 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                                                 , directives = List.map convertDirective field.directives
                                                 , selection = canSelection
                                                 , variants = selectionResult.capturedVariants
-                                                , remainingTags = selectionResult.variants
+                                                , remainingTags =
+                                                    List.reverse remaining
                                                 , union = union
                                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
                                                 }
@@ -1554,7 +1561,7 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                                         )
 
                                     CanError errorMsg ->
-                                        ( selectionResult.fieldNames, CanError errorMsg )
+                                        ( remainingUsedNames, CanError errorMsg )
 
             GraphQL.Schema.Interface name ->
                 case Dict.get name schema.interfaces of
@@ -1603,10 +1610,16 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                                     , typenameAlreadySelected = selectsForTypename
                                     }
                                     field.selection
+
+                            ( remainingUsedNames, remaining ) =
+                                List.foldl
+                                    gatherRemaining
+                                    ( selectionResult.fieldNames, [] )
+                                    selectionResult.variants
                         in
                         case selectionResult.result of
                             CanSuccess cache canSelection ->
-                                ( selectionResult.fieldNames
+                                ( remainingUsedNames
                                 , CanSuccess (addVars vars cache)
                                     (Can.FieldInterface
                                         { alias_ = Maybe.map convertName field.alias_
@@ -1616,7 +1629,7 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                                         , directives = List.map convertDirective field.directives
                                         , selection = canSelection
                                         , variants = selectionResult.capturedVariants
-                                        , remainingTags = selectionResult.variants
+                                        , remainingTags = List.reverse remaining
                                         , interface = interface
                                         , wrapper = GraphQL.Schema.getWrap schemaField.type_
                                         }
@@ -1631,6 +1644,19 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
 
             GraphQL.Schema.Nullable inner ->
                 canonicalizeFieldTypeHelper schema field inner usedNames schemaField
+
+
+gatherRemaining tag ( used, gathered ) =
+    let
+        global =
+            getGlobalName tag used
+    in
+    ( global.used
+    , { globalAlias = Can.Name global.globalName
+      , tag = Can.Name tag
+      }
+        :: gathered
+    )
 
 
 canonicalizeObject :
@@ -1898,15 +1924,20 @@ canonicalizeUnionField schema union selection found =
                                 if selectsForTypename then
                                     case selectionResult.result of
                                         CanSuccess cache canSelection ->
+                                            let
+                                                global =
+                                                    getGlobalName tag selectionResult.fieldNames
+                                            in
                                             { result =
                                                 found.result
                                             , capturedVariants =
                                                 { tag = Can.Name tag
+                                                , globalAlias = Can.Name global.globalName
                                                 , directives = List.map convertDirective inline.directives
                                                 , selection = canSelection
                                                 }
                                                     :: found.capturedVariants
-                                            , fieldNames = selectionResult.fieldNames
+                                            , fieldNames = global.used
                                             , variants = leftOvertags
                                             , typenameAlreadySelected = found.typenameAlreadySelected
                                             }
@@ -2084,16 +2115,21 @@ canonicalizeInterfaceField schema union selection found =
                                 if selectsForTypename then
                                     case selectionResult.result of
                                         CanSuccess cache canSelection ->
+                                            let
+                                                global =
+                                                    getGlobalName tag selectionResult.fieldNames
+                                            in
                                             { result =
                                                 found.result
                                             , capturedVariants =
                                                 { tag = Can.Name tag
+                                                , globalAlias = Can.Name global.globalName
                                                 , directives = List.map convertDirective inline.directives
                                                 , selection = canSelection
                                                 }
                                                     :: found.capturedVariants
                                             , fieldNames =
-                                                selectionResult.fieldNames
+                                                global.used
                                                     |> dropLevel
                                             , variants = leftOvertags
                                             , typenameAlreadySelected = found.typenameAlreadySelected

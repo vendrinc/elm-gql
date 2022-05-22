@@ -490,7 +490,7 @@ genAliasedTypes namespace schema knownNames sel =
                         field.variants
 
                 ghostVariants =
-                    List.map (Elm.variant << unionVariantName field.alias_) field.remainingTags
+                    List.map (Elm.variant << unionVariantName) field.remainingTags
 
                 -- Any records within variants
             in
@@ -546,16 +546,12 @@ genAliasedTypes namespace schema knownNames sel =
                         field.variants
 
                 ghostVariants =
-                    List.map (Elm.variant << unionVariantName field.alias_) field.remainingTags
+                    List.map (Elm.variant << unionVariantName) field.remainingTags
             in
             ( final.names
             , Elm.alias
                 desiredTypeName
-                (interfaceRecord
-                 -- ++ [ Elm.field "specifics_"
-                 --         (Type.named [] (desiredTypeName ++ "_Specifics"))
-                 --    ]
-                )
+                interfaceRecord
                 :: (Elm.customType
                         (desiredTypeName ++ "_Specifics")
                         (final.variants ++ ghostVariants)
@@ -569,13 +565,16 @@ genAliasedTypes namespace schema knownNames sel =
             ( knownNames, [] )
 
 
-unionVariantName maybeAlias tag =
-    case maybeAlias of
-        Nothing ->
-            Utils.String.formatTypename tag
+unionVariantName tag =
+    Can.nameToString tag.globalAlias
 
-        Just alis ->
-            Utils.String.formatTypename (Can.nameToString alis ++ tag)
+
+
+-- case maybeAlias of
+--     Nothing ->
+--         -- Utils.String.formatTypename tag
+--     Just alis ->
+--         Utils.String.formatTypename (Can.nameToString alis ++ tag)
 
 
 fieldsToAliasedRecord :
@@ -815,12 +814,7 @@ interfaceVariants namespace schema alias_ unionCase gathered =
                         []
 
                 variantName =
-                    case alias_ of
-                        Nothing ->
-                            Can.nameToString unionCase.tag
-
-                        Just prefix ->
-                            prefix ++ Can.nameToString unionCase.tag
+                    Can.nameToString unionCase.globalAlias
 
                 detailsName =
                     variantName ++ "_Details"
@@ -1403,10 +1397,10 @@ decodeInterfaceSpecifics namespace index fieldName interface =
                                 interface.variants
                                 ++ List.map
                                     (\tag ->
-                                        ( Pattern.string tag
+                                        ( Pattern.string (Can.nameToString tag.tag)
                                         , Decode.succeed
                                             (Elm.value
-                                                (unionVariantName interface.alias_ tag)
+                                                (unionVariantName tag)
                                             )
                                         )
                                     )
@@ -1426,12 +1420,7 @@ interfacePattern namespace index maybeAlias commonFields var =
             Utils.String.formatTypename (Can.nameToString var.tag)
 
         tagTypeName =
-            case maybeAlias of
-                Nothing ->
-                    Utils.String.formatTypename (Can.nameToString var.tag)
-
-                Just (Can.Name alias_) ->
-                    Utils.String.formatTypename (alias_ ++ Can.nameToString var.tag)
+            Can.nameToString var.globalAlias
 
         allFields =
             var.selection
@@ -1476,10 +1465,10 @@ decodeUnion namespace index fieldName union =
                                 union.variants
                                 ++ List.map
                                     (\tag ->
-                                        ( Pattern.string tag
+                                        ( Pattern.string (Can.nameToString tag.tag)
                                         , Decode.succeed
                                             (Elm.value
-                                                (unionVariantName union.alias_ tag)
+                                                (unionVariantName tag)
                                             )
                                         )
                                     )
@@ -1499,12 +1488,7 @@ unionPattern namespace index maybeAlias var =
             Utils.String.formatTypename (Can.nameToString var.tag)
 
         tagTypeName =
-            case maybeAlias of
-                Nothing ->
-                    Utils.String.formatTypename (Can.nameToString var.tag)
-
-                Just (Can.Name alias_) ->
-                    Utils.String.formatTypename (alias_ ++ Can.nameToString var.tag)
+            Can.nameToString var.globalAlias
     in
     ( Pattern.string tag
     , case List.filter removeTypename var.selection of
