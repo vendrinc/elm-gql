@@ -1362,11 +1362,32 @@ decodeFields namespace index fields exp =
 
 decodeInterface : Namespace -> Index -> String -> Can.FieldInterfaceDetails -> Elm.Expression
 decodeInterface namespace index fieldName interface =
-    decodeInterfaceSpecifics namespace index fieldName interface
+    let
+        selection =
+            List.filter (not << Can.isTypeNameSelection) interface.selection
+    in
+    Decode.succeed
+        (Elm.lambdaWith
+            (( Pattern.var "specifics_", Type.unit )
+                :: List.map fieldParameters selection
+            )
+            (Elm.record
+                (List.map
+                    buildRecordFromVariantFields
+                    selection
+                    ++ [ Elm.field "specifics_"
+                            (Elm.value "specifics_")
+                       ]
+                )
+            )
+        )
+        |> andField (Can.Name "__typename")
+            (decodeInterfaceSpecifics namespace index fieldName interface)
+        |> decodeFields namespace (child index) selection
 
 
 decodeInterfaceSpecifics namespace index fieldName interface =
-    Decode.field (Elm.string "__typename") Decode.string
+    Decode.string
         |> Decode.andThen
             (\_ ->
                 Elm.lambda ("typename" ++ fieldName ++ indexToString index)
@@ -1424,22 +1445,14 @@ interfacePattern namespace index maybeAlias commonFields var =
             Decode.succeed
                 (Elm.lambdaWith
                     (List.map fieldParameters fields)
-                    (Elm.record
-                        (List.map
-                            buildRecordFromVariantFields
-                            var.selection
-                        )
-                     -- Elm.apply (Elm.value tagTypeName)
-                     -- ([ Elm.record
-                     --     (List.map buildRecordFromVariantFields commonFields
-                     -- ++ [Elm.field "specifics_"
-                     --         (Elm.record
-                     --             List.map buildRecordFromVariantFields commonFields
-                     --         )
-                     --         ]
-                     --     )
-                     -- ]
-                     -- )
+                    (Elm.apply
+                        (Elm.value tagTypeName)
+                        [ Elm.record
+                            (List.map
+                                buildRecordFromVariantFields
+                                var.selection
+                            )
+                        ]
                     )
                 )
                 |> decodeFields namespace (child index) fields
