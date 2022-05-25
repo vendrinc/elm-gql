@@ -1580,8 +1580,7 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                                     |> Can.nameToString
 
                             global =
-                                getGlobalName aliasedName (Debug.log ("USED NAMES - " ++ name) usedNames)
-                                    |> Debug.log "RECEIVED"
+                                getGlobalName aliasedName usedNames
 
                             selectsForTypename =
                                 List.any
