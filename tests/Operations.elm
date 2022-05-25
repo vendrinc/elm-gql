@@ -88,56 +88,29 @@ suite =
 
 
 queries =
-    { deals = """query DealDetailsInit(
-   $id: ID!
-) {
+    { deals = """query DealDetailsInit($id: ID!) {
   deal(id: $id) {
     ... on Deal {
       __typename
       app {
-          name
-          logo
+        name
+        logo
       }
 
       dealType
       stage
-      stakeholders {
-        name
-        email
-      }
-      primaryStakeholder {
-        name
-        email
-      }
-      financialStakeholder {
-        name
-        email
-      }
-      legalStakeholder {
-        name
-        email
-      }
-      securityStakeholder {
-        name
-        email
-      }
+
       dueBy
       contractEndDate
       renewal
       previousContractValue
       supplierQuote
       negotiatedPrice
-
-      activity {
-        title
-        created
-      }
     }
     ... on NotFoundError {
-        __typename
-        message
+      __typename
+      message
     }
-
   }
 }
 """
