@@ -524,6 +524,14 @@ genAliasedTypes namespace schema knownNames sel =
                         Can.nameToString
                         field.alias_
 
+                selectingForVariants =
+                    case field.variants of
+                        [] ->
+                            False
+
+                        _ ->
+                            True
+
                 -- Generate the record
                 ( knownNames4, interfaceRecord ) =
                     fieldsToAliasedRecord namespace
@@ -531,10 +539,15 @@ genAliasedTypes namespace schema knownNames sel =
                         knownNames3
                         Nothing
                         field.selection
-                        [ ( "specifics_"
-                          , Type.named [] (desiredTypeName ++ "_Specifics")
-                          )
-                        ]
+                        (if selectingForVariants then
+                            [ ( "specifics_"
+                              , Type.named [] (desiredTypeName ++ "_Specifics")
+                              )
+                            ]
+
+                         else
+                            []
+                        )
 
                 final =
                     List.foldl
@@ -547,18 +560,27 @@ genAliasedTypes namespace schema knownNames sel =
 
                 ghostVariants =
                     List.map (Elm.variant << unionVariantName) field.remainingTags
+
+                withSpecificType existingList =
+                    if selectingForVariants then
+                        (Elm.customType
+                            (desiredTypeName ++ "_Specifics")
+                            (final.variants ++ ghostVariants)
+                            |> Elm.exposeConstructorAndGroup "unions"
+                        )
+                            :: existingList
+
+                    else
+                        existingList
             in
             ( final.names
             , Elm.alias
                 desiredTypeName
                 interfaceRecord
-                :: (Elm.customType
-                        (desiredTypeName ++ "_Specifics")
-                        (final.variants ++ ghostVariants)
-                        |> Elm.exposeConstructorAndGroup "unions"
-                   )
-                :: final.declarations
-                ++ newDecls
+                :: withSpecificType
+                    (final.declarations
+                        ++ newDecls
+                    )
             )
 
         _ ->
@@ -1265,24 +1287,39 @@ decodeInterface namespace index fieldName interface =
         selection =
             List.filter (not << Can.isTypeNameSelection) interface.selection
     in
-    Decode.succeed
-        (Elm.lambdaWith
-            (( Pattern.var "specifics_", Type.unit )
-                :: List.map fieldParameters selection
-            )
-            (Elm.record
-                (List.map
-                    buildRecordFromVariantFields
-                    selection
-                    ++ [ Elm.field "specifics_"
-                            (Elm.value "specifics_")
-                       ]
+    case interface.selection of
+        [] ->
+            Decode.succeed
+                (Elm.lambdaWith
+                    (List.map fieldParameters selection)
+                    (Elm.record
+                        (List.map
+                            buildRecordFromVariantFields
+                            selection
+                        )
+                    )
                 )
-            )
-        )
-        |> andField (Can.Name "__typename")
-            (decodeInterfaceSpecifics namespace index fieldName interface)
-        |> decodeFields namespace (child index) selection
+                |> decodeFields namespace (child index) selection
+
+        _ ->
+            Decode.succeed
+                (Elm.lambdaWith
+                    (( Pattern.var "specifics_", Type.unit )
+                        :: List.map fieldParameters selection
+                    )
+                    (Elm.record
+                        (List.map
+                            buildRecordFromVariantFields
+                            selection
+                            ++ [ Elm.field "specifics_"
+                                    (Elm.value "specifics_")
+                               ]
+                        )
+                    )
+                )
+                |> andField (Can.Name "__typename")
+                    (decodeInterfaceSpecifics namespace index fieldName interface)
+                |> decodeFields namespace (child index) selection
 
 
 decodeInterfaceSpecifics namespace index fieldName interface =
