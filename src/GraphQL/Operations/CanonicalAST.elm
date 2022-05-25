@@ -263,6 +263,7 @@ selectionToString sel =
         FieldUnion details ->
             aliasedName details
                 ++ renderArguments details.arguments
+                ++ " "
                 ++ brackets
                     (foldToString "\n" selectionToString details.selection
                         ++ foldToString "\n" variantFragmentToString details.variants
@@ -277,6 +278,7 @@ selectionToString sel =
         FieldInterface details ->
             aliasedName details
                 ++ renderArguments details.arguments
+                ++ " "
                 ++ brackets
                     (foldToString "\n" selectionToString details.selection
                         ++ foldToString "\n" variantFragmentToString details.variants
