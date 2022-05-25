@@ -1353,7 +1353,7 @@ canonicalizeFieldType :
     -> GraphQL.Schema.Field
     -> ( UsedNames, CanResult Can.Selection )
 canonicalizeFieldType schema field usedNames schemaField =
-    canonicalizeFieldTypeHelper schema field schemaField.type_ usedNames schemaField
+    canonicalizeFieldTypeHelper schema field schemaField.type_ usedNames emptyCache schemaField
 
 
 {-|
@@ -1366,9 +1366,10 @@ canonicalizeFieldTypeHelper :
     -> AST.FieldDetails
     -> GraphQL.Schema.Type
     -> UsedNames
+    -> VarCache
     -> GraphQL.Schema.Field
     -> ( UsedNames, CanResult Can.Selection )
-canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
+canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
     let
         argValidation =
             List.foldl
@@ -1437,11 +1438,14 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
         let
             vars =
                 List.reverse argValidation.valid
+
+            newCache =
+                addVars vars varCache
         in
         case type_ of
             GraphQL.Schema.Scalar name ->
                 ( usedNames
-                , success (addVars vars emptyCache)
+                , success newCache
                     (Can.FieldScalar
                         { alias_ = Maybe.map convertName field.alias_
                         , name = convertName field.name
@@ -1463,7 +1467,7 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                         ( usedNames, err [ error (ObjectUnknown name) ] )
 
                     Just obj ->
-                        canonicalizeObject schema field usedNames schemaField vars obj
+                        canonicalizeObject schema field usedNames schemaField newCache obj
 
             GraphQL.Schema.Enum name ->
                 case Dict.get name schema.enums of
@@ -1472,7 +1476,7 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
 
                     Just enum ->
                         ( usedNames
-                        , CanSuccess (addVars vars emptyCache)
+                        , CanSuccess newCache
                             (Can.FieldEnum
                                 { alias_ = Maybe.map convertName field.alias_
                                 , name = convertName field.name
@@ -1525,7 +1529,12 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
 
                                     selectionResult =
                                         List.foldl
-                                            (canonicalizeUnionField schema union)
+                                            (canonicalizeFieldWithVariants schema
+                                                { name = union.name
+                                                , description = union.description
+                                                , fields = []
+                                                }
+                                            )
                                             { result = emptySuccess
                                             , capturedVariants = []
                                             , fieldNames = global.used
@@ -1543,7 +1552,7 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                                 case selectionResult.result of
                                     CanSuccess cache canSelection ->
                                         ( remainingUsedNames
-                                        , CanSuccess (addVars vars cache)
+                                        , CanSuccess (mergeCaches newCache cache)
                                             (Can.FieldUnion
                                                 { alias_ = Maybe.map convertName field.alias_
                                                 , name = convertName field.name
@@ -1601,7 +1610,7 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
 
                             selectionResult =
                                 List.foldl
-                                    (canonicalizeInterfaceField schema interface)
+                                    (canonicalizeFieldWithVariants schema interface)
                                     { result = emptySuccess
                                     , capturedVariants = []
                                     , fieldNames = global.used
@@ -1619,7 +1628,7 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                         case selectionResult.result of
                             CanSuccess cache canSelection ->
                                 ( remainingUsedNames
-                                , CanSuccess (addVars vars cache)
+                                , CanSuccess (mergeCaches newCache cache)
                                     (Can.FieldInterface
                                         { alias_ = Maybe.map convertName field.alias_
                                         , name = convertName field.name
@@ -1639,10 +1648,10 @@ canonicalizeFieldTypeHelper schema field type_ usedNames schemaField =
                                 ( selectionResult.fieldNames, CanError errorMsg )
 
             GraphQL.Schema.List_ inner ->
-                canonicalizeFieldTypeHelper schema field inner usedNames schemaField
+                canonicalizeFieldTypeHelper schema field inner usedNames newCache schemaField
 
             GraphQL.Schema.Nullable inner ->
-                canonicalizeFieldTypeHelper schema field inner usedNames schemaField
+                canonicalizeFieldTypeHelper schema field inner usedNames newCache schemaField
 
 
 gatherRemaining tag ( used, gathered ) =
@@ -1663,10 +1672,10 @@ canonicalizeObject :
     -> AST.FieldDetails
     -> UsedNames
     -> GraphQL.Schema.Field
-    -> List ( String, GraphQL.Schema.Type )
+    -> VarCache
     -> GraphQL.Schema.ObjectDetails
     -> ( UsedNames, CanResult Can.Selection )
-canonicalizeObject schema field usedNames schemaField vars obj =
+canonicalizeObject schema field usedNames schemaField varCache obj =
     case field.selection of
         [] ->
             -- This is an object with no selection, which isn't allowed for gql.
@@ -1733,7 +1742,7 @@ canonicalizeObject schema field usedNames schemaField vars obj =
                     else
                         ( selectionResult.fieldNames
                             |> saveSibling aliasedName
-                        , CanSuccess (addVars vars cache)
+                        , CanSuccess (mergeCaches varCache cache)
                             (Can.FieldObject
                                 { alias_ = Maybe.map convertName field.alias_
                                 , name = convertName field.name
@@ -1784,9 +1793,23 @@ addToResult newCache newItem result =
             CanError errs
 
 
-canonicalizeUnionField :
+addCache newCache result =
+    case result of
+        CanSuccess cache existing ->
+            CanSuccess (mergeCaches newCache cache) existing
+
+        CanError errs ->
+            CanError errs
+
+
+canonicalizeFieldWithVariants :
     GraphQL.Schema.Schema
-    -> GraphQL.Schema.UnionDetails
+    ->
+        { obj
+            | name : String
+            , description : Maybe String
+            , fields : List GraphQL.Schema.Field
+        }
     -> AST.Selection
     ->
         { result : CanResult (List Can.Selection)
@@ -1802,7 +1825,7 @@ canonicalizeUnionField :
         , capturedVariants : List Can.UnionCaseDetails
         , typenameAlreadySelected : Bool
         }
-canonicalizeUnionField schema union selection found =
+canonicalizeFieldWithVariants schema unionOrInterface selection found =
     case selection of
         AST.Field field ->
             let
@@ -1825,13 +1848,22 @@ canonicalizeUnionField schema union selection found =
                 , fieldNames = found.fieldNames
                 , variants = found.variants
                 , capturedVariants = found.capturedVariants
-                , typenameAlreadySelected = found.typenameAlreadySelected
+                , typenameAlreadySelected = True
                 }
 
             else
+                let
+                    canned =
+                        canonicalizeField schema
+                            unionOrInterface
+                            selection
+                            { result = found.result
+                            , fieldNames = found.fieldNames
+                            }
+                in
                 { result =
-                    err [ todo "Common selections not allowed for gql unions" ]
-                , fieldNames = found.fieldNames
+                    canned.result
+                , fieldNames = canned.fieldNames
                 , variants = found.variants
                 , capturedVariants = found.capturedVariants
                 , typenameAlreadySelected = found.typenameAlreadySelected
@@ -1929,6 +1961,7 @@ canonicalizeUnionField schema union selection found =
                                             in
                                             { result =
                                                 found.result
+                                                    |> addCache cache
                                             , capturedVariants =
                                                 { tag = Can.Name tag
                                                 , globalAlias = Can.Name global.globalName
@@ -1983,182 +2016,3 @@ matchTag tag tags ( matched, captured ) =
                 matchTag tag
                     remain
                     ( matched, top :: captured )
-
-
-canonicalizeInterfaceField :
-    GraphQL.Schema.Schema
-    -> GraphQL.Schema.InterfaceDetails
-    -> AST.Selection
-    ->
-        { result : CanResult (List Can.Selection)
-        , fieldNames : UsedNames
-        , variants : List String
-        , capturedVariants : List Can.InterfaceCase
-        , typenameAlreadySelected : Bool
-        }
-    ->
-        { result : CanResult (List Can.Selection)
-        , fieldNames : UsedNames
-        , variants : List String
-        , capturedVariants : List Can.InterfaceCase
-        , typenameAlreadySelected : Bool
-        }
-canonicalizeInterfaceField schema union selection found =
-    case selection of
-        AST.Field field ->
-            let
-                fieldName =
-                    AST.nameToString field.name
-
-                canned =
-                    canonicalizeField schema
-                        union
-                        selection
-                        { result = found.result
-                        , fieldNames = found.fieldNames
-                        }
-            in
-            { result =
-                canned.result
-            , fieldNames = canned.fieldNames
-            , variants = found.variants
-            , capturedVariants = found.capturedVariants
-            , typenameAlreadySelected = fieldName == "__typename"
-            }
-
-        AST.FragmentSpreadSelection frag ->
-            { result =
-                err [ todo "Fragments in objects aren't suported yet!" ]
-            , fieldNames = found.fieldNames
-            , variants = found.variants
-            , capturedVariants = found.capturedVariants
-            , typenameAlreadySelected = found.typenameAlreadySelected
-            }
-
-        AST.InlineFragmentSelection inline ->
-            case inline.selection of
-                [] ->
-                    { result =
-                        err [ error (EmptyUnionVariantSelection { tag = AST.nameToString inline.tag }) ]
-                    , fieldNames = found.fieldNames
-                    , variants = found.variants
-                    , capturedVariants = found.capturedVariants
-                    , typenameAlreadySelected = found.typenameAlreadySelected
-                    }
-
-                _ ->
-                    let
-                        tag =
-                            AST.nameToString inline.tag
-
-                        ( tagMatches, leftOvertags ) =
-                            matchTag tag found.variants ( False, [] )
-                    in
-                    if tagMatches then
-                        case Dict.get tag schema.objects of
-                            Nothing ->
-                                { result =
-                                    err [ error (ObjectUnknown tag) ]
-                                , fieldNames = found.fieldNames
-                                , variants = leftOvertags
-                                , capturedVariants = found.capturedVariants
-                                , typenameAlreadySelected = found.typenameAlreadySelected
-                                }
-
-                            Just obj ->
-                                let
-                                    selectsForTypename =
-                                        if found.typenameAlreadySelected then
-                                            True
-
-                                        else
-                                            List.any
-                                                (\sel ->
-                                                    case sel of
-                                                        AST.Field firstField ->
-                                                            case AST.nameToString firstField.name of
-                                                                "__typename" ->
-                                                                    True
-
-                                                                _ ->
-                                                                    False
-
-                                                        _ ->
-                                                            False
-                                                )
-                                                inline.selection
-
-                                    selectionResult =
-                                        List.foldl
-                                            (\sel cursor ->
-                                                let
-                                                    canoned =
-                                                        canonicalizeField schema obj sel cursor
-                                                in
-                                                { canoned
-                                                    | fieldNames =
-                                                        -- the weird thing we're doing here is so that field-name-collision
-                                                        -- does not occur within a UnionCase
-                                                        -- meaning separate UnionCases can use the same names and not collide.
-                                                        resetSiblings cursor.fieldNames
-                                                            canoned.fieldNames
-                                                }
-                                            )
-                                            { result = emptySuccess
-                                            , fieldNames =
-                                                found.fieldNames
-                                                    |> addLevel tag
-                                            }
-                                            inline.selection
-                                in
-                                if selectsForTypename then
-                                    case selectionResult.result of
-                                        CanSuccess cache canSelection ->
-                                            let
-                                                global =
-                                                    getGlobalName tag selectionResult.fieldNames
-                                            in
-                                            { result =
-                                                found.result
-                                            , capturedVariants =
-                                                { tag = Can.Name tag
-                                                , globalAlias = Can.Name global.globalName
-                                                , directives = List.map convertDirective inline.directives
-                                                , selection = canSelection
-                                                }
-                                                    :: found.capturedVariants
-                                            , fieldNames =
-                                                global.used
-                                                    |> dropLevel
-                                            , variants = leftOvertags
-                                            , typenameAlreadySelected = found.typenameAlreadySelected
-                                            }
-
-                                        CanError errorMsg ->
-                                            { result =
-                                                CanError errorMsg
-                                            , capturedVariants = found.capturedVariants
-                                            , fieldNames =
-                                                selectionResult.fieldNames
-                                                    |> dropLevel
-                                            , variants = leftOvertags
-                                            , typenameAlreadySelected = found.typenameAlreadySelected
-                                            }
-
-                                else
-                                    { result =
-                                        err [ error (MissingTypename { tag = AST.nameToString inline.tag }) ]
-                                    , fieldNames = found.fieldNames
-                                    , capturedVariants = found.capturedVariants
-                                    , variants = found.variants
-                                    , typenameAlreadySelected = found.typenameAlreadySelected
-                                    }
-
-                    else
-                        { result =
-                            err [ todo (tag ++ " does not match!") ]
-                        , fieldNames = found.fieldNames
-                        , variants = found.variants
-                        , capturedVariants = found.capturedVariants
-                        , typenameAlreadySelected = found.typenameAlreadySelected
-                        }
