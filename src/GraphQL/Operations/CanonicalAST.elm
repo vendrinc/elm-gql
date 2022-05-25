@@ -256,75 +256,62 @@ selectionToString : Selection -> String
 selectionToString sel =
     case sel of
         FieldObject details ->
-            selectFieldToString details
+            aliasedName details
+                ++ renderArguments details.arguments
+                ++ renderSelection details.selection
 
         FieldUnion details ->
             aliasedName details
+                ++ renderArguments details.arguments
                 ++ brackets
                     (foldToString "\n" selectionToString details.selection
-                        ++ foldToString "\n" unionCaseToString details.variants
+                        ++ foldToString "\n" variantFragmentToString details.variants
                     )
 
         FieldScalar details ->
-            aliasedName details
+            aliasedName details ++ renderArguments details.arguments
 
         FieldEnum details ->
-            aliasedName details
+            aliasedName details ++ renderArguments details.arguments
 
         FieldInterface details ->
             aliasedName details
+                ++ renderArguments details.arguments
                 ++ brackets
                     (foldToString "\n" selectionToString details.selection
-                        ++ foldToString "\n" interfaceCaseToString details.variants
+                        ++ foldToString "\n" variantFragmentToString details.variants
                     )
 
 
-unionCaseToString : UnionCaseDetails -> String
-unionCaseToString instance =
+variantFragmentToString : UnionCaseDetails -> String
+variantFragmentToString instance =
     "... on "
         ++ nameToString instance.tag
         ++ " "
         ++ brackets (foldToString "\n" selectionToString instance.selection)
 
 
-interfaceCaseToString : InterfaceCase -> String
-interfaceCaseToString instance =
-    "... on "
-        ++ nameToString instance.tag
-        ++ " "
-        ++ brackets (foldToString "\n" selectionToString instance.selection)
+renderSelection : List Selection -> String
+renderSelection selection =
+    case selection of
+        [] ->
+            ""
+
+        _ ->
+            " "
+                ++ brackets (foldToString "\n" selectionToString selection)
 
 
-selectFieldToString :
-    { a
-        | selection : List Selection
-        , alias_ : Maybe Name
-        , name : Name
-        , arguments : List Argument
-    }
-    -> String
-selectFieldToString details =
-    let
-        arguments =
-            case details.arguments of
-                [] ->
-                    ""
+renderArguments : List Argument -> String
+renderArguments args =
+    case args of
+        [] ->
+            ""
 
-                _ ->
-                    "("
-                        ++ foldToString "\n" argToString details.arguments
-                        ++ ")"
-
-        selection =
-            case details.selection of
-                [] ->
-                    ""
-
-                _ ->
-                    " "
-                        ++ brackets (foldToString "\n" selectionToString details.selection)
-    in
-    aliasedName details ++ arguments ++ selection
+        _ ->
+            "("
+                ++ foldToString "\n" argToString args
+                ++ ")"
 
 
 argToString : Argument -> String

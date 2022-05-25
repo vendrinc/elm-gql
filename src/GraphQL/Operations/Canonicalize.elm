@@ -898,8 +898,6 @@ canonicalizeOperation schema op used selection =
                         |> convertName
                         |> Can.nameToString
 
-                -- global =
-                --     getGlobalName desiredName used
                 matched =
                     case op of
                         AST.Query ->
@@ -1947,7 +1945,7 @@ canonicalizeFieldWithVariants schema unionOrInterface selection found =
                                                             canoned.fieldNames
                                                 }
                                             )
-                                            { result = emptySuccess
+                                            { result = found.result
                                             , fieldNames = found.fieldNames
                                             }
                                             inline.selection
@@ -1962,6 +1960,8 @@ canonicalizeFieldWithVariants schema unionOrInterface selection found =
                                             { result =
                                                 found.result
                                                     |> addCache cache
+
+                                            -- selectionResult.result
                                             , capturedVariants =
                                                 { tag = Can.Name tag
                                                 , globalAlias = Can.Name global.globalName
