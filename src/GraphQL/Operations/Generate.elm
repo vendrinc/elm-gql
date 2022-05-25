@@ -625,10 +625,6 @@ fieldAliasedAnnotation :
         , knownNames : Set.Set String
         }
 fieldAliasedAnnotation namespace schema knownNames parent selection =
-    let
-        ( desiredName, newKnownNames ) =
-            getDesiredFieldName knownNames selection
-    in
     case selection of
         Can.FieldObject field ->
             let
@@ -639,24 +635,24 @@ fieldAliasedAnnotation namespace schema knownNames parent selection =
                             (Can.nameToString field.globalAlias)
                         )
             in
-            { name = desiredName
+            { name = Can.getAliasedFieldName field
             , annotation = annotation
-            , knownNames = newKnownNames
+            , knownNames = knownNames
             }
 
         Can.FieldScalar field ->
-            { name = desiredName
+            { name = Can.getAliasedFieldName field
             , annotation =
                 schemaTypeToPrefab field.type_
-            , knownNames = newKnownNames
+            , knownNames = knownNames
             }
 
         Can.FieldEnum field ->
-            { name = desiredName
+            { name = Can.getAliasedFieldName field
             , annotation =
                 enumType namespace field.enumName
                     |> Input.wrapElmType field.wrapper
-            , knownNames = newKnownNames
+            , knownNames = knownNames
             }
 
         Can.FieldUnion field ->
@@ -668,9 +664,9 @@ fieldAliasedAnnotation namespace schema knownNames parent selection =
                             (Can.nameToString field.globalAlias)
                         )
             in
-            { name = desiredName
+            { name = Can.getAliasedFieldName field
             , annotation = annotation
-            , knownNames = newKnownNames
+            , knownNames = knownNames
             }
 
         Can.FieldInterface field ->
@@ -682,9 +678,9 @@ fieldAliasedAnnotation namespace schema knownNames parent selection =
                             (Can.nameToString field.globalAlias)
                         )
             in
-            { name = desiredName
+            { name = Can.getAliasedFieldName field
             , annotation = annotation
-            , knownNames = newKnownNames
+            , knownNames = knownNames
             }
 
 
@@ -711,13 +707,7 @@ unionVars namespace schema alias_ unionCase gathered =
             , declarations = gathered.declarations
             , variants =
                 Elm.variant
-                    (case alias_ of
-                        Nothing ->
-                            Can.nameToString unionCase.tag
-
-                        Just prefix ->
-                            prefix ++ Can.nameToString unionCase.tag
-                    )
+                    (Can.nameToString unionCase.globalAlias)
                     :: gathered.variants
             }
 
@@ -733,12 +723,7 @@ unionVars namespace schema alias_ unionCase gathered =
                         []
 
                 variantName =
-                    case alias_ of
-                        Nothing ->
-                            Can.nameToString unionCase.tag
-
-                        Just prefix ->
-                            prefix ++ Can.nameToString unionCase.tag
+                    Can.nameToString unionCase.globalAlias
 
                 detailsName =
                     variantName ++ "_Details"
@@ -791,13 +776,7 @@ interfaceVariants namespace schema alias_ unionCase gathered =
             { names = gathered.names
             , variants =
                 Elm.variant
-                    (case alias_ of
-                        Nothing ->
-                            Can.nameToString unionCase.tag
-
-                        Just prefix ->
-                            prefix ++ Can.nameToString unionCase.tag
-                    )
+                    (Can.nameToString unionCase.globalAlias)
                     :: gathered.variants
             , declarations = gathered.declarations
             }
@@ -858,70 +837,6 @@ removeTypename field =
 
         _ ->
             True
-
-
-getDesiredFieldName : Set.Set String -> Can.Selection -> ( String, Set.Set String )
-getDesiredFieldName knownNames selection =
-    case selection of
-        Can.FieldObject field ->
-            let
-                desired =
-                    Maybe.withDefault
-                        (Can.nameToString field.name)
-                        (Maybe.map
-                            Can.nameToString
-                            field.alias_
-                        )
-            in
-            Tuple.pair desired knownNames
-
-        Can.FieldScalar field ->
-            let
-                desired =
-                    Maybe.withDefault
-                        (Can.nameToString field.name)
-                        (Maybe.map
-                            Can.nameToString
-                            field.alias_
-                        )
-            in
-            Tuple.pair desired knownNames
-
-        Can.FieldEnum field ->
-            let
-                desired =
-                    Maybe.withDefault
-                        (Can.nameToString field.name)
-                        (Maybe.map
-                            Can.nameToString
-                            field.alias_
-                        )
-            in
-            Tuple.pair desired knownNames
-
-        Can.FieldUnion field ->
-            let
-                desired =
-                    Maybe.withDefault
-                        (Can.nameToString field.name)
-                        (Maybe.map
-                            Can.nameToString
-                            field.alias_
-                        )
-            in
-            Tuple.pair desired knownNames
-
-        Can.FieldInterface field ->
-            let
-                desired =
-                    Maybe.withDefault
-                        (Can.nameToString field.name)
-                        (Maybe.map
-                            Can.nameToString
-                            field.alias_
-                        )
-            in
-            Tuple.pair desired knownNames
 
 
 getDesiredTypeName : Set.Set String -> Can.Selection -> ( String, Set.Set String )
@@ -1007,10 +922,6 @@ fieldAnnotation :
         , knownNames : Set.Set String
         }
 fieldAnnotation namespace schema knownNames parent selection =
-    let
-        ( desiredName, newKnownNames ) =
-            getDesiredFieldName knownNames selection
-    in
     case selection of
         Can.FieldObject field ->
             case field.selection of
@@ -1025,9 +936,9 @@ fieldAnnotation namespace schema knownNames parent selection =
                                     getScalarType par (Can.nameToString field.name) schema
                                         |> schemaTypeToPrefab
                     in
-                    { name = desiredName
+                    { name = Can.getAliasedFieldName field
                     , annotation = annotation
-                    , knownNames = newKnownNames
+                    , knownNames = knownNames
                     }
 
                 sels ->
@@ -1035,7 +946,7 @@ fieldAnnotation namespace schema knownNames parent selection =
                         ( knownNames2, record ) =
                             fieldsToRecord namespace
                                 schema
-                                newKnownNames
+                                knownNames
                                 (Just (Can.nameToString field.name))
                                 field.selection
                                 []
@@ -1044,31 +955,27 @@ fieldAnnotation namespace schema knownNames parent selection =
                             Input.wrapElmType field.wrapper
                                 record
                     in
-                    { name = desiredName
+                    { name = Can.getAliasedFieldName field
                     , annotation = annotation
                     , knownNames = knownNames2
                     }
 
         Can.FieldScalar field ->
-            { name = desiredName
+            { name = Can.getAliasedFieldName field
             , annotation =
                 schemaTypeToPrefab field.type_
-            , knownNames = newKnownNames
+            , knownNames = knownNames
             }
 
         Can.FieldEnum field ->
-            { name = desiredName
+            { name = Can.getAliasedFieldName field
             , annotation =
                 enumType namespace field.enumName
                     |> Input.wrapElmType field.wrapper
-            , knownNames = newKnownNames
+            , knownNames = knownNames
             }
 
         Can.FieldUnion field ->
-            let
-                ( desiredTypeName, newKnownNames2 ) =
-                    getDesiredTypeName newKnownNames selection
-            in
             case field.selection of
                 [] ->
                     let
@@ -1081,9 +988,9 @@ fieldAnnotation namespace schema knownNames parent selection =
                                     getScalarType par (Can.nameToString field.name) schema
                                         |> schemaTypeToPrefab
                     in
-                    { name = desiredName
+                    { name = Can.getAliasedFieldName field
                     , annotation = annotation
-                    , knownNames = newKnownNames2
+                    , knownNames = knownNames
                     }
 
                 sels ->
@@ -1091,19 +998,16 @@ fieldAnnotation namespace schema knownNames parent selection =
                         annotation =
                             Type.named
                                 []
-                                desiredTypeName
+                                -- Shouldnt this be a globa lalias?
+                                (Can.getAliasedFieldName field)
                                 |> Input.wrapElmType field.wrapper
                     in
-                    { name = desiredName
+                    { name = Can.getAliasedFieldName field
                     , annotation = annotation
-                    , knownNames = newKnownNames2
+                    , knownNames = knownNames
                     }
 
         Can.FieldInterface field ->
-            let
-                ( desiredTypeName, newKnownNames2 ) =
-                    getDesiredTypeName newKnownNames selection
-            in
             case field.selection of
                 [] ->
                     let
@@ -1116,9 +1020,9 @@ fieldAnnotation namespace schema knownNames parent selection =
                                     getScalarType par (Can.nameToString field.name) schema
                                         |> schemaTypeToPrefab
                     in
-                    { name = desiredName
+                    { name = Can.getAliasedFieldName field
                     , annotation = annotation
-                    , knownNames = newKnownNames2
+                    , knownNames = knownNames
                     }
 
                 sels ->
@@ -1126,12 +1030,13 @@ fieldAnnotation namespace schema knownNames parent selection =
                         annotation =
                             Type.named
                                 []
-                                desiredTypeName
+                                -- Shouldnt this be a globa lalias?
+                                (Can.getAliasedFieldName field)
                                 |> Input.wrapElmType field.wrapper
                     in
-                    { name = desiredName
+                    { name = Can.getAliasedFieldName field
                     , annotation = annotation
-                    , knownNames = newKnownNames2
+                    , knownNames = knownNames
                     }
 
 

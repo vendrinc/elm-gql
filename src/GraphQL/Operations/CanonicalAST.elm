@@ -193,6 +193,16 @@ getAliasedName sel =
             nameToString (Maybe.withDefault details.name details.alias_)
 
 
+getAliasedFieldName :
+    { field
+        | alias_ : Maybe Name
+        , name : Name
+    }
+    -> String
+getAliasedFieldName details =
+    nameToString (Maybe.withDefault details.name details.alias_)
+
+
 nameToString : Name -> String
 nameToString (Name str) =
     str
