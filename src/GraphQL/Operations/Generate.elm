@@ -1287,7 +1287,7 @@ decodeInterface namespace index fieldName interface =
         selection =
             List.filter (not << Can.isTypeNameSelection) interface.selection
     in
-    case interface.selection of
+    case interface.variants of
         [] ->
             Decode.succeed
                 (Elm.lambdaWith
