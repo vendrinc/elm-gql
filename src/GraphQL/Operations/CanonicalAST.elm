@@ -266,6 +266,12 @@ selectionToString sel =
                 ++ " "
                 ++ brackets
                     (foldToString "\n" selectionToString details.selection
+                        ++ (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
+                                "\n"
+
+                            else
+                                ""
+                           )
                         ++ foldToString "\n" variantFragmentToString details.variants
                     )
 
@@ -281,6 +287,12 @@ selectionToString sel =
                 ++ " "
                 ++ brackets
                     (foldToString "\n" selectionToString details.selection
+                        ++ (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
+                                "\n"
+
+                            else
+                                ""
+                           )
                         ++ foldToString "\n" variantFragmentToString details.variants
                     )
 
