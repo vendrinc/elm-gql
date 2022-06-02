@@ -1945,7 +1945,7 @@ canonicalizeFieldWithVariants schema unionOrInterface selection found =
                                                             canoned.fieldNames
                                                 }
                                             )
-                                            { result = found.result
+                                            { result = emptySuccess
                                             , fieldNames = found.fieldNames
                                             }
                                             inline.selection
