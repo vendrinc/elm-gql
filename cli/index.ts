@@ -198,12 +198,14 @@ const isDev = () => {
   return false;
 };
 
-const clearDirecctory = (dir: string) => {
-  const files = fs.readdirSync(dir);
+const clearDir = (dir: string) => {
+  try {
+    const files = fs.readdirSync(dir);
 
-  for (const file of files) {
-    fs.unlinkSync(path.join(dir, file));
-  }
+    for (const file of files) {
+      fs.unlinkSync(path.join(dir, file));
+    }
+  } catch {}
 };
 
 async function action(options: Options, com: any) {
@@ -238,7 +240,7 @@ async function action(options: Options, com: any) {
     ) {
       for (const file of fileSources) {
         const targetDir = file.path.replace(".gql", "");
-        clearDirecctory(targetDir);
+        clearDir(targetDir);
       }
 
       run_generator(schema_generator.Elm.Generate, {
