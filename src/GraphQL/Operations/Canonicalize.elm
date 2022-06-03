@@ -913,7 +913,8 @@ canonicalizeOperation schema op used selection =
                 Just query ->
                     canonicalizeFieldType schema
                         field
-                        (addLevel desiredName used)
+                        -- (addLevel desiredName used)
+                        used
                         query
                         |> Tuple.mapFirst dropLevel
 
@@ -1137,9 +1138,6 @@ getGlobalName rawName (UsedNames used) =
 
     else
         let
-            crumbs =
-                List.reverse used.breadcrumbs
-
             name =
                 formatTypename rawName
 
@@ -1147,19 +1145,19 @@ getGlobalName rawName (UsedNames used) =
                 if List.member name used.globalNames then
                     let
                         tempGlobalName =
-                            case crumbs of
+                            case used.breadcrumbs of
                                 [] ->
                                     name
 
                                 top :: remain ->
-                                    -- we do this to havea better chance of having
+                                    -- we do this to have a better chance of having
                                     -- a nice top level name
                                     -- The name with full breadcrumbs is pretty big.
                                     top ++ "_" ++ name
                     in
                     if List.member tempGlobalName used.globalNames then
                         -- we know that breadcrumbs are unique themselves
-                        String.join "_" crumbs ++ "_" ++ name
+                        String.join "_" (List.reverse used.breadcrumbs) ++ "_" ++ name
 
                     else
                         tempGlobalName
@@ -1297,7 +1295,7 @@ canonicalizeField schema object selection found =
                             ( newNames, cannedSelection ) =
                                 canonicalizeFieldType schema
                                     field
-                                    (addLevel aliased found.fieldNames)
+                                    found.fieldNames
                                     matched
                         in
                         { result =
@@ -1309,7 +1307,6 @@ canonicalizeField schema object selection found =
                                     CanError errMsg
                         , fieldNames =
                             newNames
-                                |> dropLevel
                                 |> saveSibling aliased
                         }
 
@@ -1465,7 +1462,12 @@ canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
                         ( usedNames, err [ error (ObjectUnknown name) ] )
 
                     Just obj ->
-                        canonicalizeObject schema field usedNames schemaField newCache obj
+                        canonicalizeObject schema
+                            field
+                            usedNames
+                            schemaField
+                            newCache
+                            obj
 
             GraphQL.Schema.Enum name ->
                 case Dict.get name schema.enums of
@@ -1506,7 +1508,8 @@ canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
                                             |> Can.nameToString
 
                                     global =
-                                        getGlobalName aliasedName usedNames
+                                        getGlobalName aliasedName
+                                            usedNames
 
                                     selectsForTypename =
                                         List.any
@@ -1535,7 +1538,9 @@ canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
                                             )
                                             { result = emptySuccess
                                             , capturedVariants = []
-                                            , fieldNames = global.used
+                                            , fieldNames =
+                                                global.used
+                                                    |> addLevel aliasedName
                                             , variants = variants
                                             , typenameAlreadySelected = selectsForTypename
                                             }
@@ -1544,12 +1549,15 @@ canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
                                     ( remainingUsedNames, remaining ) =
                                         List.foldl
                                             gatherRemaining
-                                            ( selectionResult.fieldNames, [] )
+                                            ( selectionResult.fieldNames
+                                            , []
+                                            )
                                             selectionResult.variants
                                 in
                                 case selectionResult.result of
                                     CanSuccess cache canSelection ->
                                         ( remainingUsedNames
+                                            |> dropLevel
                                         , CanSuccess (mergeCaches newCache cache)
                                             (Can.FieldUnion
                                                 { alias_ = Maybe.map convertName field.alias_
@@ -1611,7 +1619,9 @@ canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
                                     (canonicalizeFieldWithVariants schema interface)
                                     { result = emptySuccess
                                     , capturedVariants = []
-                                    , fieldNames = global.used
+                                    , fieldNames =
+                                        global.used
+                                            |> addLevel aliasedName
                                     , variants = variants
                                     , typenameAlreadySelected = selectsForTypename
                                     }
@@ -1620,12 +1630,15 @@ canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
                             ( remainingUsedNames, remaining ) =
                                 List.foldl
                                     gatherRemaining
-                                    ( selectionResult.fieldNames, [] )
+                                    ( selectionResult.fieldNames
+                                    , []
+                                    )
                                     selectionResult.variants
                         in
                         case selectionResult.result of
                             CanSuccess cache canSelection ->
                                 ( remainingUsedNames
+                                    |> dropLevel
                                 , CanSuccess (mergeCaches newCache cache)
                                     (Can.FieldInterface
                                         { alias_ = Maybe.map convertName field.alias_
@@ -1721,6 +1734,7 @@ canonicalizeObject schema field usedNames schemaField varCache obj =
                         { result = emptySuccess
                         , fieldNames =
                             global.used
+                                |> addLevel aliasedName
                         }
                         field.selection
             in
@@ -1728,6 +1742,7 @@ canonicalizeObject schema field usedNames schemaField varCache obj =
                 CanSuccess cache canSelection ->
                     if siblingCollision aliasedName global.used then
                         ( selectionResult.fieldNames
+                            |> dropLevel
                         , err
                             [ error
                                 (FieldAliasRequired
@@ -1739,6 +1754,7 @@ canonicalizeObject schema field usedNames schemaField varCache obj =
 
                     else
                         ( selectionResult.fieldNames
+                            |> dropLevel
                             |> saveSibling aliasedName
                         , CanSuccess (mergeCaches varCache cache)
                             (Can.FieldObject
