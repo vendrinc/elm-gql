@@ -913,7 +913,6 @@ canonicalizeOperation schema op used selection =
                 Just query ->
                     canonicalizeFieldType schema
                         field
-                        -- (addLevel desiredName used)
                         used
                         query
                         |> Tuple.mapFirst dropLevel
@@ -1104,7 +1103,13 @@ type UsedNames
         , siblingStack : List (List String)
 
         -- All parent aliased names
-        , breadcrumbs : List String
+        -- we keep track of if something is an alias because
+        -- it can be really intuitive to just use aliases to generate names
+        , breadcrumbs :
+            List
+                { name : String
+                , isAlias : Bool
+                }
 
         -- All global field aliases
         , globalNames : List String
@@ -1144,23 +1149,37 @@ getGlobalName rawName (UsedNames used) =
             newGlobalName =
                 if List.member name used.globalNames then
                     let
-                        tempGlobalName =
+                        allAliases =
+                            List.filter .isAlias used.breadcrumbs
+                    in
+                    case allAliases of
+                        [] ->
                             case used.breadcrumbs of
                                 [] ->
+                                    -- shouldnt happen
                                     name
 
                                 top :: remain ->
-                                    -- we do this to have a better chance of having
-                                    -- a nice top level name
-                                    -- The name with full breadcrumbs is pretty big.
-                                    top ++ "_" ++ name
-                    in
-                    if List.member tempGlobalName used.globalNames then
-                        -- we know that breadcrumbs are unique themselves
-                        String.join "_" (List.reverse used.breadcrumbs) ++ "_" ++ name
+                                    let
+                                        unaliasedName =
+                                            top.name ++ "_" ++ name
+                                    in
+                                    if List.member unaliasedName used.globalNames then
+                                        String.join "_" (List.reverse (List.map .name used.breadcrumbs)) ++ "_" ++ name
 
-                    else
-                        tempGlobalName
+                                    else
+                                        unaliasedName
+
+                        topAlias :: remainingAliases ->
+                            let
+                                aliasedName =
+                                    topAlias.name ++ "_" ++ name
+                            in
+                            if List.member aliasedName used.globalNames then
+                                String.join "_" (List.reverse (List.map .name used.breadcrumbs)) ++ "_" ++ name
+
+                            else
+                                aliasedName
 
                 else
                     name
@@ -1194,11 +1213,28 @@ siblingCollision name (UsedNames used) =
     levels should be the alias name
 
 -}
-addLevel : String -> UsedNames -> UsedNames
-addLevel level (UsedNames used) =
+addLevel :
+    { field
+        | name : AST.Name
+        , alias_ : Maybe AST.Name
+    }
+    -> UsedNames
+    -> UsedNames
+addLevel field (UsedNames used) =
+    let
+        aliased =
+            field.alias_
+                |> Maybe.withDefault field.name
+                |> convertName
+                |> Can.nameToString
+    in
     UsedNames
         { used
-            | breadcrumbs = formatTypename level :: used.breadcrumbs
+            | breadcrumbs =
+                { name = formatTypename aliased
+                , isAlias = field.alias_ /= Nothing
+                }
+                    :: used.breadcrumbs
             , siblingStack = used.siblingAliases :: used.siblingStack
             , siblingAliases = []
         }
@@ -1540,7 +1576,7 @@ canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
                                             , capturedVariants = []
                                             , fieldNames =
                                                 global.used
-                                                    |> addLevel aliasedName
+                                                    |> addLevel field
                                             , variants = variants
                                             , typenameAlreadySelected = selectsForTypename
                                             }
@@ -1621,7 +1657,7 @@ canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
                                     , capturedVariants = []
                                     , fieldNames =
                                         global.used
-                                            |> addLevel aliasedName
+                                            |> addLevel field
                                     , variants = variants
                                     , typenameAlreadySelected = selectsForTypename
                                     }
@@ -1734,7 +1770,7 @@ canonicalizeObject schema field usedNames schemaField varCache obj =
                         { result = emptySuccess
                         , fieldNames =
                             global.used
-                                |> addLevel aliasedName
+                                |> addLevel field
                         }
                         field.selection
             in
