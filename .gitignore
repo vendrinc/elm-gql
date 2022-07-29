@@ -9,3 +9,5 @@ yarn-error.log
 schema.json
 gql-ops
 test-ops
+unused
+.elm-gql-cache
