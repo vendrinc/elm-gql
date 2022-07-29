@@ -248,6 +248,9 @@ mockScalar t =
 typeToElmString : Type -> String
 typeToElmString t =
     case t of
+        Scalar "Boolean" ->
+            "Bool"
+
         Scalar name ->
             name
 
