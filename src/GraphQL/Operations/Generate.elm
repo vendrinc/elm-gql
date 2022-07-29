@@ -1062,16 +1062,6 @@ fieldAnnotation namespace schema knownNames parent selection =
                     }
 
 
-enumValue : Namespace -> String -> String -> Elm.Expression
-enumValue namespace enumName val =
-    Elm.valueFrom
-        [ namespace.enums
-        , "Enum"
-        , Utils.String.formatTypename enumName
-        ]
-        (Utils.String.formatTypename val)
-
-
 enumType : Namespace -> String -> Type.Annotation
 enumType namespace enumName =
     Type.named
