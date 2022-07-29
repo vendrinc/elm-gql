@@ -24,7 +24,16 @@ import Elm.Gen.GraphQL.Engine as Engine
 import Elm.Gen.Json.Encode as Encode
 import Generate.Common
 import GraphQL.Schema
+import Set exposing (Set)
 import Utils.String
+
+
+reservedWords : Set String
+reservedWords =
+    Set.fromList
+        [ "input"
+        , "null"
+        ]
 
 
 type alias Namespace =
@@ -235,7 +244,11 @@ inputToRecordOptionalHelper namespace schema var =
         GraphQL.Schema.Nullable inner ->
             let
                 varName =
-                    var.name
+                    if Set.member var.name reservedWords then
+                        var.name ++ "_"
+
+                    else
+                        var.name
 
                 innerType =
                     toElmType namespace schema inner (GraphQL.Schema.getWrap inner)
