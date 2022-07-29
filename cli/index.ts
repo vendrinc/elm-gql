@@ -181,8 +181,11 @@ const wasModified = (cache: Cache, file: string) => {
   }
 };
 
-const readCache = () => {
+const readCache = (force: boolean) => {
   let cache = emptyCache;
+  if (force) {
+    return cache;
+  }
   try {
     cache = JSON.parse(fs.readFileSync(".elm-gql-cache").toString());
 
@@ -211,7 +214,7 @@ const clearDir = (dir: string) => {
 async function action(options: Options, com: any) {
   let newCache = emptyCache;
 
-  let cache = readCache();
+  let cache = readCache(options.force);
 
   let schema = options.schema;
   let schemaWasModified = { at: new Date(), was: false };
@@ -302,6 +305,7 @@ type Options = {
   onlyGqlFiles: boolean;
   output: string;
   namespace: string;
+  force: boolean;
   existingEnumDefinitions: string | null;
 };
 
@@ -321,6 +325,7 @@ program
     "Change the namespace that the generated code should have.",
     "Api"
   )
+  .option("--force", "Skip the cache")
   .option(
     "--output <dir>",
     "The directory where your generated files should go.",
