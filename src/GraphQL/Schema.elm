@@ -277,54 +277,44 @@ typeToElmString t =
 
 
 typeToString : Type -> String
-typeToString t =
-    typeToStringHelper (getWrapper t (Val { required = True })) t
+typeToString tipe =
+    typeToStringHelper False tipe
 
 
-typeToStringHelper : Wrapper -> Type -> String
-typeToStringHelper wrapper t =
-    case t of
-        Scalar name ->
-            unwrapTypeToString wrapper name
-
-        InputObject name ->
-            unwrapTypeToString wrapper name
-
-        Object name ->
-            unwrapTypeToString wrapper name
-
-        Enum name ->
-            unwrapTypeToString wrapper name
-
-        Union name ->
-            unwrapTypeToString wrapper name
-
-        Interface name ->
-            unwrapTypeToString wrapper name
-
-        List_ inner ->
-            typeToStringHelper wrapper inner
-
-        Nullable inner ->
-            typeToStringHelper wrapper inner
-
-
-unwrapTypeToString : Wrapper -> String -> String
-unwrapTypeToString wrapper str =
-    case wrapper of
-        Val { required } ->
-            if required then
-                str ++ "!"
-
-            else
+typeToStringHelper : Bool -> Type -> String
+typeToStringHelper nullable tipe =
+    let
+        required str =
+            if nullable then
                 str
 
-        WithinList { required } inner ->
-            if required then
-                "[" ++ unwrapTypeToString inner str ++ "]!"
-
             else
-                "[" ++ unwrapTypeToString inner str ++ "]"
+                str ++ "!"
+    in
+    case tipe of
+        Scalar name ->
+            required name
+
+        InputObject name ->
+            required name
+
+        Object name ->
+            required name
+
+        Enum name ->
+            required name
+
+        Union name ->
+            required name
+
+        Interface name ->
+            required name
+
+        List_ inner ->
+            required ("[" ++ typeToStringHelper False inner ++ "]")
+
+        Nullable inner ->
+            typeToStringHelper True inner
 
 
 brackets : String -> String
