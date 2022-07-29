@@ -742,72 +742,6 @@ encodeInputObjectArg inputName wrapper val level =
                 val
 
 
-
--- encodeInput :
---     String
---     -> GraphQL.Schema.Type
---     -> GraphQL.Schema.Wrapped
---     -> Elm.Expression
---     -> Elm.Expression
--- encodeInput namespace fieldType wrapped val =
---     case fieldType of
---         GraphQL.Schema.Nullable newType ->
---             encodeInput namespace newType wrapped val
---         GraphQL.Schema.List_ newType ->
---             encodeInput namespace newType wrapped val
---         GraphQL.Schema.Scalar scalarName ->
---             Engine.arg
---                 (Generate.Input.Encode.encodeScalar scalarName
---                     wrapped
---                     val
---                 )
---                 (Elm.string scalarName)
---         GraphQL.Schema.Enum enumName ->
---             --This can either be
---             --     val -> Enum.encode val
---             --     val ->
---             --          Encode.list Enum.encode val
---             --     val ->
---             --          Engine.encodeMaybe Enum.encode val
---             --     or some stack
---             --     val ->
---             --          Encode.list (Encode.list Enum.encode) val
---             --
---             Engine.arg
---                 (encodeWrappedInverted wrapped
---                     (\v ->
---                         Elm.apply
---                             (Elm.valueFrom [ namespace, "Enum", enumName ] "encode")
---                             [ v
---                             ]
---                     )
---                     val
---                 )
---                 (Elm.string enumName)
---         GraphQL.Schema.InputObject inputName ->
---             Engine.arg
---                 (encodeWrappedInverted wrapped
---                     Engine.encodeArgument
---                     val
---                 )
---                 (Elm.string (inputTypeWrappedToString wrapped inputName))
---         GraphQL.Schema.Union unionName ->
---             Elm.string "Unions cant be nested in inputs"
---         GraphQL.Schema.Object nestedObjectName ->
---             Elm.string "Objects cant be nested in inputs"
---         GraphQL.Schema.Interface interfaceName ->
---             Elm.string "Interfaces cant be in inputs"
--- inputTypeWrappedToString : GraphQL.Schema.Wrapped -> String -> String
--- inputTypeWrappedToString wrapped base =
---     case wrapped of
---         GraphQL.Schema.UnwrappedValue ->
---             base
---         GraphQL.Schema.InList inner ->
---             "[" ++ inputTypeWrappedToString inner base ++ "]"
---         GraphQL.Schema.InMaybe inner ->
---             inputTypeWrappedToString inner base
-
-
 inputTypeToString : GraphQL.Schema.Type -> String
 inputTypeToString type_ =
     case type_ of
@@ -1041,23 +975,7 @@ createBuilder namespace schema name arguments returnType operation =
                 Nothing
 
         returnSelection =
-            if needsInnerSelection returnType then
-                let
-                    innerReturnType =
-                        GraphQL.Schema.getInner returnType
-                in
-                Elm.valueWith []
-                    "selection"
-                    (Generate.Common.selection namespace.namespace
-                        (GraphQL.Schema.typeToElmString innerReturnType)
-                        (Elm.Annotation.var "data")
-                    )
-
-            else
-                Generate.Decode.scalar
-                    (GraphQL.Schema.typeToElmString returnType)
-                    (GraphQL.Schema.getWrap returnType)
-                    |> Engine.decode
+            decodeSelection namespace returnType
 
         returnWrapper =
             GraphQL.Schema.getWrap returnType
@@ -1071,7 +989,7 @@ createBuilder namespace schema name arguments returnType operation =
             else
                 Generate.Common.selection namespace.namespace
                     (Input.operationToString operation)
-                    (Elm.Annotation.named [] (GraphQL.Schema.typeToElmString returnType))
+                    (Generate.Common.gqlTypeToElmTypeAnnotation namespace returnType Nothing)
 
         return =
             Engine.objectWith
@@ -1089,7 +1007,7 @@ createBuilder namespace schema name arguments returnType operation =
                     (Elm.value "inputArgs")
                 )
                 (Elm.string name)
-                (decodeWrapper returnWrapper returnSelection)
+                returnSelection
                 |> Elm.withType returnAnnotation
     in
     Elm.functionWith (Utils.String.formatValue name)
@@ -1098,16 +1016,6 @@ createBuilder namespace schema name arguments returnType operation =
                 ( Elm.Annotation.named [] "Input"
                 , Elm.Pattern.var "inputArgs"
                 )
-
-            -- justIf hasRequiredArgs
-            -- ( recursiveRequiredAnnotation namespace schema required
-            -- , Elm.Pattern.var "required"
-            -- )
-            -- , justIf hasOptionalArgs
-            --     ( Elm.Annotation.list
-            --         (annotations.localOptional namespace name)
-            --     , Elm.Pattern.var embeddedOptionsFieldName
-            --     )
             , selectionArg
             ]
         )
@@ -1115,16 +1023,56 @@ createBuilder namespace schema name arguments returnType operation =
         |> Elm.expose
 
 
-decodeWrapper wrapper selection =
-    case wrapper of
-        GraphQL.Schema.UnwrappedValue ->
-            selection
+decodeSelection : Namespace -> GraphQL.Schema.Type -> Elm.Expression
+decodeSelection namespace returnType =
+    case returnType of
+        GraphQL.Schema.Scalar name ->
+            Generate.Decode.scalar
+                name
+                GraphQL.Schema.UnwrappedValue
+                |> Engine.decode
 
-        GraphQL.Schema.InList innerWrap ->
-            Engine.list (decodeWrapper innerWrap selection)
+        GraphQL.Schema.List_ inner ->
+            Engine.list (decodeSelection namespace inner)
 
-        GraphQL.Schema.InMaybe innerWrap ->
-            Engine.nullable (decodeWrapper innerWrap selection)
+        GraphQL.Schema.Nullable inner ->
+            Engine.nullable (decodeSelection namespace inner)
+
+        GraphQL.Schema.Enum enumName ->
+            Elm.valueFrom [ namespace.enums, "Enum", enumName ] "decoder"
+                |> Engine.decode
+
+        GraphQL.Schema.InputObject name ->
+            Elm.valueWith []
+                "selection"
+                (Generate.Common.selection namespace.namespace
+                    name
+                    (Elm.Annotation.var "data")
+                )
+
+        GraphQL.Schema.Object name ->
+            Elm.valueWith []
+                "selection"
+                (Generate.Common.selection namespace.namespace
+                    name
+                    (Elm.Annotation.var "data")
+                )
+
+        GraphQL.Schema.Union name ->
+            Elm.valueWith []
+                "selection"
+                (Generate.Common.selection namespace.namespace
+                    name
+                    (Elm.Annotation.var "data")
+                )
+
+        GraphQL.Schema.Interface name ->
+            Elm.valueWith []
+                "selection"
+                (Generate.Common.selection namespace.namespace
+                    name
+                    (Elm.Annotation.var "data")
+                )
 
 
 wrapWith wrapper inner =
