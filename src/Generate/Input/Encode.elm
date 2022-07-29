@@ -263,7 +263,7 @@ inputToRecordOptionalHelper namespace schema var =
                     )
                     (\val record ->
                         Elm.updateRecord "record"
-                            [ ( varName, Engine.make_.option.present val )
+                            [ ( var.name, Engine.make_.option.present val )
                             ]
                             |> Elm.withType (Type.named [] "Input")
                     )
