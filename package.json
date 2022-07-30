@@ -13,9 +13,11 @@
     "clean": "rm -rf ./output",
     "build": "node cli/build.js ; tsc ; yarn build:elm ; cp cli/package.json dist/package.json",
     "build:elm": "elm make src/Generate.elm --output=./dist/generators/schema.js",
+    "build:elm:opt": "elm-optimize-level-2 src/Generate.elm --output=./dist/generators/schema.js",
     "elm-gql": "node ./dist/index.js",
     "elm-gql:test": "node ./dist/index.js --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
-    "elm-gql:test-json-schema-file": "node ./dist/index.js --namespace=Api2 --schema=schema.json --gql=gql-ops",
+    "elm-gql:test-json-schema-file": "node ./dist/index.js --namespace=Api2 --schema=schema.json --gql=gql-ops --force",
+    "test": "elm-test",
     "test:generate-api": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm  --debug --flags-from=./examples/playground/example-config.json)",
     "generate:engine-bindings": "yarn generate:engine-docs; yarn elm-prefab install templates/engine-docs.json ; node cli/build.js",
     "generate:engine-docs": "cd templates ; rm -rf elm-stuff ; elm-doc-preview --output engine-docs.json ; cd .."
@@ -32,6 +34,7 @@
   "homepage": "https://github.com/Blissfully/elm-gql#readme",
   "devDependencies": {
     "elm-doc-preview": "^5.0.5",
+    "elm-optimize-level-2": "^0.3.4",
     "typescript": "^4.2.4"
   },
   "dependencies": {

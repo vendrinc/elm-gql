@@ -27,6 +27,9 @@ scalar scalarName wrapped =
                 "boolean" ->
                     Json.bool
 
+                "bool" ->
+                    Json.bool
+
                 _ ->
                     Elm.valueFrom [ "Scalar" ] (Utils.String.formatValue scalarName)
                         |> Elm.get "decoder"

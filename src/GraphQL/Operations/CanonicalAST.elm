@@ -55,7 +55,17 @@ type Selection
     | FieldUnion FieldUnionDetails
     | FieldScalar FieldScalarDetails
     | FieldEnum FieldEnumDetails
-    | UnionCase UnionCaseDetails
+    | FieldInterface FieldInterfaceDetails
+
+
+isTypeNameSelection : Selection -> Bool
+isTypeNameSelection sel =
+    case sel of
+        FieldScalar scal ->
+            nameToString scal.name == "__typename"
+
+        _ ->
+            False
 
 
 type alias FieldDetails =
@@ -95,9 +105,40 @@ type alias FieldUnionDetails =
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection
-    , remainingTags : List String
+    , variants : List UnionCaseDetails
+    , remainingTags :
+        List
+            { tag : Name
+            , globalAlias : Name
+            }
     , union : GraphQL.Schema.UnionDetails
     , wrapper : GraphQL.Schema.Wrapped
+    }
+
+
+type alias FieldInterfaceDetails =
+    { alias_ : Maybe Name
+    , name : Name
+    , globalAlias : Name
+    , arguments : List Argument
+    , directives : List Directive
+    , selection : List Selection
+    , variants : List InterfaceCase
+    , remainingTags :
+        List
+            { tag : Name
+            , globalAlias : Name
+            }
+    , interface : GraphQL.Schema.InterfaceDetails
+    , wrapper : GraphQL.Schema.Wrapped
+    }
+
+
+type alias InterfaceCase =
+    { tag : Name
+    , globalAlias : Name
+    , directives : List Directive
+    , selection : List Selection
     }
 
 
@@ -123,6 +164,7 @@ type alias FieldEnumDetails =
 
 type alias UnionCaseDetails =
     { tag : Name
+    , globalAlias : Name
     , directives : List Directive
     , selection : List Selection
     }
@@ -147,8 +189,18 @@ getAliasedName sel =
         FieldEnum details ->
             nameToString (Maybe.withDefault details.name details.alias_)
 
-        UnionCase details ->
-            nameToString details.tag
+        FieldInterface details ->
+            nameToString (Maybe.withDefault details.name details.alias_)
+
+
+getAliasedFieldName :
+    { field
+        | alias_ : Maybe Name
+        , name : Name
+    }
+    -> String
+getAliasedFieldName details =
+    nameToString (Maybe.withDefault details.name details.alias_)
 
 
 nameToString : Name -> String
@@ -204,54 +256,76 @@ selectionToString : Selection -> String
 selectionToString sel =
     case sel of
         FieldObject details ->
-            selectFieldToString details
+            aliasedName details
+                ++ renderArguments details.arguments
+                ++ renderSelection details.selection
 
         FieldUnion details ->
-            selectFieldToString details
+            aliasedName details
+                ++ renderArguments details.arguments
+                ++ " "
+                ++ brackets
+                    (foldToString "\n" selectionToString details.selection
+                        ++ (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
+                                "\n"
+
+                            else
+                                ""
+                           )
+                        ++ foldToString "\n" variantFragmentToString details.variants
+                    )
 
         FieldScalar details ->
-            aliasedName details
+            aliasedName details ++ renderArguments details.arguments
 
         FieldEnum details ->
+            aliasedName details ++ renderArguments details.arguments
+
+        FieldInterface details ->
             aliasedName details
-
-        UnionCase details ->
-            "... on "
-                ++ nameToString details.tag
+                ++ renderArguments details.arguments
                 ++ " "
-                ++ brackets (foldToString "\n" selectionToString details.selection)
+                ++ brackets
+                    (foldToString "\n" selectionToString details.selection
+                        ++ (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
+                                "\n"
+
+                            else
+                                ""
+                           )
+                        ++ foldToString "\n" variantFragmentToString details.variants
+                    )
 
 
-selectFieldToString :
-    { a
-        | selection : List Selection
-        , alias_ : Maybe Name
-        , name : Name
-        , arguments : List Argument
-    }
-    -> String
-selectFieldToString details =
-    let
-        arguments =
-            case details.arguments of
-                [] ->
-                    ""
+variantFragmentToString : UnionCaseDetails -> String
+variantFragmentToString instance =
+    "... on "
+        ++ nameToString instance.tag
+        ++ " "
+        ++ brackets (foldToString "\n" selectionToString instance.selection)
 
-                _ ->
-                    "("
-                        ++ foldToString "\n" argToString details.arguments
-                        ++ ")"
 
-        selection =
-            case details.selection of
-                [] ->
-                    ""
+renderSelection : List Selection -> String
+renderSelection selection =
+    case selection of
+        [] ->
+            ""
 
-                _ ->
-                    " "
-                        ++ brackets (foldToString "\n" selectionToString details.selection)
-    in
-    aliasedName details ++ arguments ++ selection
+        _ ->
+            " "
+                ++ brackets (foldToString "\n" selectionToString selection)
+
+
+renderArguments : List Argument -> String
+renderArguments args =
+    case args of
+        [] ->
+            ""
+
+        _ ->
+            "("
+                ++ foldToString "\n" argToString args
+                ++ ")"
 
 
 argToString : Argument -> String

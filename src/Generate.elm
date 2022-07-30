@@ -152,21 +152,46 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
 
                     mutationFiles =
                         Generate.Operations.generateFiles namespace Input.Mutation schema
+
+                    schemaFiles =
+                        saveSchema namespace schemaAsJson
+                            :: unionFiles
+                            ++ enumFiles
+                            ++ objectFiles
+                            ++ queryFiles
+                            ++ mutationFiles
+                            ++ inputFiles
+
+                    all =
+                        schemaFiles ++ gqlFiles
+
+                    -- This is a test file with references to every file generated, useful for testing!
+                    -- testFile =
+                    --     Elm.file [ "Test" ]
+                    --         [ Elm.declaration "all"
+                    --             (Elm.string (String.join "\\n" (List.map (.path >> formatElmPath) all)))
+                    --         ]
                 in
                 Elm.Gen.files
-                    (saveSchema namespace schemaAsJson
-                        :: unionFiles
-                        ++ enumFiles
-                        ++ objectFiles
-                        ++ queryFiles
-                        ++ mutationFiles
-                        ++ inputFiles
-                        ++ gqlFiles
-                    )
+                    (List.map (addOutputDir flagDetails.elmBaseSchema) all)
 
             else
                 Elm.Gen.files
                     gqlFiles
+
+
+formatElmPath : String -> String
+formatElmPath str =
+    str
+        |> String.replace ".elm" ""
+        |> String.replace "/" "."
+
+
+addOutputDir : List String -> { a | path : String } -> { a | path : String }
+addOutputDir pieces file =
+    { file
+        | path = String.join "/" pieces ++ "/" ++ file.path
+    }
 
 
 saveSchema : Namespace -> Json.Encode.Value -> Elm.File
@@ -210,18 +235,20 @@ parseGql namespace schema flagDetails gql rendered =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.oneOf
-        [ Json.Decode.map6
-            (\base namespace gql schemaUrl genPlatform existingEnums ->
+        [ Json.Decode.map7
+            (\elmBase elmBaseSchema namespace gql schemaUrl genPlatform existingEnums ->
                 Flags
                     { schema = schemaUrl
                     , gql = gql
-                    , base = base
+                    , elmBase = elmBase
+                    , elmBaseSchema = elmBaseSchema
                     , namespace = namespace
                     , generatePlatform = genPlatform
                     , existingEnumDefinitions = existingEnums
                     }
             )
-            (Json.Decode.field "base" (Json.Decode.list Json.Decode.string))
+            (Json.Decode.field "elmBase" (Json.Decode.list Json.Decode.string))
+            (Json.Decode.field "elmBaseSchema" (Json.Decode.list Json.Decode.string))
             (Json.Decode.field "namespace" Json.Decode.string)
             (Json.Decode.field "gql"
                 (Json.Decode.list
@@ -278,7 +305,13 @@ type Input
 type alias FlagDetails =
     { schema : Schema
     , gql : List Gql
-    , base : List String
+
+    -- all directories between cwd and the elm src dir
+    , elmBase : List String
+
+    -- same as above, but for the schema-related files
+    -- sometimes it's nice to separate that out into a separate dir.
+    , elmBaseSchema : List String
     , namespace : String
     , generatePlatform : Bool
     , existingEnumDefinitions : Maybe String
@@ -286,7 +319,10 @@ type alias FlagDetails =
 
 
 type alias Gql =
+    --
     { path : String
+
+    -- relative path from cwd to gql file, including the gql filename
     , src : String
     }
 
@@ -330,7 +366,7 @@ parseAndValidateQuery :
     Namespace
     -> GraphQL.Schema.Schema
     -> FlagDetails
-    -> { src : String, path : String }
+    -> Gql
     -> Result Error (List Elm.File)
 parseAndValidateQuery namespace schema flags gql =
     case GraphQL.Operations.Parse.parse gql.src of
@@ -369,9 +405,12 @@ parseAndValidateQuery namespace schema flags gql =
                             { namespace =
                                 namespace
                             , schema = schema
-                            , base = flags.base
                             , document = canAST
-                            , path = [ name ]
+                            , path =
+                                gql.path
+                                    |> String.split "/"
+                                    |> List.map (String.replace ".gql" "")
+                            , elmBase = flags.elmBase
                             }
                     of
                         Err validationError ->

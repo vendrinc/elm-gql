@@ -6,14 +6,14 @@ import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Parse as Parse
-import GraphQL.Schema
+import GraphQL.Schema as Schema
 import Json.Decode
 import Schema
 import Test exposing (..)
 
 
 schema =
-    case Json.Decode.decodeString GraphQL.Schema.decoder Schema.schemaString of
+    case Json.Decode.decodeString Schema.decoder Schema.schemaString of
         Ok parsed ->
             parsed
 
@@ -87,57 +87,65 @@ suite =
         ]
 
 
+typeToString =
+    describe "Can we render a type to a GQL string correctly?"
+        [ test "Simple required type" <|
+            \_ ->
+                Expect.equal
+                    (Schema.typeToString (Schema.Scalar "Boolean"))
+                    "Boolean!"
+        , test "Nullable scalar" <|
+            \_ ->
+                Expect.equal
+                    (Schema.typeToString (Schema.Nullable (Schema.Scalar "Boolean")))
+                    "Boolean"
+        , test "required list of required scalar" <|
+            \_ ->
+                Expect.equal
+                    (Schema.typeToString (Schema.List_ (Schema.Scalar "Boolean")))
+                    "[Boolean!]!"
+        , test "optional list of required scalar" <|
+            \_ ->
+                Expect.equal
+                    (Schema.typeToString (Schema.Nullable (Schema.List_ (Schema.Scalar "Boolean"))))
+                    "[Boolean!]"
+        , test "required list of optional scalar" <|
+            \_ ->
+                Expect.equal
+                    (Schema.typeToString (Schema.List_ (Schema.Nullable (Schema.Scalar "Boolean"))))
+                    "[Boolean]!"
+        , test "optional list of optional scalar" <|
+            \_ ->
+                Expect.equal
+                    (Schema.typeToString (Schema.Nullable (Schema.List_ (Schema.Nullable (Schema.Scalar "Boolean")))))
+                    "[Boolean]"
+        ]
+
+
 queries =
-    { deals = """query DealDetailsInit(
-   $id: ID!
-) {
+    { deals = """query DealDetailsInit($id: ID!) {
   deal(id: $id) {
     ... on Deal {
       __typename
       app {
-          name
-          logo
+        name
+        logo
       }
 
       dealType
       stage
-      stakeholders {
-        name
-        email
-      }
-      primaryStakeholder {
-        name
-        email
-      }
-      financialStakeholder {
-        name
-        email
-      }
-      legalStakeholder {
-        name
-        email
-      }
-      securityStakeholder {
-        name
-        email
-      }
+
       dueBy
       contractEndDate
       renewal
       previousContractValue
       supplierQuote
       negotiatedPrice
-
-      activity {
-        title
-        created
-      }
     }
     ... on NotFoundError {
-        __typename
-        message
+      __typename
+      message
     }
-
   }
 }
 """
