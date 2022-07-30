@@ -97,7 +97,7 @@ renderNewOptionalSingleFile :
     -> GraphQL.Schema.InputObjectDetails
     -> List Elm.Declaration
 renderNewOptionalSingleFile namespace schema input =
-    if List.all areOptional input.fields && hasOneOfDirective input then
+    if List.all areOptional input.fields && input.isOneOf then
         oneOf namespace schema input
 
     else
