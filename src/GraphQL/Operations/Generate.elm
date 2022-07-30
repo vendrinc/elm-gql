@@ -567,7 +567,7 @@ genAliasedTypes namespace schema knownNames sel =
                         schema
                         knownNames3
                         Nothing
-                        field.selection
+                        (List.reverse field.selection)
                         (if selectingForVariants then
                             [ ( "specifics_"
                               , Type.named [] (desiredTypeName ++ "_Specifics")
@@ -603,9 +603,9 @@ genAliasedTypes namespace schema knownNames sel =
                         existingList
             in
             ( final.names
-            , Elm.alias
-                desiredTypeName
-                interfaceRecord
+            , (Elm.alias desiredTypeName interfaceRecord
+                |> Elm.exposeAndGroup "necessary"
+              )
                 :: withSpecificType
                     (final.declarations
                         ++ newDecls
@@ -618,14 +618,6 @@ genAliasedTypes namespace schema knownNames sel =
 
 unionVariantName tag =
     Can.nameToString tag.globalAlias
-
-
-
--- case maybeAlias of
---     Nothing ->
---         -- Utils.String.formatTypename tag
---     Just alis ->
---         Utils.String.formatTypename (Can.nameToString alis ++ tag)
 
 
 fieldsToAliasedRecord :
@@ -1305,6 +1297,7 @@ decodeInterface namespace index fieldName interface =
     let
         selection =
             List.filter (not << Can.isTypeNameSelection) interface.selection
+                |> List.reverse
     in
     case interface.variants of
         [] ->
