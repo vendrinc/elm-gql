@@ -161,13 +161,30 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                             ++ queryFiles
                             ++ mutationFiles
                             ++ inputFiles
+
+                    all =
+                        schemaFiles ++ gqlFiles
+
+                    -- This is a test file with references to every file generated, useful for testing!
+                    -- testFile =
+                    --     Elm.file [ "Test" ]
+                    --         [ Elm.declaration "all"
+                    --             (Elm.string (String.join "\\n" (List.map (.path >> formatElmPath) all)))
+                    --         ]
                 in
                 Elm.Gen.files
-                    (List.map (addOutputDir flagDetails.elmBaseSchema) schemaFiles ++ gqlFiles)
+                    (List.map (addOutputDir flagDetails.elmBaseSchema) all)
 
             else
                 Elm.Gen.files
                     gqlFiles
+
+
+formatElmPath : String -> String
+formatElmPath str =
+    str
+        |> String.replace ".elm" ""
+        |> String.replace "/" "."
 
 
 addOutputDir : List String -> { a | path : String } -> { a | path : String }
