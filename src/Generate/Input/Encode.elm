@@ -1,6 +1,7 @@
 module Generate.Input.Encode exposing
     ( toInputRecordAlias, toRecordInput, toRecordOptionals, toRecordNulls
     , toInputObject, toOptionHelpers, toNulls
+    , toOneOfHelper, toOneOfNulls
     , fullRecordToInputObject
     , encodeScalar, encodeEnum
     , encode, scalarType, toElmType
@@ -11,6 +12,8 @@ module Generate.Input.Encode exposing
 @docs toInputRecordAlias, toRecordInput, toRecordOptionals, toRecordNulls
 
 @docs toInputObject, toOptionHelpers, toNulls
+
+@docs toOneOfHelper, toOneOfNulls
 
 @docs fullRecordToInputObject
 
@@ -471,6 +474,82 @@ toOptionHelpers namespace schema input =
                     Nothing
         )
         input.fields
+
+
+toOneOfHelper :
+    Namespace
+    -> GraphQL.Schema.Schema
+    ->
+        { a
+            | fields : List { b | name : String, type_ : GraphQL.Schema.Type }
+            , name : String
+        }
+    -> List Elm.Declaration
+toOneOfHelper namespace schema input =
+    List.filterMap
+        (\field ->
+            case field.type_ of
+                GraphQL.Schema.Nullable type_ ->
+                    Elm.fn field.name
+                        ( "newArg"
+                        , toElmType namespace schema type_ (GraphQL.Schema.getWrap type_)
+                        )
+                        (\new ->
+                            Engine.inputObject (Elm.string input.name)
+                                |> Elm.withType (Type.named [] input.name)
+                                |> Engine.addField
+                                    (Elm.string field.name)
+                                    (Elm.string (GraphQL.Schema.typeToString field.type_))
+                                    (encode
+                                        namespace
+                                        schema
+                                        type_
+                                        new
+                                    )
+                                |> Elm.withType (Type.named [] input.name)
+                        )
+                        |> Elm.exposeAndGroup "inputs"
+                        |> Just
+
+                _ ->
+                    Nothing
+        )
+        input.fields
+
+
+toOneOfNulls : String -> List GraphQL.Schema.Field -> List Elm.Declaration
+toOneOfNulls inputName fields =
+    let
+        toOptionalInput field =
+            case field.type_ of
+                GraphQL.Schema.Nullable _ ->
+                    Just
+                        (Elm.field
+                            field.name
+                            (Engine.inputObject (Elm.string field.name)
+                                |> Elm.withType (Type.named [] field.name)
+                                |> Engine.addField
+                                    (Elm.string field.name)
+                                    (Elm.string (GraphQL.Schema.typeToString field.type_))
+                                    Encode.null
+                                |> Elm.withType (Type.named [] inputName)
+                            )
+                        )
+
+                _ ->
+                    Nothing
+    in
+    case List.filterMap toOptionalInput fields of
+        [] ->
+            []
+
+        options ->
+            [ Elm.declaration "null"
+                (Elm.record
+                    options
+                )
+                |> Elm.exposeAndGroup "null"
+            ]
 
 
 toNulls : String -> List GraphQL.Schema.Field -> List Elm.Declaration

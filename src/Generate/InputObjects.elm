@@ -97,24 +97,58 @@ renderNewOptionalSingleFile :
     -> GraphQL.Schema.InputObjectDetails
     -> List Elm.Declaration
 renderNewOptionalSingleFile namespace schema input =
-    List.concat
-        [ [ Elm.alias input.name
-                (Type.named [ namespace.namespace, "Input" ]
-                    input.name
-                )
-                |> Elm.expose
-                |> Elm.withDocumentation """
+    if List.all areOptional input.fields && hasOneOfDirective input then
+        oneOf namespace schema input
+
+    else
+        List.concat
+            [ [ Elm.alias input.name
+                    (Type.named [ namespace.namespace, "Input" ]
+                        input.name
+                    )
+                    |> Elm.expose
+                    |> Elm.withDocumentation """
 
 """
-          ]
-        , List.concat
-            [ [ Generate.Input.Encode.toInputObject namespace
+              ]
+            , List.concat
+                [ [ Generate.Input.Encode.toInputObject namespace
+                        schema
+                        input
+                  ]
+                , Generate.Input.Encode.toOptionHelpers namespace
                     schema
                     input
-              ]
-            , Generate.Input.Encode.toOptionHelpers namespace
-                schema
-                input
-            , Generate.Input.Encode.toNulls input.name input.fields
+                , Generate.Input.Encode.toNulls input.name input.fields
+                ]
             ]
+
+
+areOptional field =
+    case field.type_ of
+        GraphQL.Schema.Nullable _ ->
+            True
+
+        _ ->
+            False
+
+
+{-| This can be implemented if we know that a definition
+-}
+hasOneOfDirective : GraphQL.Schema.InputObjectDetails -> Bool
+hasOneOfDirective input =
+    False
+
+
+oneOf :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> GraphQL.Schema.InputObjectDetails
+    -> List Elm.Declaration
+oneOf namespace schema input =
+    List.concat
+        [ Generate.Input.Encode.toOneOfHelper namespace
+            schema
+            input
+        , Generate.Input.Encode.toOneOfNulls input.name input.fields
         ]
