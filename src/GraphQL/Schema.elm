@@ -146,6 +146,7 @@ type alias InputObjectDetails =
     { name : String
     , description : Maybe String
     , fields : List Field
+    , isOneOf : Bool
     }
 
 
@@ -868,10 +869,14 @@ isDeprecated deprecation =
 
 decodeInputObject : Json.Decoder InputObjectDetails
 decodeInputObject =
-    Json.map3 InputObjectDetails
+    Json.map4 InputObjectDetails
         (Json.field "name" Json.string)
         (Json.field "description" (Json.maybe nonEmptyString))
         (Json.field "inputFields" (Json.list decodeField))
+        (Json.maybe
+            (Json.field "oneField" Json.bool)
+            |> Json.map (Maybe.withDefault False)
+        )
 
 
 decodeArgument : Json.Decoder Argument
