@@ -23,8 +23,8 @@ module Generate.Input.Encode exposing
 
 import Elm
 import Elm.Annotation as Type
-import Elm.Gen.GraphQL.Engine as Engine
-import Elm.Gen.Json.Encode as Encode
+import Gen.GraphQL.Engine as Engine
+import Gen.Json.Encode as Encode
 import Generate.Common
 import GraphQL.Schema
 import Set exposing (Set)
@@ -43,6 +43,40 @@ type alias Namespace =
     { namespace : String
     , enums : String
     }
+
+
+valueFrom mod name =
+    Elm.value
+        { importFrom = mod
+        , name = name
+        , annotation = Nothing
+        }
+
+
+{-|
+
+    list : (a -> Json.Encode.Value) -> List a -> Json.Encode.Value
+
+-}
+encodeList : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
+encodeList fn listExpr =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Json", "Encode" ]
+            , name = "list"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.function
+                            [ Type.var "a" ]
+                            (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                        , Type.list (Type.var "a")
+                        ]
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                    )
+            }
+        )
+        [ Elm.functionReduced "listUnpack" fn, listExpr ]
 
 
 {-|
@@ -69,7 +103,7 @@ fullRecordToInputObject namespace schema args argRecord =
     Engine.inputObject
         -- NOTE, this is probably wrong.
         -- But the top leve arguments dont really have a specific set of inputs
-        (Elm.string "Input")
+        "Input"
         |> addEncodedVariables namespace schema argRecord args
 
 
@@ -108,8 +142,8 @@ addEncodedVariablesHelper namespace schema argRecord variables inputObj =
                         newInput =
                             inputObj
                                 |> Engine.addOptionalField
-                                    (Elm.string name)
-                                    (Elm.string (GraphQL.Schema.typeToString var.type_))
+                                    name
+                                    (GraphQL.Schema.typeToString var.type_)
                                     (Elm.get name argRecord)
                                     (\x ->
                                         encode
@@ -126,8 +160,8 @@ addEncodedVariablesHelper namespace schema argRecord variables inputObj =
                         newInput =
                             inputObj
                                 |> Engine.addField
-                                    (Elm.string name)
-                                    (Elm.string (GraphQL.Schema.typeToString var.type_))
+                                    name
+                                    (GraphQL.Schema.typeToString var.type_)
                                     (Elm.get name argRecord
                                         |> encode
                                             namespace
@@ -184,37 +218,39 @@ toRecordInput namespace schema fields =
                 (Elm.record
                     (List.map
                         (\var ->
-                            Elm.field var.name
-                                Engine.make_.option.absent
+                            ( var.name
+                            , Engine.make_.absent
+                            )
                         )
                         fields
                     )
                     |> Elm.withType
                         (Type.named [] "Input")
                 )
-                |> Elm.exposeAndGroup "input"
+                |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
 
         _ ->
-            Elm.fn "input"
+            Elm.fn
                 ( "args"
-                , Type.record
-                    (List.map
-                        (\req ->
-                            ( req.name
-                            , toElmType namespace schema req.type_ (GraphQL.Schema.getWrap req.type_)
+                , Just <|
+                    Type.record
+                        (List.map
+                            (\req ->
+                                ( req.name
+                                , toElmType namespace schema req.type_ (GraphQL.Schema.getWrap req.type_)
+                                )
                             )
+                            required
                         )
-                        required
-                    )
                 )
                 (\reqd ->
                     Elm.record
                         (List.map
                             (\var ->
-                                Elm.field var.name
+                                Tuple.pair var.name
                                     (case var.type_ of
                                         GraphQL.Schema.Nullable _ ->
-                                            Engine.make_.option.absent
+                                            Engine.make_.absent
 
                                         _ ->
                                             reqd |> Elm.get var.name
@@ -225,7 +261,8 @@ toRecordInput namespace schema fields =
                         |> Elm.withType
                             (Type.named [] "Input")
                 )
-                |> Elm.exposeAndGroup "input"
+                |> Elm.declaration "input"
+                |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
 
 
 toRecordOptionals :
@@ -257,20 +294,22 @@ inputToRecordOptionalHelper namespace schema var =
                     toElmType namespace schema inner (GraphQL.Schema.getWrap inner)
             in
             Just
-                (Elm.fn2 varName
+                (Elm.fn2
                     ( "var"
-                    , innerType
+                    , Just innerType
                     )
                     ( "record"
-                    , Type.named [] "Input"
+                    , Just (Type.named [] "Input")
                     )
                     (\val record ->
-                        Elm.updateRecord "record"
-                            [ ( var.name, Engine.make_.option.present val )
-                            ]
+                        record
+                            |> Elm.updateRecord
+                                [ ( var.name, Engine.make_.present val )
+                                ]
                             |> Elm.withType (Type.named [] "Input")
                     )
-                    |> Elm.exposeAndGroup "inputBuilders"
+                    |> Elm.declaration varName
+                    |> Elm.exposeWith { exposeConstructor = False, group = Just "inputBuilders" }
                     |> Elm.withDocumentation ""
                 )
 
@@ -289,14 +328,14 @@ toRecordNulls varDefs =
                             var.name
                     in
                     Just
-                        (Elm.field fieldName
-                            (Elm.lambda "record"
-                                (Type.named [] "Input")
-                                (\val ->
-                                    Elm.updateRecord "record"
-                                        [ ( fieldName, Engine.make_.option.null )
-                                        ]
-                                        |> Elm.withType (Type.named [] "Input")
+                        (Tuple.pair fieldName
+                            (Elm.fn
+                                ( "record"
+                                , Just (Type.named [] "Input")
+                                )
+                                (Elm.updateRecord
+                                    [ ( fieldName, Engine.make_.null )
+                                    ]
                                 )
                             )
                         )
@@ -313,7 +352,7 @@ toRecordNulls varDefs =
                 (Elm.record
                     options
                 )
-                |> Elm.exposeAndGroup "nulls"
+                |> Elm.exposeWith { exposeConstructor = False, group = Just "nulls" }
             ]
 
 
@@ -335,7 +374,7 @@ toInputRecordAlias namespace schema name varDefs =
                     case var.type_ of
                         GraphQL.Schema.Nullable inner ->
                             ( fieldName
-                            , Engine.types_.option
+                            , Engine.annotation_.option
                                 (toElmType namespace
                                     schema
                                     inner
@@ -354,7 +393,7 @@ toInputRecordAlias namespace schema name varDefs =
                 varDefs
             )
         )
-        |> Elm.exposeAndGroup "input"
+        |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
 
 
 
@@ -396,13 +435,13 @@ toInputObject namespace schema input =
     case required of
         [] ->
             Elm.declaration "input"
-                (Engine.inputObject (Elm.string input.name)
+                (Engine.inputObject input.name
                     |> Elm.withType (Type.named [] input.name)
                 )
-                |> Elm.exposeAndGroup "input"
+                |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
 
         _ ->
-            Elm.fn "input"
+            Elm.fn
                 ( "requiredArgs"
                 , Type.record
                     (List.map
@@ -413,13 +452,14 @@ toInputObject namespace schema input =
                         )
                         required
                     )
+                    |> Just
                 )
                 (\val ->
                     List.foldl
                         (\field inputObj ->
                             Engine.addField
-                                (Elm.string field.name)
-                                (Elm.string (GraphQL.Schema.typeToString field.type_))
+                                field.name
+                                (GraphQL.Schema.typeToString field.type_)
                                 (encode
                                     namespace
                                     schema
@@ -428,11 +468,12 @@ toInputObject namespace schema input =
                                 )
                                 inputObj
                         )
-                        (Engine.inputObject (Elm.string input.name))
+                        (Engine.inputObject input.name)
                         required
                         |> Elm.withType (Type.named [] input.name)
                 )
-                |> Elm.exposeAndGroup "input"
+                |> Elm.declaration "input"
+                |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
 
 
 toOptionHelpers :
@@ -449,16 +490,17 @@ toOptionHelpers namespace schema input =
         (\field ->
             case field.type_ of
                 GraphQL.Schema.Nullable type_ ->
-                    Elm.fn2 field.name
+                    Elm.fn2
                         ( "newArg"
                         , toElmType namespace schema type_ (GraphQL.Schema.getWrap type_)
+                            |> Just
                         )
-                        ( "inputObj", Type.named [] input.name )
+                        ( "inputObj", Just <| Type.named [] input.name )
                         (\new inputObj ->
                             inputObj
                                 |> Engine.addField
-                                    (Elm.string field.name)
-                                    (Elm.string (GraphQL.Schema.typeToString field.type_))
+                                    field.name
+                                    (GraphQL.Schema.typeToString field.type_)
                                     (encode
                                         namespace
                                         schema
@@ -467,7 +509,8 @@ toOptionHelpers namespace schema input =
                                     )
                                 |> Elm.withType (Type.named [] input.name)
                         )
-                        |> Elm.exposeAndGroup "inputs"
+                        |> Elm.declaration field.name
+                        |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
                         |> Just
 
                 _ ->
@@ -490,16 +533,17 @@ toOneOfHelper namespace schema input =
         (\field ->
             case field.type_ of
                 GraphQL.Schema.Nullable type_ ->
-                    Elm.fn field.name
+                    Elm.fn
                         ( "newArg"
                         , toElmType namespace schema type_ (GraphQL.Schema.getWrap type_)
+                            |> Just
                         )
                         (\new ->
-                            Engine.inputObject (Elm.string input.name)
+                            Engine.inputObject input.name
                                 |> Elm.withType (Type.named [] input.name)
                                 |> Engine.addField
-                                    (Elm.string field.name)
-                                    (Elm.string (GraphQL.Schema.typeToString field.type_))
+                                    field.name
+                                    (GraphQL.Schema.typeToString field.type_)
                                     (encode
                                         namespace
                                         schema
@@ -508,7 +552,8 @@ toOneOfHelper namespace schema input =
                                     )
                                 |> Elm.withType (Type.named [] input.name)
                         )
-                        |> Elm.exposeAndGroup "inputs"
+                        |> Elm.declaration field.name
+                        |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
                         |> Just
 
                 _ ->
@@ -524,13 +569,13 @@ toOneOfNulls inputName fields =
             case field.type_ of
                 GraphQL.Schema.Nullable _ ->
                     Just
-                        (Elm.field
+                        (Tuple.pair
                             field.name
-                            (Engine.inputObject (Elm.string field.name)
+                            (Engine.inputObject field.name
                                 |> Elm.withType (Type.named [] field.name)
                                 |> Engine.addField
-                                    (Elm.string field.name)
-                                    (Elm.string (GraphQL.Schema.typeToString field.type_))
+                                    field.name
+                                    (GraphQL.Schema.typeToString field.type_)
                                     Encode.null
                                 |> Elm.withType (Type.named [] inputName)
                             )
@@ -548,7 +593,7 @@ toOneOfNulls inputName fields =
                 (Elm.record
                     options
                 )
-                |> Elm.exposeAndGroup "null"
+                |> Elm.exposeWith { exposeConstructor = False, group = Just "null" }
             ]
 
 
@@ -559,15 +604,17 @@ toNulls inputName fields =
             case field.type_ of
                 GraphQL.Schema.Nullable _ ->
                     Just
-                        (Elm.field
+                        (Tuple.pair
                             field.name
-                            (Elm.lambda "inputObj"
-                                (Type.named [] inputName)
+                            (Elm.fn
+                                ( "inputObj"
+                                , Just (Type.named [] inputName)
+                                )
                                 (\inputObj ->
                                     inputObj
                                         |> Engine.addField
-                                            (Elm.string field.name)
-                                            (Elm.string (GraphQL.Schema.typeToString field.type_))
+                                            field.name
+                                            (GraphQL.Schema.typeToString field.type_)
                                             Encode.null
                                         |> Elm.withType (Type.named [] inputName)
                                 )
@@ -586,7 +633,7 @@ toNulls inputName fields =
                 (Elm.record
                     options
                 )
-                |> Elm.exposeAndGroup "null"
+                |> Elm.exposeWith { exposeConstructor = True, group = Just "null" }
             ]
 
 
@@ -656,7 +703,7 @@ encodeHelper namespace schema type_ val =
                 val
 
         GraphQL.Schema.List_ newType ->
-            Encode.list
+            encodeList
                 (encodeHelper namespace schema newType)
                 val
 
@@ -668,20 +715,20 @@ encodeHelper namespace schema type_ val =
             in
             case lowered of
                 "int" ->
-                    Encode.int val
+                    Encode.call_.int val
 
                 "float" ->
-                    Encode.float val
+                    Encode.call_.float val
 
                 "string" ->
-                    Encode.string val
+                    Encode.call_.string val
 
                 "boolean" ->
-                    Encode.bool val
+                    Encode.call_.bool val
 
                 _ ->
                     Elm.apply
-                        (Elm.valueFrom [ "Scalar" ]
+                        (valueFrom [ "Scalar" ]
                             (Utils.String.formatValue scalarName)
                             |> Elm.get "encode"
                         )
@@ -691,12 +738,14 @@ encodeHelper namespace schema type_ val =
             if namespace.namespace /= namespace.enums then
                 -- we're encoding using code generated via dillonkearns/elm-graphql
                 Elm.apply
-                    (Elm.lambda "enumValue"
-                        (Type.named [ namespace.enums, "Enum", enumName ] enumName)
+                    (Elm.fn
+                        ( "enumValue"
+                        , Just (Type.named [ namespace.enums, "Enum", enumName ] enumName)
+                        )
                         (\i ->
-                            Encode.string
+                            Encode.call_.string
                                 (Elm.apply
-                                    (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "toString")
+                                    (valueFrom [ namespace.enums, "Enum", enumName ] "toString")
                                     [ i
                                     ]
                                 )
@@ -707,7 +756,7 @@ encodeHelper namespace schema type_ val =
 
             else
                 Elm.apply
-                    (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "encode")
+                    (valueFrom [ namespace.enums, "Enum", enumName ] "encode")
                     [ val
                     ]
 
@@ -807,14 +856,14 @@ encodeWrapped wrapper encoder val =
             encodeWrapped inner (Engine.maybeScalarEncode encoder) val
 
         GraphQL.Schema.InList inner ->
-            encodeWrapped inner (Encode.list encoder) val
+            encodeWrapped inner (encodeList encoder) val
 
 
 encodeScalar : String -> GraphQL.Schema.Wrapped -> (Elm.Expression -> Elm.Expression)
 encodeScalar scalarName wrapped =
     case wrapped of
         GraphQL.Schema.InList inner ->
-            Encode.list
+            encodeList
                 (encodeScalar scalarName inner)
 
         GraphQL.Schema.InMaybe inner ->
@@ -830,21 +879,21 @@ encodeScalar scalarName wrapped =
             in
             case lowered of
                 "int" ->
-                    Encode.int
+                    Encode.call_.int
 
                 "float" ->
-                    Encode.float
+                    Encode.call_.float
 
                 "string" ->
-                    Encode.string
+                    Encode.call_.string
 
                 "boolean" ->
-                    Encode.bool
+                    Encode.call_.bool
 
                 _ ->
                     \val ->
                         Elm.apply
-                            (Elm.valueFrom [ "Scalar" ]
+                            (valueFrom [ "Scalar" ]
                                 (Utils.String.formatValue scalarName)
                                 |> Elm.get "encode"
                             )
@@ -858,12 +907,14 @@ encodeEnum namespace wrapped val enumName =
             if namespace.namespace /= namespace.enums then
                 -- we're encoding using code generated via dillonkearns/elm-graphql
                 Elm.apply
-                    (Elm.lambda "enumValue"
-                        (Type.named [ namespace.enums, "Enum", enumName ] enumName)
+                    (Elm.fn
+                        ( "enumValue"
+                        , Just (Type.named [ namespace.enums, "Enum", enumName ] enumName)
+                        )
                         (\i ->
-                            Encode.string
+                            Encode.call_.string
                                 (Elm.apply
-                                    (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "toString")
+                                    (valueFrom [ namespace.enums, "Enum", enumName ] "toString")
                                     [ i
                                     ]
                                 )
@@ -874,7 +925,7 @@ encodeEnum namespace wrapped val enumName =
 
             else
                 Elm.apply
-                    (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "encode")
+                    (valueFrom [ namespace.enums, "Enum", enumName ] "encode")
                     [ v
                     ]
         )
@@ -895,4 +946,4 @@ encodeWrappedInverted wrapper encoder val =
             Engine.maybeScalarEncode (encodeWrappedInverted inner encoder) val
 
         GraphQL.Schema.InList inner ->
-            Encode.list (encodeWrappedInverted inner encoder) val
+            encodeList (encodeWrappedInverted inner encoder) val

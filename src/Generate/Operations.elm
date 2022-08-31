@@ -3,8 +3,7 @@ module Generate.Operations exposing (generateFiles)
 import Dict
 import Elm
 import Elm.Annotation
-import Elm.Gen.GraphQL.Engine as Engine
-import Elm.Pattern
+import Gen.GraphQL.Engine as Engine
 import Generate.Args
 import Generate.Common
 import Generate.Decode
@@ -98,7 +97,7 @@ queryToModule namespace op schema operation =
         , Utils.String.formatTypename operation.name
         ]
         { docs =
-            \docs -> ""
+            \docs -> []
 
         -- "\n\nExample usage:\n\n"
         --     -- ++ Elm.expressionImports example

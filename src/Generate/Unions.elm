@@ -3,7 +3,7 @@ module Generate.Unions exposing (generateFiles)
 import Dict
 import Elm
 import Elm.Annotation
-import Elm.Gen.GraphQL.Engine as Engine
+import Gen.GraphQL.Engine as Engine
 import Generate.Common as Common
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
@@ -22,7 +22,7 @@ generateFiles namespace graphQLSchema =
             (\( _, unionDefinition ) ->
                 let
                     record =
-                        Elm.fn unionDefinition.name
+                        Elm.fn
                             ( "fragments"
                             , Elm.Annotation.record
                                 (List.map
@@ -35,21 +35,20 @@ generateFiles namespace graphQLSchema =
                                     )
                                     unionDefinition.variants
                                 )
+                                |> Just
                             )
                             (\fragments ->
                                 Engine.union
-                                    (Elm.list
-                                        (List.map
-                                            (\var ->
-                                                Elm.tuple
-                                                    (Elm.string (GraphQL.Schema.kindToString var.kind))
-                                                    (fragments
-                                                        |> Elm.get (GraphQL.Schema.kindToString var.kind)
-                                                        |> Engine.unsafe
-                                                    )
-                                            )
-                                            unionDefinition.variants
+                                    (List.map
+                                        (\var ->
+                                            Elm.tuple
+                                                (Elm.string (GraphQL.Schema.kindToString var.kind))
+                                                (fragments
+                                                    |> Elm.get (GraphQL.Schema.kindToString var.kind)
+                                                    |> Engine.unsafe
+                                                )
                                         )
+                                        unionDefinition.variants
                                     )
                                     |> Elm.withType
                                         (Common.selection namespace.namespace
@@ -57,6 +56,7 @@ generateFiles namespace graphQLSchema =
                                             (Elm.Annotation.var "data")
                                         )
                             )
+                            |> Elm.declaration unionDefinition.name
                 in
                 [ record
                     |> Elm.expose

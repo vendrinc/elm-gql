@@ -3,12 +3,20 @@ module Generate.Objects exposing (generateFiles)
 import Dict
 import Elm
 import Elm.Annotation
-import Elm.Gen.GraphQL.Engine as Engine
-import Elm.Gen.Json.Decode as Json
+import Gen.GraphQL.Engine as Engine
+import Gen.Json.Decode as Json
 import Generate.Common as Common
 import Generate.Decode
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
+
+
+valueFrom mod name =
+    Elm.value
+        { importFrom = mod
+        , name = name
+        , annotation = Nothing
+        }
 
 
 objectToModule :
@@ -45,7 +53,7 @@ objectToModule namespace object =
 
         objectImplementation =
             fieldTypesAndImpls
-                |> List.map (\( name, _, expression ) -> Elm.field (formatName name) expression)
+                |> List.map (\( name, _, expression ) -> ( formatName name, expression ))
                 |> Elm.record
     in
     Elm.declaration (Utils.String.formatValue object.name)
@@ -89,8 +97,8 @@ implementField namespace objectName fieldName fieldType wrapped =
             in
             { expression =
                 Engine.field
-                    (Elm.string fieldName)
-                    (Elm.string scalarName)
+                    fieldName
+                    scalarName
                     (Generate.Decode.scalar scalarName wrapped)
             , annotation = signature.annotation
             }
@@ -102,9 +110,9 @@ implementField namespace objectName fieldName fieldType wrapped =
             in
             { expression =
                 Engine.field
-                    (Elm.string fieldName)
-                    (Elm.string enumName)
-                    (Elm.valueFrom [ namespace.enums, "Enum", enumName ] "decoder"
+                    fieldName
+                    enumName
+                    (valueFrom [ namespace.enums, "Enum", enumName ] "decoder"
                         |> decodeWrapper wrapped
                     )
             , annotation = signature.annotation
@@ -112,14 +120,16 @@ implementField namespace objectName fieldName fieldType wrapped =
 
         GraphQL.Schema.Object nestedObjectName ->
             { expression =
-                Elm.lambda "selection_"
-                    (Common.selectionLocal namespace.namespace
+                Elm.fn
+                    ( "selection_"
+                    , Common.selectionLocal namespace.namespace
                         nestedObjectName
                         (Elm.Annotation.var "data")
+                        |> Just
                     )
                     (\sel ->
                         Engine.object
-                            (Elm.string fieldName)
+                            fieldName
                             (wrapExpression wrapped sel)
                     )
             , annotation =
@@ -136,14 +146,17 @@ implementField namespace objectName fieldName fieldType wrapped =
 
         GraphQL.Schema.Interface interfaceName ->
             { expression =
-                Elm.lambda "selection_"
-                    (Common.selectionLocal namespace.namespace
-                        interfaceName
-                        (Elm.Annotation.var "data")
+                Elm.fn
+                    ( "selection_"
+                    , Just
+                        (Common.selectionLocal namespace.namespace
+                            interfaceName
+                            (Elm.Annotation.var "data")
+                        )
                     )
                     (\sel ->
                         Engine.object
-                            (Elm.string fieldName)
+                            fieldName
                             (wrapExpression wrapped sel)
                     )
             , annotation =
@@ -169,14 +182,16 @@ implementField namespace objectName fieldName fieldType wrapped =
 
         GraphQL.Schema.Union unionName ->
             { expression =
-                Elm.lambda "union_"
-                    (Common.selectionLocal namespace.namespace
+                Elm.fn
+                    ( "union_"
+                    , Common.selectionLocal namespace.namespace
                         unionName
                         (Elm.Annotation.var "data")
+                        |> Just
                     )
                     (\un ->
                         Engine.object
-                            (Elm.string fieldName)
+                            fieldName
                             (wrapExpression wrapped un)
                     )
             , annotation =
@@ -330,7 +345,7 @@ generateFiles namespace graphQLSchema =
             List.concatMap
                 (\name ->
                     [ Elm.alias name
-                        (Engine.types_.argument
+                        (Engine.annotation_.argument
                             (Elm.Annotation.named [] (name ++ "_"))
                         )
                     , Elm.customType (name ++ "_") [ Elm.variant name ]
@@ -349,7 +364,7 @@ generateFiles namespace graphQLSchema =
                     [ Elm.alias name
                         -- [ "data" ]
                         -- NOTE, does the type variable stick around?
-                        (Engine.types_.selection
+                        (Engine.annotation_.selection
                             (Elm.Annotation.named [] (name ++ "_"))
                             (Elm.Annotation.var "data")
                         )
@@ -360,67 +375,67 @@ generateFiles namespace graphQLSchema =
 
         engine =
             [ Elm.alias "Operation"
-                (Engine.types_.premade
+                (Engine.annotation_.premade
                     (Elm.Annotation.var "data")
                 )
             , Elm.declaration "map"
-                (Elm.valueFrom
+                (valueFrom
                     Engine.moduleName_
                     "mapPremade"
                 )
             , Elm.comment "The below is generally deprecated and shouldn't be needed!"
             , Elm.declaration "select"
-                (Elm.valueFrom
+                (valueFrom
                     Engine.moduleName_
                     "select"
                 )
             , Elm.declaration "with"
-                (Elm.valueFrom
+                (valueFrom
                     Engine.moduleName_
                     "with"
                 )
             , Elm.declaration "mapSelection"
-                (Elm.valueFrom
+                (valueFrom
                     Engine.moduleName_
                     "map"
                 )
             , Elm.declaration "mapSelection2"
-                (Elm.valueFrom
+                (valueFrom
                     Engine.moduleName_
                     "map2"
                 )
             , Elm.declaration "batch"
-                (Elm.valueFrom
+                (valueFrom
                     Engine.moduleName_
                     "batch"
                 )
             , Elm.declaration "recover"
-                (Elm.valueFrom
+                (valueFrom
                     Engine.moduleName_
                     "recover"
                 )
             , Elm.alias "Selection"
-                (Engine.types_.selection
+                (Engine.annotation_.selection
                     (Elm.Annotation.var "source")
                     (Elm.Annotation.var "data")
                 )
             , Elm.alias "Query"
-                (Engine.types_.selection
-                    Engine.types_.query
+                (Engine.annotation_.selection
+                    Engine.annotation_.query
                     (Elm.Annotation.var "data")
                 )
             , Elm.declaration "query"
-                (Elm.valueFrom
+                (valueFrom
                     Engine.moduleName_
                     "query"
                 )
             , Elm.alias "Mutation"
-                (Engine.types_.selection
-                    Engine.types_.mutation
+                (Engine.annotation_.selection
+                    Engine.annotation_.mutation
                     (Elm.Annotation.var "data")
                 )
             , Elm.declaration "mutation"
-                (Elm.valueFrom
+                (valueFrom
                     Engine.moduleName_
                     "mutation"
                 )

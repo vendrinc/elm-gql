@@ -3,9 +3,9 @@ module Generate.Enums exposing (generateFiles)
 import Dict
 import Elm
 import Elm.Annotation
-import Elm.Gen.Json.Decode as Decode
-import Elm.Gen.Json.Encode as Encode
-import Elm.Pattern
+import Elm.Case
+import Gen.Json.Decode as Decode
+import Gen.Json.Encode as Encode
 import Generate.Common
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
@@ -40,10 +40,11 @@ generateFiles namespace graphQLSchema =
                             constructors
                                 |> List.map
                                     (\( enumName, _ ) ->
-                                        Elm.valueWith
-                                            []
-                                            enumName
-                                            (Elm.Annotation.named [] enumDefinition.name)
+                                        Elm.value
+                                            { importFrom = []
+                                            , name = enumName
+                                            , annotation = Just (Elm.Annotation.named [] enumDefinition.name)
+                                            }
                                     )
                                 |> Elm.list
                                 |> Elm.declaration "list"
@@ -53,52 +54,57 @@ generateFiles namespace graphQLSchema =
                                 (Decode.string
                                     |> Decode.andThen
                                         (\_ ->
-                                            Elm.lambda "string"
-                                                Elm.Annotation.string
+                                            Elm.fn
+                                                ( "string"
+                                                , Just Elm.Annotation.string
+                                                )
                                                 (\str ->
-                                                    Elm.caseOf str
-                                                        ((constructors
-                                                            |> List.map
-                                                                (\( name, _ ) ->
-                                                                    ( Elm.Pattern.string name
-                                                                    , Decode.succeed
-                                                                        (Elm.valueWith []
-                                                                            name
-                                                                            (Elm.Annotation.named [] enumDefinition.name)
+                                                    Elm.Case.string str
+                                                        { cases =
+                                                            constructors
+                                                                |> List.map
+                                                                    (\( name, _ ) ->
+                                                                        ( name
+                                                                        , Decode.succeed
+                                                                            (Elm.value
+                                                                                { importFrom = []
+                                                                                , name = name
+                                                                                , annotation = Just (Elm.Annotation.named [] enumDefinition.name)
+                                                                                }
+                                                                            )
                                                                         )
                                                                     )
-                                                                )
-                                                         )
-                                                            ++ [ ( Elm.Pattern.wildcard, Decode.fail (Elm.string "Invalid type") ) ]
-                                                        )
+                                                        , otherwise = Decode.fail "Invalid type"
+                                                        }
                                                 )
                                         )
                                     |> Elm.withType
-                                        (Decode.types_.decoder
+                                        (Decode.annotation_.decoder
                                             (Elm.Annotation.named [] enumDefinition.name)
                                         )
                                 )
 
                         enumEncoder =
-                            Elm.fn "encode"
-                                ( "val", Elm.Annotation.named [] enumDefinition.name )
-                                (\val ->
-                                    Elm.caseOf val
-                                        (enumDefinition.values
-                                            |> List.map
-                                                (\variant ->
-                                                    ( Elm.Pattern.named (enumNameToConstructorName variant.name) []
-                                                    , Encode.string (Elm.string variant.name)
+                            Elm.declaration "encode" <|
+                                Elm.fn
+                                    ( "val", Just (Elm.Annotation.named [] enumDefinition.name) )
+                                    (\val ->
+                                        Elm.Case.custom val
+                                            (Elm.Annotation.named [] enumDefinition.name)
+                                            (enumDefinition.values
+                                                |> List.map
+                                                    (\variant ->
+                                                        Elm.Case.branch0 (enumNameToConstructorName variant.name)
+                                                            (Encode.string variant.name)
                                                     )
-                                                )
-                                        )
-                                )
+                                            )
+                                    )
                     in
                     Just <|
                         Elm.file
                             (Generate.Common.modules.enumSourceModule namespace enumDefinition.name)
                             [ enumTypeDeclaration
-                                |> Elm.exposeConstructor
+                                |> Elm.exposeWith { exposeConstructor = True, group = Nothing }
                             , listOfValues
                                 |> Elm.expose
                             , enumDecoder

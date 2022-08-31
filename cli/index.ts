@@ -102,7 +102,7 @@ async function run_generator(generator: any, flags: any) {
     })
     .catch((reason) => {
       console.error(
-        format_title(reason.title, reason.file),
+        format_title(reason.title),
         "\n\n" + reason.description + "\n"
       );
       process.exit(1);
@@ -137,11 +137,9 @@ const getFilesRecursively = (filepath: string): string[] => {
 
 /* CLI feedback formatting */
 
-function format_title(title: string, file: null | string): string {
-  const filepath = file || "";
-
-  const tail = "-".repeat(80 - (title.length + 2 + filepath.length));
-  return chalk.cyan("--" + title.toUpperCase() + tail + filepath);
+function format_title(title: string): string {
+  const tail = "-".repeat(80 - (title.length + 2));
+  return chalk.cyan("--" + title + tail);
 }
 
 function format_block(content: string[]) {

@@ -2,13 +2,29 @@ module Generate.Example exposing (example, operation)
 
 import Dict
 import Elm
-import Elm.Gen.GraphQL.Engine as Engine
+import Gen.GraphQL.Engine as Engine
 import Generate.Common
 import Generate.Input
 import GraphQL.Schema exposing (Namespace)
 import Set exposing (Set)
 import String
 import Utils.String
+
+
+valueFrom mod name =
+    Elm.value
+        { importFrom = mod
+        , name = name
+        , annotation = Nothing
+        }
+
+
+value name =
+    Elm.value
+        { importFrom = []
+        , name = name
+        , annotation = Nothing
+        }
 
 
 {-| -}
@@ -23,7 +39,7 @@ operation namespace schema ( opType, op ) =
         Set.empty
         op.name
         opType
-        (Elm.valueFrom
+        (valueFrom
             (case opType of
                 Generate.Input.Mutation ->
                     Generate.Common.modules.mutation namespace.namespace op.name
@@ -67,7 +83,7 @@ example namespace schema name arguments returnType op =
         Set.empty
         name
         op
-        (Elm.valueFrom
+        (valueFrom
             (case op of
                 Generate.Input.Mutation ->
                     Generate.Common.modules.mutation namespace.namespace name
@@ -78,7 +94,7 @@ example namespace schema name arguments returnType op =
             (Utils.String.formatValue name)
         )
         arguments
-        (Elm.value ("select" ++ GraphQL.Schema.typeToElmString (GraphQL.Schema.getInner returnType)))
+        (value ("select" ++ GraphQL.Schema.typeToElmString (GraphQL.Schema.getInner returnType)))
 
 
 create :
@@ -284,7 +300,7 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
 
                             Just inner ->
                                 Elm.apply
-                                    (Elm.valueFrom
+                                    (valueFrom
                                         optionalModule
                                         (Utils.String.formatValue field.name)
                                     )
@@ -346,7 +362,7 @@ requiredArgsExample namespace schema name called fields =
 
                     Just inner ->
                         Just
-                            (Elm.field field.name inner)
+                            ( field.name, inner )
             )
             required
             ++ (case optional of
@@ -354,8 +370,8 @@ requiredArgsExample namespace schema name called fields =
                         []
 
                     _ ->
-                        [ Elm.field "optional_"
-                            (optionalArgsExample
+                        [ ( "optional_"
+                          , optionalArgsExample
                                 namespace
                                 schema
                                 called
@@ -365,7 +381,7 @@ requiredArgsExample namespace schema name called fields =
                                 Nothing
                                 Set.empty
                                 []
-                            )
+                          )
                         ]
                )
         )
@@ -432,7 +448,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
 
                                                 Just inner ->
                                                     Just
-                                                        (Elm.field field.name inner)
+                                                        ( field.name, inner )
                                         )
                                         required
                                     )
@@ -459,15 +475,15 @@ enumExample : Namespace -> GraphQL.Schema.Schema -> String -> Elm.Expression
 enumExample namespace schema enumName =
     case Dict.get enumName schema.enums of
         Nothing ->
-            Elm.value enumName
+            value enumName
 
         Just enum ->
             case enum.values of
                 [] ->
-                    Elm.value enumName
+                    value enumName
 
                 top :: _ ->
-                    Elm.valueFrom
+                    valueFrom
                         (Generate.Common.modules.enum namespace enumName)
                         (Utils.String.formatTypename top.name)
 
@@ -489,7 +505,7 @@ scalarExample scalarName =
 
         "datetime" ->
             Elm.apply
-                (Elm.valueFrom
+                (valueFrom
                     [ "Time" ]
                     "millisToPosix"
                 )
@@ -497,19 +513,19 @@ scalarExample scalarName =
                 ]
 
         "presence" ->
-            Elm.valueFrom
+            valueFrom
                 [ "Scalar" ]
                 "Present"
 
         "url" ->
-            Elm.valueFrom
+            valueFrom
                 [ "Scalar" ]
                 "fakeUrl"
 
         _ ->
             -- Elm.value (Utils.String.formatValue scalarName)
             Elm.apply
-                (Elm.valueFrom
+                (valueFrom
                     [ "Scalar" ]
                     (Utils.String.formatScalar scalarName)
                 )

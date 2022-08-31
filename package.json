@@ -20,7 +20,8 @@
     "test": "elm-test",
     "test:generate-api": "(yarn clean && mkdir output && cp -r templates/* output && yarn build; node ./elm-prefab/dist/index.js src/Generate.elm  --debug --flags-from=./examples/playground/example-config.json)",
     "generate:engine-bindings": "yarn generate:engine-docs; yarn elm-prefab install templates/engine-docs.json ; node cli/build.js",
-    "generate:engine-docs": "cd templates ; rm -rf elm-stuff ; elm-doc-preview --output engine-docs.json ; cd .."
+    "generate:engine-docs": "cd templates ; rm -rf elm-stuff ; elm-doc-preview --output engine-docs.json ; cd ..",
+    "gen:init": "elm-codegen install"
   },
   "repository": {
     "type": "git",
@@ -33,6 +34,7 @@
   },
   "homepage": "https://github.com/Blissfully/elm-gql#readme",
   "devDependencies": {
+    "elm-codegen": "^0.1.3",
     "elm-doc-preview": "^5.0.5",
     "elm-optimize-level-2": "^0.3.4",
     "typescript": "^4.2.4"

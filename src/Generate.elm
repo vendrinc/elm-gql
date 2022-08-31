@@ -4,7 +4,7 @@ module Generate exposing (main)
 
 import Elm
 import Elm.Annotation
-import Elm.Gen
+import Gen.CodeGen.Generate as Generate
 import Generate.Enums
 import Generate.Input as Input
 import Generate.InputObjects
@@ -42,11 +42,11 @@ main =
                           , input = InputError
                           , namespace = "Api"
                           }
-                        , Elm.Gen.error
-                            { title = "Error decoding flags"
-                            , file = Nothing
-                            , description = Json.Decode.errorToString err
-                            }
+                        , Generate.error
+                            [ { title = "Error decoding flags"
+                              , description = Json.Decode.errorToString err
+                              }
+                            ]
                         )
 
                     Ok input ->
@@ -56,11 +56,11 @@ main =
                                   , input = InputError
                                   , namespace = "Api"
                                   }
-                                , Elm.Gen.error
-                                    { title = "Error decoding flags"
-                                    , file = Nothing
-                                    , description = ""
-                                    }
+                                , Generate.error
+                                    [ { title = "Error decoding flags"
+                                      , description = ""
+                                      }
+                                    ]
                                 )
 
                             Flags details ->
@@ -94,22 +94,22 @@ main =
 
                             Err decodingError ->
                                 ( model
-                                , Elm.Gen.error
-                                    { title = "Error decoding schema"
-                                    , file = Nothing
-                                    , description =
-                                        "Something went wrong with decoding the schema.\n\n    " ++ Json.Decode.errorToString decodingError
-                                    }
+                                , Generate.error
+                                    [ { title = "Error decoding schema"
+                                      , description =
+                                            "Something went wrong with decoding the schema.\n\n    " ++ Json.Decode.errorToString decodingError
+                                      }
+                                    ]
                                 )
 
                     SchemaReceived flagDetails (Err err) ->
                         ( model
-                        , Elm.Gen.error
-                            { title = "Error retrieving schema"
-                            , file = Nothing
-                            , description =
-                                "Something went wrong with retrieving the schema.\n\n    " ++ httpErrorToString err
-                            }
+                        , Generate.error
+                            [ { title = "Error retrieving schema"
+                              , description =
+                                    "Something went wrong with retrieving the schema.\n\n    " ++ httpErrorToString err
+                              }
+                            ]
                         )
         , subscriptions = \_ -> Sub.none
         }
@@ -130,7 +130,7 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
     in
     case parsedGqlQueries of
         Err err ->
-            Elm.Gen.error err
+            Generate.error [ err ]
 
         Ok gqlFiles ->
             if flagDetails.generatePlatform then
@@ -172,11 +172,11 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                     --             (Elm.string (String.join "\\n" (List.map (.path >> formatElmPath) all)))
                     --         ]
                 in
-                Elm.Gen.files
+                Generate.files
                     (List.map (addOutputDir flagDetails.elmBaseSchema) all)
 
             else
-                Elm.Gen.files
+                Generate.files
                     gqlFiles
 
 
@@ -199,13 +199,17 @@ saveSchema namespace val =
     Elm.file [ namespace.namespace, "Meta", "Schema" ]
         [ Elm.declaration "schema"
             (Elm.apply
-                (Elm.valueWith [ "GraphQL", "Mock" ]
-                    "schemaFromString"
-                    (Elm.Annotation.function
-                        [ Elm.Annotation.string
-                        ]
-                        (Elm.Annotation.named [ "GraphQL", "Mock" ] "Schema")
-                    )
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Mock" ]
+                    , name = "schemaFromString"
+                    , annotation =
+                        Just
+                            (Elm.Annotation.function
+                                [ Elm.Annotation.string
+                                ]
+                                (Elm.Annotation.named [ "GraphQL", "Mock" ] "Schema")
+                            )
+                    }
                 )
                 [ Elm.string (Json.Encode.encode 4 val) ]
             )
@@ -357,7 +361,8 @@ httpErrorToString err =
 
 type alias Error =
     { title : String
-    , file : Maybe String
+
+    -- , file : Maybe String
     , description : String
     }
 
@@ -372,8 +377,7 @@ parseAndValidateQuery namespace schema flags gql =
     case GraphQL.Operations.Parse.parse gql.src of
         Err err ->
             Err
-                { title = "Malformed query"
-                , file = Just gql.path
+                { title = formatTitle "WEIRD QUERY" gql.path
                 , description =
                     GraphQL.Operations.Parse.errorToString err
                 }
@@ -382,8 +386,9 @@ parseAndValidateQuery namespace schema flags gql =
             case Canonicalize.canonicalize schema query of
                 Err errors ->
                     Err
-                        { title = "Elm GQL"
-                        , file = Just gql.path
+                        { title = formatTitle "ELM GQL" gql.path
+
+                        -- , file = Just gql.path
                         , description =
                             List.map Canonicalize.errorToString errors
                                 |> String.join (Canonicalize.cyan "\n-------------------\n\n")
@@ -415,8 +420,9 @@ parseAndValidateQuery namespace schema flags gql =
                     of
                         Err validationError ->
                             Err
-                                { title = "Invalid query"
-                                , file = Just gql.path
+                                { title = formatTitle "INVALID QUERY" gql.path
+
+                                -- , file = Just gql.path
                                 , description =
                                     List.map GraphQL.Operations.Validate.errorToString validationError
                                         |> String.join "\n\n    "
@@ -424,3 +430,12 @@ parseAndValidateQuery namespace schema flags gql =
 
                         Ok files ->
                             Ok files
+
+
+formatTitle : String -> String -> String
+formatTitle title path =
+    let
+        middle =
+            "-" |> String.repeat (78 - (String.length title + 2 + String.length path))
+    in
+    title ++ middle ++ path

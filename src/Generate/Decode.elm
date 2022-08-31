@@ -1,8 +1,8 @@
 module Generate.Decode exposing (scalar)
 
 import Elm
-import Elm.Gen.GraphQL.Engine as Engine
-import Elm.Gen.Json.Decode as Json
+import Gen.GraphQL.Engine as Engine
+import Gen.Json.Decode as Json
 import GraphQL.Schema exposing (Wrapped(..))
 import Utils.String
 
@@ -31,7 +31,13 @@ scalar scalarName wrapped =
                     Json.bool
 
                 _ ->
-                    Elm.valueFrom [ "Scalar" ] (Utils.String.formatValue scalarName)
+                    Elm.value
+                        { importFrom =
+                            [ "Scalar"
+                            ]
+                        , name = Utils.String.formatValue scalarName
+                        , annotation = Nothing
+                        }
                         |> Elm.get "decoder"
     in
     decodeWrapper wrapped decoder

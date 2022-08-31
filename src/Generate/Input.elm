@@ -5,8 +5,8 @@ module Generate.Input exposing (..)
 
 import Elm
 import Elm.Annotation as Type
-import Elm.Gen.GraphQL.Engine as Engine
-import Elm.Gen.Json.Decode as Decode
+import Gen.GraphQL.Engine as Engine
+import Gen.Json.Decode as Decode
 import GraphQL.Operations.AST as Ast
 import GraphQL.Schema exposing (Wrapped(..))
 import String
