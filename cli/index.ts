@@ -218,14 +218,16 @@ async function action(options: Options, com: any) {
   let schemaWasModified = { at: new Date(), was: false };
   if (!schema.startsWith("http") && schema.endsWith("json")) {
     schemaWasModified = wasModified(cache, schema);
+
     newCache.files[schema] = { modified: schemaWasModified.at };
     schema = JSON.parse(fs.readFileSync(schema).toString());
   }
 
+  const fileSources = [];
+  let gqlBase: string[] = [];
   if (options.gql) {
     const gql_filepaths = getFilesRecursively(options.gql);
-    const fileSources = [];
-
+    gqlBase = options.gql.split(path.sep);
     for (const file of gql_filepaths) {
       const modified = wasModified(cache, file);
       if (modified.was) {
@@ -234,35 +236,30 @@ async function action(options: Options, com: any) {
       }
       newCache.files[file] = { modified: modified.at };
     }
+  }
 
-    if (
-      fileSources.length > 0 ||
-      (!options.onlyGqlFiles && schemaWasModified.was)
-    ) {
-      for (const file of fileSources) {
-        const targetDir = file.path.replace(".gql", "");
-        clearDir(targetDir);
-      }
-
-      run_generator(schema_generator.Elm.Generate, {
-        namespace: options.namespace,
-        // @ts-ignore
-        gql: fileSources,
-        elmBase: options.gql.split(path.sep),
-        elmBaseSchema: options.output.split(path.sep),
-        schema: schema,
-        generatePlatform: !options.onlyGqlFiles && schemaWasModified.was,
-        existingEnumDefinitions: options.existingEnumDefinitions,
-      });
-    } else {
-      console.log(
-        format_block([
-          `${chalk.cyan(
-            "elm-gql: "
-          )} No files were modified, skipping codegen.`,
-        ])
-      );
+  if (fileSources.length > 0 || schemaWasModified.was || options.force) {
+    for (const file of fileSources) {
+      const targetDir = file.path.replace(".gql", "");
+      clearDir(targetDir);
     }
+    run_generator(schema_generator.Elm.Generate, {
+      namespace: options.namespace,
+      // @ts-ignore
+      gql: fileSources,
+      elmBase: gqlBase,
+      elmBaseSchema: options.output.split(path.sep),
+      schema: schema,
+      generatePlatform:
+        !options.onlyGqlFiles && (schemaWasModified.was || options.force),
+      existingEnumDefinitions: options.existingEnumDefinitions,
+    });
+  } else {
+    console.log(
+      format_block([
+        `${chalk.cyan("elm-gql: ")} No files were modified, skipping codegen.`,
+      ])
+    );
   }
 
   if (cache.engineVersion != newCache.engineVersion || isDev()) {
