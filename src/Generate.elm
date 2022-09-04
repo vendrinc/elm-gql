@@ -2,9 +2,11 @@ module Generate exposing (main)
 
 {-| -}
 
+-- import Gen.CodeGen.Generate as Generate
+
 import Elm
 import Elm.Annotation
-import Gen.CodeGen.Generate as Generate
+import Gen as Generate
 import Generate.Enums
 import Generate.Input as Input
 import Generate.InputObjects

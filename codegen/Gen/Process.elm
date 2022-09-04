@@ -1,7 +1,7 @@
 module Gen.Process exposing (annotation_, call_, kill, moduleName_, sleep, spawn, values_)
 
 {-| 
-@docs moduleName_, spawn, sleep, kill, annotation_, call_, values_
+@docs values_, call_, annotation_, kill, sleep, spawn, moduleName_
 -}
 
 

@@ -1,7 +1,7 @@
 module Gen.GraphQL.Engine exposing (addField, addOptionalField, annotation_, arg, argList, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, inputObject, inputObjectToFieldList, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, union, unsafe, values_, with)
 
 {-| 
-@docs moduleName_, decodeNullable, maybeScalarEncode, queryString, mutation, query, simulate, send, toRequest, mapRequest, premadeOperation, mapPremade, getGql, prebakedQuery, map2, map, with, select, optional, encodeOptionalsAsJson, encodeOptionals, encodeArgument, encodeInputObject, encodeInputObjectAsJson, inputObjectToFieldList, argList, arg, addOptionalField, addField, inputObject, unsafe, fieldWith, field, selectTypeNameButSkip, decode, objectWith, object, list, nullable, enum, maybeEnum, union, recover, batch, annotation_, make_, caseOf_, call_, values_
+@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, prebakedQuery, getGql, mapPremade, premadeOperation, mapRequest, toRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, moduleName_
 -}
 
 

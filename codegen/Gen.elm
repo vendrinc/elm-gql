@@ -1,4 +1,4 @@
-port module Gen.CodeGen.Generate exposing
+port module Gen exposing
     ( run, fromJson, fromText
     , withFeedback, Error
     , File
@@ -31,6 +31,7 @@ This is the low level API if you need more control over the generation process p
 
 -}
 
+import Elm
 import Json.Decode exposing (Decoder)
 import Json.Encode as Json
 
@@ -53,7 +54,6 @@ run f =
 
 
 {-| Given the flags, decoded from JSON, produce a list of files as output.
-
 -}
 fromJson : Decoder flags -> (flags -> List File) -> Program Json.Value () ()
 fromJson decoder f =
@@ -99,14 +99,7 @@ fromText f =
 
 
 type alias File =
-    { path : String
-    , contents : String
-    , warnings :
-        List
-            { declaration : String
-            , warning : String
-            }
-    }
+    Elm.File
 
 
 type alias Error =

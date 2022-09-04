@@ -1,7 +1,7 @@
 module Gen.Debug exposing (call_, log, moduleName_, toString, todo, values_)
 
 {-| 
-@docs moduleName_, toString, log, todo, call_, values_
+@docs values_, call_, todo, log, toString, moduleName_
 -}
 
 
