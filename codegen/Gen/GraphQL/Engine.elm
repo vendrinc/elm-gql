@@ -462,7 +462,7 @@ toRequest toRequestArg toRequestArg0 =
         ]
 
 
-{-| {-|-}
+{-| {-| -}
 
 mapRequest: (a -> b) -> Request a -> Request b
 -}
@@ -927,7 +927,7 @@ encodeInputObjectAsJson encodeInputObjectAsJsonArg =
         [ encodeInputObjectAsJsonArg ]
 
 
-{-| {-|-}
+{-| {-| -}
 
 inputObjectToFieldList: InputObject a -> List ( String, VariableDetails )
 -}
@@ -999,7 +999,7 @@ arg argArg argArg0 =
         [ argArg, Elm.string argArg0 ]
 
 
-{-| {-|-}
+{-| {-| -}
 
 addOptionalField: 
     String
@@ -1044,7 +1044,7 @@ addOptionalField addOptionalFieldArg addOptionalFieldArg0 addOptionalFieldArg1 a
         ]
 
 
-{-| {-|-}
+{-| {-| -}
 
 addField: String -> String -> Encode.Value -> InputObject value -> InputObject value
 -}
@@ -1074,7 +1074,7 @@ addField addFieldArg addFieldArg0 addFieldArg1 addFieldArg2 =
         ]
 
 
-{-| {-|-}
+{-| {-| -}
 
 inputObject: String -> InputObject value
 -}

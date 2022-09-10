@@ -7,6 +7,7 @@ module Generate exposing (main)
 import Elm
 import Elm.Annotation
 import Gen as Generate
+import Gen.GraphQL.Mock
 import Generate.Enums
 import Generate.Input as Input
 import Generate.InputObjects
@@ -200,21 +201,7 @@ saveSchema : Namespace -> Json.Encode.Value -> Elm.File
 saveSchema namespace val =
     Elm.file [ namespace.namespace, "Meta", "Schema" ]
         [ Elm.declaration "schema"
-            (Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Mock" ]
-                    , name = "schemaFromString"
-                    , annotation =
-                        Just
-                            (Elm.Annotation.function
-                                [ Elm.Annotation.string
-                                ]
-                                (Elm.Annotation.named [ "GraphQL", "Mock" ] "Schema")
-                            )
-                    }
-                )
-                [ Elm.string (Json.Encode.encode 4 val) ]
-            )
+            (Gen.GraphQL.Mock.schemaFromString (Json.Encode.encode 4 val))
             |> Elm.expose
         ]
 

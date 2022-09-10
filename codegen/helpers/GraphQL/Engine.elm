@@ -1,8 +1,8 @@
 module GraphQL.Engine exposing
     ( batch
     , nullable, list, object, objectWith, decode
-    , field, fieldWith
     , enum, maybeEnum
+    , field, fieldWith
     , union
     , Selection, select, with, map, map2, recover
     , arg, argList, Optional, optional
@@ -268,7 +268,9 @@ object =
     objectWith (inputObject "NoArgs")
 
 
-type Variable = Variable String
+type Variable
+    = Variable String
+
 
 {-| -}
 objectWith : InputObject args -> String -> Selection source data -> Selection otherSource data
@@ -404,20 +406,19 @@ applyContext args name context =
     , args = vars
     }
 
-{-|
 
-This is the piece of code that's responsible for swapping real argument values (i.e. json values)
+{-| This is the piece of code that's responsible for swapping real argument values (i.e. json values)
 
 with variables.
-
 
 -}
 captureArgs :
     InputObject args
-        -> Dict String VariableDetails
-        -> ( List ( String, Variable )
-           , Dict String VariableDetails
-           )
+    -> Dict String VariableDetails
+    ->
+        ( List ( String, Variable )
+        , Dict String VariableDetails
+        )
 captureArgs (InputObject objname args) context =
     case args of
         [] ->
@@ -426,15 +427,16 @@ captureArgs (InputObject objname args) context =
         _ ->
             captureArgsHelper args context []
 
-{-|-}
-captureArgsHelper : 
+
+{-| -}
+captureArgsHelper :
     List ( String, VariableDetails )
-        -> Dict String VariableDetails
-        -> List ( String, Variable )
-        -> 
-           ( List ( String, Variable )
-           , Dict String VariableDetails
-           )
+    -> Dict String VariableDetails
+    -> List ( String, Variable )
+    ->
+        ( List ( String, Variable )
+        , Dict String VariableDetails
+        )
 captureArgsHelper args context alreadyPassed =
     case args of
         [] ->
@@ -448,7 +450,8 @@ captureArgsHelper args context alreadyPassed =
                 newContext =
                     Dict.insert varname value context
             in
-            captureArgsHelper remaining newContext 
+            captureArgsHelper remaining
+                newContext
                 (( name, Variable varname ) :: alreadyPassed)
 
 
@@ -489,8 +492,8 @@ type Selection source selected
 type alias Context =
     { aliases : Dict String Int
     , variables : Dict String VariableDetails
-        
     }
+
 
 type alias VariableDetails =
     { gqlTypeName : String
@@ -560,51 +563,51 @@ type Argument obj
     | Var String
 
 
-
-
-
-{-|-}
-type Option value 
+{-| -}
+type Option value
     = Present value
     | Null
     | Absent
 
 
-{-|-}
-type InputObject value =
-    InputObject String (List (String, VariableDetails))
+{-| -}
+type InputObject value
+    = InputObject String (List ( String, VariableDetails ))
 
-{-|-}
-inputObject : String -> InputObject value 
+
+{-| -}
+inputObject : String -> InputObject value
 inputObject name =
     InputObject name []
 
 
-{-|-}
+{-| -}
 addField : String -> String -> Encode.Value -> InputObject value -> InputObject value
 addField fieldName gqlFieldType val (InputObject name inputFields) =
     InputObject name
-        ((fieldName
-          , { gqlTypeName = gqlFieldType
-            , value = val
-            }
-          )
+        (( fieldName
+         , { gqlTypeName = gqlFieldType
+           , value = val
+           }
+         )
             :: inputFields
         )
 
 
-{-|-}
+{-| -}
 addOptionalField : String -> String -> Option value -> (value -> Encode.Value) -> InputObject input -> InputObject input
 addOptionalField fieldName gqlFieldType optionalValue toJsonValue (InputObject name inputFields) =
     InputObject name
         (case optionalValue of
-            Absent -> inputFields
-            Null -> (fieldName, { value = Encode.null, gqlTypeName = gqlFieldType }) :: inputFields
-            Present val -> (fieldName, { value = toJsonValue val, gqlTypeName = gqlFieldType }) :: inputFields
+            Absent ->
+                inputFields
+
+            Null ->
+                ( fieldName, { value = Encode.null, gqlTypeName = gqlFieldType } ) :: inputFields
+
+            Present val ->
+                ( fieldName, { value = toJsonValue val, gqlTypeName = gqlFieldType } ) :: inputFields
         )
-
-
-
 
 
 {-| -}
@@ -636,16 +639,17 @@ argList fields typeName =
         )
         typeName
 
-{-|-}
-inputObjectToFieldList : InputObject a -> List (String, VariableDetails)
+
+{-| -}
+inputObjectToFieldList : InputObject a -> List ( String, VariableDetails )
 inputObjectToFieldList (InputObject _ fields) =
     fields
+
 
 {-| -}
 encodeInputObjectAsJson : InputObject value -> Decode.Value
 encodeInputObjectAsJson (InputObject _ fields) =
-    Encode.object (List.map (\(fieldName, details) -> (fieldName, details.value)) fields)
-
+    Encode.object (List.map (\( fieldName, details ) -> ( fieldName, details.value )) fields)
 
 
 {-| -}
@@ -873,7 +877,8 @@ type Request value
         , tracker : Maybe String
         }
 
-{-|-}
+
+{-| -}
 mapRequest : (a -> b) -> Request a -> Request b
 mapRequest fn (Request request) =
     Request
@@ -1035,7 +1040,6 @@ body operation maybeUnformattedName q =
                 |> Dict.toList
                 |> List.map (Tuple.mapSecond .value)
                 |> Encode.object
-
     in
     Http.jsonBody
         (Encode.object
@@ -1302,7 +1306,7 @@ renderArgs args rendered =
         [] ->
             rendered
 
-        ( name, (Variable varName) ) :: remaining ->
+        ( name, Variable varName ) :: remaining ->
             if String.isEmpty rendered then
                 renderArgs remaining (rendered ++ name ++ ": $" ++ varName)
 
