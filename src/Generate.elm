@@ -167,7 +167,8 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                             ++ inputFiles
 
                     all =
-                        schemaFiles ++ gqlFiles
+                        List.map (addOutputDir flagDetails.elmBaseSchema) schemaFiles
+                            ++ gqlFiles
 
                     -- This is a test file with references to every file generated, useful for testing!
                     -- testFile =
@@ -177,7 +178,7 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                     --         ]
                 in
                 Generate.files
-                    (List.map (addOutputDir flagDetails.elmBaseSchema) all)
+                    all
 
             else
                 Generate.files
