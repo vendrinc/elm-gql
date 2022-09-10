@@ -379,41 +379,20 @@ generateFiles namespace graphQLSchema =
                     (Elm.Annotation.var "data")
                 )
             , Elm.declaration "map"
-                (valueFrom
-                    Engine.moduleName_
-                    "mapPremade"
-                )
+                Engine.values_.mapPremade
             , Elm.comment "The below is generally deprecated and shouldn't be needed!"
             , Elm.declaration "select"
-                (valueFrom
-                    Engine.moduleName_
-                    "select"
-                )
+                Engine.values_.select
             , Elm.declaration "with"
-                (valueFrom
-                    Engine.moduleName_
-                    "with"
-                )
+                Engine.values_.with
             , Elm.declaration "mapSelection"
-                (valueFrom
-                    Engine.moduleName_
-                    "map"
-                )
+                Engine.values_.map
             , Elm.declaration "mapSelection2"
-                (valueFrom
-                    Engine.moduleName_
-                    "map2"
-                )
+                Engine.values_.map2
             , Elm.declaration "batch"
-                (valueFrom
-                    Engine.moduleName_
-                    "batch"
-                )
+                Engine.values_.batch
             , Elm.declaration "recover"
-                (valueFrom
-                    Engine.moduleName_
-                    "recover"
-                )
+                Engine.values_.recover
             , Elm.alias "Selection"
                 (Engine.annotation_.selection
                     (Elm.Annotation.var "source")
@@ -425,20 +404,14 @@ generateFiles namespace graphQLSchema =
                     (Elm.Annotation.var "data")
                 )
             , Elm.declaration "query"
-                (valueFrom
-                    Engine.moduleName_
-                    "query"
-                )
+                Engine.values_.query
             , Elm.alias "Mutation"
                 (Engine.annotation_.selection
                     Engine.annotation_.mutation
                     (Elm.Annotation.var "data")
                 )
             , Elm.declaration "mutation"
-                (valueFrom
-                    Engine.moduleName_
-                    "mutation"
-                )
+                Engine.values_.mutation
             ]
     in
     [ Elm.file [ namespace.namespace ]
