@@ -4,6 +4,7 @@ module Generate.Input.Encode exposing
     , toOneOfHelper, toOneOfNulls
     , fullRecordToInputObject
     , encodeScalar, encodeEnum
+    , docGroups
     , encode, scalarType, toElmType
     )
 
@@ -18,6 +19,8 @@ module Generate.Input.Encode exposing
 @docs fullRecordToInputObject
 
 @docs encodeScalar, encodeEnum
+
+@docs docGroups
 
 -}
 
@@ -51,6 +54,13 @@ valueFrom mod name =
         , name = name
         , annotation = Nothing
         }
+
+
+docGroups =
+    { optionalFields = "Optional fields"
+    , nullFields = "Null values"
+    , inputStarter = "Creating an input"
+    }
 
 
 {-|
@@ -227,7 +237,10 @@ toRecordInput namespace schema fields =
                     |> Elm.withType
                         (Type.named [] "Input")
                 )
-                |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
+                |> Elm.exposeWith
+                    { exposeConstructor = False
+                    , group = Just docGroups.inputStarter
+                    }
 
         _ ->
             Elm.fn
@@ -262,7 +275,10 @@ toRecordInput namespace schema fields =
                             (Type.named [] "Input")
                 )
                 |> Elm.declaration "input"
-                |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
+                |> Elm.exposeWith
+                    { exposeConstructor = False
+                    , group = Just docGroups.inputStarter
+                    }
 
 
 toRecordOptionals :
@@ -352,7 +368,7 @@ toRecordNulls varDefs =
                 (Elm.record
                     options
                 )
-                |> Elm.exposeWith { exposeConstructor = False, group = Just "nulls" }
+                |> Elm.exposeWith { exposeConstructor = False, group = Just "Null values" }
             ]
 
 
@@ -393,7 +409,7 @@ toInputRecordAlias namespace schema name varDefs =
                 varDefs
             )
         )
-        |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
+        |> Elm.exposeWith { exposeConstructor = False, group = Just "Input" }
 
 
 
@@ -438,7 +454,10 @@ toInputObject namespace schema input =
                 (Engine.inputObject input.name
                     |> Elm.withType (Type.named [] input.name)
                 )
-                |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
+                |> Elm.exposeWith
+                    { exposeConstructor = False
+                    , group = Just docGroups.inputStarter
+                    }
 
         _ ->
             Elm.fn
@@ -473,7 +492,10 @@ toInputObject namespace schema input =
                         |> Elm.withType (Type.named [] input.name)
                 )
                 |> Elm.declaration "input"
-                |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
+                |> Elm.exposeWith
+                    { exposeConstructor = False
+                    , group = Just docGroups.inputStarter
+                    }
 
 
 toOptionHelpers :
@@ -510,7 +532,10 @@ toOptionHelpers namespace schema input =
                                 |> Elm.withType (Type.named [] input.name)
                         )
                         |> Elm.declaration field.name
-                        |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
+                        |> Elm.exposeWith
+                            { exposeConstructor = False
+                            , group = Just docGroups.optionalFields
+                            }
                         |> Just
 
                 _ ->
@@ -553,7 +578,10 @@ toOneOfHelper namespace schema input =
                                 |> Elm.withType (Type.named [] input.name)
                         )
                         |> Elm.declaration field.name
-                        |> Elm.exposeWith { exposeConstructor = False, group = Just "input" }
+                        |> Elm.exposeWith
+                            { exposeConstructor = False
+                            , group = Just docGroups.optionalFields
+                            }
                         |> Just
 
                 _ ->
@@ -593,7 +621,7 @@ toOneOfNulls inputName fields =
                 (Elm.record
                     options
                 )
-                |> Elm.exposeWith { exposeConstructor = False, group = Just "null" }
+                |> Elm.exposeWith { exposeConstructor = False, group = Just docGroups.nullFields }
             ]
 
 
@@ -633,7 +661,7 @@ toNulls inputName fields =
                 (Elm.record
                     options
                 )
-                |> Elm.exposeWith { exposeConstructor = True, group = Just "null" }
+                |> Elm.exposeWith { exposeConstructor = True, group = Just docGroups.nullFields }
             ]
 
 

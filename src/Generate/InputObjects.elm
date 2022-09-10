@@ -106,7 +106,10 @@ renderNewOptionalSingleFile namespace schema input =
                     (Type.named [ namespace.namespace, "Input" ]
                         input.name
                     )
-                    |> Elm.expose
+                    |> Elm.exposeWith
+                        { exposeConstructor = True
+                        , group = Just Generate.Input.Encode.docGroups.inputStarter
+                        }
                     |> Elm.withDocumentation """
 
 """
