@@ -1121,11 +1121,9 @@ body operation maybeUnformattedName q =
 bodyPremade : Premade data -> Encode.Value
 bodyPremade (Premade q) =
     Encode.object
-        (List.filterMap identity
-            [ Just ( "query", Encode.string q.gql )
-            , Just ( "variables", Encode.object q.args )
-            ]
-        )
+        [ ( "query", Encode.string q.gql )
+        , ( "variables", Encode.object q.args )
+        ]
 
 
 {-|

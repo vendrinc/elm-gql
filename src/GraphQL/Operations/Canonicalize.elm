@@ -1187,8 +1187,7 @@ getGlobalName rawName (UsedNames used) =
         { used =
             UsedNames
                 { used
-                    | siblingAliases = used.siblingAliases
-                    , globalNames =
+                    | globalNames =
                         newGlobalName :: used.globalNames
                 }
         , globalName = newGlobalName
