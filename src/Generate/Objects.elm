@@ -2,9 +2,11 @@ module Generate.Objects exposing (generateFiles)
 
 import Dict
 import Elm
-import Elm.Annotation
+import Elm.Annotation as Type
 import Gen.GraphQL.Engine as Engine
 import Gen.Json.Decode as Json
+import Gen.Platform.Cmd
+import Gen.Result
 import Generate.Common as Common
 import Generate.Decode
 import GraphQL.Schema exposing (Namespace)
@@ -23,7 +25,7 @@ objectToModule :
     Namespace
     -- this can be objects or interfaces
     -> { a | fields : List GraphQL.Schema.Field, name : String }
-    -> Elm.Declaration
+    -> List Elm.Declaration
 objectToModule namespace object =
     let
         fieldTypesAndImpls =
@@ -49,17 +51,23 @@ objectToModule namespace object =
                     (\( name, typeAnnotation, _ ) ->
                         ( formatName name, typeAnnotation )
                     )
-                |> Elm.Annotation.record
+                |> Type.record
 
         objectImplementation =
             fieldTypesAndImpls
                 |> List.map (\( name, _, expression ) -> ( formatName name, expression ))
                 |> Elm.record
     in
-    Elm.declaration (Utils.String.formatValue object.name)
+    [ Elm.alias object.name
+        (Engine.annotation_.selection
+            (Type.named [ namespace.namespace, "Meta", "Id" ] object.name)
+            (Type.var "data")
+        )
+    , Elm.declaration (Utils.String.formatValue object.name)
         (objectImplementation
             |> Elm.withType objectTypeAnnotation
         )
+    ]
 
 
 formatName : String -> String
@@ -80,7 +88,7 @@ implementField :
     -> GraphQL.Schema.Wrapped
     ->
         { expression : Elm.Expression
-        , annotation : Elm.Annotation.Annotation
+        , annotation : Type.Annotation
         }
 implementField namespace objectName fieldName fieldType wrapped =
     case fieldType of
@@ -124,7 +132,7 @@ implementField namespace objectName fieldName fieldType wrapped =
                     ( "selection_"
                     , Common.selectionLocal namespace.namespace
                         nestedObjectName
-                        (Elm.Annotation.var "data")
+                        (Type.var "data")
                         |> Just
                     )
                     (\sel ->
@@ -133,14 +141,14 @@ implementField namespace objectName fieldName fieldType wrapped =
                             (wrapExpression wrapped sel)
                     )
             , annotation =
-                Elm.Annotation.function
+                Type.function
                     [ Common.selectionLocal namespace.namespace
                         nestedObjectName
-                        (Elm.Annotation.var "data")
+                        (Type.var "data")
                     ]
                     (Common.selectionLocal namespace.namespace
                         objectName
-                        (wrapAnnotation wrapped (Elm.Annotation.var "data"))
+                        (wrapAnnotation wrapped (Type.var "data"))
                     )
             }
 
@@ -151,7 +159,7 @@ implementField namespace objectName fieldName fieldType wrapped =
                     , Just
                         (Common.selectionLocal namespace.namespace
                             interfaceName
-                            (Elm.Annotation.var "data")
+                            (Type.var "data")
                         )
                     )
                     (\sel ->
@@ -160,14 +168,14 @@ implementField namespace objectName fieldName fieldType wrapped =
                             (wrapExpression wrapped sel)
                     )
             , annotation =
-                Elm.Annotation.function
+                Type.function
                     [ Common.selectionLocal namespace.namespace
                         interfaceName
-                        (Elm.Annotation.var "data")
+                        (Type.var "data")
                     ]
                     (Common.selectionLocal namespace.namespace
                         objectName
-                        (wrapAnnotation wrapped (Elm.Annotation.var "data"))
+                        (wrapAnnotation wrapped (Type.var "data"))
                     )
             }
 
@@ -186,7 +194,7 @@ implementField namespace objectName fieldName fieldType wrapped =
                     ( "union_"
                     , Common.selectionLocal namespace.namespace
                         unionName
-                        (Elm.Annotation.var "data")
+                        (Type.var "data")
                         |> Just
                     )
                     (\un ->
@@ -195,29 +203,29 @@ implementField namespace objectName fieldName fieldType wrapped =
                             (wrapExpression wrapped un)
                     )
             , annotation =
-                Elm.Annotation.function
+                Type.function
                     [ Common.selectionLocal namespace.namespace
                         unionName
-                        (Elm.Annotation.var "data")
+                        (Type.var "data")
                     ]
                     (Common.selectionLocal namespace.namespace
                         objectName
-                        (wrapAnnotation wrapped (Elm.Annotation.var "data"))
+                        (wrapAnnotation wrapped (Type.var "data"))
                     )
             }
 
 
-wrapAnnotation : GraphQL.Schema.Wrapped -> Elm.Annotation.Annotation -> Elm.Annotation.Annotation
+wrapAnnotation : GraphQL.Schema.Wrapped -> Type.Annotation -> Type.Annotation
 wrapAnnotation wrap signature =
     case wrap of
         GraphQL.Schema.UnwrappedValue ->
             signature
 
         GraphQL.Schema.InList inner ->
-            Elm.Annotation.list (wrapAnnotation inner signature)
+            Type.list (wrapAnnotation inner signature)
 
         GraphQL.Schema.InMaybe inner ->
-            Elm.Annotation.maybe (wrapAnnotation inner signature)
+            Type.maybe (wrapAnnotation inner signature)
 
 
 wrapExpression : GraphQL.Schema.Wrapped -> Elm.Expression -> Elm.Expression
@@ -241,7 +249,7 @@ fieldSignature :
     -> GraphQL.Schema.Wrapped
     -> GraphQL.Schema.Type
     ->
-        { annotation : Elm.Annotation.Annotation
+        { annotation : Type.Annotation
         }
 fieldSignature namespace objectName wrapped fieldType =
     let
@@ -287,8 +295,8 @@ generateFiles namespace graphQLSchema =
                 |> List.map Tuple.second
 
         renderedObjects =
-            List.map (objectToModule namespace) objects
-                ++ List.map (objectToModule namespace) interfaces
+            List.concatMap (objectToModule namespace) objects
+                ++ List.concatMap (objectToModule namespace) interfaces
 
         phantomTypeDeclarations =
             objects
@@ -313,111 +321,114 @@ generateFiles namespace graphQLSchema =
                 |> List.map
                     (Tuple.second >> .name)
 
-        queryOptionNames =
-            graphQLSchema.queries
-                |> Dict.toList
-                |> List.map
-                    -- we add `Query` to the name here because we don't want to clash with objects of the same name.
-                    -- Such as the app query vs the App object
-                    (\( _, q ) ->
-                        q.name ++ "_Option"
-                    )
-
-        mutationOptionNames =
-            graphQLSchema.mutations
-                |> Dict.toList
-                |> List.map
-                    -- same note as above for queries
-                    (\( _, q ) ->
-                        q.name ++ "_MutOption"
-                    )
-
         names =
             phantomTypeDeclarations
                 ++ unionTypeDeclarations
                 ++ interfaceTypeDeclarations
-
-        optionNames =
-            queryOptionNames
-                ++ mutationOptionNames
 
         inputHelpers =
             List.concatMap
                 (\name ->
                     [ Elm.alias name
                         (Engine.annotation_.argument
-                            (Elm.Annotation.named [] (name ++ "_"))
+                            (Type.named [] (name ++ "_"))
                         )
                     , Elm.customType (name ++ "_") [ Elm.variant name ]
                     ]
                 )
                 inputTypeDeclarations
-                ++ List.map
-                    (\name ->
-                        Elm.customType name [ Elm.variant name ]
-                    )
-                    optionNames
 
         proofsAndAliases =
-            List.concatMap
+            List.map
                 (\name ->
-                    [ Elm.alias name
-                        -- [ "data" ]
-                        -- NOTE, does the type variable stick around?
-                        (Engine.annotation_.selection
-                            (Elm.Annotation.named [] (name ++ "_"))
-                            (Elm.Annotation.var "data")
-                        )
-                    , Elm.customType (name ++ "_") [ Elm.variant name ]
-                    ]
+                    Elm.customType name [ Elm.variant name ]
                 )
                 names
 
         engine =
-            [ Elm.alias "Operation"
-                (Engine.annotation_.premade
-                    (Elm.Annotation.var "data")
+            [ Elm.declaration "query"
+                (Elm.fn2
+                    ( "sel", Just (Type.namedWith [] "Query" [ Type.var "data" ]) )
+                    ( "options"
+                    , Just
+                        (Type.record
+                            [ ( "name", Type.maybe Type.string )
+                            , ( "headers", Type.list (Type.named [ "Http" ] "Header") )
+                            , ( "url", Type.string )
+                            , ( "timeout", Type.maybe Type.float )
+                            , ( "tracker", Type.maybe Type.string )
+                            ]
+                        )
+                    )
+                    (\sel options ->
+                        Engine.call_.query sel options
+                            |> Elm.withType
+                                (Gen.Platform.Cmd.annotation_.cmd
+                                    (Gen.Result.annotation_.result
+                                        Engine.annotation_.error
+                                        (Type.var "data")
+                                    )
+                                )
+                    )
                 )
-            , Elm.declaration "map"
-                Engine.values_.mapPremade
-            , Elm.comment "The below is generally deprecated and shouldn't be needed!"
-            , Elm.declaration "select"
-                Engine.values_.select
-            , Elm.declaration "with"
-                Engine.values_.with
-            , Elm.declaration "mapSelection"
-                Engine.values_.map
-            , Elm.declaration "mapSelection2"
-                Engine.values_.map2
+            , Elm.declaration "mutation"
+                (Elm.fn2
+                    ( "sel", Just (Type.namedWith [] "Mutation" [ Type.var "data" ]) )
+                    ( "options"
+                    , Just
+                        (Type.record
+                            [ ( "name", Type.maybe Type.string )
+                            , ( "headers", Type.list (Type.named [ "Http" ] "Header") )
+                            , ( "url", Type.string )
+                            , ( "timeout", Type.maybe Type.float )
+                            , ( "tracker", Type.maybe Type.string )
+                            ]
+                        )
+                    )
+                    (\sel options ->
+                        Engine.call_.mutation sel options
+                            |> Elm.withType
+                                (Gen.Platform.Cmd.annotation_.cmd
+                                    (Gen.Result.annotation_.result
+                                        Engine.annotation_.error
+                                        (Type.var "data")
+                                    )
+                                )
+                    )
+                )
             , Elm.declaration "batch"
                 Engine.values_.batch
-            , Elm.declaration "recover"
-                Engine.values_.recover
+            , Elm.declaration "map"
+                Engine.values_.map
+            , Elm.declaration "map2"
+                Engine.values_.map2
             , Elm.alias "Selection"
                 (Engine.annotation_.selection
-                    (Elm.Annotation.var "source")
-                    (Elm.Annotation.var "data")
+                    (Type.var "source")
+                    (Type.var "data")
                 )
             , Elm.alias "Query"
                 (Engine.annotation_.selection
                     Engine.annotation_.query
-                    (Elm.Annotation.var "data")
+                    (Type.var "data")
                 )
-            , Elm.declaration "query"
-                Engine.values_.query
             , Elm.alias "Mutation"
                 (Engine.annotation_.selection
                     Engine.annotation_.mutation
-                    (Elm.Annotation.var "data")
+                    (Type.var "data")
                 )
-            , Elm.declaration "mutation"
-                Engine.values_.mutation
+            , Elm.declaration "recover"
+                Engine.values_.recover
+            , Elm.declaration "select"
+                Engine.values_.select
+            , Elm.declaration "with"
+                Engine.values_.with
             ]
     in
     [ Elm.file [ namespace.namespace ]
-        (engine
-            ++ renderedObjects
-            ++ proofsAndAliases
-            ++ inputHelpers
-        )
+        engine
+    , Elm.file [ namespace.namespace, "Meta", "Id" ]
+        proofsAndAliases
+    , Elm.file [ namespace.namespace, "Object" ]
+        renderedObjects
     ]
