@@ -225,24 +225,26 @@ async function action(options: Options, com: any) {
 
   const fileSources = [];
   let gqlBase: string[] = [];
-  if (options.gql) {
-    const gql_filepaths = getFilesRecursively(options.gql);
-    gqlBase = options.gql.split(path.sep);
-    for (const file of gql_filepaths) {
-      const modified = wasModified(cache, file);
-      if (modified.was) {
-        const src = fs.readFileSync(file).toString();
-        fileSources.push({ src, path: file });
-      }
-      newCache.files[file] = { modified: modified.at };
+
+  const gql_filepaths = getFilesRecursively(options.gql);
+  gqlBase = options.gql.split(path.sep);
+  for (const file of gql_filepaths) {
+    const modified = wasModified(cache, file);
+    if (modified.was) {
+      const src = fs.readFileSync(file).toString();
+      fileSources.push({ src, path: file });
     }
+    newCache.files[file] = { modified: modified.at };
   }
 
   if (fileSources.length > 0 || schemaWasModified.was || options.force) {
+    console.log(fileSources);
     for (const file of fileSources) {
       const targetDir = file.path.replace(".gql", "");
+
       clearDir(targetDir);
     }
+
     run_generator(schema_generator.Elm.Generate, {
       namespace: options.namespace,
       // @ts-ignore
@@ -250,8 +252,7 @@ async function action(options: Options, com: any) {
       elmBase: gqlBase,
       elmBaseSchema: options.output.split(path.sep),
       schema: schema,
-      generatePlatform:
-        !options.onlyGqlFiles && (schemaWasModified.was || options.force),
+      generatePlatform: schemaWasModified.was || options.force,
       existingEnumDefinitions: options.existingEnumDefinitions,
     });
   } else {
@@ -296,8 +297,7 @@ const program = new commander.Command();
 
 type Options = {
   schema: string;
-  gql: string | null;
-  onlyGqlFiles: boolean;
+  gql: string;
   output: string;
   namespace: string;
   force: boolean;
@@ -309,11 +309,8 @@ program
   .option("--schema <fileOrUrl>")
   .option(
     "--gql <dir>",
-    "Search a directory for GQL files and generate Elm bindings"
-  )
-  .option(
-    "--only-gql-files",
-    "This option isn't used very commonly. Only regenerate elm code from .gql files. Skip generating the full set of schema helpers"
+    "Search a directory for GQL files and generate Elm bindings",
+    "."
   )
   .option(
     "--namespace <namespace>",
