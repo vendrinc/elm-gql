@@ -153,8 +153,15 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
             case op.variableDefinitions of
                 [] ->
                     [ Elm.declaration (opValueName op.operationType)
-                        (Engine.call_.bakeToSelection
-                            (Elm.string (Can.toStringFields def))
+                        (Engine.bakeToSelection
+                            (case Can.operationLabel def of
+                                Nothing ->
+                                    Elm.nothing
+
+                                Just label ->
+                                    Elm.just (Elm.string label)
+                            )
+                            (Can.toStringFields def)
                             []
                             (generateDecoder namespace schema def)
                             |> Elm.withType
@@ -173,6 +180,13 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                         )
                         (\var ->
                             Engine.call_.bakeToSelection
+                                (case Can.operationLabel def of
+                                    Nothing ->
+                                        Elm.nothing
+
+                                    Just label ->
+                                        Elm.just (Elm.string label)
+                                )
                                 (Elm.string (Can.toStringFields def))
                                 (Generate.Input.Encode.fullRecordToInputObject
                                     namespace

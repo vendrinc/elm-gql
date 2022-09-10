@@ -536,6 +536,9 @@ empty =
 -}
 type Details selected
     = Details
+        -- This is an optional *operation name*
+        -- Can only be set on Queries and Mutations
+        (Maybe String)
         -- Both of these take a Set String, which is how we're keeping track of
         -- what needs to be aliased
         -- How to make the gql query
@@ -737,7 +740,7 @@ optional =
 select : data -> Selection source data
 select data =
     Selection
-        (Details
+        (Details Nothing
             (\context ->
                 ( context, [] )
             )
@@ -755,9 +758,10 @@ with =
 
 {-| -}
 map : (a -> b) -> Selection source a -> Selection source b
-map fn (Selection (Details fields decoder)) =
+map fn (Selection (Details maybeOpName fields decoder)) =
     Selection <|
-        Details fields
+        Details maybeOpName
+            fields
             (\aliases ->
                 let
                     ( newAliases, newDecoder ) =
@@ -767,11 +771,25 @@ map fn (Selection (Details fields decoder)) =
             )
 
 
+mergeOpNames : Maybe String -> Maybe String -> Maybe String
+mergeOpNames maybeOne maybeTwo =
+    case ( maybeOne, maybeTwo ) of
+        ( Nothing, Nothing ) ->
+            Nothing
+
+        ( Just one, _ ) ->
+            Just one
+
+        _ ->
+            two
+
+
 {-| -}
 map2 : (a -> b -> c) -> Selection source a -> Selection source b -> Selection source c
-map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields twoDecoder)) =
+map2 fn (Selection (Details oneOpName oneFields oneDecoder)) (Selection (Details twoOpName twoFields twoDecoder)) =
     Selection <|
         Details
+            (mergeOpNames oneOpName twoOpName)
             (\aliases ->
                 let
                     ( oneAliasesNew, oneFieldsNew ) =
@@ -799,10 +817,10 @@ map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields
 
 
 {-| -}
-bakeToSelection : String -> List ( String, VariableDetails ) -> Decode.Decoder data -> Premade data
-bakeToSelection gql args decoder =
+bakeToSelection : Maybe String -> String -> List ( String, VariableDetails ) -> Decode.Decoder data -> Premade data
+bakeToSelection maybeOpName gql args decoder =
     Selection
-        (Details
+        (Details maybeOpName
             (\context ->
                 ( { context
                     | variables =
@@ -1058,9 +1076,12 @@ body : String -> Maybe String -> Selection source data -> Http.Body
 body operation maybeUnformattedName q =
     let
         maybeName =
-            maybeUnformattedName
-                |> Maybe.map
-                    sanitizeOperationName
+            case maybeUnformattedName of
+                Nothing ->
+                    getOperationLabel q
+
+                Just unformatted ->
+                    Just (sanitizeOperationName unformatted)
 
         variables : Dict String VariableDetails
         variables =
@@ -1113,7 +1134,7 @@ bodyPremade (Premade q) =
 
     This is maybe too restrictive, but this keeps everything as [a-zA-Z0-9] and _
 
-    None mathcing characters will be transformed to _.
+    None matching characters will be transformed to _.
 
 -}
 sanitizeOperationName : String -> String
@@ -1137,6 +1158,11 @@ getContext (Selection (Details gql _)) =
             gql empty
     in
     context
+
+
+getOperationLabel : Selection source selected -> Maybe String
+getOperationLabel (Selection (Details maybeLabel _ _)) =
+    maybeLabel
 
 
 {-| -}

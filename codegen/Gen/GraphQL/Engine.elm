@@ -739,14 +739,19 @@ prebakedQuery prebakedQueryArg prebakedQueryArg0 prebakedQueryArg1 =
 {-| {-| -}
 
 bakeToSelection: 
-    String
+    Maybe String
+    -> String
     -> List ( String, VariableDetails )
     -> Decode.Decoder data
     -> Premade data
 -}
 bakeToSelection :
-    String -> List Elm.Expression -> Elm.Expression -> Elm.Expression
-bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
+    Elm.Expression
+    -> String
+    -> List Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 bakeToSelectionArg2 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
@@ -754,7 +759,8 @@ bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.string
+                        [ Type.namedWith [] "Maybe" [ Type.string ]
+                        , Type.string
                         , Type.list
                             (Type.tuple
                                 Type.string
@@ -769,9 +775,10 @@ bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
                     )
             }
         )
-        [ Elm.string bakeToSelectionArg
-        , Elm.list bakeToSelectionArg0
-        , bakeToSelectionArg1
+        [ bakeToSelectionArg
+        , Elm.string bakeToSelectionArg0
+        , Elm.list bakeToSelectionArg1
+        , bakeToSelectionArg2
         ]
 
 
@@ -1938,7 +1945,11 @@ call_ :
     , prebakedQuery :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , bakeToSelection :
-        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+        Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
     , map2 :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , map : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -2538,7 +2549,7 @@ call_ =
                 )
                 [ prebakedQueryArg, prebakedQueryArg0, prebakedQueryArg1 ]
     , bakeToSelection =
-        \bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 ->
+        \bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 bakeToSelectionArg2 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Engine" ]
@@ -2546,7 +2557,8 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.string
+                                [ Type.namedWith [] "Maybe" [ Type.string ]
+                                , Type.string
                                 , Type.list
                                     (Type.tuple
                                         Type.string
@@ -2562,7 +2574,11 @@ call_ =
                             )
                     }
                 )
-                [ bakeToSelectionArg, bakeToSelectionArg0, bakeToSelectionArg1 ]
+                [ bakeToSelectionArg
+                , bakeToSelectionArg0
+                , bakeToSelectionArg1
+                , bakeToSelectionArg2
+                ]
     , map2 =
         \map2Arg map2Arg0 map2Arg1 ->
             Elm.apply
@@ -3769,7 +3785,8 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.string
+                        [ Type.namedWith [] "Maybe" [ Type.string ]
+                        , Type.string
                         , Type.list
                             (Type.tuple
                                 Type.string

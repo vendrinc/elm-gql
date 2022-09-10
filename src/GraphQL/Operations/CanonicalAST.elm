@@ -254,6 +254,18 @@ toString (Operation def) =
 
 {-| Only render the fields of the query, but with no outer brackets
 -}
+operationLabel : Definition -> Maybe String
+operationLabel (Operation def) =
+    case def.name of
+        Nothing ->
+            Nothing
+
+        Just (Name str) ->
+            Just str
+
+
+{-| Only render the fields of the query, but with no outer brackets
+-}
 toStringFields : Definition -> String
 toStringFields (Operation def) =
     let
