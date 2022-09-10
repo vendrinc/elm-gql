@@ -15,6 +15,7 @@ module GraphQL.Engine exposing
     , unsafe, selectTypeNameButSkip
     , Request, toRequest, send, simulate, mapRequest
     , Option(..), InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
+    , jsonField, andMap
     )
 
 {-|
@@ -50,6 +51,8 @@ module GraphQL.Engine exposing
 @docs Request, toRequest, send, simulate, mapRequest
 
 @docs Option, InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
+
+@docs jsonField, andMap
 
 -}
 
@@ -1346,3 +1349,26 @@ maybeScalarEncode encoder maybeA =
 decodeNullable : Decode.Decoder data -> Decode.Decoder (Maybe data)
 decodeNullable =
     Decode.nullable
+
+
+jsonField :
+    String
+    -> Json.Decode.Decoder a
+    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+jsonField name new build =
+    Json.Decode.map2
+        (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
+        (Json.Decode.field name new)
+        build
+
+
+andMap :
+    Json.Decode.Decoder map2Unpack
+    -> Json.Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+andMap new build =
+    Json.Decode.map2
+        (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
+        new
+        build
