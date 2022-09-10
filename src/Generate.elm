@@ -17,6 +17,7 @@ import Generate.Paged
 import Generate.Unions
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Generate
+import GraphQL.Operations.GenerateSelection
 import GraphQL.Operations.Parse
 import GraphQL.Operations.Validate
 import GraphQL.Schema exposing (Namespace)
@@ -206,7 +207,13 @@ saveSchema namespace val =
         ]
 
 
-parseGql : Namespace -> GraphQL.Schema.Schema -> FlagDetails -> List { src : String, path : String } -> List Elm.File -> Result Error (List Elm.File)
+parseGql :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> FlagDetails
+    -> List { src : String, path : String }
+    -> List Elm.File
+    -> Result Error (List Elm.File)
 parseGql namespace schema flagDetails gql rendered =
     case gql of
         [] ->
@@ -395,7 +402,7 @@ parseAndValidateQuery namespace schema flags gql =
                                 |> Utils.String.formatTypename
                     in
                     case
-                        GraphQL.Operations.Generate.generate
+                        GraphQL.Operations.GenerateSelection.generate
                             { namespace =
                                 namespace
                             , schema = schema

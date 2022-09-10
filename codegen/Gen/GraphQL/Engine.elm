@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, union, unsafe, values_, with)
+module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, union, unsafe, values_, with)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, prebakedQuery, getGql, mapPremade, premadeOperation, mapRequest, toRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, jsonField, andMap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, prebakedQuery, getGql, mapPremade, premadeOperation, mapRequest, toRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, jsonField, andMap, moduleName_
 -}
 
 
@@ -733,6 +733,45 @@ prebakedQuery prebakedQueryArg prebakedQueryArg0 prebakedQueryArg1 =
         [ Elm.string prebakedQueryArg
         , Elm.list prebakedQueryArg0
         , prebakedQueryArg1
+        ]
+
+
+{-| {-| -}
+
+bakeToSelection: 
+    String
+    -> List ( String, VariableDetails )
+    -> Decode.Decoder data
+    -> Premade data
+-}
+bakeToSelection :
+    String -> List Elm.Expression -> Elm.Expression -> Elm.Expression
+bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "bakeToSelection"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.list
+                            (Type.tuple
+                                Type.string
+                                (Type.namedWith [] "VariableDetails" [])
+                            )
+                        , Type.namedWith
+                            [ "Decode" ]
+                            "Decoder"
+                            [ Type.var "data" ]
+                        ]
+                        (Type.namedWith [] "Premade" [ Type.var "data" ])
+                    )
+            }
+        )
+        [ Elm.string bakeToSelectionArg
+        , Elm.list bakeToSelectionArg0
+        , bakeToSelectionArg1
         ]
 
 
@@ -1898,6 +1937,8 @@ call_ :
     , getGql : Elm.Expression -> Elm.Expression
     , prebakedQuery :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , bakeToSelection :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , map2 :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , map : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -2496,6 +2537,32 @@ call_ =
                     }
                 )
                 [ prebakedQueryArg, prebakedQueryArg0, prebakedQueryArg1 ]
+    , bakeToSelection =
+        \bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "bakeToSelection"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.list
+                                    (Type.tuple
+                                        Type.string
+                                        (Type.namedWith [] "VariableDetails" [])
+                                    )
+                                , Type.namedWith
+                                    [ "Decode" ]
+                                    "Decoder"
+                                    [ Type.var "data" ]
+                                ]
+                                (Type.namedWith [] "Premade" [ Type.var "data" ]
+                                )
+                            )
+                    }
+                )
+                [ bakeToSelectionArg, bakeToSelectionArg0, bakeToSelectionArg1 ]
     , map2 =
         \map2Arg map2Arg0 map2Arg1 ->
             Elm.apply
@@ -3248,6 +3315,7 @@ values_ :
     , mapPremade : Elm.Expression
     , getGql : Elm.Expression
     , prebakedQuery : Elm.Expression
+    , bakeToSelection : Elm.Expression
     , map2 : Elm.Expression
     , map : Elm.Expression
     , with : Elm.Expression
@@ -3677,6 +3745,27 @@ values_ =
         Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
             , name = "prebakedQuery"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.list
+                            (Type.tuple
+                                Type.string
+                                (Type.namedWith [] "VariableDetails" [])
+                            )
+                        , Type.namedWith
+                            [ "Decode" ]
+                            "Decoder"
+                            [ Type.var "data" ]
+                        ]
+                        (Type.namedWith [] "Premade" [ Type.var "data" ])
+                    )
+            }
+    , bakeToSelection =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "bakeToSelection"
             , annotation =
                 Just
                     (Type.function

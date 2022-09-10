@@ -252,6 +252,41 @@ toString (Operation def) =
             (foldToString "\n" selectionToString def.fields)
 
 
+{-| Only render the fields of the query, but with no outer brackets
+-}
+toStringFields : Definition -> String
+toStringFields (Operation def) =
+    let
+        opName =
+            case def.name of
+                Nothing ->
+                    ""
+
+                Just (Name str) ->
+                    str
+
+        variableDefinitions =
+            case def.variableDefinitions of
+                [] ->
+                    ""
+
+                vars ->
+                    let
+                        renderedVars =
+                            foldToString ", "
+                                (\var ->
+                                    "$"
+                                        ++ nameToString var.variable.name
+                                        ++ ": "
+                                        ++ typeToString (getWrapper var.type_ (Val { required = True })) var.type_
+                                )
+                                vars
+                    in
+                    "(" ++ renderedVars ++ ")"
+    in
+    foldToString "\n" selectionToString def.fields
+
+
 selectionToString : Selection -> String
 selectionToString sel =
     case sel of

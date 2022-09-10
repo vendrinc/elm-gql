@@ -16,6 +16,7 @@ module GraphQL.Engine exposing
     , Request, toRequest, send, simulate, mapRequest
     , Option(..), InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
     , jsonField, andMap
+    , bakeToSelection
     )
 
 {-|
@@ -795,6 +796,34 @@ map2 fn (Selection (Details oneFields oneDecoder)) (Selection (Details twoFields
                 , Decode.map2 fn oneDecoderNew twoDecoderNew
                 )
             )
+
+
+{-| -}
+bakeToSelection : String -> List ( String, VariableDetails ) -> Decode.Decoder data -> Premade data
+bakeToSelection gql args decoder =
+    Selection
+        (Details
+            (\context ->
+                ( { context
+                    | variables =
+                        args
+                            |> Dict.fromList
+                            |> Dict.union context.variables
+                  }
+                , [ Baked gql ]
+                )
+            )
+            (\context ->
+                ( { context
+                    | variables =
+                        args
+                            |> Dict.fromList
+                            |> Dict.union context.variables
+                  }
+                , decoder
+                )
+            )
+        )
 
 
 {-| -}
