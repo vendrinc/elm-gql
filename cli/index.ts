@@ -240,7 +240,6 @@ async function action(options: Options, com: any) {
   if (fileSources.length > 0 || schemaWasModified.was || options.force) {
     for (const file of fileSources) {
       const targetDir = file.path.replace(".gql", "");
-
       clearDir(targetDir);
     }
 
