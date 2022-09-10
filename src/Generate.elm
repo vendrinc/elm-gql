@@ -2,8 +2,6 @@ module Generate exposing (main)
 
 {-| -}
 
--- import Gen.CodeGen.Generate as Generate
-
 import Elm
 import Elm.Annotation
 import Gen as Generate
@@ -142,28 +140,25 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                     enumFiles =
                         Generate.Enums.generateFiles namespace schema
 
-                    unionFiles =
-                        Generate.Unions.generateFiles namespace schema
-
-                    objectFiles =
-                        Generate.Objects.generateFiles namespace schema
-
+                    -- unionFiles =
+                    --     Generate.Unions.generateFiles namespace schema
+                    -- objectFiles =
+                    --     Generate.Objects.generateFiles namespace schema
                     inputFiles =
                         Generate.InputObjects.generateFiles namespace schema
 
-                    queryFiles =
-                        Generate.Operations.generateFiles namespace Input.Query schema
-
-                    mutationFiles =
-                        Generate.Operations.generateFiles namespace Input.Mutation schema
-
+                    -- queryFiles =
+                    --     Generate.Operations.generateFiles namespace Input.Query schema
+                    -- mutationFiles =
+                    --     Generate.Operations.generateFiles namespace Input.Mutation schema
                     schemaFiles =
                         saveSchema namespace schemaAsJson
-                            :: unionFiles
-                            ++ enumFiles
-                            ++ objectFiles
-                            ++ queryFiles
-                            ++ mutationFiles
+                            :: --  unionFiles
+                               -- ++
+                               enumFiles
+                            -- ++ objectFiles
+                            -- ++ queryFiles
+                            -- ++ mutationFiles
                             ++ inputFiles
 
                     all =
