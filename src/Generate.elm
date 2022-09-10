@@ -230,60 +230,58 @@ parseGql namespace schema flagDetails gql rendered =
 
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
-    Json.Decode.oneOf
-        [ Json.Decode.map7
-            (\elmBase elmBaseSchema namespace gql schemaUrl genPlatform existingEnums ->
-                Flags
-                    { schema = schemaUrl
-                    , gql = gql
-                    , elmBase = elmBase
-                    , elmBaseSchema = elmBaseSchema
-                    , namespace = namespace
-                    , generatePlatform = genPlatform
-                    , existingEnumDefinitions = existingEnums
-                    }
-            )
-            (Json.Decode.field "elmBase" (Json.Decode.list Json.Decode.string))
-            (Json.Decode.field "elmBaseSchema" (Json.Decode.list Json.Decode.string))
-            (Json.Decode.field "namespace" Json.Decode.string)
-            (Json.Decode.field "gql"
-                (Json.Decode.list
-                    (Json.Decode.map2
-                        (\path src ->
-                            { path = path
-                            , src = src
-                            }
-                        )
-                        (Json.Decode.field "path" Json.Decode.string)
-                        (Json.Decode.field "src" Json.Decode.string)
+    Json.Decode.map7
+        (\elmBase elmBaseSchema namespace gql schemaUrl genPlatform existingEnums ->
+            Flags
+                { schema = schemaUrl
+                , gql = gql
+                , elmBase = elmBase
+                , elmBaseSchema = elmBaseSchema
+                , namespace = namespace
+                , generatePlatform = genPlatform
+                , existingEnumDefinitions = existingEnums
+                }
+        )
+        (Json.Decode.field "elmBase" (Json.Decode.list Json.Decode.string))
+        (Json.Decode.field "elmBaseSchema" (Json.Decode.list Json.Decode.string))
+        (Json.Decode.field "namespace" Json.Decode.string)
+        (Json.Decode.field "gql"
+            (Json.Decode.list
+                (Json.Decode.map2
+                    (\path src ->
+                        { path = path
+                        , src = src
+                        }
                     )
+                    (Json.Decode.field "path" Json.Decode.string)
+                    (Json.Decode.field "src" Json.Decode.string)
                 )
             )
-            (Json.Decode.field "schema"
-                (Json.Decode.oneOf
-                    [ Json.Decode.map SchemaUrl
-                        (Json.Decode.string
-                            |> Json.Decode.andThen
-                                (\str ->
-                                    if String.startsWith "http" str then
-                                        Json.Decode.succeed str
+        )
+        (Json.Decode.field "schema"
+            (Json.Decode.oneOf
+                [ Json.Decode.map SchemaUrl
+                    (Json.Decode.string
+                        |> Json.Decode.andThen
+                            (\str ->
+                                if String.startsWith "http" str then
+                                    Json.Decode.succeed str
 
-                                    else
-                                        Json.Decode.fail "Schema Url lacks http-based protocol"
-                                )
-                        )
-                    , Json.Decode.map2 Schema
-                        Json.Decode.value
-                        GraphQL.Schema.decoder
-                    ]
-                )
+                                else
+                                    Json.Decode.fail "Schema Url lacks http-based protocol"
+                            )
+                    )
+                , Json.Decode.map2 Schema
+                    Json.Decode.value
+                    GraphQL.Schema.decoder
+                ]
             )
-            (Json.Decode.field "generatePlatform" Json.Decode.bool)
-            (Json.Decode.field "existingEnumDefinitions"
-                Json.Decode.string
-                |> Json.Decode.maybe
-            )
-        ]
+        )
+        (Json.Decode.field "generatePlatform" Json.Decode.bool)
+        (Json.Decode.field "existingEnumDefinitions"
+            Json.Decode.string
+            |> Json.Decode.maybe
+        )
 
 
 type alias Model =
