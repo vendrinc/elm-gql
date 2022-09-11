@@ -1,7 +1,6 @@
 module Utils.String exposing (..)
 
 import String
-import String.Extra
 
 
 formatTypename : String -> String
