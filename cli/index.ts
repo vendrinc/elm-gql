@@ -46,6 +46,13 @@ async function run_generator(generator: any, flags: any) {
     }
   })
     .then((files: any) => {
+      // clear generated queries/mutations
+      // because now we're confident we can replace them.
+      for (const file of flags.gql) {
+        const targetDir = file.path.replace(".gql", "");
+        clearDir(targetDir);
+      }
+
       let files_written_count = 0;
       let files_skipped = 0;
       for (const file of files) {
@@ -238,11 +245,6 @@ async function action(options: Options, com: any) {
   }
 
   if (fileSources.length > 0 || schemaWasModified.was || options.force) {
-    for (const file of fileSources) {
-      const targetDir = file.path.replace(".gql", "");
-      clearDir(targetDir);
-    }
-
     run_generator(schema_generator.Elm.Generate, {
       namespace: options.namespace,
       // @ts-ignore
