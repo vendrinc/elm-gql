@@ -230,11 +230,11 @@ async function action(options: Options, com: any) {
     schema = JSON.parse(fs.readFileSync(schema).toString());
   }
 
-  const fileSources = [];
-  let gqlBase: string[] = [];
+  const gqlFolder = ".";
+  const gqlBase: string[] = ["."];
+  const gql_filepaths = getFilesRecursively(gqlFolder);
 
-  const gql_filepaths = getFilesRecursively(options.gql);
-  gqlBase = options.gql.split(path.sep);
+  const fileSources = [];
   for (const file of gql_filepaths) {
     const modified = wasModified(cache, file);
     if (modified.was) {
@@ -297,7 +297,6 @@ const program = new commander.Command();
 
 type Options = {
   schema: string;
-  gql: string;
   output: string;
   namespace: string;
   force: boolean;
@@ -307,11 +306,6 @@ type Options = {
 program
   .version(version)
   .option("--schema <fileOrUrl>")
-  .option(
-    "--gql <dir>",
-    "Search a directory for GQL files and generate Elm bindings",
-    "."
-  )
   .option(
     "--namespace <namespace>",
     "Change the namespace that the generated code should have.",
