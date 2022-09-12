@@ -26,6 +26,7 @@ module Generate.Input.Encode exposing
 
 import Elm
 import Elm.Annotation as Type
+import Elm.Op
 import Gen.GraphQL.Engine as Engine
 import Gen.Json.Encode as Encode
 import Generate.Common
@@ -131,28 +132,35 @@ addEncodedVariablesHelper namespace schema argRecord var inputObj =
     case var.type_ of
         GraphQL.Schema.Nullable type_ ->
             inputObj
-                |> Engine.addOptionalField
-                    name
-                    (GraphQL.Schema.typeToString var.type_)
-                    (Elm.get name argRecord)
-                    (\x ->
-                        encode
-                            namespace
-                            schema
-                            type_
-                            x
+                |> Elm.Op.pipe
+                    (Elm.apply Engine.values_.addOptionalField
+                        [ Elm.string name
+                        , Elm.string (GraphQL.Schema.typeToString var.type_)
+                        , Elm.get name argRecord
+                        , Elm.fn
+                            ( "encode", Nothing )
+                            (\x ->
+                                encode
+                                    namespace
+                                    schema
+                                    type_
+                                    x
+                            )
+                        ]
                     )
 
         _ ->
             inputObj
-                |> Engine.addField
-                    name
-                    (GraphQL.Schema.typeToString var.type_)
-                    (Elm.get name argRecord
-                        |> encode
-                            namespace
-                            schema
-                            var.type_
+                |> Elm.Op.pipe
+                    (Elm.apply Engine.values_.addField
+                        [ Elm.string name
+                        , Elm.string (GraphQL.Schema.typeToString var.type_)
+                        , Elm.get name argRecord
+                            |> encode
+                                namespace
+                                schema
+                                var.type_
+                        ]
                     )
 
 

@@ -494,7 +494,8 @@ type Selection source selected
 
 
 type alias Context =
-    { aliases : Dict String Int
+    { version : Int
+    , aliases : Dict String Int
     , variables : Dict String VariableDetails
     }
 
@@ -528,6 +529,7 @@ toFree argument =
 empty : Context
 empty =
     { aliases = Dict.empty
+    , version = 0
     , variables = Dict.empty
     }
 
@@ -819,44 +821,45 @@ map2 fn (Selection (Details oneOpName oneFields oneDecoder)) (Selection (Details
 {-| -}
 bakeToSelection :
     Maybe String
-    -> (Context -> ( Context, String ))
-    -- -> List ( String, VariableDetails )
-    -> (Context -> ( Context, Decode.Decoder data ))
+    -> (Int -> ( List ( String, VariableDetails ), String ))
+    -> (Int -> Decode.Decoder data)
     -> Premade data
 bakeToSelection maybeOpName toGql toDecoder =
     Selection
         (Details maybeOpName
             (\context ->
                 let
-                    ( newContext, gql ) =
-                        toGql context
+                    ( args, gql ) =
+                        toGql context.version
                 in
-                ( --     { context
-                  --     | variables =
-                  --         args
-                  --             |> Dict.fromList
-                  --             |> Dict.union context.variables
-                  --   }
-                  newContext
+                ( { context
+                    | version = context.version + 1
+                    , variables =
+                        args
+                            |> List.map (protectArgs context.version) args
+                            |> Dict.fromList
+                            |> Dict.union context.variables
+                  }
                 , [ Baked gql ]
                 )
             )
             (\context ->
                 let
-                    ( newContext, decoder ) =
-                        toDecoder context
+                    decoder =
+                        toDecoder context.version
                 in
-                ( --     { newContext
-                  --     | variables =
-                  --         args
-                  --             |> Dict.fromList
-                  --             |> Dict.union context.variables
-                  --   }
-                  newContext
+                ( { context
+                    | version = context.version + 1
+                  }
                 , decoder
                 )
             )
         )
+
+
+protectArgs : Int -> ( String, VariableDetails ) -> ( String, VariableDetails )
+protectArgs version ( name, var ) =
+    ( versionedName version name, var )
 
 
 {-| -}

@@ -843,8 +843,8 @@ prebakedQuery prebakedQueryArg prebakedQueryArg0 prebakedQueryArg1 =
 
 bakeToSelection: 
     Maybe String
-    -> (Context -> ( Context, String ))
-    -> (Context -> ( Context, Decode.Decoder data ))
+    -> (Int -> ( List ( String, VariableDetails ), String ))
+    -> (Int -> Decode.Decoder data)
     -> Premade data
 -}
 bakeToSelection :
@@ -862,20 +862,22 @@ bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
                     (Type.function
                         [ Type.namedWith [] "Maybe" [ Type.string ]
                         , Type.function
-                            [ Type.namedWith [] "Context" [] ]
+                            [ Type.int ]
                             (Type.tuple
-                                (Type.namedWith [] "Context" [])
+                                (Type.list
+                                    (Type.tuple
+                                        Type.string
+                                        (Type.namedWith [] "VariableDetails" [])
+                                    )
+                                )
                                 Type.string
                             )
                         , Type.function
-                            [ Type.namedWith [] "Context" [] ]
-                            (Type.tuple
-                                (Type.namedWith [] "Context" [])
-                                (Type.namedWith
-                                    [ "Decode" ]
-                                    "Decoder"
-                                    [ Type.var "data" ]
-                                )
+                            [ Type.int ]
+                            (Type.namedWith
+                                [ "Decode" ]
+                                "Decoder"
+                                [ Type.var "data" ]
                             )
                         ]
                         (Type.namedWith [] "Premade" [ Type.var "data" ])
@@ -2743,20 +2745,26 @@ call_ =
                             (Type.function
                                 [ Type.namedWith [] "Maybe" [ Type.string ]
                                 , Type.function
-                                    [ Type.namedWith [] "Context" [] ]
+                                    [ Type.int ]
                                     (Type.tuple
-                                        (Type.namedWith [] "Context" [])
+                                        (Type.list
+                                            (Type.tuple
+                                                Type.string
+                                                (Type.namedWith
+                                                    []
+                                                    "VariableDetails"
+                                                    []
+                                                )
+                                            )
+                                        )
                                         Type.string
                                     )
                                 , Type.function
-                                    [ Type.namedWith [] "Context" [] ]
-                                    (Type.tuple
-                                        (Type.namedWith [] "Context" [])
-                                        (Type.namedWith
-                                            [ "Decode" ]
-                                            "Decoder"
-                                            [ Type.var "data" ]
-                                        )
+                                    [ Type.int ]
+                                    (Type.namedWith
+                                        [ "Decode" ]
+                                        "Decoder"
+                                        [ Type.var "data" ]
                                     )
                                 ]
                                 (Type.namedWith [] "Premade" [ Type.var "data" ]
@@ -4030,20 +4038,22 @@ values_ =
                     (Type.function
                         [ Type.namedWith [] "Maybe" [ Type.string ]
                         , Type.function
-                            [ Type.namedWith [] "Context" [] ]
+                            [ Type.int ]
                             (Type.tuple
-                                (Type.namedWith [] "Context" [])
+                                (Type.list
+                                    (Type.tuple
+                                        Type.string
+                                        (Type.namedWith [] "VariableDetails" [])
+                                    )
+                                )
                                 Type.string
                             )
                         , Type.function
-                            [ Type.namedWith [] "Context" [] ]
-                            (Type.tuple
-                                (Type.namedWith [] "Context" [])
-                                (Type.namedWith
-                                    [ "Decode" ]
-                                    "Decoder"
-                                    [ Type.var "data" ]
-                                )
+                            [ Type.int ]
+                            (Type.namedWith
+                                [ "Decode" ]
+                                "Decoder"
+                                [ Type.var "data" ]
                             )
                         ]
                         (Type.namedWith [] "Premade" [ Type.var "data" ])

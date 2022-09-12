@@ -161,8 +161,12 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                                 Just label ->
                                     Elm.just (Elm.string label)
                             )
-                            (\ctxt -> Elm.tuple ctxt (Elm.string (Can.toStringFields def)))
-                            (\ctxt -> Elm.tuple ctxt (generateDecoder (Elm.int 1) namespace def))
+                            (\version ->
+                                Elm.tuple
+                                    (Elm.list [])
+                                    (Can.toRendererExpression version def)
+                            )
+                            (\version -> generateDecoder version namespace def)
                             |> Elm.withType
                                 (Type.namedWith [ namespace.namespace ]
                                     (opTypeName op.operationType)
@@ -195,18 +199,13 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                                     Just label ->
                                         Elm.just (Elm.string label)
                                 )
-                                (\ctxt ->
-                                    -- case Can.bake ctxt vars def of
-                                    --     ( newCtxt, bakedDef ) ->
+                                (\version ->
                                     Elm.tuple
-                                        ctxt
-                                        -- (Elm.string (Can.toStringFields def))
-                                        (Can.toRendererExpression (Elm.int 1) def)
+                                        vars
+                                        (Can.toRendererExpression version def)
                                 )
-                                (\ctxt ->
-                                    -- case Can.bake ctxt vars def of
-                                    --     ( newCtxt, bakedDef ) ->
-                                    Elm.tuple ctxt (generateDecoder (Elm.int 1) namespace def)
+                                (\version ->
+                                    generateDecoder version namespace def
                                 )
                                 |> Elm.withType
                                     (Type.namedWith [ namespace.namespace ]

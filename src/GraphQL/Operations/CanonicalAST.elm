@@ -963,7 +963,7 @@ selectionToExpressionString sel cursor =
                     )
                 |> addLevelToCursor
                 |> (\currentCursor ->
-                        List.foldl renderVariantFragmentToExp currentCursor details.variants
+                        List.foldr renderVariantFragmentToExp currentCursor details.variants
                    )
                 |> removeLevelToCursor
                 |> addString " }"
@@ -992,7 +992,7 @@ selectionToExpressionString sel cursor =
                         ""
                     )
                 |> (\currentCursor ->
-                        List.foldl renderVariantFragmentToExp currentCursor details.variants
+                        List.foldr renderVariantFragmentToExp currentCursor details.variants
                    )
                 |> addString " }"
 
@@ -1037,7 +1037,7 @@ renderArgumentsExp args cursor =
             cursor
 
         _ ->
-            List.foldl
+            List.foldr
                 (\arg ( afterFirst, curs ) ->
                     ( True
                     , curs
@@ -1102,7 +1102,7 @@ addArgValue val cursor =
                     )
 
         AST.Object keyVals ->
-            List.foldl
+            List.foldr
                 (\( key, innerVal ) ( afterFirst, curs ) ->
                     ( True
                     , curs
@@ -1126,7 +1126,7 @@ addArgValue val cursor =
                 |> addString "}"
 
         AST.ListValue vals ->
-            List.foldl
+            List.foldr
                 (\innerVal ( afterFirst, curs ) ->
                     ( True
                     , curs
