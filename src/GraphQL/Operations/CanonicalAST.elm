@@ -98,7 +98,6 @@ type alias FieldObjectDetails =
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection
-    , object : GraphQL.Schema.ObjectDetails
     , wrapper : GraphQL.Schema.Wrapped
     }
 
@@ -116,7 +115,6 @@ type alias FieldUnionDetails =
             { tag : Name
             , globalAlias : Name
             }
-    , union : GraphQL.Schema.UnionDetails
     , wrapper : GraphQL.Schema.Wrapped
     }
 
@@ -134,7 +132,6 @@ type alias FieldInterfaceDetails =
             { tag : Name
             , globalAlias : Name
             }
-    , interface : GraphQL.Schema.InterfaceDetails
     , wrapper : GraphQL.Schema.Wrapped
     }
 
@@ -745,7 +742,6 @@ fieldToExp sel =
                     , arguments = Elm.list (List.map argToExp details.arguments)
                     , directives = Elm.list (List.map directiveToExp details.directives)
                     , selection = Elm.list (List.map fieldToExp details.selection)
-                    , object = Debug.todo ""
                     , wrapper = schemaWrapperToExp details.wrapper
                     }
                 )

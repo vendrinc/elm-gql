@@ -843,68 +843,6 @@ removeTypename field =
             True
 
 
-getDesiredTypeName : Set.Set String -> Can.Selection -> ( String, Set.Set String )
-getDesiredTypeName knownNames selection =
-    case selection of
-        Can.FieldObject field ->
-            let
-                desired =
-                    Maybe.withDefault
-                        field.object.name
-                        (Maybe.map
-                            Can.nameToString
-                            field.alias_
-                        )
-            in
-            Tuple.pair desired knownNames
-
-        Can.FieldScalar field ->
-            let
-                desired =
-                    Maybe.withDefault
-                        (Can.nameToString field.name)
-                        (Maybe.map
-                            Can.nameToString
-                            field.alias_
-                        )
-            in
-            Tuple.pair desired knownNames
-
-        Can.FieldEnum field ->
-            let
-                desired =
-                    Maybe.withDefault
-                        (Can.nameToString field.name)
-                        (Maybe.map
-                            Can.nameToString
-                            field.alias_
-                        )
-            in
-            Tuple.pair desired knownNames
-
-        Can.FieldUnion field ->
-            let
-                desired =
-                    Maybe.withDefault
-                        field.union.name
-                        (Maybe.map
-                            Can.nameToString
-                            field.alias_
-                        )
-            in
-            Tuple.pair desired knownNames
-
-        Can.FieldInterface field ->
-            let
-                desired =
-                    Maybe.withDefault
-                        field.name
-                        field.alias_
-                        |> Can.nameToString
-            in
-            Tuple.pair desired knownNames
-
-
 resolveNewName : String -> Set.Set String -> ( String, Set.Set String )
 resolveNewName newName knownNames =
     if Set.member newName knownNames then

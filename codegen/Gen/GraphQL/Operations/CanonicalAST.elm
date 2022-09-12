@@ -805,9 +805,6 @@ annotation_ =
                             ]
                         )
                   )
-                , ( "interface"
-                  , Type.namedWith [ "GraphQL", "Schema" ] "InterfaceDetails" []
-                  )
                 , ( "wrapper"
                   , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
                   )
@@ -838,9 +835,6 @@ annotation_ =
                             ]
                         )
                   )
-                , ( "union"
-                  , Type.namedWith [ "GraphQL", "Schema" ] "UnionDetails" []
-                  )
                 , ( "wrapper"
                   , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
                   )
@@ -860,9 +854,6 @@ annotation_ =
                 , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
                 , ( "selection", Type.list (Type.namedWith [] "Selection" []) )
-                , ( "object"
-                  , Type.namedWith [ "GraphQL", "Schema" ] "ObjectDetails" []
-                  )
                 , ( "wrapper"
                   , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
                   )
@@ -1016,7 +1007,6 @@ make_ :
         , selection : Elm.Expression
         , variants : Elm.Expression
         , remainingTags : Elm.Expression
-        , interface : Elm.Expression
         , wrapper : Elm.Expression
         }
         -> Elm.Expression
@@ -1029,7 +1019,6 @@ make_ :
         , selection : Elm.Expression
         , variants : Elm.Expression
         , remainingTags : Elm.Expression
-        , union : Elm.Expression
         , wrapper : Elm.Expression
         }
         -> Elm.Expression
@@ -1040,7 +1029,6 @@ make_ :
         , arguments : Elm.Expression
         , directives : Elm.Expression
         , selection : Elm.Expression
-        , object : Elm.Expression
         , wrapper : Elm.Expression
         }
         -> Elm.Expression
@@ -1260,12 +1248,6 @@ make_ =
                                     ]
                                 )
                           )
-                        , ( "interface"
-                          , Type.namedWith
-                                [ "GraphQL", "Schema" ]
-                                "InterfaceDetails"
-                                []
-                          )
                         , ( "wrapper"
                           , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
                           )
@@ -1291,9 +1273,6 @@ make_ =
                     , Tuple.pair
                         "remainingTags"
                         fieldInterfaceDetails_args.remainingTags
-                    , Tuple.pair
-                        "interface"
-                        fieldInterfaceDetails_args.interface
                     , Tuple.pair "wrapper" fieldInterfaceDetails_args.wrapper
                     ]
                 )
@@ -1335,12 +1314,6 @@ make_ =
                                     ]
                                 )
                           )
-                        , ( "union"
-                          , Type.namedWith
-                                [ "GraphQL", "Schema" ]
-                                "UnionDetails"
-                                []
-                          )
                         , ( "wrapper"
                           , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
                           )
@@ -1360,7 +1333,6 @@ make_ =
                     , Tuple.pair
                         "remainingTags"
                         fieldUnionDetails_args.remainingTags
-                    , Tuple.pair "union" fieldUnionDetails_args.union
                     , Tuple.pair "wrapper" fieldUnionDetails_args.wrapper
                     ]
                 )
@@ -1389,12 +1361,6 @@ make_ =
                         , ( "selection"
                           , Type.list (Type.namedWith [] "Selection" [])
                           )
-                        , ( "object"
-                          , Type.namedWith
-                                [ "GraphQL", "Schema" ]
-                                "ObjectDetails"
-                                []
-                          )
                         , ( "wrapper"
                           , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
                           )
@@ -1410,7 +1376,6 @@ make_ =
                     , Tuple.pair "arguments" fieldObjectDetails_args.arguments
                     , Tuple.pair "directives" fieldObjectDetails_args.directives
                     , Tuple.pair "selection" fieldObjectDetails_args.selection
-                    , Tuple.pair "object" fieldObjectDetails_args.object
                     , Tuple.pair "wrapper" fieldObjectDetails_args.wrapper
                     ]
                 )

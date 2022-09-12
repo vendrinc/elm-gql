@@ -1604,7 +1604,6 @@ canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
                                                 , variants = selectionResult.capturedVariants
                                                 , remainingTags =
                                                     List.reverse remaining
-                                                , union = union
                                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
                                                 }
                                             )
@@ -1684,7 +1683,6 @@ canonicalizeFieldTypeHelper schema field type_ usedNames varCache schemaField =
                                         , selection = canSelection
                                         , variants = selectionResult.capturedVariants
                                         , remainingTags = List.reverse remaining
-                                        , interface = interface
                                         , wrapper = GraphQL.Schema.getWrap schemaField.type_
                                         }
                                     )
@@ -1799,7 +1797,6 @@ canonicalizeObject schema field usedNames schemaField varCache obj =
                                 , arguments = field.arguments
                                 , directives = List.map convertDirective field.directives
                                 , selection = canSelection
-                                , object = obj
                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
                                 }
                             )
