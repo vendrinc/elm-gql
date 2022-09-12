@@ -11,10 +11,10 @@ This is because we both need to ship the Engine file and use it locally in this 
 
 const contents = (body) => `export default (): string => ${body}`
 
-let engine = JSON.stringify(readFileSync('./codegen/helpers/GraphQL/Engine.elm').toString());
+let engine = JSON.stringify(readFileSync('./src/GraphQL/Engine.elm').toString());
 writeFileSync('./cli/templates/Engine.elm.ts', contents(engine))
 
-let mock = JSON.stringify(readFileSync('./codegen/helpers/GraphQL/Mock.elm').toString());
+let mock = JSON.stringify(readFileSync('./src/GraphQL/Mock.elm').toString());
 writeFileSync('./cli/templates/Mock.elm.ts', contents(mock))
 
 
