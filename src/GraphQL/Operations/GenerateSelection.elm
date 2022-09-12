@@ -170,8 +170,6 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                                 )
                         )
                         |> Elm.exposeWith { exposeConstructor = True, group = Just "query" }
-                    , Elm.declaration "canonical"
-                        (Can.toExpression def)
                     ]
 
                 _ ->

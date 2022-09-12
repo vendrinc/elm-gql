@@ -747,13 +747,96 @@ fieldToExp sel =
                 )
 
         FieldUnion details ->
-            Debug.todo ""
+            GenCan.make_.fieldUnion
+                (GenCan.make_.fieldUnionDetails
+                    { alias_ = maybeExp nameToExp details.alias_
+                    , name = nameToExp details.name
+                    , globalAlias = nameToExp details.globalAlias
+                    , arguments = Elm.list (List.map argToExp details.arguments)
+                    , directives = Elm.list (List.map directiveToExp details.directives)
+                    , selection = Elm.list (List.map fieldToExp details.selection)
+                    , wrapper = schemaWrapperToExp details.wrapper
+                    , variants = Elm.list (List.map unionVariantToExp details.variants)
+                    , remainingTags = Elm.list (List.map remainingTagsToExp details.remainingTags)
+                    }
+                )
 
         FieldScalar details ->
-            Debug.todo ""
+            GenCan.make_.fieldScalar
+                (GenCan.make_.fieldScalarDetails
+                    { alias_ = maybeExp nameToExp details.alias_
+                    , name = nameToExp details.name
+                    , arguments = Elm.list (List.map argToExp details.arguments)
+                    , directives = Elm.list (List.map directiveToExp details.directives)
+                    , type_ =
+                        schemaTypeToExp details.type_
+                    }
+                )
 
         FieldEnum details ->
-            Debug.todo ""
+            GenCan.make_.fieldEnum
+                (GenCan.make_.fieldEnumDetails
+                    { alias_ = maybeExp nameToExp details.alias_
+                    , name = nameToExp details.name
+                    , arguments = Elm.list (List.map argToExp details.arguments)
+                    , directives = Elm.list (List.map directiveToExp details.directives)
+                    , enumName = Elm.string details.enumName
+                    , values = Elm.list (List.map enumValueToExp details.values)
+                    , wrapper = schemaWrapperToExp details.wrapper
+                    }
+                )
 
         FieldInterface details ->
-            Debug.todo ""
+            GenCan.make_.fieldUnion
+                (GenCan.make_.fieldUnionDetails
+                    { alias_ = maybeExp nameToExp details.alias_
+                    , name = nameToExp details.name
+                    , globalAlias = nameToExp details.globalAlias
+                    , arguments = Elm.list (List.map argToExp details.arguments)
+                    , directives = Elm.list (List.map directiveToExp details.directives)
+                    , selection = Elm.list (List.map fieldToExp details.selection)
+                    , wrapper = schemaWrapperToExp details.wrapper
+                    , variants = Elm.list (List.map interfaceCaseToExp details.variants)
+                    , remainingTags = Elm.list (List.map remainingTagsToExp details.remainingTags)
+                    }
+                )
+
+
+enumValueToExp : { name : String, description : Maybe String } -> Elm.Expression
+enumValueToExp names =
+    Elm.record
+        [ ( "name", Elm.string names.name )
+        , ( "description", maybeExp Elm.string names.description )
+        ]
+
+
+remainingTagsToExp :
+    { tag : Name
+    , globalAlias : Name
+    }
+    -> Elm.Expression
+remainingTagsToExp remain =
+    Elm.record
+        [ ( "tag", nameToExp remain.tag )
+        , ( "globalAlias", nameToExp remain.globalAlias )
+        ]
+
+
+unionVariantToExp : UnionCaseDetails -> Elm.Expression
+unionVariantToExp union =
+    GenCan.make_.unionCaseDetails
+        { tag = nameToExp union.tag
+        , globalAlias = nameToExp union.globalAlias
+        , directives = Elm.list (List.map directiveToExp union.directives)
+        , selection = Elm.list (List.map fieldToExp union.selection)
+        }
+
+
+interfaceCaseToExp : InterfaceCase -> Elm.Expression
+interfaceCaseToExp interface =
+    GenCan.make_.interfaceCase
+        { tag = nameToExp interface.tag
+        , globalAlias = nameToExp interface.globalAlias
+        , directives = Elm.list (List.map directiveToExp interface.directives)
+        , selection = Elm.list (List.map fieldToExp interface.selection)
+        }

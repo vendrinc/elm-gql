@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.CanonicalAST exposing (aliasedName, annotation_, argToExp, argToString, argValToString, astNameToExp, astValueToExp, brackets, call_, caseOf_, directiveToExp, fieldToExp, foldToString, getAliasedFieldName, getAliasedName, getWrapper, isTypeNameSelection, make_, maybeExp, moduleName_, nameToExp, nameToString, opTypeToExp, operationLabel, operationName, renderArguments, renderSelection, schemaTypeToExp, schemaWrapperToExp, selectionToString, toExpression, toString, toStringFields, typeToExp, typeToString, unwrap, values_, varDefToExp, varToExp, variantFragmentToString)
+module Gen.GraphQL.Operations.CanonicalAST exposing (aliasedName, annotation_, argToExp, argToString, argValToString, astNameToExp, astValueToExp, brackets, call_, caseOf_, directiveToExp, enumValueToExp, fieldToExp, foldToString, getAliasedFieldName, getAliasedName, getWrapper, interfaceCaseToExp, isTypeNameSelection, make_, maybeExp, moduleName_, nameToExp, nameToString, opTypeToExp, operationLabel, operationName, remainingTagsToExp, renderArguments, renderSelection, schemaTypeToExp, schemaWrapperToExp, selectionToString, toExpression, toString, toStringFields, typeToExp, typeToString, unionVariantToExp, unwrap, values_, varDefToExp, varToExp, variantFragmentToString)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, getAliasedFieldName, nameToString, toString, operationLabel, toStringFields, selectionToString, variantFragmentToString, renderSelection, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toExpression, directiveToExp, argToExp, astValueToExp, astNameToExp, opTypeToExp, nameToExp, varDefToExp, schemaTypeToExp, varToExp, typeToExp, maybeExp, schemaWrapperToExp, fieldToExp, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, getAliasedFieldName, nameToString, toString, operationLabel, toStringFields, selectionToString, variantFragmentToString, renderSelection, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toExpression, directiveToExp, argToExp, astValueToExp, astNameToExp, opTypeToExp, nameToExp, varDefToExp, schemaTypeToExp, varToExp, typeToExp, maybeExp, schemaWrapperToExp, fieldToExp, enumValueToExp, remainingTagsToExp, unionVariantToExp, interfaceCaseToExp, moduleName_
 -}
 
 
@@ -15,6 +15,98 @@ import Tuple
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "CanonicalAST" ]
+
+
+{-| interfaceCaseToExp: InterfaceCase -> Elm.Expression -}
+interfaceCaseToExp : Elm.Expression -> Elm.Expression
+interfaceCaseToExp interfaceCaseToExpArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "interfaceCaseToExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "InterfaceCase" [] ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+        )
+        [ interfaceCaseToExpArg ]
+
+
+{-| unionVariantToExp: UnionCaseDetails -> Elm.Expression -}
+unionVariantToExp : Elm.Expression -> Elm.Expression
+unionVariantToExp unionVariantToExpArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "unionVariantToExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "UnionCaseDetails" [] ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+        )
+        [ unionVariantToExpArg ]
+
+
+{-| remainingTagsToExp: { tag : Name, globalAlias : Name } -> Elm.Expression -}
+remainingTagsToExp :
+    { tag : Elm.Expression, globalAlias : Elm.Expression } -> Elm.Expression
+remainingTagsToExp remainingTagsToExpArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "remainingTagsToExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.record
+                            [ ( "tag", Type.namedWith [] "Name" [] )
+                            , ( "globalAlias", Type.namedWith [] "Name" [] )
+                            ]
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+        )
+        [ Elm.record
+            [ Tuple.pair "tag" remainingTagsToExpArg.tag
+            , Tuple.pair "globalAlias" remainingTagsToExpArg.globalAlias
+            ]
+        ]
+
+
+{-| enumValueToExp: { name : String, description : Maybe String } -> Elm.Expression -}
+enumValueToExp :
+    { name : String, description : Elm.Expression } -> Elm.Expression
+enumValueToExp enumValueToExpArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "enumValueToExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.record
+                            [ ( "name", Type.string )
+                            , ( "description"
+                              , Type.namedWith [] "Maybe" [ Type.string ]
+                              )
+                            ]
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+        )
+        [ Elm.record
+            [ Tuple.pair "name" (Elm.string enumValueToExpArg.name)
+            , Tuple.pair "description" enumValueToExpArg.description
+            ]
+        ]
 
 
 {-| fieldToExp: Selection -> Elm.Expression -}
@@ -1779,7 +1871,11 @@ caseOf_ =
 
 
 call_ :
-    { fieldToExp : Elm.Expression -> Elm.Expression
+    { interfaceCaseToExp : Elm.Expression -> Elm.Expression
+    , unionVariantToExp : Elm.Expression -> Elm.Expression
+    , remainingTagsToExp : Elm.Expression -> Elm.Expression
+    , enumValueToExp : Elm.Expression -> Elm.Expression
+    , fieldToExp : Elm.Expression -> Elm.Expression
     , schemaWrapperToExp : Elm.Expression -> Elm.Expression
     , maybeExp : Elm.Expression -> Elm.Expression -> Elm.Expression
     , typeToExp : Elm.Expression -> Elm.Expression
@@ -1816,7 +1912,82 @@ call_ :
     , isTypeNameSelection : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { fieldToExp =
+    { interfaceCaseToExp =
+        \interfaceCaseToExpArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "interfaceCaseToExp"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "InterfaceCase" [] ]
+                                (Type.namedWith [ "Elm" ] "Expression" [])
+                            )
+                    }
+                )
+                [ interfaceCaseToExpArg ]
+    , unionVariantToExp =
+        \unionVariantToExpArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "unionVariantToExp"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "UnionCaseDetails" [] ]
+                                (Type.namedWith [ "Elm" ] "Expression" [])
+                            )
+                    }
+                )
+                [ unionVariantToExpArg ]
+    , remainingTagsToExp =
+        \remainingTagsToExpArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "remainingTagsToExp"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.record
+                                    [ ( "tag", Type.namedWith [] "Name" [] )
+                                    , ( "globalAlias"
+                                      , Type.namedWith [] "Name" []
+                                      )
+                                    ]
+                                ]
+                                (Type.namedWith [ "Elm" ] "Expression" [])
+                            )
+                    }
+                )
+                [ remainingTagsToExpArg ]
+    , enumValueToExp =
+        \enumValueToExpArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "enumValueToExp"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.record
+                                    [ ( "name", Type.string )
+                                    , ( "description"
+                                      , Type.namedWith
+                                            []
+                                            "Maybe"
+                                            [ Type.string ]
+                                      )
+                                    ]
+                                ]
+                                (Type.namedWith [ "Elm" ] "Expression" [])
+                            )
+                    }
+                )
+                [ enumValueToExpArg ]
+    , fieldToExp =
         \fieldToExpArg ->
             Elm.apply
                 (Elm.value
@@ -2365,7 +2536,11 @@ call_ =
 
 
 values_ :
-    { fieldToExp : Elm.Expression
+    { interfaceCaseToExp : Elm.Expression
+    , unionVariantToExp : Elm.Expression
+    , remainingTagsToExp : Elm.Expression
+    , enumValueToExp : Elm.Expression
+    , fieldToExp : Elm.Expression
     , schemaWrapperToExp : Elm.Expression
     , maybeExp : Elm.Expression
     , typeToExp : Elm.Expression
@@ -2401,7 +2576,61 @@ values_ :
     , isTypeNameSelection : Elm.Expression
     }
 values_ =
-    { fieldToExp =
+    { interfaceCaseToExp =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "interfaceCaseToExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "InterfaceCase" [] ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+    , unionVariantToExp =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "unionVariantToExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "UnionCaseDetails" [] ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+    , remainingTagsToExp =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "remainingTagsToExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.record
+                            [ ( "tag", Type.namedWith [] "Name" [] )
+                            , ( "globalAlias", Type.namedWith [] "Name" [] )
+                            ]
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+    , enumValueToExp =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "enumValueToExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.record
+                            [ ( "name", Type.string )
+                            , ( "description"
+                              , Type.namedWith [] "Maybe" [ Type.string ]
+                              )
+                            ]
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+    , fieldToExp =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
             , name = "fieldToExp"
