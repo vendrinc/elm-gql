@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, union, unsafe, values_, with)
+module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, union, unsafe, values_, versionedJsonField, with)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, prebakedQuery, getGql, mapPremade, premadeOperation, mapRequest, toRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, jsonField, andMap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, prebakedQuery, getGql, mapPremade, premadeOperation, mapRequest, toRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, jsonField, andMap, moduleName_
 -}
 
 
@@ -115,6 +115,64 @@ jsonField jsonFieldArg jsonFieldArg0 jsonFieldArg1 =
             }
         )
         [ Elm.string jsonFieldArg, jsonFieldArg0, jsonFieldArg1 ]
+
+
+{-| versionedJsonField: 
+    Int
+    -> String
+    -> Json.Decode.Decoder a
+    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+-}
+versionedJsonField :
+    Int -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
+versionedJsonField versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFieldArg1 versionedJsonFieldArg2 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "versionedJsonField"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.int
+                        , Type.string
+                        , Type.namedWith
+                            [ "Json", "Decode" ]
+                            "Decoder"
+                            [ Type.var "a" ]
+                        , Type.namedWith
+                            [ "Json", "Decode" ]
+                            "Decoder"
+                            [ Type.function
+                                [ Type.var "a"
+                                , Type.var "inner"
+                                , Type.function
+                                    [ Type.var "inner" ]
+                                    (Type.var "inner2")
+                                ]
+                                (Type.var "inner2")
+                            ]
+                        ]
+                        (Type.namedWith
+                            [ "Json", "Decode" ]
+                            "Decoder"
+                            [ Type.function
+                                [ Type.var "inner"
+                                , Type.function
+                                    [ Type.var "inner" ]
+                                    (Type.var "inner2")
+                                ]
+                                (Type.var "inner2")
+                            ]
+                        )
+                    )
+            }
+        )
+        [ Elm.int versionedJsonFieldArg
+        , Elm.string versionedJsonFieldArg0
+        , versionedJsonFieldArg1
+        , versionedJsonFieldArg2
+        ]
 
 
 {-| {-| -}
@@ -1932,6 +1990,12 @@ call_ :
     { andMap : Elm.Expression -> Elm.Expression -> Elm.Expression
     , jsonField :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , versionedJsonField :
+        Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
     , decodeNullable : Elm.Expression -> Elm.Expression
     , maybeScalarEncode : Elm.Expression -> Elm.Expression -> Elm.Expression
     , queryString :
@@ -2085,6 +2149,54 @@ call_ =
                     }
                 )
                 [ jsonFieldArg, jsonFieldArg0, jsonFieldArg1 ]
+    , versionedJsonField =
+        \versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFieldArg1 versionedJsonFieldArg2 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "versionedJsonField"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.int
+                                , Type.string
+                                , Type.namedWith
+                                    [ "Json", "Decode" ]
+                                    "Decoder"
+                                    [ Type.var "a" ]
+                                , Type.namedWith
+                                    [ "Json", "Decode" ]
+                                    "Decoder"
+                                    [ Type.function
+                                        [ Type.var "a"
+                                        , Type.var "inner"
+                                        , Type.function
+                                            [ Type.var "inner" ]
+                                            (Type.var "inner2")
+                                        ]
+                                        (Type.var "inner2")
+                                    ]
+                                ]
+                                (Type.namedWith
+                                    [ "Json", "Decode" ]
+                                    "Decoder"
+                                    [ Type.function
+                                        [ Type.var "inner"
+                                        , Type.function
+                                            [ Type.var "inner" ]
+                                            (Type.var "inner2")
+                                        ]
+                                        (Type.var "inner2")
+                                    ]
+                                )
+                            )
+                    }
+                )
+                [ versionedJsonFieldArg
+                , versionedJsonFieldArg0
+                , versionedJsonFieldArg1
+                , versionedJsonFieldArg2
+                ]
     , decodeNullable =
         \decodeNullableArg ->
             Elm.apply
@@ -3319,6 +3431,7 @@ call_ =
 values_ :
     { andMap : Elm.Expression
     , jsonField : Elm.Expression
+    , versionedJsonField : Elm.Expression
     , decodeNullable : Elm.Expression
     , maybeScalarEncode : Elm.Expression
     , queryString : Elm.Expression
@@ -3411,6 +3524,46 @@ values_ =
                 Just
                     (Type.function
                         [ Type.string
+                        , Type.namedWith
+                            [ "Json", "Decode" ]
+                            "Decoder"
+                            [ Type.var "a" ]
+                        , Type.namedWith
+                            [ "Json", "Decode" ]
+                            "Decoder"
+                            [ Type.function
+                                [ Type.var "a"
+                                , Type.var "inner"
+                                , Type.function
+                                    [ Type.var "inner" ]
+                                    (Type.var "inner2")
+                                ]
+                                (Type.var "inner2")
+                            ]
+                        ]
+                        (Type.namedWith
+                            [ "Json", "Decode" ]
+                            "Decoder"
+                            [ Type.function
+                                [ Type.var "inner"
+                                , Type.function
+                                    [ Type.var "inner" ]
+                                    (Type.var "inner2")
+                                ]
+                                (Type.var "inner2")
+                            ]
+                        )
+                    )
+            }
+    , versionedJsonField =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "versionedJsonField"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.int
+                        , Type.string
                         , Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"

@@ -16,7 +16,7 @@ module GraphQL.Engine exposing
     , Request, toRequest, send, simulate, mapRequest
     , Option(..), InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
     , jsonField, andMap
-    , bakeToSelection
+    , bakeToSelection, versionedJsonField
     )
 
 {-|
@@ -1417,6 +1417,28 @@ maybeScalarEncode encoder maybeA =
 decodeNullable : Decode.Decoder data -> Decode.Decoder (Maybe data)
 decodeNullable =
     Decode.nullable
+
+
+versionedJsonField :
+    Int
+    -> String
+    -> Json.Decode.Decoder a
+    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+versionedJsonField int name new build =
+    Json.Decode.map2
+        (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
+        (Json.Decode.field (versionedName int name) new)
+        build
+
+
+versionedName : Int -> String -> String
+versionedName i name =
+    if i == 0 then
+        name
+
+    else
+        name ++ "_batch_" ++ String.fromInt i
 
 
 jsonField :

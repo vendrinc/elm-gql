@@ -162,7 +162,7 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                                     Elm.just (Elm.string label)
                             )
                             (\ctxt -> Elm.tuple ctxt (Elm.string (Can.toStringFields def)))
-                            (\ctxt -> Elm.tuple ctxt (generateDecoder namespace def))
+                            (\ctxt -> Elm.tuple ctxt (generateDecoder (Elm.int 1) namespace def))
                             |> Elm.withType
                                 (Type.namedWith [ namespace.namespace ]
                                     (opTypeName op.operationType)
@@ -205,7 +205,7 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                                 (\ctxt ->
                                     -- case Can.bake ctxt vars def of
                                     --     ( newCtxt, bakedDef ) ->
-                                    Elm.tuple ctxt (generateDecoder namespace def)
+                                    Elm.tuple ctxt (generateDecoder (Elm.int 1) namespace def)
                                 )
                                 |> Elm.withType
                                     (Type.namedWith [ namespace.namespace ]
@@ -215,8 +215,6 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                         )
                         |> Elm.declaration (opValueName op.operationType)
                         |> Elm.exposeWith { exposeConstructor = True, group = Just "query" }
-                    , Elm.declaration "canonical"
-                        (Can.toExpression def)
                     ]
 
         -- auxHelpers are record alises that aren't *essential* to the return type,
@@ -300,18 +298,6 @@ renderStandardComment groups =
             )
             "\n\n"
             groups
-
-
-andField : Can.Name -> Elm.Expression -> Elm.Expression -> Elm.Expression
-andField name decoder builder =
-    builder
-        |> Elm.Op.pipe
-            (Elm.apply
-                Engine.values_.jsonField
-                [ Elm.string (Can.nameToString name)
-                , decoder
-                ]
-            )
 
 
 andMap : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -1063,8 +1049,9 @@ schemaTypeToPrefab schemaType =
 {- DECODER -}
 
 
-generateDecoder : Namespace -> Can.Definition -> Elm.Expression
-generateDecoder namespace (Can.Operation op) =
+{-| -}
+generateDecoder : Elm.Expression -> Namespace -> Can.Definition -> Elm.Expression
+generateDecoder version namespace (Can.Operation op) =
     let
         opName =
             Maybe.withDefault "Query"
@@ -1074,6 +1061,7 @@ generateDecoder namespace (Can.Operation op) =
                 )
     in
     decodeFields namespace
+        version
         initIndex
         op.fields
         (Decode.succeed
@@ -1098,6 +1086,11 @@ type Index
     = Index Int (List Int)
 
 
+isTopLevel : Index -> Bool
+isTopLevel (Index i tail) =
+    List.isEmpty tail
+
+
 indexToString : Index -> String
 indexToString (Index top tail) =
     String.fromInt top ++ "_" ++ String.join "_" (List.map String.fromInt tail)
@@ -1118,62 +1111,59 @@ child (Index top total) =
     Index 0 (top :: total)
 
 
-decodeFields : Namespace -> Index -> List Can.Selection -> Elm.Expression -> Elm.Expression
-decodeFields namespace index fields exp =
-    case fields of
-        [] ->
-            exp
+decodeFields : Namespace -> Elm.Expression -> Index -> List Can.Selection -> Elm.Expression -> Elm.Expression
+decodeFields namespace version index fields exp =
+    List.foldl
+        (decodeFieldsHelper namespace version)
+        ( index, exp )
+        fields
+        |> Tuple.second
 
-        ((Can.FieldObject obj) as field) :: remain ->
-            decodeFields namespace
-                (next index)
-                remain
-                (andField
-                    (Can.Name (Can.getAliasedName field))
-                    (Input.decodeWrapper obj.wrapper
-                        (decodeFields namespace
-                            (child index)
-                            obj.selection
-                            (Decode.succeed
-                                (Elm.function
-                                    (List.map
-                                        (\sel ->
-                                            ( Utils.String.formatValue (Can.getAliasedName sel)
-                                            , Nothing
+
+decodeFieldsHelper : Namespace -> Elm.Expression -> Can.Selection -> ( Index, Elm.Expression ) -> ( Index, Elm.Expression )
+decodeFieldsHelper namespace version field ( index, exp ) =
+    ( next index
+    , exp
+        |> Elm.Op.pipe
+            (Elm.apply
+                Engine.values_.versionedJsonField
+                -- we only care about adjusting the aliases of the top-level things that could collide
+                [ if isTopLevel index then
+                    version
+
+                  else
+                    Elm.int 0
+                , Elm.string (Can.getAliasedName field)
+                , case field of
+                    Can.FieldObject obj ->
+                        Input.decodeWrapper obj.wrapper
+                            (decodeFields namespace
+                                version
+                                (child index)
+                                obj.selection
+                                (Decode.succeed
+                                    (Elm.function
+                                        (List.map
+                                            (\sel ->
+                                                ( Utils.String.formatValue (Can.getAliasedName sel)
+                                                , Nothing
+                                                )
                                             )
+                                            obj.selection
                                         )
-                                        obj.selection
-                                    )
-                                    (\args ->
-                                        Elm.record
-                                            (List.map2 selectSubFields obj.selection args)
+                                        (\args ->
+                                            Elm.record
+                                                (List.map2 selectSubFields obj.selection args)
+                                        )
                                     )
                                 )
                             )
-                        )
-                    )
-                    exp
-                )
 
-        ((Can.FieldScalar scal) as field) :: remain ->
-            let
-                decoded =
-                    andField
-                        (Can.Name (Can.getAliasedName field))
-                        (decodeScalarType scal.type_)
-                        exp
-            in
-            decodeFields namespace
-                (next index)
-                remain
-                decoded
+                    Can.FieldScalar scal ->
+                        decodeScalarType scal.type_
 
-        ((Can.FieldEnum enum) as field) :: remain ->
-            let
-                decoded =
-                    andField
-                        (Can.Name (Can.getAliasedName field))
-                        (Input.decodeWrapper enum.wrapper
+                    Can.FieldEnum enum ->
+                        Input.decodeWrapper enum.wrapper
                             (Elm.value
                                 { importFrom =
                                     [ namespace.enums
@@ -1185,41 +1175,21 @@ decodeFields namespace index fields exp =
                                     Nothing
                                 }
                             )
-                        )
-                        exp
-            in
-            decodeFields namespace
-                (next index)
-                remain
-                decoded
 
-        ((Can.FieldUnion union) as field) :: remain ->
-            decodeFields namespace
-                (next index)
-                remain
-                (andField
-                    (Can.Name (Can.getAliasedName field))
-                    (Input.decodeWrapper union.wrapper
-                        (decodeUnion namespace (child index) (Can.getAliasedName field) union)
-                    )
-                    exp
-                )
+                    Can.FieldUnion union ->
+                        Input.decodeWrapper union.wrapper
+                            (decodeUnion namespace version (child index) (Can.getAliasedName field) union)
 
-        ((Can.FieldInterface interface) as field) :: remain ->
-            decodeFields namespace
-                (next index)
-                remain
-                (andField
-                    (Can.Name (Can.getAliasedName field))
-                    (Input.decodeWrapper interface.wrapper
-                        (decodeInterface namespace (child index) (Can.getAliasedName field) interface)
-                    )
-                    exp
-                )
+                    Can.FieldInterface interface ->
+                        Input.decodeWrapper interface.wrapper
+                            (decodeInterface namespace version (child index) (Can.getAliasedName field) interface)
+                ]
+            )
+    )
 
 
-decodeInterface : Namespace -> Index -> String -> Can.FieldInterfaceDetails -> Elm.Expression
-decodeInterface namespace index fieldName interface =
+decodeInterface : Namespace -> Elm.Expression -> Index -> String -> Can.FieldInterfaceDetails -> Elm.Expression
+decodeInterface namespace version index fieldName interface =
     let
         selection =
             List.filter (not << Can.isTypeNameSelection) interface.selection
@@ -1235,7 +1205,7 @@ decodeInterface namespace index fieldName interface =
                             (List.map2 selectSubFields selection args)
                     )
                 )
-                |> decodeFields namespace (child index) selection
+                |> decodeFields namespace version (child index) selection
 
         _ ->
             Decode.succeed
@@ -1257,11 +1227,11 @@ decodeInterface namespace index fieldName interface =
                             )
                     )
                 )
-                |> andMap (decodeInterfaceSpecifics namespace index fieldName interface)
-                |> decodeFields namespace (child index) selection
+                |> andMap (decodeInterfaceSpecifics namespace version index fieldName interface)
+                |> decodeFields namespace version (child index) selection
 
 
-decodeInterfaceSpecifics namespace index fieldName interface =
+decodeInterfaceSpecifics namespace version index fieldName interface =
     Decode.field "__typename" Decode.string
         |> Decode.andThen
             (\_ ->
@@ -1274,6 +1244,7 @@ decodeInterfaceSpecifics namespace index fieldName interface =
                             { cases =
                                 List.map
                                     (interfacePattern namespace
+                                        version
                                         (child index)
                                         interface.alias_
                                         interface.selection
@@ -1299,7 +1270,7 @@ decodeInterfaceSpecifics namespace index fieldName interface =
             )
 
 
-interfacePattern namespace index maybeAlias commonFields var =
+interfacePattern namespace version index maybeAlias commonFields var =
     let
         tag =
             Utils.String.formatTypename (Can.nameToString var.tag)
@@ -1338,12 +1309,12 @@ interfacePattern namespace index maybeAlias commonFields var =
                             ]
                     )
                 )
-                |> decodeFields namespace (child index) fields
+                |> decodeFields namespace version (child index) fields
     )
 
 
-decodeUnion : Namespace -> Index -> String -> Can.FieldUnionDetails -> Elm.Expression
-decodeUnion namespace index fieldName union =
+decodeUnion : Namespace -> Elm.Expression -> Index -> String -> Can.FieldUnionDetails -> Elm.Expression
+decodeUnion namespace version index fieldName union =
     Decode.field "__typename" Decode.string
         |> Decode.andThen
             (\_ ->
@@ -1356,6 +1327,7 @@ decodeUnion namespace index fieldName union =
                             { cases =
                                 List.map
                                     (unionPattern namespace
+                                        version
                                         (child index)
                                         union.alias_
                                     )
@@ -1380,7 +1352,7 @@ decodeUnion namespace index fieldName union =
             )
 
 
-unionPattern namespace index maybeAlias var =
+unionPattern namespace version index maybeAlias var =
     let
         tag =
             Utils.String.formatTypename (Can.nameToString var.tag)
@@ -1416,7 +1388,7 @@ unionPattern namespace index maybeAlias var =
                             ]
                     )
                 )
-                |> decodeFields namespace (child index) fields
+                |> decodeFields namespace version (child index) fields
     )
 
 
