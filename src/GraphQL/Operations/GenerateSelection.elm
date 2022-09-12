@@ -200,7 +200,8 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                                     --     ( newCtxt, bakedDef ) ->
                                     Elm.tuple
                                         ctxt
-                                        (Elm.string (Can.toStringFields def))
+                                        -- (Elm.string (Can.toStringFields def))
+                                        (Can.toRendererExpression (Elm.int 1) def)
                                 )
                                 (\ctxt ->
                                     -- case Can.bake ctxt vars def of
@@ -215,6 +216,9 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                         )
                         |> Elm.declaration (opValueName op.operationType)
                         |> Elm.exposeWith { exposeConstructor = True, group = Just "query" }
+
+                    -- , Elm.declaration "canonical"
+                    --     (Can.toExpression def)
                     ]
 
         -- auxHelpers are record alises that aren't *essential* to the return type,

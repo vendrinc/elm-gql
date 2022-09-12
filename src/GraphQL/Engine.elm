@@ -15,8 +15,8 @@ module GraphQL.Engine exposing
     , unsafe, selectTypeNameButSkip
     , Request, toRequest, send, simulate, mapRequest
     , Option(..), InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
-    , jsonField, andMap
-    , bakeToSelection, versionedJsonField
+    , jsonField, andMap, versionedJsonField, versionedName, versionedAlias
+    , bakeToSelection
     )
 
 {-|
@@ -53,7 +53,7 @@ module GraphQL.Engine exposing
 
 @docs Option, InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
 
-@docs jsonField, andMap
+@docs jsonField, andMap, versionedJsonField, versionedName, versionedAlias
 
 -}
 
@@ -1439,6 +1439,30 @@ versionedName i name =
 
     else
         name ++ "_batch_" ++ String.fromInt i
+
+
+{-| Slightly different than versioned name, this is specific to only making an alias if the version is not 0.
+
+so if I'm selecting a field "myField"
+
+Then
+
+    versionedAlias 0 "myField"
+        -> "myField"
+
+but
+
+    versionedAlias 1 "myField"
+        -> "myField\_batch\_1: myField"
+
+-}
+versionedAlias : Int -> String -> String
+versionedAlias i name =
+    if i == 0 then
+        name
+
+    else
+        name ++ "_batch_" ++ String.fromInt i ++ ": " ++ name
 
 
 jsonField :

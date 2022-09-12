@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, union, unsafe, values_, versionedJsonField, with)
+module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, prebakedQuery, getGql, mapPremade, premadeOperation, mapRequest, toRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, jsonField, andMap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, prebakedQuery, getGql, mapPremade, premadeOperation, mapRequest, toRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
 -}
 
 
@@ -115,6 +115,51 @@ jsonField jsonFieldArg jsonFieldArg0 jsonFieldArg1 =
             }
         )
         [ Elm.string jsonFieldArg, jsonFieldArg0, jsonFieldArg1 ]
+
+
+{-| {-| Slightly different than versioned name, this is specific to only making an alias if the version is not 0.
+
+so if I'm selecting a field "myField"
+
+Then
+
+    versionedAlias 0 "myField"
+        -> "myField"
+
+but
+
+    versionedAlias 1 "myField"
+        -> "myField\_batch\_1: myField"
+
+-}
+
+versionedAlias: Int -> String -> String
+-}
+versionedAlias : Int -> String -> Elm.Expression
+versionedAlias versionedAliasArg versionedAliasArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "versionedAlias"
+            , annotation =
+                Just (Type.function [ Type.int, Type.string ] Type.string)
+            }
+        )
+        [ Elm.int versionedAliasArg, Elm.string versionedAliasArg0 ]
+
+
+{-| versionedName: Int -> String -> String -}
+versionedName : Int -> String -> Elm.Expression
+versionedName versionedNameArg versionedNameArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "versionedName"
+            , annotation =
+                Just (Type.function [ Type.int, Type.string ] Type.string)
+            }
+        )
+        [ Elm.int versionedNameArg, Elm.string versionedNameArg0 ]
 
 
 {-| versionedJsonField: 
@@ -1990,6 +2035,8 @@ call_ :
     { andMap : Elm.Expression -> Elm.Expression -> Elm.Expression
     , jsonField :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , versionedAlias : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , versionedName : Elm.Expression -> Elm.Expression -> Elm.Expression
     , versionedJsonField :
         Elm.Expression
         -> Elm.Expression
@@ -2149,6 +2196,32 @@ call_ =
                     }
                 )
                 [ jsonFieldArg, jsonFieldArg0, jsonFieldArg1 ]
+    , versionedAlias =
+        \versionedAliasArg versionedAliasArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "versionedAlias"
+                    , annotation =
+                        Just
+                            (Type.function [ Type.int, Type.string ] Type.string
+                            )
+                    }
+                )
+                [ versionedAliasArg, versionedAliasArg0 ]
+    , versionedName =
+        \versionedNameArg versionedNameArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "versionedName"
+                    , annotation =
+                        Just
+                            (Type.function [ Type.int, Type.string ] Type.string
+                            )
+                    }
+                )
+                [ versionedNameArg, versionedNameArg0 ]
     , versionedJsonField =
         \versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFieldArg1 versionedJsonFieldArg2 ->
             Elm.apply
@@ -3431,6 +3504,8 @@ call_ =
 values_ :
     { andMap : Elm.Expression
     , jsonField : Elm.Expression
+    , versionedAlias : Elm.Expression
+    , versionedName : Elm.Expression
     , versionedJsonField : Elm.Expression
     , decodeNullable : Elm.Expression
     , maybeScalarEncode : Elm.Expression
@@ -3554,6 +3629,20 @@ values_ =
                             ]
                         )
                     )
+            }
+    , versionedAlias =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "versionedAlias"
+            , annotation =
+                Just (Type.function [ Type.int, Type.string ] Type.string)
+            }
+    , versionedName =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "versionedName"
+            , annotation =
+                Just (Type.function [ Type.int, Type.string ] Type.string)
             }
     , versionedJsonField =
         Elm.value

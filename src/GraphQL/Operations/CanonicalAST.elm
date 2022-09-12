@@ -2,9 +2,12 @@ module GraphQL.Operations.CanonicalAST exposing (..)
 
 import Elm
 import Elm.Annotation as Type
+import Elm.Op
+import Gen.GraphQL.Engine as Engine
 import Gen.GraphQL.Operations.AST as GenAST
 import Gen.GraphQL.Operations.CanonicalAST as GenCan
 import Gen.GraphQL.Schema as GenSchema
+import Gen.String
 import GraphQL.Operations.AST as AST
 import GraphQL.Schema
 
@@ -270,34 +273,6 @@ operationLabel (Operation def) =
 -}
 toStringFields : Definition -> String
 toStringFields (Operation def) =
-    let
-        opName =
-            case def.name of
-                Nothing ->
-                    ""
-
-                Just (Name str) ->
-                    str
-
-        variableDefinitions =
-            case def.variableDefinitions of
-                [] ->
-                    ""
-
-                vars ->
-                    let
-                        renderedVars =
-                            foldToString ", "
-                                (\var ->
-                                    "$"
-                                        ++ nameToString var.variable.name
-                                        ++ ": "
-                                        ++ typeToString (getWrapper var.type_ (Val { required = True })) var.type_
-                                )
-                                vars
-                    in
-                    "(" ++ renderedVars ++ ")"
-    in
     foldToString "\n" selectionToString def.fields
 
 
@@ -840,3 +815,355 @@ interfaceCaseToExp interface =
         , directives = Elm.list (List.map directiveToExp interface.directives)
         , selection = Elm.list (List.map fieldToExp interface.selection)
         }
+
+
+
+{- TO RENDERER -}
+
+
+{-| We want to render a string of this, but with a `version`
+
+The version is an Int, which represents if there are other queries batched with it.
+
+-}
+toRendererExpression : Elm.Expression -> Definition -> Elm.Expression
+toRendererExpression version (Operation def) =
+    initCursor version
+        |> renderFields def.fields
+        |> commit
+        |> (\cursor ->
+                Maybe.withDefault (Elm.string "") cursor.exp
+           )
+
+
+renderFields fields cursor =
+    List.foldr
+        (\sel ( afterFirst, c ) ->
+            ( True
+            , c
+                |> addString
+                    (if afterFirst then
+                        "\n"
+
+                     else
+                        ""
+                    )
+                |> selectionToExpressionString sel
+            )
+        )
+        ( False, cursor )
+        fields
+        |> Tuple.second
+
+
+initCursor : Elm.Expression -> RenderingCursor
+initCursor version =
+    { string = ""
+    , exp = Nothing
+    , depth = 0
+    , version = version
+    }
+
+
+type alias RenderingCursor =
+    { string : String
+    , exp : Maybe Elm.Expression
+    , depth : Int
+    , version : Elm.Expression
+    }
+
+
+addLevelToCursor : RenderingCursor -> RenderingCursor
+addLevelToCursor cursor =
+    { cursor | depth = cursor.depth + 1 }
+
+
+removeLevelToCursor : RenderingCursor -> RenderingCursor
+removeLevelToCursor cursor =
+    { cursor | depth = cursor.depth - 1 }
+
+
+commit : RenderingCursor -> RenderingCursor
+commit cursor =
+    case cursor.string of
+        "" ->
+            cursor
+
+        _ ->
+            { cursor
+                | string = ""
+                , exp =
+                    case cursor.exp of
+                        Nothing ->
+                            Just (Elm.string cursor.string)
+
+                        Just existing ->
+                            Just
+                                (Elm.Op.append existing (Elm.string cursor.string))
+
+                -- (Gen.String.call_.append existing (Elm.string cursor.string))
+                -- (Elm.string cursor.string
+                --     |> Elm.Op.pipe
+                --         (Elm.apply Gen.String.values_.append [ existing ])
+                -- )
+            }
+
+
+addString : String -> RenderingCursor -> RenderingCursor
+addString str cursor =
+    case str of
+        "" ->
+            cursor
+
+        _ ->
+            { cursor | string = cursor.string ++ str }
+
+
+addExp : Elm.Expression -> RenderingCursor -> RenderingCursor
+addExp new cursor =
+    let
+        committed =
+            commit cursor
+    in
+    { committed
+        | exp =
+            case committed.exp of
+                Nothing ->
+                    Just new
+
+                Just existing ->
+                    Just
+                        (Elm.Op.append existing new)
+    }
+
+
+selectionToExpressionString : Selection -> RenderingCursor -> RenderingCursor
+selectionToExpressionString sel cursor =
+    case sel of
+        FieldObject details ->
+            cursor
+                |> aliasedNameExp details
+                |> renderArgumentsExp details.arguments
+                |> renderSelectionExp details.selection
+
+        FieldUnion details ->
+            cursor
+                |> aliasedNameExp details
+                |> renderArgumentsExp details.arguments
+                |> addString " {"
+                |> addLevelToCursor
+                |> renderFields details.selection
+                |> removeLevelToCursor
+                |> addString
+                    (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
+                        "\n"
+
+                     else
+                        ""
+                    )
+                |> addLevelToCursor
+                |> (\currentCursor ->
+                        List.foldl renderVariantFragmentToExp currentCursor details.variants
+                   )
+                |> removeLevelToCursor
+                |> addString " }"
+
+        FieldScalar details ->
+            cursor
+                |> aliasedNameExp details
+                |> renderArgumentsExp details.arguments
+
+        FieldEnum details ->
+            cursor
+                |> aliasedNameExp details
+                |> renderArgumentsExp details.arguments
+
+        FieldInterface details ->
+            cursor
+                |> aliasedNameExp details
+                |> renderArgumentsExp details.arguments
+                |> addString " {"
+                |> renderFields details.selection
+                |> addString
+                    (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
+                        "\n"
+
+                     else
+                        ""
+                    )
+                |> (\currentCursor ->
+                        List.foldl renderVariantFragmentToExp currentCursor details.variants
+                   )
+                |> addString " }"
+
+
+aliasedNameExp : { a | alias_ : Maybe Name, name : Name } -> RenderingCursor -> RenderingCursor
+aliasedNameExp details cursor =
+    if cursor.depth == 0 then
+        case details.alias_ of
+            Nothing ->
+                cursor
+                    |> addExp
+                        (Engine.call_.versionedAlias
+                            cursor.version
+                            (Elm.string (nameToString details.name))
+                        )
+
+            Just alias_ ->
+                cursor
+                    |> addExp
+                        (Engine.call_.versionedName
+                            cursor.version
+                            (Elm.string (nameToString alias_))
+                        )
+                    |> addString (": " ++ nameToString details.name)
+
+    else
+        case details.alias_ of
+            Nothing ->
+                cursor
+                    |> addString (nameToString details.name)
+
+            Just alias_ ->
+                cursor
+                    |> addString
+                        (nameToString alias_ ++ ": " ++ nameToString details.name)
+
+
+renderArgumentsExp : List Argument -> RenderingCursor -> RenderingCursor
+renderArgumentsExp args cursor =
+    case args of
+        [] ->
+            cursor
+
+        _ ->
+            List.foldl
+                (\arg ( afterFirst, curs ) ->
+                    ( True
+                    , curs
+                        |> addString
+                            (if afterFirst then
+                                ", "
+
+                             else
+                                ""
+                            )
+                        |> addString (AST.nameToString arg.name ++ ": ")
+                        |> addArgValue arg.value
+                    )
+                )
+                ( False
+                , cursor
+                    |> addString " ("
+                )
+                args
+                |> Tuple.second
+                |> addString ")"
+
+
+addArgValue : AST.Value -> RenderingCursor -> RenderingCursor
+addArgValue val cursor =
+    case val of
+        AST.Str str ->
+            cursor
+                |> addString ("\"" ++ str ++ "\"")
+
+        AST.Integer int ->
+            cursor
+                |> addString (String.fromInt int)
+
+        AST.Decimal dec ->
+            cursor
+                |> addString
+                    (String.fromFloat dec)
+
+        AST.Boolean True ->
+            cursor
+                |> addString "true"
+
+        AST.Boolean False ->
+            cursor
+                |> addString "false"
+
+        AST.Null ->
+            cursor
+                |> addString "null"
+
+        AST.Enum (AST.Name str) ->
+            cursor
+                |> addString str
+
+        AST.Var var ->
+            cursor
+                |> addExp
+                    (Engine.call_.versionedName
+                        cursor.version
+                        (Elm.string ("$" ++ AST.nameToString var.name))
+                    )
+
+        AST.Object keyVals ->
+            List.foldl
+                (\( key, innerVal ) ( afterFirst, curs ) ->
+                    ( True
+                    , curs
+                        |> addString
+                            (if afterFirst then
+                                ", "
+
+                             else
+                                ""
+                            )
+                        |> addString (AST.nameToString key ++ ": ")
+                        |> addArgValue innerVal
+                    )
+                )
+                ( False
+                , cursor
+                    |> addString "{"
+                )
+                keyVals
+                |> Tuple.second
+                |> addString "}"
+
+        AST.ListValue vals ->
+            List.foldl
+                (\innerVal ( afterFirst, curs ) ->
+                    ( True
+                    , curs
+                        |> addString
+                            (if afterFirst then
+                                ", "
+
+                             else
+                                ""
+                            )
+                        |> addArgValue innerVal
+                    )
+                )
+                ( False
+                , cursor
+                    |> addString "["
+                )
+                vals
+                |> Tuple.second
+                |> addString "]"
+
+
+renderSelectionExp : List Selection -> RenderingCursor -> RenderingCursor
+renderSelectionExp selection cursor =
+    cursor
+        |> addString " {"
+        |> addLevelToCursor
+        |> renderFields selection
+        |> removeLevelToCursor
+        |> addString "}"
+
+
+renderVariantFragmentToExp : UnionCaseDetails -> RenderingCursor -> RenderingCursor
+renderVariantFragmentToExp instance cursor =
+    cursor
+        |> addString ("\n... on " ++ nameToString instance.tag ++ " {")
+        |> addLevelToCursor
+        |> renderFields instance.selection
+        |> removeLevelToCursor
+        |> addString "}"

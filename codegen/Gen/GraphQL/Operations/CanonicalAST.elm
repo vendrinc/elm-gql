@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.CanonicalAST exposing (aliasedName, annotation_, argToExp, argToString, argValToString, astNameToExp, astValueToExp, brackets, call_, caseOf_, directiveToExp, enumValueToExp, fieldToExp, foldToString, getAliasedFieldName, getAliasedName, getWrapper, interfaceCaseToExp, isTypeNameSelection, make_, maybeExp, moduleName_, nameToExp, nameToString, opTypeToExp, operationLabel, operationName, remainingTagsToExp, renderArguments, renderSelection, schemaTypeToExp, schemaWrapperToExp, selectionToString, toExpression, toString, toStringFields, typeToExp, typeToString, unionVariantToExp, unwrap, values_, varDefToExp, varToExp, variantFragmentToString)
+module Gen.GraphQL.Operations.CanonicalAST exposing (addArgValue, addExp, addLevelToCursor, addString, aliasedName, aliasedNameExp, annotation_, argToExp, argToString, argValToString, astNameToExp, astValueToExp, brackets, call_, caseOf_, commit, directiveToExp, enumValueToExp, fieldToExp, foldToString, getAliasedFieldName, getAliasedName, getWrapper, initCursor, interfaceCaseToExp, isTypeNameSelection, make_, maybeExp, moduleName_, nameToExp, nameToString, opTypeToExp, operationLabel, operationName, remainingTagsToExp, removeLevelToCursor, renderArguments, renderArgumentsExp, renderSelection, renderSelectionExp, renderVariantFragmentToExp, schemaTypeToExp, schemaWrapperToExp, selectionToExpressionString, selectionToString, toExpression, toRendererExpression, toString, toStringFields, typeToExp, typeToString, unionVariantToExp, unwrap, values_, varDefToExp, varToExp, variantFragmentToString)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, getAliasedFieldName, nameToString, toString, operationLabel, toStringFields, selectionToString, variantFragmentToString, renderSelection, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toExpression, directiveToExp, argToExp, astValueToExp, astNameToExp, opTypeToExp, nameToExp, varDefToExp, schemaTypeToExp, varToExp, typeToExp, maybeExp, schemaWrapperToExp, fieldToExp, enumValueToExp, remainingTagsToExp, unionVariantToExp, interfaceCaseToExp, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, getAliasedFieldName, nameToString, toString, operationLabel, toStringFields, selectionToString, variantFragmentToString, renderSelection, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toExpression, directiveToExp, argToExp, astValueToExp, astNameToExp, opTypeToExp, nameToExp, varDefToExp, schemaTypeToExp, varToExp, typeToExp, maybeExp, schemaWrapperToExp, fieldToExp, enumValueToExp, remainingTagsToExp, unionVariantToExp, interfaceCaseToExp, toRendererExpression, initCursor, addLevelToCursor, removeLevelToCursor, commit, addString, addExp, selectionToExpressionString, aliasedNameExp, renderArgumentsExp, addArgValue, renderSelectionExp, renderVariantFragmentToExp, moduleName_
 -}
 
 
@@ -15,6 +15,280 @@ import Tuple
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "CanonicalAST" ]
+
+
+{-| renderVariantFragmentToExp: UnionCaseDetails -> RenderingCursor -> RenderingCursor -}
+renderVariantFragmentToExp : Elm.Expression -> Elm.Expression -> Elm.Expression
+renderVariantFragmentToExp renderVariantFragmentToExpArg renderVariantFragmentToExpArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderVariantFragmentToExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "UnionCaseDetails" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ renderVariantFragmentToExpArg, renderVariantFragmentToExpArg0 ]
+
+
+{-| renderSelectionExp: List Selection -> RenderingCursor -> RenderingCursor -}
+renderSelectionExp : List Elm.Expression -> Elm.Expression -> Elm.Expression
+renderSelectionExp renderSelectionExpArg renderSelectionExpArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderSelectionExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.list (Type.namedWith [] "Selection" [])
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ Elm.list renderSelectionExpArg, renderSelectionExpArg0 ]
+
+
+{-| addArgValue: AST.Value -> RenderingCursor -> RenderingCursor -}
+addArgValue : Elm.Expression -> Elm.Expression -> Elm.Expression
+addArgValue addArgValueArg addArgValueArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "addArgValue"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "AST" ] "Value" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ addArgValueArg, addArgValueArg0 ]
+
+
+{-| renderArgumentsExp: List Argument -> RenderingCursor -> RenderingCursor -}
+renderArgumentsExp : List Elm.Expression -> Elm.Expression -> Elm.Expression
+renderArgumentsExp renderArgumentsExpArg renderArgumentsExpArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderArgumentsExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.list (Type.namedWith [] "Argument" [])
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ Elm.list renderArgumentsExpArg, renderArgumentsExpArg0 ]
+
+
+{-| aliasedNameExp: { a | alias_ : Maybe Name, name : Name } -> RenderingCursor -> RenderingCursor -}
+aliasedNameExp :
+    { a | alias_ : Elm.Expression, name : Elm.Expression }
+    -> Elm.Expression
+    -> Elm.Expression
+aliasedNameExp aliasedNameExpArg aliasedNameExpArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "aliasedNameExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.extensible
+                            "a"
+                            [ ( "alias_"
+                              , Type.namedWith
+                                    []
+                                    "Maybe"
+                                    [ Type.namedWith [] "Name" [] ]
+                              )
+                            , ( "name", Type.namedWith [] "Name" [] )
+                            ]
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ Elm.record
+            [ Tuple.pair "alias_" aliasedNameExpArg.alias_
+            , Tuple.pair "name" aliasedNameExpArg.name
+            ]
+        , aliasedNameExpArg0
+        ]
+
+
+{-| selectionToExpressionString: Selection -> RenderingCursor -> RenderingCursor -}
+selectionToExpressionString : Elm.Expression -> Elm.Expression -> Elm.Expression
+selectionToExpressionString selectionToExpressionStringArg selectionToExpressionStringArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "selectionToExpressionString"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Selection" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ selectionToExpressionStringArg, selectionToExpressionStringArg0 ]
+
+
+{-| addExp: Elm.Expression -> RenderingCursor -> RenderingCursor -}
+addExp : Elm.Expression -> Elm.Expression -> Elm.Expression
+addExp addExpArg addExpArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "addExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "Elm" ] "Expression" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ addExpArg, addExpArg0 ]
+
+
+{-| addString: String -> RenderingCursor -> RenderingCursor -}
+addString : String -> Elm.Expression -> Elm.Expression
+addString addStringArg addStringArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "addString"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string, Type.namedWith [] "RenderingCursor" [] ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ Elm.string addStringArg, addStringArg0 ]
+
+
+{-| commit: RenderingCursor -> RenderingCursor -}
+commit : Elm.Expression -> Elm.Expression
+commit commitArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "commit"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "RenderingCursor" [] ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ commitArg ]
+
+
+{-| removeLevelToCursor: RenderingCursor -> RenderingCursor -}
+removeLevelToCursor : Elm.Expression -> Elm.Expression
+removeLevelToCursor removeLevelToCursorArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "removeLevelToCursor"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "RenderingCursor" [] ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ removeLevelToCursorArg ]
+
+
+{-| addLevelToCursor: RenderingCursor -> RenderingCursor -}
+addLevelToCursor : Elm.Expression -> Elm.Expression
+addLevelToCursor addLevelToCursorArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "addLevelToCursor"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "RenderingCursor" [] ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ addLevelToCursorArg ]
+
+
+{-| initCursor: Elm.Expression -> RenderingCursor -}
+initCursor : Elm.Expression -> Elm.Expression
+initCursor initCursorArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "initCursor"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "Elm" ] "Expression" [] ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ initCursorArg ]
+
+
+{-| {-| We want to render a string of this, but with a `version`
+
+The version is an Int, which represents if there are other queries batched with it.
+
+-}
+
+toRendererExpression: Elm.Expression -> Definition -> Elm.Expression
+-}
+toRendererExpression : Elm.Expression -> Elm.Expression -> Elm.Expression
+toRendererExpression toRendererExpressionArg toRendererExpressionArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "toRendererExpression"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "Elm" ] "Expression" []
+                        , Type.namedWith [] "Definition" []
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+        )
+        [ toRendererExpressionArg, toRendererExpressionArg0 ]
 
 
 {-| interfaceCaseToExp: InterfaceCase -> Elm.Expression -}
@@ -784,7 +1058,8 @@ isTypeNameSelection isTypeNameSelectionArg =
 
 
 annotation_ :
-    { unionCaseDetails : Type.Annotation
+    { renderingCursor : Type.Annotation
+    , unionCaseDetails : Type.Annotation
     , fieldEnumDetails : Type.Annotation
     , fieldScalarDetails : Type.Annotation
     , interfaceCase : Type.Annotation
@@ -805,7 +1080,24 @@ annotation_ :
     , definition : Type.Annotation
     }
 annotation_ =
-    { unionCaseDetails =
+    { renderingCursor =
+        Type.alias
+            moduleName_
+            "RenderingCursor"
+            []
+            (Type.record
+                [ ( "string", Type.string )
+                , ( "exp"
+                  , Type.namedWith
+                        []
+                        "Maybe"
+                        [ Type.namedWith [ "Elm" ] "Expression" [] ]
+                  )
+                , ( "depth", Type.int )
+                , ( "version", Type.namedWith [ "Elm" ] "Expression" [] )
+                ]
+            )
+    , unionCaseDetails =
         Type.alias
             moduleName_
             "UnionCaseDetails"
@@ -1058,7 +1350,14 @@ annotation_ =
 
 
 make_ :
-    { unionCaseDetails :
+    { renderingCursor :
+        { string : Elm.Expression
+        , exp : Elm.Expression
+        , depth : Elm.Expression
+        , version : Elm.Expression
+        }
+        -> Elm.Expression
+    , unionCaseDetails :
         { tag : Elm.Expression
         , globalAlias : Elm.Expression
         , directives : Elm.Expression
@@ -1164,7 +1463,36 @@ make_ :
     , operation : Elm.Expression -> Elm.Expression
     }
 make_ =
-    { unionCaseDetails =
+    { renderingCursor =
+        \renderingCursor_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Operations", "CanonicalAST" ]
+                    "RenderingCursor"
+                    []
+                    (Type.record
+                        [ ( "string", Type.string )
+                        , ( "exp"
+                          , Type.namedWith
+                                []
+                                "Maybe"
+                                [ Type.namedWith [ "Elm" ] "Expression" [] ]
+                          )
+                        , ( "depth", Type.int )
+                        , ( "version"
+                          , Type.namedWith [ "Elm" ] "Expression" []
+                          )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "string" renderingCursor_args.string
+                    , Tuple.pair "exp" renderingCursor_args.exp
+                    , Tuple.pair "depth" renderingCursor_args.depth
+                    , Tuple.pair "version" renderingCursor_args.version
+                    ]
+                )
+    , unionCaseDetails =
         \unionCaseDetails_args ->
             Elm.withType
                 (Type.alias
@@ -1871,7 +2199,22 @@ caseOf_ =
 
 
 call_ :
-    { interfaceCaseToExp : Elm.Expression -> Elm.Expression
+    { renderVariantFragmentToExp :
+        Elm.Expression -> Elm.Expression -> Elm.Expression
+    , renderSelectionExp : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , addArgValue : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , renderArgumentsExp : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , aliasedNameExp : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , selectionToExpressionString :
+        Elm.Expression -> Elm.Expression -> Elm.Expression
+    , addExp : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , addString : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , commit : Elm.Expression -> Elm.Expression
+    , removeLevelToCursor : Elm.Expression -> Elm.Expression
+    , addLevelToCursor : Elm.Expression -> Elm.Expression
+    , initCursor : Elm.Expression -> Elm.Expression
+    , toRendererExpression : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , interfaceCaseToExp : Elm.Expression -> Elm.Expression
     , unionVariantToExp : Elm.Expression -> Elm.Expression
     , remainingTagsToExp : Elm.Expression -> Elm.Expression
     , enumValueToExp : Elm.Expression -> Elm.Expression
@@ -1912,7 +2255,233 @@ call_ :
     , isTypeNameSelection : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { interfaceCaseToExp =
+    { renderVariantFragmentToExp =
+        \renderVariantFragmentToExpArg renderVariantFragmentToExpArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "renderVariantFragmentToExp"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "UnionCaseDetails" []
+                                , Type.namedWith [] "RenderingCursor" []
+                                ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ renderVariantFragmentToExpArg
+                , renderVariantFragmentToExpArg0
+                ]
+    , renderSelectionExp =
+        \renderSelectionExpArg renderSelectionExpArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "renderSelectionExp"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.list (Type.namedWith [] "Selection" [])
+                                , Type.namedWith [] "RenderingCursor" []
+                                ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ renderSelectionExpArg, renderSelectionExpArg0 ]
+    , addArgValue =
+        \addArgValueArg addArgValueArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "addArgValue"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [ "AST" ] "Value" []
+                                , Type.namedWith [] "RenderingCursor" []
+                                ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ addArgValueArg, addArgValueArg0 ]
+    , renderArgumentsExp =
+        \renderArgumentsExpArg renderArgumentsExpArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "renderArgumentsExp"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.list (Type.namedWith [] "Argument" [])
+                                , Type.namedWith [] "RenderingCursor" []
+                                ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ renderArgumentsExpArg, renderArgumentsExpArg0 ]
+    , aliasedNameExp =
+        \aliasedNameExpArg aliasedNameExpArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "aliasedNameExp"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.extensible
+                                    "a"
+                                    [ ( "alias_"
+                                      , Type.namedWith
+                                            []
+                                            "Maybe"
+                                            [ Type.namedWith [] "Name" [] ]
+                                      )
+                                    , ( "name", Type.namedWith [] "Name" [] )
+                                    ]
+                                , Type.namedWith [] "RenderingCursor" []
+                                ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ aliasedNameExpArg, aliasedNameExpArg0 ]
+    , selectionToExpressionString =
+        \selectionToExpressionStringArg selectionToExpressionStringArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "selectionToExpressionString"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Selection" []
+                                , Type.namedWith [] "RenderingCursor" []
+                                ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ selectionToExpressionStringArg
+                , selectionToExpressionStringArg0
+                ]
+    , addExp =
+        \addExpArg addExpArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "addExp"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [ "Elm" ] "Expression" []
+                                , Type.namedWith [] "RenderingCursor" []
+                                ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ addExpArg, addExpArg0 ]
+    , addString =
+        \addStringArg addStringArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "addString"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.namedWith [] "RenderingCursor" []
+                                ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ addStringArg, addStringArg0 ]
+    , commit =
+        \commitArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "commit"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "RenderingCursor" [] ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ commitArg ]
+    , removeLevelToCursor =
+        \removeLevelToCursorArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "removeLevelToCursor"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "RenderingCursor" [] ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ removeLevelToCursorArg ]
+    , addLevelToCursor =
+        \addLevelToCursorArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "addLevelToCursor"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "RenderingCursor" [] ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ addLevelToCursorArg ]
+    , initCursor =
+        \initCursorArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "initCursor"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [ "Elm" ] "Expression" [] ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ initCursorArg ]
+    , toRendererExpression =
+        \toRendererExpressionArg toRendererExpressionArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "toRendererExpression"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [ "Elm" ] "Expression" []
+                                , Type.namedWith [] "Definition" []
+                                ]
+                                (Type.namedWith [ "Elm" ] "Expression" [])
+                            )
+                    }
+                )
+                [ toRendererExpressionArg, toRendererExpressionArg0 ]
+    , interfaceCaseToExp =
         \interfaceCaseToExpArg ->
             Elm.apply
                 (Elm.value
@@ -2536,7 +3105,20 @@ call_ =
 
 
 values_ :
-    { interfaceCaseToExp : Elm.Expression
+    { renderVariantFragmentToExp : Elm.Expression
+    , renderSelectionExp : Elm.Expression
+    , addArgValue : Elm.Expression
+    , renderArgumentsExp : Elm.Expression
+    , aliasedNameExp : Elm.Expression
+    , selectionToExpressionString : Elm.Expression
+    , addExp : Elm.Expression
+    , addString : Elm.Expression
+    , commit : Elm.Expression
+    , removeLevelToCursor : Elm.Expression
+    , addLevelToCursor : Elm.Expression
+    , initCursor : Elm.Expression
+    , toRendererExpression : Elm.Expression
+    , interfaceCaseToExp : Elm.Expression
     , unionVariantToExp : Elm.Expression
     , remainingTagsToExp : Elm.Expression
     , enumValueToExp : Elm.Expression
@@ -2576,7 +3158,175 @@ values_ :
     , isTypeNameSelection : Elm.Expression
     }
 values_ =
-    { interfaceCaseToExp =
+    { renderVariantFragmentToExp =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderVariantFragmentToExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "UnionCaseDetails" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , renderSelectionExp =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderSelectionExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.list (Type.namedWith [] "Selection" [])
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , addArgValue =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "addArgValue"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "AST" ] "Value" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , renderArgumentsExp =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderArgumentsExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.list (Type.namedWith [] "Argument" [])
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , aliasedNameExp =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "aliasedNameExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.extensible
+                            "a"
+                            [ ( "alias_"
+                              , Type.namedWith
+                                    []
+                                    "Maybe"
+                                    [ Type.namedWith [] "Name" [] ]
+                              )
+                            , ( "name", Type.namedWith [] "Name" [] )
+                            ]
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , selectionToExpressionString =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "selectionToExpressionString"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Selection" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , addExp =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "addExp"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "Elm" ] "Expression" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , addString =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "addString"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string, Type.namedWith [] "RenderingCursor" [] ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , commit =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "commit"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "RenderingCursor" [] ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , removeLevelToCursor =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "removeLevelToCursor"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "RenderingCursor" [] ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , addLevelToCursor =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "addLevelToCursor"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "RenderingCursor" [] ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , initCursor =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "initCursor"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "Elm" ] "Expression" [] ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , toRendererExpression =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "toRendererExpression"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "Elm" ] "Expression" []
+                        , Type.namedWith [] "Definition" []
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+    , interfaceCaseToExp =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
             , name = "interfaceCaseToExp"
