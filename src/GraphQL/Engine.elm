@@ -817,27 +817,42 @@ map2 fn (Selection (Details oneOpName oneFields oneDecoder)) (Selection (Details
 
 
 {-| -}
-bakeToSelection : Maybe String -> String -> List ( String, VariableDetails ) -> Decode.Decoder data -> Premade data
-bakeToSelection maybeOpName gql args decoder =
+bakeToSelection :
+    Maybe String
+    -> (Context -> ( Context, String ))
+    -- -> List ( String, VariableDetails )
+    -> (Context -> ( Context, Decode.Decoder data ))
+    -> Premade data
+bakeToSelection maybeOpName toGql toDecoder =
     Selection
         (Details maybeOpName
             (\context ->
-                ( { context
-                    | variables =
-                        args
-                            |> Dict.fromList
-                            |> Dict.union context.variables
-                  }
+                let
+                    ( newContext, gql ) =
+                        toGql context
+                in
+                ( --     { context
+                  --     | variables =
+                  --         args
+                  --             |> Dict.fromList
+                  --             |> Dict.union context.variables
+                  --   }
+                  newContext
                 , [ Baked gql ]
                 )
             )
             (\context ->
-                ( { context
-                    | variables =
-                        args
-                            |> Dict.fromList
-                            |> Dict.union context.variables
-                  }
+                let
+                    ( newContext, decoder ) =
+                        toDecoder context
+                in
+                ( --     { newContext
+                  --     | variables =
+                  --         args
+                  --             |> Dict.fromList
+                  --             |> Dict.union context.variables
+                  --   }
+                  newContext
                 , decoder
                 )
             )

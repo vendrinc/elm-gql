@@ -161,9 +161,8 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                                 Just label ->
                                     Elm.just (Elm.string label)
                             )
-                            (Can.toStringFields def)
-                            []
-                            (generateDecoder namespace schema def)
+                            (\ctxt -> Elm.tuple ctxt (Elm.string (Can.toStringFields def)))
+                            (\ctxt -> Elm.tuple ctxt (generateDecoder namespace def))
                             |> Elm.withType
                                 (Type.namedWith [ namespace.namespace ]
                                     (opTypeName op.operationType)
@@ -171,6 +170,8 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                                 )
                         )
                         |> Elm.exposeWith { exposeConstructor = True, group = Just "query" }
+                    , Elm.declaration "canonical"
+                        (Can.toExpression def)
                     ]
 
                 _ ->
@@ -178,8 +179,17 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                         ( "args"
                         , Just (Type.named [] "Input")
                         )
-                        (\var ->
-                            Engine.call_.bakeToSelection
+                        (\args ->
+                            let
+                                vars =
+                                    Generate.Input.Encode.fullRecordToInputObject
+                                        namespace
+                                        schema
+                                        arguments
+                                        args
+                                        |> Engine.inputObjectToFieldList
+                            in
+                            Engine.bakeToSelection
                                 (case Can.operationLabel def of
                                     Nothing ->
                                         Elm.nothing
@@ -187,20 +197,18 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                                     Just label ->
                                         Elm.just (Elm.string label)
                                 )
-                                (Elm.string (Can.toStringFields def))
-                                (Generate.Input.Encode.fullRecordToInputObject
-                                    namespace
-                                    schema
-                                    arguments
-                                    (Elm.value
-                                        { importFrom = []
-                                        , name = "args"
-                                        , annotation = Nothing
-                                        }
-                                    )
-                                    |> Engine.inputObjectToFieldList
+                                (\ctxt ->
+                                    -- case Can.bake ctxt vars def of
+                                    --     ( newCtxt, bakedDef ) ->
+                                    Elm.tuple
+                                        ctxt
+                                        (Elm.string (Can.toStringFields def))
                                 )
-                                (generateDecoder namespace schema def)
+                                (\ctxt ->
+                                    -- case Can.bake ctxt vars def of
+                                    --     ( newCtxt, bakedDef ) ->
+                                    Elm.tuple ctxt (generateDecoder namespace def)
+                                )
                                 |> Elm.withType
                                     (Type.namedWith [ namespace.namespace ]
                                         (opTypeName op.operationType)
@@ -209,6 +217,8 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                         )
                         |> Elm.declaration (opValueName op.operationType)
                         |> Elm.exposeWith { exposeConstructor = True, group = Just "query" }
+                    , Elm.declaration "canonical"
+                        (Can.toExpression def)
                     ]
 
         -- auxHelpers are record alises that aren't *essential* to the return type,
@@ -1117,8 +1127,8 @@ schemaTypeToPrefab schemaType =
 {- DECODER -}
 
 
-generateDecoder : Namespace -> GraphQL.Schema.Schema -> Can.Definition -> Elm.Expression
-generateDecoder namespace schema (Can.Operation op) =
+generateDecoder : Namespace -> Can.Definition -> Elm.Expression
+generateDecoder namespace (Can.Operation op) =
     let
         opName =
             Maybe.withDefault "Query"

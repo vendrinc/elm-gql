@@ -740,18 +740,16 @@ prebakedQuery prebakedQueryArg prebakedQueryArg0 prebakedQueryArg1 =
 
 bakeToSelection: 
     Maybe String
-    -> String
-    -> List ( String, VariableDetails )
-    -> Decode.Decoder data
+    -> (Context -> ( Context, String ))
+    -> (Context -> ( Context, Decode.Decoder data ))
     -> Premade data
 -}
 bakeToSelection :
     Elm.Expression
-    -> String
-    -> List Elm.Expression
+    -> (Elm.Expression -> Elm.Expression)
+    -> (Elm.Expression -> Elm.Expression)
     -> Elm.Expression
-    -> Elm.Expression
-bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 bakeToSelectionArg2 =
+bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
@@ -760,25 +758,30 @@ bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 bakeT
                 Just
                     (Type.function
                         [ Type.namedWith [] "Maybe" [ Type.string ]
-                        , Type.string
-                        , Type.list
+                        , Type.function
+                            [ Type.namedWith [] "Context" [] ]
                             (Type.tuple
+                                (Type.namedWith [] "Context" [])
                                 Type.string
-                                (Type.namedWith [] "VariableDetails" [])
                             )
-                        , Type.namedWith
-                            [ "Decode" ]
-                            "Decoder"
-                            [ Type.var "data" ]
+                        , Type.function
+                            [ Type.namedWith [] "Context" [] ]
+                            (Type.tuple
+                                (Type.namedWith [] "Context" [])
+                                (Type.namedWith
+                                    [ "Decode" ]
+                                    "Decoder"
+                                    [ Type.var "data" ]
+                                )
+                            )
                         ]
                         (Type.namedWith [] "Premade" [ Type.var "data" ])
                     )
             }
         )
         [ bakeToSelectionArg
-        , Elm.string bakeToSelectionArg0
-        , Elm.list bakeToSelectionArg1
-        , bakeToSelectionArg2
+        , Elm.functionReduced "bakeToSelectionUnpack" bakeToSelectionArg0
+        , Elm.functionReduced "bakeToSelectionUnpack" bakeToSelectionArg1
         ]
 
 
@@ -1945,11 +1948,7 @@ call_ :
     , prebakedQuery :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , bakeToSelection :
-        Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , map2 :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , map : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -2549,7 +2548,7 @@ call_ =
                 )
                 [ prebakedQueryArg, prebakedQueryArg0, prebakedQueryArg1 ]
     , bakeToSelection =
-        \bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 bakeToSelectionArg2 ->
+        \bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Engine" ]
@@ -2558,27 +2557,29 @@ call_ =
                         Just
                             (Type.function
                                 [ Type.namedWith [] "Maybe" [ Type.string ]
-                                , Type.string
-                                , Type.list
+                                , Type.function
+                                    [ Type.namedWith [] "Context" [] ]
                                     (Type.tuple
+                                        (Type.namedWith [] "Context" [])
                                         Type.string
-                                        (Type.namedWith [] "VariableDetails" [])
                                     )
-                                , Type.namedWith
-                                    [ "Decode" ]
-                                    "Decoder"
-                                    [ Type.var "data" ]
+                                , Type.function
+                                    [ Type.namedWith [] "Context" [] ]
+                                    (Type.tuple
+                                        (Type.namedWith [] "Context" [])
+                                        (Type.namedWith
+                                            [ "Decode" ]
+                                            "Decoder"
+                                            [ Type.var "data" ]
+                                        )
+                                    )
                                 ]
                                 (Type.namedWith [] "Premade" [ Type.var "data" ]
                                 )
                             )
                     }
                 )
-                [ bakeToSelectionArg
-                , bakeToSelectionArg0
-                , bakeToSelectionArg1
-                , bakeToSelectionArg2
-                ]
+                [ bakeToSelectionArg, bakeToSelectionArg0, bakeToSelectionArg1 ]
     , map2 =
         \map2Arg map2Arg0 map2Arg1 ->
             Elm.apply
@@ -3786,16 +3787,22 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith [] "Maybe" [ Type.string ]
-                        , Type.string
-                        , Type.list
+                        , Type.function
+                            [ Type.namedWith [] "Context" [] ]
                             (Type.tuple
+                                (Type.namedWith [] "Context" [])
                                 Type.string
-                                (Type.namedWith [] "VariableDetails" [])
                             )
-                        , Type.namedWith
-                            [ "Decode" ]
-                            "Decoder"
-                            [ Type.var "data" ]
+                        , Type.function
+                            [ Type.namedWith [] "Context" [] ]
+                            (Type.tuple
+                                (Type.namedWith [] "Context" [])
+                                (Type.namedWith
+                                    [ "Decode" ]
+                                    "Decoder"
+                                    [ Type.var "data" ]
+                                )
+                            )
                         ]
                         (Type.namedWith [] "Premade" [ Type.var "data" ])
                     )

@@ -110,76 +110,50 @@ fullRecordToInputObject :
     -> Elm.Expression
     -> Elm.Expression
 fullRecordToInputObject namespace schema args argRecord =
-    Engine.inputObject
-        -- NOTE, this is probably wrong.
-        -- But the top leve arguments dont really have a specific set of inputs
-        "Input"
-        |> addEncodedVariables namespace schema argRecord args
-
-
-{--}
-addEncodedVariables :
-    Namespace
-    -> GraphQL.Schema.Schema
-    -> Elm.Expression
-    -> List GraphQL.Schema.Argument
-    -> Elm.Expression
-    -> Elm.Expression
-addEncodedVariables namespace schema argRecord args inputObj =
-    addEncodedVariablesHelper namespace schema argRecord args inputObj
+    List.foldl
+        (addEncodedVariablesHelper namespace schema argRecord)
+        (Engine.inputObject "Input")
+        args
 
 
 addEncodedVariablesHelper :
     Namespace
     -> GraphQL.Schema.Schema
     -> Elm.Expression
-    -> List GraphQL.Schema.Argument
+    -> GraphQL.Schema.Argument
     -> Elm.Expression
     -> Elm.Expression
-addEncodedVariablesHelper namespace schema argRecord variables inputObj =
-    case variables of
-        [] ->
+addEncodedVariablesHelper namespace schema argRecord var inputObj =
+    let
+        name =
+            var.name
+    in
+    case var.type_ of
+        GraphQL.Schema.Nullable type_ ->
             inputObj
+                |> Engine.addOptionalField
+                    name
+                    (GraphQL.Schema.typeToString var.type_)
+                    (Elm.get name argRecord)
+                    (\x ->
+                        encode
+                            namespace
+                            schema
+                            type_
+                            x
+                    )
 
-        var :: remain ->
-            let
-                name =
-                    var.name
-            in
-            case var.type_ of
-                GraphQL.Schema.Nullable type_ ->
-                    let
-                        newInput =
-                            inputObj
-                                |> Engine.addOptionalField
-                                    name
-                                    (GraphQL.Schema.typeToString var.type_)
-                                    (Elm.get name argRecord)
-                                    (\x ->
-                                        encode
-                                            namespace
-                                            schema
-                                            type_
-                                            x
-                                    )
-                    in
-                    addEncodedVariablesHelper namespace schema argRecord remain newInput
-
-                _ ->
-                    let
-                        newInput =
-                            inputObj
-                                |> Engine.addField
-                                    name
-                                    (GraphQL.Schema.typeToString var.type_)
-                                    (Elm.get name argRecord
-                                        |> encode
-                                            namespace
-                                            schema
-                                            var.type_
-                                    )
-                    in
-                    addEncodedVariablesHelper namespace schema argRecord remain newInput
+        _ ->
+            inputObj
+                |> Engine.addField
+                    name
+                    (GraphQL.Schema.typeToString var.type_)
+                    (Elm.get name argRecord
+                        |> encode
+                            namespace
+                            schema
+                            var.type_
+                    )
 
 
 
