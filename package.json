@@ -14,7 +14,7 @@
     "elm-gql": "node ./dist/index.js",
     "elm-gql:test": "node ./dist/index.js --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
     "elm-gql:test-json-schema-file": "node ./dist/index.js --namespace=Api2 --schema=schema.json --gql=gql-ops --force",
-    "elm-gql:run": "node ./dist/index.js --schema=schema.json --gql=gql-ops --force",
+    "elm-gql:run": "node ./dist/index.js --schema=schema.json --force",
     "test": "elm-test"
   },
   "repository": {
