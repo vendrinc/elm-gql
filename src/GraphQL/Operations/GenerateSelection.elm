@@ -14,7 +14,6 @@ import Generate.Input as Input
 import Generate.Input.Encode
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
-import GraphQL.Operations.Validate as Validate
 import GraphQL.Schema
 import Set
 import Utils.String
@@ -37,10 +36,9 @@ generate :
     -- all the directories between the Elm source folder and the GQL file
     , elmBase : List String
     }
-    -> Result (List Validate.Error) (List Elm.File)
+    -> List Elm.File
 generate opts =
-    Ok <|
-        List.map (generateDefinition opts) opts.document.definitions
+    List.map (generateDefinition opts) opts.document.definitions
 
 
 opTypeName : Can.OperationType -> String

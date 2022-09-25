@@ -23,7 +23,7 @@ moduleName_ =
     , path : List String
     , elmBase : List String
     }
-    -> Result (List Validate.Error) (List Elm.File)
+    -> List Elm.File
 -}
 generate :
     { namespace : Elm.Expression
@@ -56,14 +56,7 @@ generate generateArg =
                             , ( "elmBase", Type.list Type.string )
                             ]
                         ]
-                        (Type.namedWith
-                            []
-                            "Result"
-                            [ Type.list
-                                (Type.namedWith [ "Validate" ] "Error" [])
-                            , Type.list (Type.namedWith [ "Elm" ] "File" [])
-                            ]
-                        )
+                        (Type.list (Type.namedWith [ "Elm" ] "File" []))
                     )
             }
         )
@@ -109,19 +102,7 @@ call_ =
                                     , ( "elmBase", Type.list Type.string )
                                     ]
                                 ]
-                                (Type.namedWith
-                                    []
-                                    "Result"
-                                    [ Type.list
-                                        (Type.namedWith
-                                            [ "Validate" ]
-                                            "Error"
-                                            []
-                                        )
-                                    , Type.list
-                                        (Type.namedWith [ "Elm" ] "File" [])
-                                    ]
-                                )
+                                (Type.list (Type.namedWith [ "Elm" ] "File" []))
                             )
                     }
                 )
@@ -153,14 +134,7 @@ values_ =
                             , ( "elmBase", Type.list Type.string )
                             ]
                         ]
-                        (Type.namedWith
-                            []
-                            "Result"
-                            [ Type.list
-                                (Type.namedWith [ "Validate" ] "Error" [])
-                            , Type.list (Type.namedWith [ "Elm" ] "File" [])
-                            ]
-                        )
+                        (Type.list (Type.namedWith [ "Elm" ] "File" []))
                     )
             }
     }

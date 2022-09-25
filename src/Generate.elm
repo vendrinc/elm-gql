@@ -17,7 +17,6 @@ import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Generate
 import GraphQL.Operations.GenerateSelection
 import GraphQL.Operations.Parse
-import GraphQL.Operations.Validate
 import GraphQL.Schema exposing (Namespace)
 import Http
 import Json.Decode
@@ -395,31 +394,18 @@ parseAndValidateQuery namespace schema flags gql =
                                 |> String.replace ".gql" ""
                                 |> Utils.String.formatTypename
                     in
-                    case
-                        GraphQL.Operations.GenerateSelection.generate
-                            { namespace =
-                                namespace
-                            , schema = schema
-                            , document = canAST
-                            , path =
-                                gql.path
-                                    |> String.split "/"
-                                    |> List.map (String.replace ".gql" "")
-                            , elmBase = flags.elmBase
-                            }
-                    of
-                        Err validationError ->
-                            Err
-                                { title = formatTitle "INVALID QUERY" gql.path
-
-                                -- , file = Just gql.path
-                                , description =
-                                    List.map GraphQL.Operations.Validate.errorToString validationError
-                                        |> String.join "\n\n    "
-                                }
-
-                        Ok files ->
-                            Ok files
+                    GraphQL.Operations.GenerateSelection.generate
+                        { namespace =
+                            namespace
+                        , schema = schema
+                        , document = canAST
+                        , path =
+                            gql.path
+                                |> String.split "/"
+                                |> List.map (String.replace ".gql" "")
+                        , elmBase = flags.elmBase
+                        }
+                        |> Ok
 
 
 formatTitle : String -> String -> String
