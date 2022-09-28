@@ -14,7 +14,6 @@ import Generate.Operations
 import Generate.Paged
 import Generate.Unions
 import GraphQL.Operations.Canonicalize as Canonicalize
-import GraphQL.Operations.Generate
 import GraphQL.Operations.GenerateSelection
 import GraphQL.Operations.Parse
 import GraphQL.Schema exposing (Namespace)
