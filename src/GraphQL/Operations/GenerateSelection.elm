@@ -216,7 +216,7 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                     ]
 
         fragmentDecoders =
-            generateFragmentDecoders namespace document.fragments
+            generateFragmentDecoders namespace schema document.fragments
 
         -- auxHelpers are record alises that aren't *essential* to the return type,
         -- but are useful in some cases
@@ -678,9 +678,9 @@ fieldAliasedAnnotation namespace schema knownNames parent selection =
             }
 
         Can.FieldFragment fragment ->
-            { name = AST.nameToString fragment.fragment.name
+            { name = Can.nameToString fragment.fragment.name
             , annotation =
-                Type.named [] (AST.nameToString fragment.fragment.name)
+                Type.named [] (Can.nameToString fragment.fragment.name)
             , knownNames = knownNames
             }
 
@@ -944,12 +944,44 @@ fieldAnnotation namespace schema knownNames parent selection =
             }
 
         Can.FieldFragment field ->
-            { name = AST.nameToString field.fragment.name
+            { name = Can.nameToString field.fragment.name
             , annotation =
-                Type.named [] (AST.nameToString field.fragment.name)
+                Type.named [] (Can.nameToString field.fragment.name)
             , knownNames = knownNames
             }
 
+        --  case field.selection of
+        --     [] ->
+        --         let
+        --             annotation =
+        --                 case parent of
+        --                     Nothing ->
+        --                         Type.unit
+        --                     Just par ->
+        --                         getScalarType par (Can.nameToString field.name) schema
+        --                             |> schemaTypeToPrefab
+        --         in
+        --         { name = Can.getAliasedFieldName field
+        --         , annotation = annotation
+        --         , knownNames = knownNames
+        --         }
+        --     sels ->
+        --         let
+        --             ( knownNames2, record ) =
+        --                 fieldsToRecord namespace
+        --                     schema
+        --                     knownNames
+        --                     (Just (Can.nameToString field.name))
+        --                     field.selection
+        --                     []
+        --             annotation =
+        --                 Input.wrapElmType field.wrapper
+        --                     record
+        --         in
+        --         { name = Can.getAliasedFieldName field
+        --         , annotation = annotation
+        --         , knownNames = knownNames2
+        --         }
         Can.FieldUnion field ->
             case field.selection of
                 [] ->
@@ -1150,7 +1182,7 @@ decodeFieldsHelper namespace version field ( index, exp ) =
                             version
                             (child index)
                             obj.selection
-                            (Elm.val (Can.getAliasedName obj))
+                            (Decode.succeed (Elm.val (Can.nameToString obj.globalAlias)))
                         )
                     )
 
@@ -1216,7 +1248,7 @@ decodeFieldsHelper namespace version field ( index, exp ) =
                         , name = "fragments_"
                         , annotation = Nothing
                         }
-                        |> Elm.get (AST.nameToString fragment.fragment.name)
+                        |> Elm.get (Can.nameToString fragment.fragment.name)
                         |> Elm.get "decoder"
                     )
     )
@@ -1497,47 +1529,60 @@ getScalarType queryName field schema =
 {- FRAGMENTS -}
 
 
-generateFragmentDecoders : Namespace -> List AST.FragmentDetails -> List Elm.Definition
-generateFragmentDecoders namespace fragments =
+generateFragmentDecoders : Namespace -> GraphQL.Schema.Schema -> List Can.Fragment -> List Elm.Declaration
+generateFragmentDecoders namespace schema fragments =
     let
-        types =
-            []
-
+        -- types =
+        --     List.concatMap
+        --         (genFragTypes namespace schema)
+        --         fragments
         decoderRecord =
             List.map (genFragDecoder namespace) fragments
                 |> Elm.record
                 |> Elm.declaration "fragments_"
                 |> Elm.expose
     in
-    decoderRecord :: types
+    [ decoderRecord ]
 
 
 {-|
 
-        { name : Name
-    , typeCondition : Name
-    , directives : List Directive
-    , selection : List Selection
+    { name = Name
+    , typeCondition = Name
+    , directives = List Directive
+    , selection = List Selection
     }
 
 -}
-genFragDecoder : Namespace -> AST.FragmentDetails -> ( String, Elm.Expression )
+genFragDecoder : Namespace -> Can.Fragment -> ( String, Elm.Expression )
 genFragDecoder namespace frag =
-    ( AST.nameToString frag.name
+    ( Can.nameToString frag.name
     , Elm.record
         [ ( "decoder"
-          , decodeFields namespace
-                (Elm.int 0)
-                initIndex
-                frag.selection
-                (Decode.succeed
-                    (Elm.value
-                        { importFrom = []
-                        , name = opName
-                        , annotation = Nothing
-                        }
-                    )
+          , Elm.fn ( "start_", Nothing )
+                (\start ->
+                    decodeFields namespace
+                        (Elm.int 0)
+                        initIndex
+                        frag.selection
+                        start
                 )
           )
         ]
     )
+
+
+genFragTypes : Namespace -> GraphQL.Schema.Schema -> Can.Fragment -> List Elm.Declaration
+genFragTypes namespace schema fragment =
+    let
+        ( _, record ) =
+            fieldsToAliasedRecord namespace schema primitives Nothing fragment.selection []
+    in
+    Elm.alias (Can.nameToString fragment.name) record
+        :: (generateTypesForFields
+                (genAliasedTypes namespace schema)
+                (Set.fromList builtinNames)
+                []
+                fragment.selection
+                |> Tuple.second
+           )

@@ -96,7 +96,7 @@ type ErrorDetails
         { found : String
         , object : String
         , options :
-            List AST.FragmentDetails
+            List Can.Fragment
         }
     | Todo String
 
@@ -456,22 +456,47 @@ canonicalize schema doc =
                 )
                 Dict.empty
                 doc.definitions
+
+        canonicalizedFragments =
+            reduce
+                (canonicalizeFragment
+                    { schema = schema
+                    , fragments = Dict.empty
+                    }
+                )
+                (Dict.values fragments)
+                emptySuccess
     in
-    case
-        reduce
-            (canonicalizeDefinition
-                { schema = schema
-                , fragments = fragments
-                }
-            )
-            doc.definitions
-            emptySuccess
-    of
-        CanSuccess cache defs ->
-            Ok
-                { definitions = defs
-                , fragments = Dict.values fragments
-                }
+    case canonicalizedFragments of
+        CanSuccess fragmentCacne canonicalFrags ->
+            let
+                canonicalizedDefinitions =
+                    reduce
+                        (canonicalizeDefinition
+                            { schema = schema
+                            , fragments =
+                                canonicalFrags
+                                    |> List.map
+                                        (\canFrag ->
+                                            ( Can.nameToString canFrag.name
+                                            , canFrag
+                                            )
+                                        )
+                                    |> Dict.fromList
+                            }
+                        )
+                        doc.definitions
+                        emptySuccess
+            in
+            case canonicalizedDefinitions of
+                CanSuccess cache defs ->
+                    Ok
+                        { definitions = defs
+                        , fragments = canonicalFrags
+                        }
+
+                CanError errorMsg ->
+                    Err errorMsg
 
         CanError errorMsg ->
             Err errorMsg
@@ -479,7 +504,7 @@ canonicalize schema doc =
 
 type alias References =
     { schema : GraphQL.Schema.Schema
-    , fragments : Dict String AST.FragmentDetails
+    , fragments : Dict String Can.Fragment
     }
 
 
@@ -1291,6 +1316,50 @@ resetSiblings (UsedNames to) (UsedNames used) =
         }
 
 
+canonicalizeFragment :
+    References
+    -> AST.FragmentDetails
+    -> Maybe (CanResult Can.Fragment)
+canonicalizeFragment refs frag =
+    case Dict.get (AST.nameToString frag.typeCondition) refs.schema.objects of
+        Nothing ->
+            Nothing
+
+        Just obj ->
+            let
+                aliasedName =
+                    frag.name
+                        |> AST.nameToString
+
+                selectionResult =
+                    List.foldl
+                        (canonicalizeField refs obj)
+                        { result = emptySuccess
+                        , fieldNames =
+                            UsedNames
+                                { siblingAliases = []
+                                , siblingStack = []
+                                , breadcrumbs = []
+                                , globalNames =
+                                    []
+                                }
+                        }
+                        frag.selection
+            in
+            case selectionResult.result of
+                CanSuccess newCache selection ->
+                    Just <|
+                        CanSuccess newCache
+                            { name = convertName frag.name
+                            , typeCondition = convertName frag.typeCondition
+                            , directives = List.map convertDirective frag.directives
+                            , selection = selection
+                            }
+
+                CanError errorMsg ->
+                    Just (CanError errorMsg)
+
+
 canonicalizeField :
     References
     ->
@@ -1408,7 +1477,7 @@ canonicalizeField refs object selection found =
                     }
 
                 Just foundFrag ->
-                    if AST.nameToString foundFrag.typeCondition == object.name then
+                    if Can.nameToString foundFrag.typeCondition == object.name then
                         { result =
                             addToResult emptyCache
                                 (Can.FieldFragment

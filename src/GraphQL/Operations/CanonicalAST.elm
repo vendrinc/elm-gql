@@ -14,7 +14,7 @@ import GraphQL.Schema
 
 type alias Document =
     { definitions : List Definition
-    , fragments : List AST.FragmentDetails
+    , fragments : List Fragment
     }
 
 
@@ -39,6 +39,14 @@ type OperationType
 type alias Directive =
     { name : Name
     , arguments : List Argument
+    }
+
+
+type alias Fragment =
+    { name : Name
+    , typeCondition : Name
+    , directives : List Directive
+    , selection : List Selection
     }
 
 
@@ -69,7 +77,7 @@ type Selection
 
 
 type alias FragmentDetails =
-    { fragment : AST.FragmentDetails
+    { fragment : Fragment
     , directives : List Directive
     }
 
@@ -308,7 +316,7 @@ selectionToString sel =
                     )
 
         FieldFragment { fragment } ->
-            "..." ++ AST.nameToString fragment.name
+            "..." ++ nameToString fragment.name
 
 
 variantFragmentToString : UnionCaseDetails -> String
@@ -677,7 +685,7 @@ selectionToExpressionString sel cursor =
 
         FieldFragment { fragment } ->
             cursor
-                |> addString ("\n..." ++ AST.nameToString fragment.name)
+                |> addString ("\n..." ++ nameToString fragment.name)
 
 
 aliasedNameExp : { a | alias_ : Maybe Name, name : Name } -> RenderingCursor -> RenderingCursor

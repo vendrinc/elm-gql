@@ -737,6 +737,7 @@ annotation_ :
     , variable : Type.Annotation
     , variableDefinition : Type.Annotation
     , argument : Type.Annotation
+    , fragment : Type.Annotation
     , directive : Type.Annotation
     , operationDetails : Type.Annotation
     , document : Type.Annotation
@@ -918,7 +919,7 @@ annotation_ =
             "FragmentDetails"
             []
             (Type.record
-                [ ( "fragment", Type.namedWith [ "AST" ] "FragmentDetails" [] )
+                [ ( "fragment", Type.namedWith [] "Fragment" [] )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
                 ]
             )
@@ -953,6 +954,18 @@ annotation_ =
             "Argument"
             []
             (Type.namedWith [ "AST" ] "Argument" [])
+    , fragment =
+        Type.alias
+            moduleName_
+            "Fragment"
+            []
+            (Type.record
+                [ ( "name", Type.namedWith [] "Name" [] )
+                , ( "typeCondition", Type.namedWith [] "Name" [] )
+                , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
+                , ( "selection", Type.list (Type.namedWith [] "Selection" []) )
+                ]
+            )
     , directive =
         Type.alias
             moduleName_
@@ -989,9 +1002,7 @@ annotation_ =
                 [ ( "definitions"
                   , Type.list (Type.namedWith [] "Definition" [])
                   )
-                , ( "fragments"
-                  , Type.list (Type.namedWith [ "AST" ] "FragmentDetails" [])
-                  )
+                , ( "fragments", Type.list (Type.namedWith [] "Fragment" []) )
                 ]
             )
     , wrapper =
@@ -1101,6 +1112,13 @@ make_ :
         , type_ : Elm.Expression
         , defaultValue : Elm.Expression
         , schemaType : Elm.Expression
+        }
+        -> Elm.Expression
+    , fragment :
+        { name : Elm.Expression
+        , typeCondition : Elm.Expression
+        , directives : Elm.Expression
+        , selection : Elm.Expression
         }
         -> Elm.Expression
     , directive :
@@ -1486,9 +1504,7 @@ make_ =
                     "FragmentDetails"
                     []
                     (Type.record
-                        [ ( "fragment"
-                          , Type.namedWith [ "AST" ] "FragmentDetails" []
-                          )
+                        [ ( "fragment", Type.namedWith [] "Fragment" [] )
                         , ( "directives"
                           , Type.list (Type.namedWith [] "Directive" [])
                           )
@@ -1539,6 +1555,32 @@ make_ =
                         "defaultValue"
                         variableDefinition_args.defaultValue
                     , Tuple.pair "schemaType" variableDefinition_args.schemaType
+                    ]
+                )
+    , fragment =
+        \fragment_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Operations", "CanonicalAST" ]
+                    "Fragment"
+                    []
+                    (Type.record
+                        [ ( "name", Type.namedWith [] "Name" [] )
+                        , ( "typeCondition", Type.namedWith [] "Name" [] )
+                        , ( "directives"
+                          , Type.list (Type.namedWith [] "Directive" [])
+                          )
+                        , ( "selection"
+                          , Type.list (Type.namedWith [] "Selection" [])
+                          )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "name" fragment_args.name
+                    , Tuple.pair "typeCondition" fragment_args.typeCondition
+                    , Tuple.pair "directives" fragment_args.directives
+                    , Tuple.pair "selection" fragment_args.selection
                     ]
                 )
     , directive =
@@ -1615,8 +1657,7 @@ make_ =
                           , Type.list (Type.namedWith [] "Definition" [])
                           )
                         , ( "fragments"
-                          , Type.list
-                                (Type.namedWith [ "AST" ] "FragmentDetails" [])
+                          , Type.list (Type.namedWith [] "Fragment" [])
                           )
                         ]
                     )
