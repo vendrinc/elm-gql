@@ -984,6 +984,18 @@ type InputValidation
     | Mismatch
 
 
+builtinNames : List String
+builtinNames =
+    [ "List"
+    , "String"
+    , "Maybe"
+    , "Result"
+    , "Bool"
+    , "Float"
+    , "Int"
+    ]
+
+
 validateInput :
     References
     -> GraphQL.Schema.Type
