@@ -1191,6 +1191,24 @@ formatTypename name =
     String.toUpper first ++ String.dropLeft 1 name
 
 
+{-| -}
+getFragmentOverrideName : List AST.Selection -> String -> String
+getFragmentOverrideName selectedFields name =
+    case selectedFields of
+        [ AST.FragmentSpreadSelection fragment ] ->
+            AST.nameToString fragment.name
+
+        _ ->
+            name
+
+
+{-| -}
+getGlobalNameWithFragmentAlias : List AST.Selection -> String -> UsedNames -> { globalName : String, used : UsedNames }
+getGlobalNameWithFragmentAlias selection name usedNames =
+    getGlobalName (getFragmentOverrideName selection name)
+        usedNames
+
+
 {-|
 
     This will retrieve a globally unique name.
@@ -1701,7 +1719,9 @@ canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
                                             |> Can.nameToString
 
                                     global =
-                                        getGlobalName aliasedName
+                                        getGlobalNameWithFragmentAlias
+                                            field.selection
+                                            aliasedName
                                             usedNames
 
                                     selectsForTypename =
@@ -1787,7 +1807,10 @@ canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
                                     |> Can.nameToString
 
                             global =
-                                getGlobalName aliasedName usedNames
+                                getGlobalNameWithFragmentAlias
+                                    field.selection
+                                    aliasedName
+                                    usedNames
 
                             selectsForTypename =
                                 List.any
@@ -1917,7 +1940,9 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                         |> Can.nameToString
 
                 global =
-                    getGlobalName aliasedName usedNames
+                    getGlobalNameWithFragmentAlias field.selection
+                        aliasedName
+                        usedNames
 
                 selectionResult =
                     List.foldl
@@ -2162,6 +2187,12 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                             let
                                                 global =
                                                     getGlobalName tag selectionResult.fieldNames
+
+                                                globalDetailsAlias =
+                                                    getGlobalNameWithFragmentAlias
+                                                        inline.selection
+                                                        (global.globalName ++ "_Details")
+                                                        global.used
                                             in
                                             { result =
                                                 found.result

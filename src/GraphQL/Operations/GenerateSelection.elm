@@ -413,15 +413,6 @@ aliasedTypes namespace def =
                 op.fields
 
 
-getFragmentOverrideName obj =
-    case obj.selection of
-        [ Can.FieldFragment fragment ] ->
-            Just (Can.nameToString fragment.fragment.name)
-
-        _ ->
-            Nothing
-
-
 genAliasedTypes :
     Namespace
     -> Can.Selection
@@ -431,9 +422,7 @@ genAliasedTypes namespace sel =
         Can.FieldObject obj ->
             let
                 name =
-                    getFragmentOverrideName obj
-                        |> Maybe.withDefault
-                            (Can.nameToString obj.globalAlias)
+                    Can.nameToString obj.globalAlias
 
                 newDecls =
                     generateTypesForFields (genAliasedTypes namespace)
