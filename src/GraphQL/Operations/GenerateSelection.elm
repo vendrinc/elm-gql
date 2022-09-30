@@ -216,17 +216,17 @@ generateDefinition { namespace, schema, document, path, elmBase } ((Can.Operatio
                     ]
 
         fragmentDecoders =
-            generateFragmentDecoders namespace schema document.fragments
+            generateFragmentDecoders namespace document.fragments
 
         -- auxHelpers are record alises that aren't *essential* to the return type,
         -- but are useful in some cases
         auxHelpers =
-            aliasedTypes namespace schema def
+            aliasedTypes namespace def
 
         primaryResult =
             -- if we no longer want aliased versions, there's also one without aliases
             Elm.comment """ Return data """
-                :: generatePrimaryResultTypeAliased namespace schema def
+                :: generatePrimaryResultTypeAliased namespace def
     in
     Elm.fileWith (pathFromElmRootToGqlFile ++ [ opName ])
         { aliases = []
@@ -328,8 +328,8 @@ primitives =
 {- RESULT DATA -}
 
 
-generatePrimaryResultType : Namespace -> GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
-generatePrimaryResultType namespace schema def =
+generatePrimaryResultType : Namespace -> Can.Definition -> List Elm.Declaration
+generatePrimaryResultType namespace def =
     case def of
         Can.Operation op ->
             let
@@ -361,8 +361,8 @@ generatePrimaryResultType namespace schema def =
             ]
 
 
-generatePrimaryResultTypeAliased : Namespace -> GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
-generatePrimaryResultTypeAliased namespace schema def =
+generatePrimaryResultTypeAliased : Namespace -> Can.Definition -> List Elm.Declaration
+generatePrimaryResultTypeAliased namespace def =
     case def of
         Can.Operation op ->
             let
@@ -399,8 +399,8 @@ generateTypesForFields fn generated fields =
                 remaining
 
 
-aliasedTypes : Namespace -> GraphQL.Schema.Schema -> Can.Definition -> List Elm.Declaration
-aliasedTypes namespace schema def =
+aliasedTypes : Namespace -> Can.Definition -> List Elm.Declaration
+aliasedTypes namespace def =
     case def of
         Can.Operation op ->
             generateTypesForFields
@@ -472,7 +472,10 @@ genAliasedTypes namespace sel =
             (Elm.customType
                 desiredTypeName
                 (final.variants ++ ghostVariants)
-                |> Elm.exposeWith { exposeConstructor = True, group = Just "unions" }
+                |> Elm.exposeWith
+                    { exposeConstructor = True
+                    , group = Just "unions"
+                    }
             )
                 :: final.declarations
                 ++ newDecls
@@ -533,7 +536,10 @@ genAliasedTypes namespace sel =
                         (Elm.customType
                             (desiredTypeName ++ "_Specifics")
                             (final.variants ++ ghostVariants)
-                            |> Elm.exposeWith { exposeConstructor = True, group = Just "unions" }
+                            |> Elm.exposeWith
+                                { exposeConstructor = True
+                                , group = Just "unions"
+                                }
                         )
                             :: existingList
 
@@ -1339,8 +1345,8 @@ decodeScalarType type_ =
 {- FRAGMENTS -}
 
 
-generateFragmentDecoders : Namespace -> GraphQL.Schema.Schema -> List Can.Fragment -> List Elm.Declaration
-generateFragmentDecoders namespace schema fragments =
+generateFragmentDecoders : Namespace -> List Can.Fragment -> List Elm.Declaration
+generateFragmentDecoders namespace fragments =
     let
         -- types =
         --     List.concatMap
@@ -1380,16 +1386,3 @@ genFragDecoder namespace frag =
           )
         ]
     )
-
-
-genFragTypes : Namespace -> GraphQL.Schema.Schema -> Can.Fragment -> List Elm.Declaration
-genFragTypes namespace schema fragment =
-    let
-        record =
-            fieldsToAliasedRecord namespace fragment.selection []
-    in
-    Elm.alias (Can.nameToString fragment.name) record
-        :: generateTypesForFields
-            (genAliasedTypes namespace)
-            []
-            fragment.selection
