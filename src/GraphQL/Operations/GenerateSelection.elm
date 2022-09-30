@@ -367,7 +367,11 @@ generatePrimaryResultTypeAliased namespace def =
         Can.Operation op ->
             let
                 record =
-                    fieldsToAliasedRecord namespace op.fields []
+                    List.foldl (aliasedFieldRecord namespace)
+                        []
+                        op.fields
+                        |> List.reverse
+                        |> Type.record
             in
             [ Elm.alias
                 (Maybe.withDefault "Query"
@@ -409,6 +413,15 @@ aliasedTypes namespace def =
                 op.fields
 
 
+getFragmentOverrideName obj =
+    case obj.selection of
+        [ Can.FieldFragment fragment ] ->
+            Just (Can.nameToString fragment.fragment.name)
+
+        _ ->
+            Nothing
+
+
 genAliasedTypes :
     Namespace
     -> Can.Selection
@@ -417,11 +430,10 @@ genAliasedTypes namespace sel =
     case sel of
         Can.FieldObject obj ->
             let
-                desiredName =
-                    Can.nameToString obj.globalAlias
-
-                resolvedName =
-                    desiredName
+                name =
+                    getFragmentOverrideName obj
+                        |> Maybe.withDefault
+                            (Can.nameToString obj.globalAlias)
 
                 newDecls =
                     generateTypesForFields (genAliasedTypes namespace)
@@ -429,11 +441,13 @@ genAliasedTypes namespace sel =
                         obj.selection
 
                 fieldResult =
-                    fieldsToAliasedRecord namespace
-                        obj.selection
+                    List.foldl (aliasedFieldRecord namespace)
                         []
+                        obj.selection
+                        |> List.reverse
+                        |> Type.record
             in
-            (Elm.alias resolvedName fieldResult
+            (Elm.alias name fieldResult
                 |> Elm.expose
             )
                 :: newDecls
@@ -508,8 +522,7 @@ genAliasedTypes namespace sel =
 
                 -- Generate the record
                 interfaceRecord =
-                    fieldsToAliasedRecord namespace
-                        (List.reverse field.selection)
+                    List.foldl (aliasedFieldRecord namespace)
                         (if selectingForVariants then
                             [ ( "specifics_"
                               , Type.named [] (desiredTypeName ++ "_Specifics")
@@ -519,6 +532,8 @@ genAliasedTypes namespace sel =
                          else
                             []
                         )
+                        field.selection
+                        |> Type.record
 
                 final =
                     List.foldl
@@ -562,31 +577,18 @@ unionVariantName tag =
     Can.nameToString tag.globalAlias
 
 
-fieldsToAliasedRecord :
+aliasedFieldRecord :
     Namespace
-    -> List Can.Selection
+    -> Can.Selection
     -> List ( String, Type.Annotation )
-    -> Type.Annotation
-fieldsToAliasedRecord namespace fieldList result =
-    case fieldList of
-        [] ->
-            Type.record (List.reverse result)
+    -> List ( String, Type.Annotation )
+aliasedFieldRecord namespace sel fields =
+    if Can.isTypeNameSelection sel then
+        -- skip it!
+        fields
 
-        top :: remaining ->
-            if Can.isTypeNameSelection top then
-                -- skip it!
-                fieldsToAliasedRecord namespace
-                    remaining
-                    result
-
-            else
-                let
-                    newFields =
-                        fieldAliasedAnnotation namespace top
-                in
-                fieldsToAliasedRecord namespace
-                    remaining
-                    (newFields ++ result)
+    else
+        fieldAliasedAnnotation namespace sel ++ fields
 
 
 fieldAliasedAnnotation :
@@ -623,14 +625,11 @@ fieldAliasedAnnotation namespace selection =
             ]
 
         Can.FieldFragment fragment ->
-            [ ( Can.nameToString fragment.fragment.name
-              , Type.named [] (Can.nameToString fragment.fragment.name)
-              )
-            ]
+            List.foldl
+                (aliasedFieldRecord namespace)
+                []
+                fragment.fragment.selection
 
-        -- List.foldl
-        --     ()
-        --     fragment.selection
         Can.FieldUnion field ->
             let
                 annotation =
@@ -685,10 +684,11 @@ unionVars namespace unionCase gathered =
         fields ->
             let
                 record =
-                    fieldsToAliasedRecord
-                        namespace
-                        fields
+                    List.foldl (aliasedFieldRecord namespace)
                         []
+                        fields
+                        |> List.reverse
+                        |> Type.record
 
                 variantName =
                     Can.nameToString unionCase.globalTagName
@@ -748,10 +748,11 @@ interfaceVariants namespace unionCase gathered =
         fields ->
             let
                 record =
-                    fieldsToAliasedRecord
-                        namespace
-                        fields
+                    List.foldl (aliasedFieldRecord namespace)
                         []
+                        fields
+                        |> List.reverse
+                        |> Type.record
 
                 -- variantName =
                 --     Can.nameToString unionCase.globalTagName
