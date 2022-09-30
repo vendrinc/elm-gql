@@ -334,7 +334,21 @@ generatePrimaryResultType namespace schema def =
         Can.Operation op ->
             let
                 record =
-                    fieldsToRecord namespace schema Nothing op.fields []
+                    List.foldl
+                        (\field allFields ->
+                            let
+                                new =
+                                    fieldAnnotation
+                                        namespace
+                                        schema
+                                        field
+                            in
+                            ( new.name, new.annotation ) :: allFields
+                        )
+                        []
+                        op.fields
+                        |> List.reverse
+                        |> Type.record
             in
             [ Elm.alias
                 (Maybe.withDefault "Query"
@@ -354,7 +368,7 @@ generatePrimaryResultTypeAliased namespace schema def =
         Can.Operation op ->
             let
                 record =
-                    fieldsToAliasedRecord namespace schema Nothing op.fields []
+                    fieldsToAliasedRecord namespace schema op.fields []
             in
             [ Elm.alias
                 (Maybe.withDefault "Query"
@@ -369,34 +383,6 @@ generatePrimaryResultTypeAliased namespace schema def =
                     , group = Just "necessary"
                     }
             ]
-
-
-fieldsToRecord :
-    Namespace
-    -> GraphQL.Schema.Schema
-    -> Maybe String
-    -> List Can.Selection
-    -> List ( String, Type.Annotation )
-    -> Type.Annotation
-fieldsToRecord namespace schema maybeParent fieldList result =
-    case fieldList of
-        [] ->
-            Type.record (List.reverse result)
-
-        top :: remaining ->
-            let
-                new =
-                    fieldAnnotation
-                        namespace
-                        schema
-                        maybeParent
-                        top
-            in
-            fieldsToRecord namespace
-                schema
-                maybeParent
-                remaining
-                (( new.name, new.annotation ) :: result)
 
 
 generateTypesForFields fn generated fields =
@@ -447,7 +433,6 @@ genAliasedTypes namespace schema sel =
                 fieldResult =
                     fieldsToAliasedRecord namespace
                         schema
-                        Nothing
                         obj.selection
                         []
             in
@@ -476,7 +461,7 @@ genAliasedTypes namespace schema sel =
 
                 final =
                     List.foldl
-                        (unionVars namespace schema aliasName)
+                        (unionVars namespace schema)
                         { variants = []
                         , declarations = []
                         }
@@ -525,7 +510,6 @@ genAliasedTypes namespace schema sel =
                 interfaceRecord =
                     fieldsToAliasedRecord namespace
                         schema
-                        Nothing
                         (List.reverse field.selection)
                         (if selectingForVariants then
                             [ ( "specifics_"
@@ -539,7 +523,7 @@ genAliasedTypes namespace schema sel =
 
                 final =
                     List.foldl
-                        (interfaceVariants namespace schema aliasName)
+                        (interfaceVariants namespace schema)
                         { variants = []
                         , declarations = []
                         }
@@ -579,11 +563,10 @@ unionVariantName tag =
 fieldsToAliasedRecord :
     Namespace
     -> GraphQL.Schema.Schema
-    -> Maybe String
     -> List Can.Selection
     -> List ( String, Type.Annotation )
     -> Type.Annotation
-fieldsToAliasedRecord namespace schema maybeParent fieldList result =
+fieldsToAliasedRecord namespace schema fieldList result =
     case fieldList of
         [] ->
             Type.record (List.reverse result)
@@ -593,7 +576,6 @@ fieldsToAliasedRecord namespace schema maybeParent fieldList result =
                 -- skip it!
                 fieldsToAliasedRecord namespace
                     schema
-                    maybeParent
                     remaining
                     result
 
@@ -604,7 +586,6 @@ fieldsToAliasedRecord namespace schema maybeParent fieldList result =
                 in
                 fieldsToAliasedRecord namespace
                     schema
-                    maybeParent
                     remaining
                     (newFields ++ result)
 
@@ -685,7 +666,6 @@ fieldAliasedAnnotation namespace schema selection =
 unionVars :
     Namespace
     -> GraphQL.Schema.Schema
-    -> Maybe String
     -> Can.UnionCaseDetails
     ->
         { variants : List Elm.Variant
@@ -695,7 +675,7 @@ unionVars :
         { variants : List Elm.Variant
         , declarations : List Elm.Declaration
         }
-unionVars namespace schema alias_ unionCase gathered =
+unionVars namespace schema unionCase gathered =
     case List.filter removeTypename unionCase.selection of
         [] ->
             { declarations = gathered.declarations
@@ -711,7 +691,6 @@ unionVars namespace schema alias_ unionCase gathered =
                     fieldsToAliasedRecord
                         namespace
                         schema
-                        Nothing
                         fields
                         []
 
@@ -723,7 +702,10 @@ unionVars namespace schema alias_ unionCase gathered =
 
                 recordAlias =
                     Elm.alias detailsName record
-                        |> Elm.exposeWith { exposeConstructor = True, group = Just "necessary" }
+                        |> Elm.exposeWith
+                            { exposeConstructor = True
+                            , group = Just "necessary"
+                            }
 
                 -- aliases for subselections
                 subfieldAliases =
@@ -749,7 +731,6 @@ unionVars namespace schema alias_ unionCase gathered =
 interfaceVariants :
     Namespace
     -> GraphQL.Schema.Schema
-    -> Maybe String
     -> Can.UnionCaseDetails
     ->
         { variants : List Elm.Variant
@@ -759,7 +740,7 @@ interfaceVariants :
         { variants : List Elm.Variant
         , declarations : List Elm.Declaration
         }
-interfaceVariants namespace schema alias_ unionCase gathered =
+interfaceVariants namespace schema unionCase gathered =
     case List.filter removeTypename unionCase.selection of
         [] ->
             { variants =
@@ -775,7 +756,6 @@ interfaceVariants namespace schema alias_ unionCase gathered =
                     fieldsToAliasedRecord
                         namespace
                         schema
-                        Nothing
                         fields
                         []
 
@@ -829,48 +809,40 @@ removeTypename field =
 fieldAnnotation :
     Namespace
     -> GraphQL.Schema.Schema
-    -> Maybe String
     -> Can.Selection
     ->
         { name : String
         , annotation : Type.Annotation
         }
-fieldAnnotation namespace schema parent selection =
+fieldAnnotation namespace schema selection =
     case selection of
         Can.FieldObject field ->
-            case field.selection of
-                [] ->
-                    let
-                        annotation =
-                            case parent of
-                                Nothing ->
-                                    Type.unit
+            let
+                record =
+                    List.foldl
+                        (\subfield allFields ->
+                            let
+                                new =
+                                    fieldAnnotation
+                                        namespace
+                                        schema
+                                        subfield
+                            in
+                            ( new.name, new.annotation ) :: allFields
+                        )
+                        []
+                        field.selection
+                        |> List.reverse
+                        |> Type.record
 
-                                Just par ->
-                                    getScalarType par (Can.nameToString field.name) schema
-                                        |> schemaTypeToPrefab
-                    in
-                    { name = Can.getAliasedFieldName field
-                    , annotation = annotation
-                    }
-
-                sels ->
-                    let
-                        record =
-                            fieldsToRecord namespace
-                                schema
-                                (Just (Can.nameToString field.name))
-                                field.selection
-                                []
-
-                        annotation =
-                            Input.wrapElmType field.wrapper
-                                record
-                    in
-                    { name = Can.getAliasedFieldName field
-                    , annotation =
-                        annotation
-                    }
+                annotation =
+                    Input.wrapElmType field.wrapper
+                        record
+            in
+            { name = Can.getAliasedFieldName field
+            , annotation =
+                annotation
+            }
 
         Can.FieldScalar field ->
             { name = Can.getAliasedFieldName field
@@ -924,64 +896,30 @@ fieldAnnotation namespace schema parent selection =
         --        2
         --         }
         Can.FieldUnion field ->
-            case field.selection of
-                [] ->
-                    let
-                        annotation =
-                            case parent of
-                                Nothing ->
-                                    Type.unit
-
-                                Just par ->
-                                    getScalarType par (Can.nameToString field.name) schema
-                                        |> schemaTypeToPrefab
-                    in
-                    { name = Can.getAliasedFieldName field
-                    , annotation = annotation
-                    }
-
-                sels ->
-                    let
-                        annotation =
-                            Type.named
-                                []
-                                -- Shouldnt this be a globa lalias?
-                                (Can.getAliasedFieldName field)
-                                |> Input.wrapElmType field.wrapper
-                    in
-                    { name = Can.getAliasedFieldName field
-                    , annotation = annotation
-                    }
+            let
+                annotation =
+                    Type.named
+                        []
+                        -- Shouldnt this be a globa lalias?
+                        (Can.getAliasedFieldName field)
+                        |> Input.wrapElmType field.wrapper
+            in
+            { name = Can.getAliasedFieldName field
+            , annotation = annotation
+            }
 
         Can.FieldInterface field ->
-            case field.selection of
-                [] ->
-                    let
-                        annotation =
-                            case parent of
-                                Nothing ->
-                                    Type.unit
-
-                                Just par ->
-                                    getScalarType par (Can.nameToString field.name) schema
-                                        |> schemaTypeToPrefab
-                    in
-                    { name = Can.getAliasedFieldName field
-                    , annotation = annotation
-                    }
-
-                sels ->
-                    let
-                        annotation =
-                            Type.named
-                                []
-                                -- Shouldnt this be a globa lalias?
-                                (Can.getAliasedFieldName field)
-                                |> Input.wrapElmType field.wrapper
-                    in
-                    { name = Can.getAliasedFieldName field
-                    , annotation = annotation
-                    }
+            let
+                annotation =
+                    Type.named
+                        []
+                        -- Shouldnt this be a globa lalias?
+                        (Can.getAliasedFieldName field)
+                        |> Input.wrapElmType field.wrapper
+            in
+            { name = Can.getAliasedFieldName field
+            , annotation = annotation
+            }
 
 
 enumType : Namespace -> String -> Type.Annotation
@@ -1411,57 +1349,6 @@ decodeScalarType type_ =
             Decode.succeed (Elm.string "DECODE UNKNOWN")
 
 
-getScalarType : String -> String -> GraphQL.Schema.Schema -> GraphQL.Schema.Type
-getScalarType queryName field schema =
-    case Dict.get queryName schema.queries of
-        Nothing ->
-            case Dict.get queryName schema.objects of
-                Nothing ->
-                    GraphQL.Schema.Scalar (queryName ++ "." ++ field ++ "NOT AN OBJECT?!")
-
-                Just object ->
-                    let
-                        found =
-                            List.filter
-                                (\f ->
-                                    f.name == field
-                                )
-                                object.fields
-                    in
-                    case List.head found of
-                        Nothing ->
-                            GraphQL.Schema.Scalar "NOT FOUND?!"
-
-                        Just foundField ->
-                            foundField.type_
-
-        Just q ->
-            case q.type_ of
-                GraphQL.Schema.Object objName ->
-                    case Dict.get objName schema.objects of
-                        Nothing ->
-                            GraphQL.Schema.Scalar "WHAAT?!?!"
-
-                        Just object ->
-                            let
-                                found =
-                                    List.filter
-                                        (\f ->
-                                            f.name == field
-                                        )
-                                        object.fields
-                            in
-                            case List.head found of
-                                Nothing ->
-                                    GraphQL.Schema.Scalar "NOT FOUND?!"
-
-                                Just foundField ->
-                                    foundField.type_
-
-                _ ->
-                    q.type_
-
-
 
 {- FRAGMENTS -}
 
@@ -1513,7 +1400,7 @@ genFragTypes : Namespace -> GraphQL.Schema.Schema -> Can.Fragment -> List Elm.De
 genFragTypes namespace schema fragment =
     let
         record =
-            fieldsToAliasedRecord namespace schema Nothing fragment.selection []
+            fieldsToAliasedRecord namespace schema fragment.selection []
     in
     Elm.alias (Can.nameToString fragment.name) record
         :: generateTypesForFields
