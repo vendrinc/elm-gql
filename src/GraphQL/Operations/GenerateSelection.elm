@@ -340,7 +340,6 @@ generatePrimaryResultType namespace schema def =
                                 new =
                                     fieldAnnotation
                                         namespace
-                                        schema
                                         field
                             in
                             ( new.name, new.annotation ) :: allFields
@@ -368,7 +367,7 @@ generatePrimaryResultTypeAliased namespace schema def =
         Can.Operation op ->
             let
                 record =
-                    fieldsToAliasedRecord namespace schema op.fields []
+                    fieldsToAliasedRecord namespace op.fields []
             in
             [ Elm.alias
                 (Maybe.withDefault "Query"
@@ -405,17 +404,16 @@ aliasedTypes namespace schema def =
     case def of
         Can.Operation op ->
             generateTypesForFields
-                (genAliasedTypes namespace schema)
+                (genAliasedTypes namespace)
                 []
                 op.fields
 
 
 genAliasedTypes :
     Namespace
-    -> GraphQL.Schema.Schema
     -> Can.Selection
     -> List Elm.Declaration
-genAliasedTypes namespace schema sel =
+genAliasedTypes namespace sel =
     case sel of
         Can.FieldObject obj ->
             let
@@ -426,13 +424,12 @@ genAliasedTypes namespace schema sel =
                     desiredName
 
                 newDecls =
-                    generateTypesForFields (genAliasedTypes namespace schema)
+                    generateTypesForFields (genAliasedTypes namespace)
                         []
                         obj.selection
 
                 fieldResult =
                     fieldsToAliasedRecord namespace
-                        schema
                         obj.selection
                         []
             in
@@ -450,7 +447,7 @@ genAliasedTypes namespace schema sel =
                     desiredName
 
                 newDecls =
-                    generateTypesForFields (genAliasedTypes namespace schema)
+                    generateTypesForFields (genAliasedTypes namespace)
                         []
                         field.selection
 
@@ -461,7 +458,7 @@ genAliasedTypes namespace schema sel =
 
                 final =
                     List.foldl
-                        (unionVars namespace schema)
+                        (unionVars namespace)
                         { variants = []
                         , declarations = []
                         }
@@ -489,7 +486,7 @@ genAliasedTypes namespace schema sel =
                     desiredName
 
                 newDecls =
-                    generateTypesForFields (genAliasedTypes namespace schema)
+                    generateTypesForFields (genAliasedTypes namespace)
                         []
                         field.selection
 
@@ -509,7 +506,6 @@ genAliasedTypes namespace schema sel =
                 -- Generate the record
                 interfaceRecord =
                     fieldsToAliasedRecord namespace
-                        schema
                         (List.reverse field.selection)
                         (if selectingForVariants then
                             [ ( "specifics_"
@@ -523,7 +519,7 @@ genAliasedTypes namespace schema sel =
 
                 final =
                     List.foldl
-                        (interfaceVariants namespace schema)
+                        (interfaceVariants namespace)
                         { variants = []
                         , declarations = []
                         }
@@ -562,11 +558,10 @@ unionVariantName tag =
 
 fieldsToAliasedRecord :
     Namespace
-    -> GraphQL.Schema.Schema
     -> List Can.Selection
     -> List ( String, Type.Annotation )
     -> Type.Annotation
-fieldsToAliasedRecord namespace schema fieldList result =
+fieldsToAliasedRecord namespace fieldList result =
     case fieldList of
         [] ->
             Type.record (List.reverse result)
@@ -575,27 +570,24 @@ fieldsToAliasedRecord namespace schema fieldList result =
             if Can.isTypeNameSelection top then
                 -- skip it!
                 fieldsToAliasedRecord namespace
-                    schema
                     remaining
                     result
 
             else
                 let
                     newFields =
-                        fieldAliasedAnnotation namespace schema top
+                        fieldAliasedAnnotation namespace top
                 in
                 fieldsToAliasedRecord namespace
-                    schema
                     remaining
                     (newFields ++ result)
 
 
 fieldAliasedAnnotation :
     Namespace
-    -> GraphQL.Schema.Schema
     -> Can.Selection
     -> List ( String, Type.Annotation )
-fieldAliasedAnnotation namespace schema selection =
+fieldAliasedAnnotation namespace selection =
     case selection of
         Can.FieldObject field ->
             let
@@ -665,7 +657,6 @@ fieldAliasedAnnotation namespace schema selection =
 {-| -}
 unionVars :
     Namespace
-    -> GraphQL.Schema.Schema
     -> Can.UnionCaseDetails
     ->
         { variants : List Elm.Variant
@@ -675,7 +666,7 @@ unionVars :
         { variants : List Elm.Variant
         , declarations : List Elm.Declaration
         }
-unionVars namespace schema unionCase gathered =
+unionVars namespace unionCase gathered =
     case List.filter removeTypename unionCase.selection of
         [] ->
             { declarations = gathered.declarations
@@ -690,7 +681,6 @@ unionVars namespace schema unionCase gathered =
                 record =
                     fieldsToAliasedRecord
                         namespace
-                        schema
                         fields
                         []
 
@@ -709,7 +699,7 @@ unionVars namespace schema unionCase gathered =
 
                 -- aliases for subselections
                 subfieldAliases =
-                    generateTypesForFields (genAliasedTypes namespace schema)
+                    generateTypesForFields (genAliasedTypes namespace)
                         []
                         fields
             in
@@ -730,7 +720,6 @@ unionVars namespace schema unionCase gathered =
 {-| -}
 interfaceVariants :
     Namespace
-    -> GraphQL.Schema.Schema
     -> Can.UnionCaseDetails
     ->
         { variants : List Elm.Variant
@@ -740,7 +729,7 @@ interfaceVariants :
         { variants : List Elm.Variant
         , declarations : List Elm.Declaration
         }
-interfaceVariants namespace schema unionCase gathered =
+interfaceVariants namespace unionCase gathered =
     case List.filter removeTypename unionCase.selection of
         [] ->
             { variants =
@@ -755,7 +744,6 @@ interfaceVariants namespace schema unionCase gathered =
                 record =
                     fieldsToAliasedRecord
                         namespace
-                        schema
                         fields
                         []
 
@@ -773,7 +761,7 @@ interfaceVariants namespace schema unionCase gathered =
 
                 -- aliases for subselections
                 subfieldAliases =
-                    generateTypesForFields (genAliasedTypes namespace schema)
+                    generateTypesForFields (genAliasedTypes namespace)
                         []
                         fields
             in
@@ -808,13 +796,12 @@ removeTypename field =
 
 fieldAnnotation :
     Namespace
-    -> GraphQL.Schema.Schema
     -> Can.Selection
     ->
         { name : String
         , annotation : Type.Annotation
         }
-fieldAnnotation namespace schema selection =
+fieldAnnotation namespace selection =
     case selection of
         Can.FieldObject field ->
             let
@@ -825,7 +812,6 @@ fieldAnnotation namespace schema selection =
                                 new =
                                     fieldAnnotation
                                         namespace
-                                        schema
                                         subfield
                             in
                             ( new.name, new.annotation ) :: allFields
@@ -1400,10 +1386,10 @@ genFragTypes : Namespace -> GraphQL.Schema.Schema -> Can.Fragment -> List Elm.De
 genFragTypes namespace schema fragment =
     let
         record =
-            fieldsToAliasedRecord namespace schema fragment.selection []
+            fieldsToAliasedRecord namespace fragment.selection []
     in
     Elm.alias (Can.nameToString fragment.name) record
         :: generateTypesForFields
-            (genAliasedTypes namespace schema)
+            (genAliasedTypes namespace)
             []
             fragment.selection
