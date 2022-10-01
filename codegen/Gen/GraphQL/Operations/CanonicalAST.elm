@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.CanonicalAST exposing (addArgValue, addExp, addLevelToCursor, addString, aliasedName, aliasedNameExp, annotation_, argToString, argValToString, brackets, call_, caseOf_, commit, foldToString, getAliasedFieldName, getAliasedName, getWrapper, initCursor, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, operationName, removeLevelToCursor, renderArguments, renderArgumentsExp, renderSelection, renderSelectionExp, renderVariantFragmentToExp, selectionToExpressionString, selectionToString, toRendererExpression, toString, toStringFields, typeToString, unwrap, values_, variantFragmentToString)
+module Gen.GraphQL.Operations.CanonicalAST exposing (addArgValue, addExp, addLevelToCursor, addString, aliasedName, aliasedNameExp, annotation_, argToString, argValToString, brackets, call_, caseOf_, commit, fieldToString, foldToString, getAliasedFieldName, getAliasedName, getWrapper, initCursor, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, operationName, removeLevelToCursor, renderArguments, renderArgumentsExp, renderField, renderSelection, renderVariant, selectionGroupToString, selectionToString, toRendererExpression, toString, toStringFields, typeToString, unwrap, values_, variantFragmentToString)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, getAliasedFieldName, nameToString, toString, operationLabel, toStringFields, selectionToString, variantFragmentToString, renderSelection, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toRendererExpression, initCursor, addLevelToCursor, removeLevelToCursor, commit, addString, addExp, selectionToExpressionString, aliasedNameExp, renderArgumentsExp, addArgValue, renderSelectionExp, renderVariantFragmentToExp, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, getAliasedFieldName, nameToString, toString, operationLabel, toStringFields, fieldToString, selectionToString, variantFragmentToString, selectionGroupToString, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toRendererExpression, initCursor, addLevelToCursor, removeLevelToCursor, commit, addString, addExp, renderField, renderSelection, renderVariant, aliasedNameExp, renderArgumentsExp, addArgValue, moduleName_
 -}
 
 
@@ -15,46 +15,6 @@ import Tuple
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "CanonicalAST" ]
-
-
-{-| renderVariantFragmentToExp: VariantCase -> RenderingCursor -> RenderingCursor -}
-renderVariantFragmentToExp : Elm.Expression -> Elm.Expression -> Elm.Expression
-renderVariantFragmentToExp renderVariantFragmentToExpArg renderVariantFragmentToExpArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-            , name = "renderVariantFragmentToExp"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "VariantCase" []
-                        , Type.namedWith [] "RenderingCursor" []
-                        ]
-                        (Type.namedWith [] "RenderingCursor" [])
-                    )
-            }
-        )
-        [ renderVariantFragmentToExpArg, renderVariantFragmentToExpArg0 ]
-
-
-{-| renderSelectionExp: List Selection -> RenderingCursor -> RenderingCursor -}
-renderSelectionExp : List Elm.Expression -> Elm.Expression -> Elm.Expression
-renderSelectionExp renderSelectionExpArg renderSelectionExpArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-            , name = "renderSelectionExp"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.list (Type.namedWith [] "Selection" [])
-                        , Type.namedWith [] "RenderingCursor" []
-                        ]
-                        (Type.namedWith [] "RenderingCursor" [])
-                    )
-            }
-        )
-        [ Elm.list renderSelectionExpArg, renderSelectionExpArg0 ]
 
 
 {-| addArgValue: AST.Value -> RenderingCursor -> RenderingCursor -}
@@ -134,13 +94,33 @@ aliasedNameExp aliasedNameExpArg aliasedNameExpArg0 =
         ]
 
 
-{-| selectionToExpressionString: Selection -> RenderingCursor -> RenderingCursor -}
-selectionToExpressionString : Elm.Expression -> Elm.Expression -> Elm.Expression
-selectionToExpressionString selectionToExpressionStringArg selectionToExpressionStringArg0 =
+{-| renderVariant: VariantCase -> RenderingCursor -> RenderingCursor -}
+renderVariant : Elm.Expression -> Elm.Expression -> Elm.Expression
+renderVariant renderVariantArg renderVariantArg0 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-            , name = "selectionToExpressionString"
+            , name = "renderVariant"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "VariantCase" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ renderVariantArg, renderVariantArg0 ]
+
+
+{-| renderSelection: Selection -> RenderingCursor -> RenderingCursor -}
+renderSelection : Elm.Expression -> Elm.Expression -> Elm.Expression
+renderSelection renderSelectionArg renderSelectionArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderSelection"
             , annotation =
                 Just
                     (Type.function
@@ -151,7 +131,27 @@ selectionToExpressionString selectionToExpressionStringArg selectionToExpression
                     )
             }
         )
-        [ selectionToExpressionStringArg, selectionToExpressionStringArg0 ]
+        [ renderSelectionArg, renderSelectionArg0 ]
+
+
+{-| renderField: Field -> RenderingCursor -> RenderingCursor -}
+renderField : Elm.Expression -> Elm.Expression -> Elm.Expression
+renderField renderFieldArg renderFieldArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderField"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Field" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+        )
+        [ renderFieldArg, renderFieldArg0 ]
 
 
 {-| addExp: Elm.Expression -> RenderingCursor -> RenderingCursor -}
@@ -419,9 +419,8 @@ foldToString foldToStringArg foldToStringArg0 foldToStringArg1 =
         ]
 
 
-{-| aliasedName: { a | alias_ : Maybe Name, name : Name } -> String -}
-aliasedName :
-    { a | alias_ : Elm.Expression, name : Elm.Expression } -> Elm.Expression
+{-| aliasedName: FieldDetails -> String -}
+aliasedName : Elm.Expression -> Elm.Expression
 aliasedName aliasedNameArg =
     Elm.apply
         (Elm.value
@@ -430,26 +429,12 @@ aliasedName aliasedNameArg =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.extensible
-                            "a"
-                            [ ( "alias_"
-                              , Type.namedWith
-                                    []
-                                    "Maybe"
-                                    [ Type.namedWith [] "Name" [] ]
-                              )
-                            , ( "name", Type.namedWith [] "Name" [] )
-                            ]
-                        ]
+                        [ Type.namedWith [] "FieldDetails" [] ]
                         Type.string
                     )
             }
         )
-        [ Elm.record
-            [ Tuple.pair "alias_" aliasedNameArg.alias_
-            , Tuple.pair "name" aliasedNameArg.name
-            ]
-        ]
+        [ aliasedNameArg ]
 
 
 {-| argValToString: AST.Value -> String -}
@@ -506,22 +491,22 @@ renderArguments renderArgumentsArg =
         [ Elm.list renderArgumentsArg ]
 
 
-{-| renderSelection: List Selection -> String -}
-renderSelection : List Elm.Expression -> Elm.Expression
-renderSelection renderSelectionArg =
+{-| selectionGroupToString: List Field -> String -}
+selectionGroupToString : List Elm.Expression -> Elm.Expression
+selectionGroupToString selectionGroupToStringArg =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-            , name = "renderSelection"
+            , name = "selectionGroupToString"
             , annotation =
                 Just
                     (Type.function
-                        [ Type.list (Type.namedWith [] "Selection" []) ]
+                        [ Type.list (Type.namedWith [] "Field" []) ]
                         Type.string
                     )
             }
         )
-        [ Elm.list renderSelectionArg ]
+        [ Elm.list selectionGroupToStringArg ]
 
 
 {-| variantFragmentToString: VariantCase -> String -}
@@ -558,6 +543,21 @@ selectionToString selectionToStringArg =
             }
         )
         [ selectionToStringArg ]
+
+
+{-| fieldToString: Field -> String -}
+fieldToString : Elm.Expression -> Elm.Expression
+fieldToString fieldToStringArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "fieldToString"
+            , annotation =
+                Just
+                    (Type.function [ Type.namedWith [] "Field" [] ] Type.string)
+            }
+        )
+        [ fieldToStringArg ]
 
 
 {-| {-| Only render the fields of the query, but with no outer brackets
@@ -639,9 +639,8 @@ nameToString nameToStringArg =
         [ nameToStringArg ]
 
 
-{-| getAliasedFieldName: { field | alias_ : Maybe Name, name : Name } -> String -}
-getAliasedFieldName :
-    { field | alias_ : Elm.Expression, name : Elm.Expression } -> Elm.Expression
+{-| getAliasedFieldName: FieldDetails -> String -}
+getAliasedFieldName : Elm.Expression -> Elm.Expression
 getAliasedFieldName getAliasedFieldNameArg =
     Elm.apply
         (Elm.value
@@ -650,32 +649,16 @@ getAliasedFieldName getAliasedFieldNameArg =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.extensible
-                            "field"
-                            [ ( "alias_"
-                              , Type.namedWith
-                                    []
-                                    "Maybe"
-                                    [ Type.namedWith [] "Name" [] ]
-                              )
-                            , ( "name", Type.namedWith [] "Name" [] )
-                            ]
-                        ]
+                        [ Type.namedWith [] "FieldDetails" [] ]
                         Type.string
                     )
             }
         )
-        [ Elm.record
-            [ Tuple.pair "alias_" getAliasedFieldNameArg.alias_
-            , Tuple.pair "name" getAliasedFieldNameArg.name
-            ]
-        ]
+        [ getAliasedFieldNameArg ]
 
 
-{-| getAliasedName: { details | name : Name, alias_ : Maybe Name } -> String -}
-getAliasedName :
-    { details | name : Elm.Expression, alias_ : Elm.Expression }
-    -> Elm.Expression
+{-| getAliasedName: FieldDetails -> String -}
+getAliasedName : Elm.Expression -> Elm.Expression
 getAliasedName getAliasedNameArg =
     Elm.apply
         (Elm.value
@@ -684,29 +667,15 @@ getAliasedName getAliasedNameArg =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.extensible
-                            "details"
-                            [ ( "name", Type.namedWith [] "Name" [] )
-                            , ( "alias_"
-                              , Type.namedWith
-                                    []
-                                    "Maybe"
-                                    [ Type.namedWith [] "Name" [] ]
-                              )
-                            ]
-                        ]
+                        [ Type.namedWith [] "FieldDetails" [] ]
                         Type.string
                     )
             }
         )
-        [ Elm.record
-            [ Tuple.pair "name" getAliasedNameArg.name
-            , Tuple.pair "alias_" getAliasedNameArg.alias_
-            ]
-        ]
+        [ getAliasedNameArg ]
 
 
-{-| isTypeNameSelection: Selection -> Bool -}
+{-| isTypeNameSelection: Field -> Bool -}
 isTypeNameSelection : Elm.Expression -> Elm.Expression
 isTypeNameSelection isTypeNameSelectionArg =
     Elm.apply
@@ -714,11 +683,7 @@ isTypeNameSelection isTypeNameSelectionArg =
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
             , name = "isTypeNameSelection"
             , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Selection" [] ]
-                        Type.bool
-                    )
+                Just (Type.function [ Type.namedWith [] "Field" [] ] Type.bool)
             }
         )
         [ isTypeNameSelectionArg ]
@@ -727,16 +692,15 @@ isTypeNameSelection isTypeNameSelectionArg =
 annotation_ :
     { renderingCursor : Type.Annotation
     , fieldEnumDetails : Type.Annotation
-    , fieldScalarDetails : Type.Annotation
     , variantCase : Type.Annotation
     , fieldInterfaceDetails : Type.Annotation
-    , fieldUnionDetails : Type.Annotation
-    , fieldObjectDetails : Type.Annotation
+    , fieldVariantDetails : Type.Annotation
+    , fragment : Type.Annotation
     , fragmentDetails : Type.Annotation
+    , fieldDetails : Type.Annotation
     , variable : Type.Annotation
     , variableDefinition : Type.Annotation
     , argument : Type.Annotation
-    , fragment : Type.Annotation
     , directive : Type.Annotation
     , operationDetails : Type.Annotation
     , document : Type.Annotation
@@ -744,6 +708,7 @@ annotation_ :
     , name : Type.Annotation
     , selection : Type.Annotation
     , fragmentSelection : Type.Annotation
+    , field : Type.Annotation
     , operationType : Type.Annotation
     , definition : Type.Annotation
     }
@@ -771,13 +736,7 @@ annotation_ =
             "FieldEnumDetails"
             []
             (Type.record
-                [ ( "alias_"
-                  , Type.namedWith [] "Maybe" [ Type.namedWith [] "Name" [] ]
-                  )
-                , ( "name", Type.namedWith [] "Name" [] )
-                , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
-                , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
-                , ( "enumName", Type.string )
+                [ ( "enumName", Type.string )
                 , ( "values"
                   , Type.list
                         (Type.record
@@ -788,24 +747,6 @@ annotation_ =
                             ]
                         )
                   )
-                , ( "wrapper"
-                  , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
-                  )
-                ]
-            )
-    , fieldScalarDetails =
-        Type.alias
-            moduleName_
-            "FieldScalarDetails"
-            []
-            (Type.record
-                [ ( "alias_"
-                  , Type.namedWith [] "Maybe" [ Type.namedWith [] "Name" [] ]
-                  )
-                , ( "name", Type.namedWith [] "Name" [] )
-                , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
-                , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
-                , ( "type_", Type.namedWith [ "GraphQL", "Schema" ] "Type" [] )
                 ]
             )
     , variantCase =
@@ -818,7 +759,7 @@ annotation_ =
                 , ( "globalTagName", Type.namedWith [] "Name" [] )
                 , ( "globalDetailsAlias", Type.namedWith [] "Name" [] )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
-                , ( "selection", Type.list (Type.namedWith [] "Selection" []) )
+                , ( "selection", Type.list (Type.namedWith [] "Field" []) )
                 ]
             )
     , fieldInterfaceDetails =
@@ -827,14 +768,7 @@ annotation_ =
             "FieldInterfaceDetails"
             []
             (Type.record
-                [ ( "alias_"
-                  , Type.namedWith [] "Maybe" [ Type.namedWith [] "Name" [] ]
-                  )
-                , ( "name", Type.namedWith [] "Name" [] )
-                , ( "globalAlias", Type.namedWith [] "Name" [] )
-                , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
-                , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
-                , ( "selection", Type.list (Type.namedWith [] "Selection" []) )
+                [ ( "selection", Type.list (Type.namedWith [] "Field" []) )
                 , ( "variants", Type.list (Type.namedWith [] "VariantCase" []) )
                 , ( "remainingTags"
                   , Type.list
@@ -844,25 +778,15 @@ annotation_ =
                             ]
                         )
                   )
-                , ( "wrapper"
-                  , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
-                  )
                 ]
             )
-    , fieldUnionDetails =
+    , fieldVariantDetails =
         Type.alias
             moduleName_
-            "FieldUnionDetails"
+            "FieldVariantDetails"
             []
             (Type.record
-                [ ( "alias_"
-                  , Type.namedWith [] "Maybe" [ Type.namedWith [] "Name" [] ]
-                  )
-                , ( "name", Type.namedWith [] "Name" [] )
-                , ( "globalAlias", Type.namedWith [] "Name" [] )
-                , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
-                , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
-                , ( "selection", Type.list (Type.namedWith [] "Selection" []) )
+                [ ( "selection", Type.list (Type.namedWith [] "Field" []) )
                 , ( "variants", Type.list (Type.namedWith [] "VariantCase" []) )
                 , ( "remainingTags"
                   , Type.list
@@ -872,28 +796,18 @@ annotation_ =
                             ]
                         )
                   )
-                , ( "wrapper"
-                  , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
-                  )
                 ]
             )
-    , fieldObjectDetails =
+    , fragment =
         Type.alias
             moduleName_
-            "FieldObjectDetails"
+            "Fragment"
             []
             (Type.record
-                [ ( "alias_"
-                  , Type.namedWith [] "Maybe" [ Type.namedWith [] "Name" [] ]
-                  )
-                , ( "name", Type.namedWith [] "Name" [] )
-                , ( "globalAlias", Type.namedWith [] "Name" [] )
-                , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
+                [ ( "name", Type.namedWith [] "Name" [] )
+                , ( "typeCondition", Type.namedWith [] "Name" [] )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
-                , ( "selection", Type.list (Type.namedWith [] "Selection" []) )
-                , ( "wrapper"
-                  , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
-                  )
+                , ( "selection", Type.namedWith [] "FragmentSelection" [] )
                 ]
             )
     , fragmentDetails =
@@ -904,6 +818,25 @@ annotation_ =
             (Type.record
                 [ ( "fragment", Type.namedWith [] "Fragment" [] )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
+                ]
+            )
+    , fieldDetails =
+        Type.alias
+            moduleName_
+            "FieldDetails"
+            []
+            (Type.record
+                [ ( "alias_"
+                  , Type.namedWith [] "Maybe" [ Type.namedWith [] "Name" [] ]
+                  )
+                , ( "name", Type.namedWith [] "Name" [] )
+                , ( "globalAlias", Type.namedWith [] "Name" [] )
+                , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
+                , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
+                , ( "wrapper"
+                  , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
+                  )
+                , ( "selection", Type.namedWith [] "Selection" [] )
                 ]
             )
     , variable =
@@ -937,18 +870,6 @@ annotation_ =
             "Argument"
             []
             (Type.namedWith [ "AST" ] "Argument" [])
-    , fragment =
-        Type.alias
-            moduleName_
-            "Fragment"
-            []
-            (Type.record
-                [ ( "name", Type.namedWith [] "Name" [] )
-                , ( "typeCondition", Type.namedWith [] "Name" [] )
-                , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
-                , ( "selection", Type.namedWith [] "FragmentSelection" [] )
-                ]
-            )
     , directive =
         Type.alias
             moduleName_
@@ -973,7 +894,7 @@ annotation_ =
                   , Type.list (Type.namedWith [] "VariableDefinition" [])
                   )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
-                , ( "fields", Type.list (Type.namedWith [] "Selection" []) )
+                , ( "fields", Type.list (Type.namedWith [] "Field" []) )
                 ]
             )
     , document =
@@ -1002,6 +923,8 @@ annotation_ =
             [ "GraphQL", "Operations", "CanonicalAST" ]
             "FragmentSelection"
             []
+    , field =
+        Type.namedWith [ "GraphQL", "Operations", "CanonicalAST" ] "Field" []
     , operationType =
         Type.namedWith
             [ "GraphQL", "Operations", "CanonicalAST" ]
@@ -1024,23 +947,7 @@ make_ :
         }
         -> Elm.Expression
     , fieldEnumDetails :
-        { alias_ : Elm.Expression
-        , name : Elm.Expression
-        , arguments : Elm.Expression
-        , directives : Elm.Expression
-        , enumName : Elm.Expression
-        , values : Elm.Expression
-        , wrapper : Elm.Expression
-        }
-        -> Elm.Expression
-    , fieldScalarDetails :
-        { alias_ : Elm.Expression
-        , name : Elm.Expression
-        , arguments : Elm.Expression
-        , directives : Elm.Expression
-        , type_ : Elm.Expression
-        }
-        -> Elm.Expression
+        { enumName : Elm.Expression, values : Elm.Expression } -> Elm.Expression
     , variantCase :
         { tag : Elm.Expression
         , globalTagName : Elm.Expression
@@ -1050,48 +957,15 @@ make_ :
         }
         -> Elm.Expression
     , fieldInterfaceDetails :
-        { alias_ : Elm.Expression
-        , name : Elm.Expression
-        , globalAlias : Elm.Expression
-        , arguments : Elm.Expression
-        , directives : Elm.Expression
-        , selection : Elm.Expression
+        { selection : Elm.Expression
         , variants : Elm.Expression
         , remainingTags : Elm.Expression
-        , wrapper : Elm.Expression
         }
         -> Elm.Expression
-    , fieldUnionDetails :
-        { alias_ : Elm.Expression
-        , name : Elm.Expression
-        , globalAlias : Elm.Expression
-        , arguments : Elm.Expression
-        , directives : Elm.Expression
-        , selection : Elm.Expression
+    , fieldVariantDetails :
+        { selection : Elm.Expression
         , variants : Elm.Expression
         , remainingTags : Elm.Expression
-        , wrapper : Elm.Expression
-        }
-        -> Elm.Expression
-    , fieldObjectDetails :
-        { alias_ : Elm.Expression
-        , name : Elm.Expression
-        , globalAlias : Elm.Expression
-        , arguments : Elm.Expression
-        , directives : Elm.Expression
-        , selection : Elm.Expression
-        , wrapper : Elm.Expression
-        }
-        -> Elm.Expression
-    , fragmentDetails :
-        { fragment : Elm.Expression, directives : Elm.Expression }
-        -> Elm.Expression
-    , variable : { name : Elm.Expression } -> Elm.Expression
-    , variableDefinition :
-        { variable : Elm.Expression
-        , type_ : Elm.Expression
-        , defaultValue : Elm.Expression
-        , schemaType : Elm.Expression
         }
         -> Elm.Expression
     , fragment :
@@ -1099,6 +973,27 @@ make_ :
         , typeCondition : Elm.Expression
         , directives : Elm.Expression
         , selection : Elm.Expression
+        }
+        -> Elm.Expression
+    , fragmentDetails :
+        { fragment : Elm.Expression, directives : Elm.Expression }
+        -> Elm.Expression
+    , fieldDetails :
+        { alias_ : Elm.Expression
+        , name : Elm.Expression
+        , globalAlias : Elm.Expression
+        , arguments : Elm.Expression
+        , directives : Elm.Expression
+        , wrapper : Elm.Expression
+        , selection : Elm.Expression
+        }
+        -> Elm.Expression
+    , variable : { name : Elm.Expression } -> Elm.Expression
+    , variableDefinition :
+        { variable : Elm.Expression
+        , type_ : Elm.Expression
+        , defaultValue : Elm.Expression
+        , schemaType : Elm.Expression
         }
         -> Elm.Expression
     , directive :
@@ -1117,15 +1012,16 @@ make_ :
     , inList : Elm.Expression -> Elm.Expression -> Elm.Expression
     , val : Elm.Expression -> Elm.Expression
     , name : Elm.Expression -> Elm.Expression
-    , fieldObject : Elm.Expression -> Elm.Expression
-    , fieldUnion : Elm.Expression -> Elm.Expression
     , fieldScalar : Elm.Expression -> Elm.Expression
     , fieldEnum : Elm.Expression -> Elm.Expression
+    , fieldObject : Elm.Expression -> Elm.Expression
+    , fieldUnion : Elm.Expression -> Elm.Expression
     , fieldInterface : Elm.Expression -> Elm.Expression
-    , fieldFragment : Elm.Expression -> Elm.Expression
     , fragmentObject : Elm.Expression -> Elm.Expression
     , fragmentUnion : Elm.Expression -> Elm.Expression
     , fragmentInterface : Elm.Expression -> Elm.Expression
+    , field : Elm.Expression -> Elm.Expression
+    , frag : Elm.Expression -> Elm.Expression
     , query : Elm.Expression
     , mutation : Elm.Expression
     , operation : Elm.Expression -> Elm.Expression
@@ -1168,20 +1064,7 @@ make_ =
                     "FieldEnumDetails"
                     []
                     (Type.record
-                        [ ( "alias_"
-                          , Type.namedWith
-                                []
-                                "Maybe"
-                                [ Type.namedWith [] "Name" [] ]
-                          )
-                        , ( "name", Type.namedWith [] "Name" [] )
-                        , ( "arguments"
-                          , Type.list (Type.namedWith [] "Argument" [])
-                          )
-                        , ( "directives"
-                          , Type.list (Type.namedWith [] "Directive" [])
-                          )
-                        , ( "enumName", Type.string )
+                        [ ( "enumName", Type.string )
                         , ( "values"
                           , Type.list
                                 (Type.record
@@ -1195,55 +1078,12 @@ make_ =
                                     ]
                                 )
                           )
-                        , ( "wrapper"
-                          , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
-                          )
                         ]
                     )
                 )
                 (Elm.record
-                    [ Tuple.pair "alias_" fieldEnumDetails_args.alias_
-                    , Tuple.pair "name" fieldEnumDetails_args.name
-                    , Tuple.pair "arguments" fieldEnumDetails_args.arguments
-                    , Tuple.pair "directives" fieldEnumDetails_args.directives
-                    , Tuple.pair "enumName" fieldEnumDetails_args.enumName
+                    [ Tuple.pair "enumName" fieldEnumDetails_args.enumName
                     , Tuple.pair "values" fieldEnumDetails_args.values
-                    , Tuple.pair "wrapper" fieldEnumDetails_args.wrapper
-                    ]
-                )
-    , fieldScalarDetails =
-        \fieldScalarDetails_args ->
-            Elm.withType
-                (Type.alias
-                    [ "GraphQL", "Operations", "CanonicalAST" ]
-                    "FieldScalarDetails"
-                    []
-                    (Type.record
-                        [ ( "alias_"
-                          , Type.namedWith
-                                []
-                                "Maybe"
-                                [ Type.namedWith [] "Name" [] ]
-                          )
-                        , ( "name", Type.namedWith [] "Name" [] )
-                        , ( "arguments"
-                          , Type.list (Type.namedWith [] "Argument" [])
-                          )
-                        , ( "directives"
-                          , Type.list (Type.namedWith [] "Directive" [])
-                          )
-                        , ( "type_"
-                          , Type.namedWith [ "GraphQL", "Schema" ] "Type" []
-                          )
-                        ]
-                    )
-                )
-                (Elm.record
-                    [ Tuple.pair "alias_" fieldScalarDetails_args.alias_
-                    , Tuple.pair "name" fieldScalarDetails_args.name
-                    , Tuple.pair "arguments" fieldScalarDetails_args.arguments
-                    , Tuple.pair "directives" fieldScalarDetails_args.directives
-                    , Tuple.pair "type_" fieldScalarDetails_args.type_
                     ]
                 )
     , variantCase =
@@ -1261,7 +1101,7 @@ make_ =
                           , Type.list (Type.namedWith [] "Directive" [])
                           )
                         , ( "selection"
-                          , Type.list (Type.namedWith [] "Selection" [])
+                          , Type.list (Type.namedWith [] "Field" [])
                           )
                         ]
                     )
@@ -1284,22 +1124,8 @@ make_ =
                     "FieldInterfaceDetails"
                     []
                     (Type.record
-                        [ ( "alias_"
-                          , Type.namedWith
-                                []
-                                "Maybe"
-                                [ Type.namedWith [] "Name" [] ]
-                          )
-                        , ( "name", Type.namedWith [] "Name" [] )
-                        , ( "globalAlias", Type.namedWith [] "Name" [] )
-                        , ( "arguments"
-                          , Type.list (Type.namedWith [] "Argument" [])
-                          )
-                        , ( "directives"
-                          , Type.list (Type.namedWith [] "Directive" [])
-                          )
-                        , ( "selection"
-                          , Type.list (Type.namedWith [] "Selection" [])
+                        [ ( "selection"
+                          , Type.list (Type.namedWith [] "Field" [])
                           )
                         , ( "variants"
                           , Type.list (Type.namedWith [] "VariantCase" [])
@@ -1314,58 +1140,29 @@ make_ =
                                     ]
                                 )
                           )
-                        , ( "wrapper"
-                          , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
-                          )
                         ]
                     )
                 )
                 (Elm.record
-                    [ Tuple.pair "alias_" fieldInterfaceDetails_args.alias_
-                    , Tuple.pair "name" fieldInterfaceDetails_args.name
-                    , Tuple.pair
-                        "globalAlias"
-                        fieldInterfaceDetails_args.globalAlias
-                    , Tuple.pair
-                        "arguments"
-                        fieldInterfaceDetails_args.arguments
-                    , Tuple.pair
-                        "directives"
-                        fieldInterfaceDetails_args.directives
-                    , Tuple.pair
+                    [ Tuple.pair
                         "selection"
                         fieldInterfaceDetails_args.selection
                     , Tuple.pair "variants" fieldInterfaceDetails_args.variants
                     , Tuple.pair
                         "remainingTags"
                         fieldInterfaceDetails_args.remainingTags
-                    , Tuple.pair "wrapper" fieldInterfaceDetails_args.wrapper
                     ]
                 )
-    , fieldUnionDetails =
-        \fieldUnionDetails_args ->
+    , fieldVariantDetails =
+        \fieldVariantDetails_args ->
             Elm.withType
                 (Type.alias
                     [ "GraphQL", "Operations", "CanonicalAST" ]
-                    "FieldUnionDetails"
+                    "FieldVariantDetails"
                     []
                     (Type.record
-                        [ ( "alias_"
-                          , Type.namedWith
-                                []
-                                "Maybe"
-                                [ Type.namedWith [] "Name" [] ]
-                          )
-                        , ( "name", Type.namedWith [] "Name" [] )
-                        , ( "globalAlias", Type.namedWith [] "Name" [] )
-                        , ( "arguments"
-                          , Type.list (Type.namedWith [] "Argument" [])
-                          )
-                        , ( "directives"
-                          , Type.list (Type.namedWith [] "Directive" [])
-                          )
-                        , ( "selection"
-                          , Type.list (Type.namedWith [] "Selection" [])
+                        [ ( "selection"
+                          , Type.list (Type.namedWith [] "Field" [])
                           )
                         , ( "variants"
                           , Type.list (Type.namedWith [] "VariantCase" [])
@@ -1380,69 +1177,41 @@ make_ =
                                     ]
                                 )
                           )
-                        , ( "wrapper"
-                          , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
-                          )
                         ]
                     )
                 )
                 (Elm.record
-                    [ Tuple.pair "alias_" fieldUnionDetails_args.alias_
-                    , Tuple.pair "name" fieldUnionDetails_args.name
-                    , Tuple.pair
-                        "globalAlias"
-                        fieldUnionDetails_args.globalAlias
-                    , Tuple.pair "arguments" fieldUnionDetails_args.arguments
-                    , Tuple.pair "directives" fieldUnionDetails_args.directives
-                    , Tuple.pair "selection" fieldUnionDetails_args.selection
-                    , Tuple.pair "variants" fieldUnionDetails_args.variants
+                    [ Tuple.pair "selection" fieldVariantDetails_args.selection
+                    , Tuple.pair "variants" fieldVariantDetails_args.variants
                     , Tuple.pair
                         "remainingTags"
-                        fieldUnionDetails_args.remainingTags
-                    , Tuple.pair "wrapper" fieldUnionDetails_args.wrapper
+                        fieldVariantDetails_args.remainingTags
                     ]
                 )
-    , fieldObjectDetails =
-        \fieldObjectDetails_args ->
+    , fragment =
+        \fragment_args ->
             Elm.withType
                 (Type.alias
                     [ "GraphQL", "Operations", "CanonicalAST" ]
-                    "FieldObjectDetails"
+                    "Fragment"
                     []
                     (Type.record
-                        [ ( "alias_"
-                          , Type.namedWith
-                                []
-                                "Maybe"
-                                [ Type.namedWith [] "Name" [] ]
-                          )
-                        , ( "name", Type.namedWith [] "Name" [] )
-                        , ( "globalAlias", Type.namedWith [] "Name" [] )
-                        , ( "arguments"
-                          , Type.list (Type.namedWith [] "Argument" [])
-                          )
+                        [ ( "name", Type.namedWith [] "Name" [] )
+                        , ( "typeCondition", Type.namedWith [] "Name" [] )
                         , ( "directives"
                           , Type.list (Type.namedWith [] "Directive" [])
                           )
                         , ( "selection"
-                          , Type.list (Type.namedWith [] "Selection" [])
-                          )
-                        , ( "wrapper"
-                          , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
+                          , Type.namedWith [] "FragmentSelection" []
                           )
                         ]
                     )
                 )
                 (Elm.record
-                    [ Tuple.pair "alias_" fieldObjectDetails_args.alias_
-                    , Tuple.pair "name" fieldObjectDetails_args.name
-                    , Tuple.pair
-                        "globalAlias"
-                        fieldObjectDetails_args.globalAlias
-                    , Tuple.pair "arguments" fieldObjectDetails_args.arguments
-                    , Tuple.pair "directives" fieldObjectDetails_args.directives
-                    , Tuple.pair "selection" fieldObjectDetails_args.selection
-                    , Tuple.pair "wrapper" fieldObjectDetails_args.wrapper
+                    [ Tuple.pair "name" fragment_args.name
+                    , Tuple.pair "typeCondition" fragment_args.typeCondition
+                    , Tuple.pair "directives" fragment_args.directives
+                    , Tuple.pair "selection" fragment_args.selection
                     ]
                 )
     , fragmentDetails =
@@ -1463,6 +1232,45 @@ make_ =
                 (Elm.record
                     [ Tuple.pair "fragment" fragmentDetails_args.fragment
                     , Tuple.pair "directives" fragmentDetails_args.directives
+                    ]
+                )
+    , fieldDetails =
+        \fieldDetails_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Operations", "CanonicalAST" ]
+                    "FieldDetails"
+                    []
+                    (Type.record
+                        [ ( "alias_"
+                          , Type.namedWith
+                                []
+                                "Maybe"
+                                [ Type.namedWith [] "Name" [] ]
+                          )
+                        , ( "name", Type.namedWith [] "Name" [] )
+                        , ( "globalAlias", Type.namedWith [] "Name" [] )
+                        , ( "arguments"
+                          , Type.list (Type.namedWith [] "Argument" [])
+                          )
+                        , ( "directives"
+                          , Type.list (Type.namedWith [] "Directive" [])
+                          )
+                        , ( "wrapper"
+                          , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
+                          )
+                        , ( "selection", Type.namedWith [] "Selection" [] )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "alias_" fieldDetails_args.alias_
+                    , Tuple.pair "name" fieldDetails_args.name
+                    , Tuple.pair "globalAlias" fieldDetails_args.globalAlias
+                    , Tuple.pair "arguments" fieldDetails_args.arguments
+                    , Tuple.pair "directives" fieldDetails_args.directives
+                    , Tuple.pair "wrapper" fieldDetails_args.wrapper
+                    , Tuple.pair "selection" fieldDetails_args.selection
                     ]
                 )
     , variable =
@@ -1504,32 +1312,6 @@ make_ =
                         "defaultValue"
                         variableDefinition_args.defaultValue
                     , Tuple.pair "schemaType" variableDefinition_args.schemaType
-                    ]
-                )
-    , fragment =
-        \fragment_args ->
-            Elm.withType
-                (Type.alias
-                    [ "GraphQL", "Operations", "CanonicalAST" ]
-                    "Fragment"
-                    []
-                    (Type.record
-                        [ ( "name", Type.namedWith [] "Name" [] )
-                        , ( "typeCondition", Type.namedWith [] "Name" [] )
-                        , ( "directives"
-                          , Type.list (Type.namedWith [] "Directive" [])
-                          )
-                        , ( "selection"
-                          , Type.namedWith [] "FragmentSelection" []
-                          )
-                        ]
-                    )
-                )
-                (Elm.record
-                    [ Tuple.pair "name" fragment_args.name
-                    , Tuple.pair "typeCondition" fragment_args.typeCondition
-                    , Tuple.pair "directives" fragment_args.directives
-                    , Tuple.pair "selection" fragment_args.selection
                     ]
                 )
     , directive =
@@ -1576,9 +1358,7 @@ make_ =
                         , ( "directives"
                           , Type.list (Type.namedWith [] "Directive" [])
                           )
-                        , ( "fields"
-                          , Type.list (Type.namedWith [] "Selection" [])
-                          )
+                        , ( "fields", Type.list (Type.namedWith [] "Field" []) )
                         ]
                     )
                 )
@@ -1646,26 +1426,6 @@ make_ =
                     }
                 )
                 [ ar0 ]
-    , fieldObject =
-        \ar0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-                    , name = "FieldObject"
-                    , annotation = Just (Type.namedWith [] "Selection" [])
-                    }
-                )
-                [ ar0 ]
-    , fieldUnion =
-        \ar0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-                    , name = "FieldUnion"
-                    , annotation = Just (Type.namedWith [] "Selection" [])
-                    }
-                )
-                [ ar0 ]
     , fieldScalar =
         \ar0 ->
             Elm.apply
@@ -1686,22 +1446,32 @@ make_ =
                     }
                 )
                 [ ar0 ]
+    , fieldObject =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "FieldObject"
+                    , annotation = Just (Type.namedWith [] "Selection" [])
+                    }
+                )
+                [ ar0 ]
+    , fieldUnion =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "FieldUnion"
+                    , annotation = Just (Type.namedWith [] "Selection" [])
+                    }
+                )
+                [ ar0 ]
     , fieldInterface =
         \ar0 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
                     , name = "FieldInterface"
-                    , annotation = Just (Type.namedWith [] "Selection" [])
-                    }
-                )
-                [ ar0 ]
-    , fieldFragment =
-        \ar0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-                    , name = "FieldFragment"
                     , annotation = Just (Type.namedWith [] "Selection" [])
                     }
                 )
@@ -1736,6 +1506,26 @@ make_ =
                     , name = "FragmentInterface"
                     , annotation =
                         Just (Type.namedWith [] "FragmentSelection" [])
+                    }
+                )
+                [ ar0 ]
+    , field =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "Field"
+                    , annotation = Just (Type.namedWith [] "Field" [])
+                    }
+                )
+                [ ar0 ]
+    , frag =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "Frag"
+                    , annotation = Just (Type.namedWith [] "Field" [])
                     }
                 )
                 [ ar0 ]
@@ -1779,12 +1569,11 @@ caseOf_ :
     , selection :
         Elm.Expression
         -> { selectionTags_2_0
-            | fieldObject : Elm.Expression -> Elm.Expression
-            , fieldUnion : Elm.Expression -> Elm.Expression
-            , fieldScalar : Elm.Expression -> Elm.Expression
+            | fieldScalar : Elm.Expression -> Elm.Expression
             , fieldEnum : Elm.Expression -> Elm.Expression
+            , fieldObject : Elm.Expression -> Elm.Expression
+            , fieldUnion : Elm.Expression -> Elm.Expression
             , fieldInterface : Elm.Expression -> Elm.Expression
-            , fieldFragment : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
     , fragmentSelection :
@@ -1795,16 +1584,23 @@ caseOf_ :
             , fragmentInterface : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
+    , field :
+        Elm.Expression
+        -> { fieldTags_4_0
+            | field : Elm.Expression -> Elm.Expression
+            , frag : Elm.Expression -> Elm.Expression
+        }
+        -> Elm.Expression
     , operationType :
         Elm.Expression
-        -> { operationTypeTags_4_0
+        -> { operationTypeTags_5_0
             | query : Elm.Expression
             , mutation : Elm.Expression
         }
         -> Elm.Expression
     , definition :
         Elm.Expression
-        -> { definitionTags_5_0 | operation : Elm.Expression -> Elm.Expression }
+        -> { definitionTags_6_0 | operation : Elm.Expression -> Elm.Expression }
         -> Elm.Expression
     }
 caseOf_ =
@@ -1851,21 +1647,9 @@ caseOf_ =
                     []
                 )
                 [ Elm.Case.branch1
-                    "FieldObject"
-                    ( "fieldObjectDetails"
-                    , Type.namedWith [] "FieldObjectDetails" []
-                    )
-                    selectionTags.fieldObject
-                , Elm.Case.branch1
-                    "FieldUnion"
-                    ( "fieldUnionDetails"
-                    , Type.namedWith [] "FieldUnionDetails" []
-                    )
-                    selectionTags.fieldUnion
-                , Elm.Case.branch1
                     "FieldScalar"
-                    ( "fieldScalarDetails"
-                    , Type.namedWith [] "FieldScalarDetails" []
+                    ( "graphQL.Schema.Type"
+                    , Type.namedWith [ "GraphQL", "Schema" ] "Type" []
                     )
                     selectionTags.fieldScalar
                 , Elm.Case.branch1
@@ -1875,17 +1659,21 @@ caseOf_ =
                     )
                     selectionTags.fieldEnum
                 , Elm.Case.branch1
+                    "FieldObject"
+                    ( "list.List", Type.list (Type.namedWith [] "Field" []) )
+                    selectionTags.fieldObject
+                , Elm.Case.branch1
+                    "FieldUnion"
+                    ( "fieldVariantDetails"
+                    , Type.namedWith [] "FieldVariantDetails" []
+                    )
+                    selectionTags.fieldUnion
+                , Elm.Case.branch1
                     "FieldInterface"
-                    ( "fieldInterfaceDetails"
-                    , Type.namedWith [] "FieldInterfaceDetails" []
+                    ( "fieldVariantDetails"
+                    , Type.namedWith [] "FieldVariantDetails" []
                     )
                     selectionTags.fieldInterface
-                , Elm.Case.branch1
-                    "FieldFragment"
-                    ( "fragmentDetails"
-                    , Type.namedWith [] "FragmentDetails" []
-                    )
-                    selectionTags.fieldFragment
                 ]
     , fragmentSelection =
         \fragmentSelectionExpression fragmentSelectionTags ->
@@ -1901,7 +1689,7 @@ caseOf_ =
                     ( "one"
                     , Type.record
                         [ ( "selection"
-                          , Type.list (Type.namedWith [] "Selection" [])
+                          , Type.list (Type.namedWith [] "Field" [])
                           )
                         ]
                     )
@@ -1911,7 +1699,7 @@ caseOf_ =
                     ( "one"
                     , Type.record
                         [ ( "selection"
-                          , Type.list (Type.namedWith [] "Selection" [])
+                          , Type.list (Type.namedWith [] "Field" [])
                           )
                         , ( "variants"
                           , Type.list (Type.namedWith [] "VariantCase" [])
@@ -1934,7 +1722,7 @@ caseOf_ =
                     ( "one"
                     , Type.record
                         [ ( "selection"
-                          , Type.list (Type.namedWith [] "Selection" [])
+                          , Type.list (Type.namedWith [] "Field" [])
                           )
                         , ( "variants"
                           , Type.list (Type.namedWith [] "VariantCase" [])
@@ -1952,6 +1740,26 @@ caseOf_ =
                         ]
                     )
                     fragmentSelectionTags.fragmentInterface
+                ]
+    , field =
+        \fieldExpression fieldTags ->
+            Elm.Case.custom
+                fieldExpression
+                (Type.namedWith
+                    [ "GraphQL", "Operations", "CanonicalAST" ]
+                    "Field"
+                    []
+                )
+                [ Elm.Case.branch1
+                    "Field"
+                    ( "fieldDetails", Type.namedWith [] "FieldDetails" [] )
+                    fieldTags.field
+                , Elm.Case.branch1
+                    "Frag"
+                    ( "fragmentDetails"
+                    , Type.namedWith [] "FragmentDetails" []
+                    )
+                    fieldTags.frag
                 ]
     , operationType =
         \operationTypeExpression operationTypeTags ->
@@ -1985,14 +1793,12 @@ caseOf_ =
 
 
 call_ :
-    { renderVariantFragmentToExp :
-        Elm.Expression -> Elm.Expression -> Elm.Expression
-    , renderSelectionExp : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , addArgValue : Elm.Expression -> Elm.Expression -> Elm.Expression
+    { addArgValue : Elm.Expression -> Elm.Expression -> Elm.Expression
     , renderArgumentsExp : Elm.Expression -> Elm.Expression -> Elm.Expression
     , aliasedNameExp : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , selectionToExpressionString :
-        Elm.Expression -> Elm.Expression -> Elm.Expression
+    , renderVariant : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , renderSelection : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , renderField : Elm.Expression -> Elm.Expression -> Elm.Expression
     , addExp : Elm.Expression -> Elm.Expression -> Elm.Expression
     , addString : Elm.Expression -> Elm.Expression -> Elm.Expression
     , commit : Elm.Expression -> Elm.Expression
@@ -2011,9 +1817,10 @@ call_ :
     , argValToString : Elm.Expression -> Elm.Expression
     , argToString : Elm.Expression -> Elm.Expression
     , renderArguments : Elm.Expression -> Elm.Expression
-    , renderSelection : Elm.Expression -> Elm.Expression
+    , selectionGroupToString : Elm.Expression -> Elm.Expression
     , variantFragmentToString : Elm.Expression -> Elm.Expression
     , selectionToString : Elm.Expression -> Elm.Expression
+    , fieldToString : Elm.Expression -> Elm.Expression
     , toStringFields : Elm.Expression -> Elm.Expression
     , operationLabel : Elm.Expression -> Elm.Expression
     , toString : Elm.Expression -> Elm.Expression
@@ -2023,43 +1830,7 @@ call_ :
     , isTypeNameSelection : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { renderVariantFragmentToExp =
-        \renderVariantFragmentToExpArg renderVariantFragmentToExpArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-                    , name = "renderVariantFragmentToExp"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "VariantCase" []
-                                , Type.namedWith [] "RenderingCursor" []
-                                ]
-                                (Type.namedWith [] "RenderingCursor" [])
-                            )
-                    }
-                )
-                [ renderVariantFragmentToExpArg
-                , renderVariantFragmentToExpArg0
-                ]
-    , renderSelectionExp =
-        \renderSelectionExpArg renderSelectionExpArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-                    , name = "renderSelectionExp"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.list (Type.namedWith [] "Selection" [])
-                                , Type.namedWith [] "RenderingCursor" []
-                                ]
-                                (Type.namedWith [] "RenderingCursor" [])
-                            )
-                    }
-                )
-                [ renderSelectionExpArg, renderSelectionExpArg0 ]
-    , addArgValue =
+    { addArgValue =
         \addArgValueArg addArgValueArg0 ->
             Elm.apply
                 (Elm.value
@@ -2119,12 +1890,29 @@ call_ =
                     }
                 )
                 [ aliasedNameExpArg, aliasedNameExpArg0 ]
-    , selectionToExpressionString =
-        \selectionToExpressionStringArg selectionToExpressionStringArg0 ->
+    , renderVariant =
+        \renderVariantArg renderVariantArg0 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-                    , name = "selectionToExpressionString"
+                    , name = "renderVariant"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "VariantCase" []
+                                , Type.namedWith [] "RenderingCursor" []
+                                ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ renderVariantArg, renderVariantArg0 ]
+    , renderSelection =
+        \renderSelectionArg renderSelectionArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "renderSelection"
                     , annotation =
                         Just
                             (Type.function
@@ -2135,9 +1923,24 @@ call_ =
                             )
                     }
                 )
-                [ selectionToExpressionStringArg
-                , selectionToExpressionStringArg0
-                ]
+                [ renderSelectionArg, renderSelectionArg0 ]
+    , renderField =
+        \renderFieldArg renderFieldArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "renderField"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Field" []
+                                , Type.namedWith [] "RenderingCursor" []
+                                ]
+                                (Type.namedWith [] "RenderingCursor" [])
+                            )
+                    }
+                )
+                [ renderFieldArg, renderFieldArg0 ]
     , addExp =
         \addExpArg addExpArg0 ->
             Elm.apply
@@ -2351,17 +2154,7 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.extensible
-                                    "a"
-                                    [ ( "alias_"
-                                      , Type.namedWith
-                                            []
-                                            "Maybe"
-                                            [ Type.namedWith [] "Name" [] ]
-                                      )
-                                    , ( "name", Type.namedWith [] "Name" [] )
-                                    ]
-                                ]
+                                [ Type.namedWith [] "FieldDetails" [] ]
                                 Type.string
                             )
                     }
@@ -2412,21 +2205,21 @@ call_ =
                     }
                 )
                 [ renderArgumentsArg ]
-    , renderSelection =
-        \renderSelectionArg ->
+    , selectionGroupToString =
+        \selectionGroupToStringArg ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-                    , name = "renderSelection"
+                    , name = "selectionGroupToString"
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.list (Type.namedWith [] "Selection" []) ]
+                                [ Type.list (Type.namedWith [] "Field" []) ]
                                 Type.string
                             )
                     }
                 )
-                [ renderSelectionArg ]
+                [ selectionGroupToStringArg ]
     , variantFragmentToString =
         \variantFragmentToStringArg ->
             Elm.apply
@@ -2457,6 +2250,21 @@ call_ =
                     }
                 )
                 [ selectionToStringArg ]
+    , fieldToString =
+        \fieldToStringArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "fieldToString"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Field" [] ]
+                                Type.string
+                            )
+                    }
+                )
+                [ fieldToStringArg ]
     , toStringFields =
         \toStringFieldsArg ->
             Elm.apply
@@ -2526,17 +2334,7 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.extensible
-                                    "field"
-                                    [ ( "alias_"
-                                      , Type.namedWith
-                                            []
-                                            "Maybe"
-                                            [ Type.namedWith [] "Name" [] ]
-                                      )
-                                    , ( "name", Type.namedWith [] "Name" [] )
-                                    ]
-                                ]
+                                [ Type.namedWith [] "FieldDetails" [] ]
                                 Type.string
                             )
                     }
@@ -2551,17 +2349,7 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.extensible
-                                    "details"
-                                    [ ( "name", Type.namedWith [] "Name" [] )
-                                    , ( "alias_"
-                                      , Type.namedWith
-                                            []
-                                            "Maybe"
-                                            [ Type.namedWith [] "Name" [] ]
-                                      )
-                                    ]
-                                ]
+                                [ Type.namedWith [] "FieldDetails" [] ]
                                 Type.string
                             )
                     }
@@ -2576,7 +2364,7 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.namedWith [] "Selection" [] ]
+                                [ Type.namedWith [] "Field" [] ]
                                 Type.bool
                             )
                     }
@@ -2586,12 +2374,12 @@ call_ =
 
 
 values_ :
-    { renderVariantFragmentToExp : Elm.Expression
-    , renderSelectionExp : Elm.Expression
-    , addArgValue : Elm.Expression
+    { addArgValue : Elm.Expression
     , renderArgumentsExp : Elm.Expression
     , aliasedNameExp : Elm.Expression
-    , selectionToExpressionString : Elm.Expression
+    , renderVariant : Elm.Expression
+    , renderSelection : Elm.Expression
+    , renderField : Elm.Expression
     , addExp : Elm.Expression
     , addString : Elm.Expression
     , commit : Elm.Expression
@@ -2609,9 +2397,10 @@ values_ :
     , argValToString : Elm.Expression
     , argToString : Elm.Expression
     , renderArguments : Elm.Expression
-    , renderSelection : Elm.Expression
+    , selectionGroupToString : Elm.Expression
     , variantFragmentToString : Elm.Expression
     , selectionToString : Elm.Expression
+    , fieldToString : Elm.Expression
     , toStringFields : Elm.Expression
     , operationLabel : Elm.Expression
     , toString : Elm.Expression
@@ -2621,33 +2410,7 @@ values_ :
     , isTypeNameSelection : Elm.Expression
     }
 values_ =
-    { renderVariantFragmentToExp =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-            , name = "renderVariantFragmentToExp"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "VariantCase" []
-                        , Type.namedWith [] "RenderingCursor" []
-                        ]
-                        (Type.namedWith [] "RenderingCursor" [])
-                    )
-            }
-    , renderSelectionExp =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-            , name = "renderSelectionExp"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.list (Type.namedWith [] "Selection" [])
-                        , Type.namedWith [] "RenderingCursor" []
-                        ]
-                        (Type.namedWith [] "RenderingCursor" [])
-                    )
-            }
-    , addArgValue =
+    { addArgValue =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
             , name = "addArgValue"
@@ -2695,14 +2458,40 @@ values_ =
                         (Type.namedWith [] "RenderingCursor" [])
                     )
             }
-    , selectionToExpressionString =
+    , renderVariant =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-            , name = "selectionToExpressionString"
+            , name = "renderVariant"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "VariantCase" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , renderSelection =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderSelection"
             , annotation =
                 Just
                     (Type.function
                         [ Type.namedWith [] "Selection" []
+                        , Type.namedWith [] "RenderingCursor" []
+                        ]
+                        (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , renderField =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderField"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Field" []
                         , Type.namedWith [] "RenderingCursor" []
                         ]
                         (Type.namedWith [] "RenderingCursor" [])
@@ -2864,17 +2653,7 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.extensible
-                            "a"
-                            [ ( "alias_"
-                              , Type.namedWith
-                                    []
-                                    "Maybe"
-                                    [ Type.namedWith [] "Name" [] ]
-                              )
-                            , ( "name", Type.namedWith [] "Name" [] )
-                            ]
-                        ]
+                        [ Type.namedWith [] "FieldDetails" [] ]
                         Type.string
                     )
             }
@@ -2911,14 +2690,14 @@ values_ =
                         Type.string
                     )
             }
-    , renderSelection =
+    , selectionGroupToString =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-            , name = "renderSelection"
+            , name = "selectionGroupToString"
             , annotation =
                 Just
                     (Type.function
-                        [ Type.list (Type.namedWith [] "Selection" []) ]
+                        [ Type.list (Type.namedWith [] "Field" []) ]
                         Type.string
                     )
             }
@@ -2943,6 +2722,14 @@ values_ =
                         [ Type.namedWith [] "Selection" [] ]
                         Type.string
                     )
+            }
+    , fieldToString =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "fieldToString"
+            , annotation =
+                Just
+                    (Type.function [ Type.namedWith [] "Field" [] ] Type.string)
             }
     , toStringFields =
         Elm.value
@@ -2991,17 +2778,7 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.extensible
-                            "field"
-                            [ ( "alias_"
-                              , Type.namedWith
-                                    []
-                                    "Maybe"
-                                    [ Type.namedWith [] "Name" [] ]
-                              )
-                            , ( "name", Type.namedWith [] "Name" [] )
-                            ]
-                        ]
+                        [ Type.namedWith [] "FieldDetails" [] ]
                         Type.string
                     )
             }
@@ -3012,17 +2789,7 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.extensible
-                            "details"
-                            [ ( "name", Type.namedWith [] "Name" [] )
-                            , ( "alias_"
-                              , Type.namedWith
-                                    []
-                                    "Maybe"
-                                    [ Type.namedWith [] "Name" [] ]
-                              )
-                            ]
-                        ]
+                        [ Type.namedWith [] "FieldDetails" [] ]
                         Type.string
                     )
             }
@@ -3031,11 +2798,7 @@ values_ =
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
             , name = "isTypeNameSelection"
             , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Selection" [] ]
-                        Type.bool
-                    )
+                Just (Type.function [ Type.namedWith [] "Field" [] ] Type.bool)
             }
     }
 

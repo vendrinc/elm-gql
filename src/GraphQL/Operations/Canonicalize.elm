@@ -1045,7 +1045,7 @@ canonicalizeOperation :
     -> AST.OperationType
     -> UsedNames
     -> AST.Selection
-    -> ( UsedNames, CanResult Can.Selection )
+    -> ( UsedNames, CanResult Can.Field )
 canonicalizeOperation refs op used selection =
     case selection of
         AST.Field field ->
@@ -1559,11 +1559,11 @@ canonicalizeField :
         }
     -> AST.Selection
     ->
-        { result : CanResult (List Can.Selection)
+        { result : CanResult (List Can.Field)
         , fieldNames : UsedNames
         }
     ->
-        { result : CanResult (List Can.Selection)
+        { result : CanResult (List Can.Field)
         , fieldNames : UsedNames
         }
 canonicalizeField refs object selection found =
@@ -1592,12 +1592,18 @@ canonicalizeField refs object selection found =
             else if fieldName == "__typename" then
                 { result =
                     addToResult emptyCache
-                        (Can.FieldScalar
+                        (Can.Field
                             { alias_ = Maybe.map convertName field.alias_
                             , name = convertName field.name
+                            , globalAlias =
+                                field.alias_
+                                    |> Maybe.withDefault field.name
+                                    |> convertName
                             , arguments = []
                             , directives = List.map convertDirective field.directives
-                            , type_ = GraphQL.Schema.Scalar "typename"
+                            , wrapper = GraphQL.Schema.UnwrappedValue
+                            , selection =
+                                Can.FieldScalar (GraphQL.Schema.Scalar "typename")
                             }
                         )
                         found.result
@@ -1669,7 +1675,7 @@ canonicalizeField refs object selection found =
                     if Can.nameToString foundFrag.typeCondition == object.name then
                         { result =
                             addToResult emptyCache
-                                (Can.FieldFragment
+                                (Can.Frag
                                     { fragment = foundFrag
                                     , directives =
                                         frag.directives
@@ -1715,7 +1721,7 @@ canonicalizeFieldType :
     -> GraphQL.Schema.Field
     ->
         ( UsedNames
-        , CanResult Can.Selection
+        , CanResult Can.Field
         )
 canonicalizeFieldType refs field usedNames schemaField =
     canonicalizeFieldTypeHelper refs field schemaField.type_ usedNames emptyCache schemaField
@@ -1733,7 +1739,7 @@ canonicalizeFieldTypeHelper :
     -> UsedNames
     -> VarCache
     -> GraphQL.Schema.Field
-    -> ( UsedNames, CanResult Can.Selection )
+    -> ( UsedNames, CanResult Can.Field )
 canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
     let
         argValidation =
@@ -1811,12 +1817,18 @@ canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
             GraphQL.Schema.Scalar name ->
                 ( usedNames
                 , success newCache
-                    (Can.FieldScalar
+                    (Can.Field
                         { alias_ = Maybe.map convertName field.alias_
                         , name = convertName field.name
-                        , arguments = field.arguments
+                        , globalAlias =
+                            field.alias_
+                                |> Maybe.withDefault field.name
+                                |> convertName
+                        , arguments = []
                         , directives = List.map convertDirective field.directives
-                        , type_ = schemaField.type_
+                        , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                        , selection =
+                            Can.FieldScalar schemaField.type_
                         }
                     )
                 )
@@ -1847,14 +1859,21 @@ canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
                     Just enum ->
                         ( usedNames
                         , CanSuccess newCache
-                            (Can.FieldEnum
+                            (Can.Field
                                 { alias_ = Maybe.map convertName field.alias_
                                 , name = convertName field.name
-                                , arguments = field.arguments
+                                , globalAlias =
+                                    field.alias_
+                                        |> Maybe.withDefault field.name
+                                        |> convertName
+                                , arguments = []
                                 , directives = List.map convertDirective field.directives
-                                , enumName = enum.name
-                                , values = enum.values
                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                , selection =
+                                    Can.FieldEnum
+                                        { enumName = enum.name
+                                        , values = enum.values
+                                        }
                                 }
                             )
                         )
@@ -1931,17 +1950,21 @@ canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
                                         ( remainingUsedNames
                                             |> dropLevel
                                         , CanSuccess (mergeCaches newCache cache)
-                                            (Can.FieldUnion
+                                            (Can.Field
                                                 { alias_ = Maybe.map convertName field.alias_
                                                 , name = convertName field.name
-                                                , globalAlias = Can.Name global.globalName
-                                                , arguments = field.arguments
+                                                , globalAlias =
+                                                    Can.Name global.globalName
+                                                , arguments = []
                                                 , directives = List.map convertDirective field.directives
-                                                , selection = canSelection
-                                                , variants = selectionResult.capturedVariants
-                                                , remainingTags =
-                                                    List.reverse remaining
                                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                                , selection =
+                                                    Can.FieldUnion
+                                                        { selection = canSelection
+                                                        , variants = selectionResult.capturedVariants
+                                                        , remainingTags =
+                                                            List.reverse remaining
+                                                        }
                                                 }
                                             )
                                         )
@@ -2014,16 +2037,33 @@ canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
                                 ( remainingUsedNames
                                     |> dropLevel
                                 , CanSuccess (mergeCaches newCache cache)
-                                    (Can.FieldInterface
+                                    -- (Can.FieldInterface
+                                    --     { alias_ = Maybe.map convertName field.alias_
+                                    --     , name = convertName field.name
+                                    --     , globalAlias = Can.Name global.globalName
+                                    --     , arguments = field.arguments
+                                    --     , directives = List.map convertDirective field.directives
+                                    --     , selection = canSelection
+                                    --     , variants = selectionResult.capturedVariants
+                                    --     , remainingTags = List.reverse remaining
+                                    --     , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                    --     }
+                                    -- )
+                                    (Can.Field
                                         { alias_ = Maybe.map convertName field.alias_
                                         , name = convertName field.name
-                                        , globalAlias = Can.Name global.globalName
-                                        , arguments = field.arguments
+                                        , globalAlias =
+                                            Can.Name global.globalName
+                                        , arguments = []
                                         , directives = List.map convertDirective field.directives
-                                        , selection = canSelection
-                                        , variants = selectionResult.capturedVariants
-                                        , remainingTags = List.reverse remaining
                                         , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                        , selection =
+                                            Can.FieldInterface
+                                                { selection = canSelection
+                                                , variants = selectionResult.capturedVariants
+                                                , remainingTags =
+                                                    List.reverse remaining
+                                                }
                                         }
                                     )
                                 )
@@ -2058,7 +2098,7 @@ canonicalizeObject :
     -> GraphQL.Schema.Field
     -> VarCache
     -> GraphQL.Schema.ObjectDetails
-    -> ( UsedNames, CanResult Can.Selection )
+    -> ( UsedNames, CanResult Can.Field )
 canonicalizeObject refs field usedNames schemaField varCache obj =
     case field.selection of
         [] ->
@@ -2132,14 +2172,15 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                             |> dropLevel
                             |> saveSibling aliasedName
                         , CanSuccess (mergeCaches varCache cache)
-                            (Can.FieldObject
+                            (Can.Field
                                 { alias_ = Maybe.map convertName field.alias_
                                 , name = convertName field.name
                                 , globalAlias = Can.Name global.globalName
                                 , arguments = field.arguments
                                 , directives = List.map convertDirective field.directives
-                                , selection = canSelection
                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                , selection =
+                                    Can.FieldObject canSelection
                                 }
                             )
                         )
@@ -2200,14 +2241,14 @@ canonicalizeFieldWithVariants :
         }
     -> AST.Selection
     ->
-        { result : CanResult (List Can.Selection)
+        { result : CanResult (List Can.Field)
         , fieldNames : UsedNames
         , variants : List String
         , capturedVariants : List Can.VariantCase
         , typenameAlreadySelected : Bool
         }
     ->
-        { result : CanResult (List Can.Selection)
+        { result : CanResult (List Can.Field)
         , fieldNames : UsedNames
         , variants : List String
         , capturedVariants : List Can.VariantCase
@@ -2224,12 +2265,18 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
             if fieldName == "__typename" then
                 { result =
                     addToResult emptyCache
-                        (Can.FieldScalar
+                        (Can.Field
                             { alias_ = Maybe.map convertName field.alias_
                             , name = convertName field.name
+                            , globalAlias =
+                                field.alias_
+                                    |> Maybe.withDefault field.name
+                                    |> convertName
                             , arguments = []
                             , directives = List.map convertDirective field.directives
-                            , type_ = GraphQL.Schema.Scalar "typename"
+                            , wrapper = GraphQL.Schema.UnwrappedValue
+                            , selection =
+                                Can.FieldScalar (GraphQL.Schema.Scalar "typename")
                             }
                         )
                         found.result

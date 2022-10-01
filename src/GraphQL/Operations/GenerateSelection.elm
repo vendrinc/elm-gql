@@ -319,7 +319,7 @@ generatePrimaryResultType namespace def =
                                         namespace
                                         field
                             in
-                            ( new.name, new.annotation ) :: allFields
+                            new ++ allFields
                         )
                         []
                         op.fields
@@ -390,153 +390,134 @@ aliasedTypes namespace def =
                 op.fields
 
 
-genAliasedTypes :
-    Namespace
-    -> Can.Selection
-    -> List Elm.Declaration
-genAliasedTypes namespace sel =
-    case sel of
-        Can.FieldObject obj ->
+genAliasedTypes : Namespace -> Can.Field -> List Elm.Declaration
+genAliasedTypes namespace fieldOrFrag =
+    case fieldOrFrag of
+        Can.Frag frag ->
+            []
+
+        Can.Field field ->
             let
                 name =
-                    Can.nameToString obj.globalAlias
-
-                newDecls =
-                    generateTypesForFields (genAliasedTypes namespace)
-                        []
-                        obj.selection
-
-                fieldResult =
-                    List.foldl (aliasedFieldRecord namespace)
-                        []
-                        obj.selection
-                        |> List.reverse
-                        |> Type.record
-            in
-            (Elm.alias name fieldResult
-                |> Elm.expose
-            )
-                :: newDecls
-
-        Can.FieldUnion field ->
-            let
-                desiredName =
                     Can.nameToString field.globalAlias
-
-                desiredTypeName =
-                    desiredName
-
-                newDecls =
-                    generateTypesForFields (genAliasedTypes namespace)
-                        []
-                        field.selection
-
-                aliasName =
-                    Maybe.map
-                        Can.nameToString
-                        field.alias_
-
-                final =
-                    List.foldl
-                        (unionVars namespace)
-                        { variants = []
-                        , declarations = []
-                        }
-                        field.variants
-
-                ghostVariants =
-                    List.map (Elm.variant << unionVariantName) field.remainingTags
-
-                -- Any records within variants
             in
-            (Elm.customType
-                desiredTypeName
-                (final.variants ++ ghostVariants)
-                |> Elm.exposeWith
-                    { exposeConstructor = True
-                    , group = Just "unions"
-                    }
-            )
-                :: final.declarations
-                ++ newDecls
+            case field.selection of
+                Can.FieldObject selection ->
+                    let
+                        newDecls =
+                            generateTypesForFields (genAliasedTypes namespace)
+                                []
+                                selection
 
-        Can.FieldInterface field ->
-            let
-                desiredName =
-                    Can.nameToString field.globalAlias
-
-                desiredTypeName =
-                    desiredName
-
-                newDecls =
-                    generateTypesForFields (genAliasedTypes namespace)
-                        []
-                        field.selection
-
-                aliasName =
-                    Maybe.map
-                        Can.nameToString
-                        field.alias_
-
-                selectingForVariants =
-                    case field.variants of
-                        [] ->
-                            False
-
-                        _ ->
-                            True
-
-                -- Generate the record
-                interfaceRecord =
-                    List.foldl (aliasedFieldRecord namespace)
-                        (if selectingForVariants then
-                            [ ( "specifics_"
-                              , Type.named [] (desiredTypeName ++ "_Specifics")
-                              )
-                            ]
-
-                         else
-                            []
-                        )
-                        field.selection
-                        |> Type.record
-
-                final =
-                    List.foldl
-                        (interfaceVariants namespace)
-                        { variants = []
-                        , declarations = []
-                        }
-                        field.variants
-
-                ghostVariants =
-                    List.map (Elm.variant << unionVariantName) field.remainingTags
-
-                withSpecificType existingList =
-                    if selectingForVariants then
-                        (Elm.customType
-                            (desiredTypeName ++ "_Specifics")
-                            (final.variants ++ ghostVariants)
-                            |> Elm.exposeWith
-                                { exposeConstructor = True
-                                , group = Just "unions"
-                                }
-                        )
-                            :: existingList
-
-                    else
-                        existingList
-            in
-            (Elm.alias desiredTypeName interfaceRecord
-                |> Elm.exposeWith { exposeConstructor = True, group = Just "necessary" }
-            )
-                :: withSpecificType
-                    (final.declarations
-                        ++ newDecls
+                        fieldResult =
+                            List.foldl (aliasedFieldRecord namespace)
+                                []
+                                selection
+                                |> List.reverse
+                                |> Type.record
+                    in
+                    (Elm.alias name fieldResult
+                        |> Elm.expose
                     )
+                        :: newDecls
 
-        _ ->
-            []
+                Can.FieldUnion union ->
+                    let
+                        newDecls =
+                            generateTypesForFields (genAliasedTypes namespace)
+                                []
+                                union.selection
+
+                        final =
+                            List.foldl
+                                (unionVars namespace)
+                                { variants = []
+                                , declarations = []
+                                }
+                                union.variants
+
+                        ghostVariants =
+                            List.map (Elm.variant << unionVariantName) union.remainingTags
+
+                        -- Any records within variants
+                    in
+                    (Elm.customType
+                        name
+                        (final.variants ++ ghostVariants)
+                        |> Elm.exposeWith
+                            { exposeConstructor = True
+                            , group = Just "unions"
+                            }
+                    )
+                        :: final.declarations
+                        ++ newDecls
+
+                Can.FieldInterface interface ->
+                    let
+                        newDecls =
+                            generateTypesForFields (genAliasedTypes namespace)
+                                []
+                                interface.selection
+
+                        selectingForVariants =
+                            case interface.variants of
+                                [] ->
+                                    False
+
+                                _ ->
+                                    True
+
+                        -- Generate the record
+                        interfaceRecord =
+                            List.foldl (aliasedFieldRecord namespace)
+                                (if selectingForVariants then
+                                    [ ( "specifics_"
+                                      , Type.named [] (name ++ "_Specifics")
+                                      )
+                                    ]
+
+                                 else
+                                    []
+                                )
+                                interface.selection
+                                |> Type.record
+
+                        final =
+                            List.foldl
+                                (interfaceVariants namespace)
+                                { variants = []
+                                , declarations = []
+                                }
+                                interface.variants
+
+                        ghostVariants =
+                            List.map (Elm.variant << unionVariantName) interface.remainingTags
+
+                        withSpecificType existingList =
+                            if selectingForVariants then
+                                (Elm.customType
+                                    (name ++ "_Specifics")
+                                    (final.variants ++ ghostVariants)
+                                    |> Elm.exposeWith
+                                        { exposeConstructor = True
+                                        , group = Just "unions"
+                                        }
+                                )
+                                    :: existingList
+
+                            else
+                                existingList
+                    in
+                    (Elm.alias name interfaceRecord
+                        |> Elm.exposeWith { exposeConstructor = True, group = Just "necessary" }
+                    )
+                        :: withSpecificType
+                            (final.declarations
+                                ++ newDecls
+                            )
+
+                _ ->
+                    []
 
 
 unionVariantName tag =
@@ -545,7 +526,7 @@ unionVariantName tag =
 
 aliasedFieldRecord :
     Namespace
-    -> Can.Selection
+    -> Can.Field
     -> List ( String, Type.Annotation )
     -> List ( String, Type.Annotation )
 aliasedFieldRecord namespace sel fields =
@@ -559,84 +540,61 @@ aliasedFieldRecord namespace sel fields =
 
 fieldAliasedAnnotation :
     Namespace
-    -> Can.Selection
+    -> Can.Field
     -> List ( String, Type.Annotation )
-fieldAliasedAnnotation namespace selection =
-    case selection of
-        Can.FieldObject field ->
-            let
-                annotation =
-                    Input.wrapElmType field.wrapper
-                        (Type.named
-                            []
-                            (Can.nameToString field.globalAlias)
-                        )
-            in
-            [ ( Can.getAliasedFieldName field
-              , annotation
+fieldAliasedAnnotation namespace field =
+    case field of
+        Can.Field details ->
+            [ ( Can.getAliasedFieldName details
+              , selectionAliasedAnnotation namespace details
+                    |> Input.wrapElmType details.wrapper
               )
             ]
 
-        Can.FieldScalar field ->
-            [ ( Can.getAliasedFieldName field
-              , schemaTypeToPrefab field.type_
-              )
-            ]
+        Can.Frag frag ->
+            case frag.fragment.selection of
+                Can.FragmentObject { selection } ->
+                    List.concatMap
+                        (fieldAliasedAnnotation namespace)
+                        selection
 
-        Can.FieldEnum field ->
-            [ ( Can.getAliasedFieldName field
-              , enumType namespace field.enumName
-                    |> Input.wrapElmType field.wrapper
-              )
-            ]
+                Can.FragmentUnion union ->
+                    List.concatMap
+                        (fieldAliasedAnnotation namespace)
+                        union.selection
 
-        Can.FieldFragment fragment ->
-            case fragment.fragment.selection of
-                Can.FragmentObject fragObj ->
-                    List.foldl
-                        (aliasedFieldRecord namespace)
-                        []
-                        fragObj.selection
+                Can.FragmentInterface interface ->
+                    List.concatMap
+                        (fieldAliasedAnnotation namespace)
+                        interface.selection
 
-                Can.FragmentUnion fragUnion ->
-                    List.foldl
-                        (aliasedFieldRecord namespace)
-                        []
-                        fragUnion.selection
 
-                Can.FragmentInterface fragInterface ->
-                    List.foldl
-                        (aliasedFieldRecord namespace)
-                        []
-                        fragInterface.selection
+selectionAliasedAnnotation :
+    Namespace
+    -> Can.FieldDetails
+    -> Type.Annotation
+selectionAliasedAnnotation namespace field =
+    case field.selection of
+        Can.FieldObject obj ->
+            Type.named
+                []
+                (Can.nameToString field.globalAlias)
 
-        Can.FieldUnion field ->
-            let
-                annotation =
-                    Input.wrapElmType field.wrapper
-                        (Type.named
-                            []
-                            (Can.nameToString field.globalAlias)
-                        )
-            in
-            [ ( Can.getAliasedFieldName field
-              , annotation
-              )
-            ]
+        Can.FieldScalar type_ ->
+            schemaTypeToPrefab type_
 
-        Can.FieldInterface field ->
-            let
-                annotation =
-                    Input.wrapElmType field.wrapper
-                        (Type.named
-                            []
-                            (Can.nameToString field.globalAlias)
-                        )
-            in
-            [ ( Can.getAliasedFieldName field
-              , annotation
-              )
-            ]
+        Can.FieldEnum enum ->
+            enumType namespace enum.enumName
+
+        Can.FieldUnion _ ->
+            Type.named
+                []
+                (Can.nameToString field.globalAlias)
+
+        Can.FieldInterface _ ->
+            Type.named
+                []
+                (Can.nameToString field.globalAlias)
 
 
 {-| -}
@@ -766,16 +724,11 @@ interfaceVariants namespace unionCase gathered =
             }
 
 
-removeTypename : Can.Selection -> Bool
+removeTypename : Can.Field -> Bool
 removeTypename field =
     case field of
-        Can.FieldScalar scal ->
-            case scal.type_ of
-                GraphQL.Schema.Scalar "typename" ->
-                    False
-
-                _ ->
-                    True
+        Can.Field details ->
+            Can.nameToString details.name /= "__typename"
 
         _ ->
             True
@@ -783,116 +736,77 @@ removeTypename field =
 
 fieldAnnotation :
     Namespace
+    -> Can.Field
+    -> List ( String, Type.Annotation )
+fieldAnnotation namespace field =
+    case field of
+        Can.Field details ->
+            [ ( Can.getAliasedFieldName details
+              , selectionAnnotation namespace details details.selection
+                    |> Input.wrapElmType details.wrapper
+              )
+            ]
+
+        Can.Frag frag ->
+            case frag.fragment.selection of
+                Can.FragmentObject { selection } ->
+                    List.concatMap
+                        (fieldAnnotation namespace)
+                        selection
+
+                Can.FragmentUnion union ->
+                    List.concatMap
+                        (fieldAnnotation namespace)
+                        union.selection
+
+                Can.FragmentInterface interface ->
+                    List.concatMap
+                        (fieldAnnotation namespace)
+                        interface.selection
+
+
+selectionAnnotation :
+    Namespace
+    -> Can.FieldDetails
     -> Can.Selection
-    ->
-        { name : String
-        , annotation : Type.Annotation
-        }
-fieldAnnotation namespace selection =
+    -> Type.Annotation
+selectionAnnotation namespace field selection =
     case selection of
-        Can.FieldObject field ->
+        Can.FieldObject objSelection ->
             let
                 record =
                     List.foldl
                         (\subfield allFields ->
                             let
-                                new =
+                                newFields =
                                     fieldAnnotation
                                         namespace
                                         subfield
                             in
-                            ( new.name, new.annotation ) :: allFields
+                            newFields ++ allFields
                         )
                         []
-                        field.selection
+                        objSelection
                         |> List.reverse
                         |> Type.record
-
-                annotation =
-                    Input.wrapElmType field.wrapper
-                        record
             in
-            { name = Can.getAliasedFieldName field
-            , annotation =
-                annotation
-            }
+            record
 
-        Can.FieldScalar field ->
-            { name = Can.getAliasedFieldName field
-            , annotation =
-                schemaTypeToPrefab field.type_
-            }
+        Can.FieldScalar type_ ->
+            schemaTypeToPrefab type_
 
-        Can.FieldEnum field ->
-            { name = Can.getAliasedFieldName field
-            , annotation =
-                enumType namespace field.enumName
-                    |> Input.wrapElmType field.wrapper
-            }
+        Can.FieldEnum enum ->
+            enumType namespace enum.enumName
 
-        Can.FieldFragment field ->
-            { name = Can.nameToString field.fragment.name
-            , annotation =
-                Type.named [] (Can.nameToString field.fragment.name)
-            }
+        Can.FieldUnion union ->
+            Type.named
+                []
+                (Can.getAliasedFieldName field)
 
-        --  case field.selection of
-        --     [] ->
-        --         let
-        --             annotation =
-        --                 case parent of
-        --                     Nothing ->
-        --                         Type.unit
-        --                     Just par ->
-        --                         getScalarType par (Can.nameToString field.name) schema
-        --                             |> schemaTypeToPrefab
-        --         in
-        --         { name = Can.getAliasedFieldName field
-        --         , annotation = annotation
-        --
-        --         }
-        --     sels ->
-        --         let
-        --             ( knownNames2, record ) =
-        --                 fieldsToRecord namespace
-        --                     schema
-        --                     knownNames
-        --                     (Just (Can.nameToString field.name))
-        --                     field.selection
-        --                     []
-        --             annotation =
-        --                 Input.wrapElmType field.wrapper
-        --                     record
-        --         in
-        --         { name = Can.getAliasedFieldName field
-        --         , annotation = annotation
-        --        2
-        --         }
-        Can.FieldUnion field ->
-            let
-                annotation =
-                    Type.named
-                        []
-                        -- Shouldnt this be a globa lalias?
-                        (Can.getAliasedFieldName field)
-                        |> Input.wrapElmType field.wrapper
-            in
-            { name = Can.getAliasedFieldName field
-            , annotation = annotation
-            }
-
-        Can.FieldInterface field ->
-            let
-                annotation =
-                    Type.named
-                        []
-                        -- Shouldnt this be a globa lalias?
-                        (Can.getAliasedFieldName field)
-                        |> Input.wrapElmType field.wrapper
-            in
-            { name = Can.getAliasedFieldName field
-            , annotation = annotation
-            }
+        Can.FieldInterface interface ->
+            Type.named
+                []
+                (Can.getAliasedFieldName field)
 
 
 enumType : Namespace -> String -> Type.Annotation
@@ -1007,89 +921,36 @@ child (Index top total) =
     Index 0 (top :: total)
 
 
-decodeFields : Namespace -> Elm.Expression -> Index -> List Can.Selection -> Elm.Expression -> Elm.Expression
+decodeFields : Namespace -> Elm.Expression -> Index -> List Can.Field -> Elm.Expression -> Elm.Expression
 decodeFields namespace version index fields exp =
     List.foldl
-        (decodeFieldsHelper namespace version)
+        (decodeFieldHelper namespace version)
         ( index, exp )
         fields
         |> Tuple.second
 
 
-decodeFieldsHelper : Namespace -> Elm.Expression -> Can.Selection -> ( Index, Elm.Expression ) -> ( Index, Elm.Expression )
-decodeFieldsHelper namespace version field ( index, exp ) =
-    ( next index
-    , case field of
-        Can.FieldObject obj ->
-            exp
+decodeFieldHelper : Namespace -> Elm.Expression -> Can.Field -> ( Index, Elm.Expression ) -> ( Index, Elm.Expression )
+decodeFieldHelper namespace version field ( index, exp ) =
+    case field of
+        Can.Field details ->
+            ( next index
+            , exp
                 |> decodeSingleField version
                     index
-                    (Can.getAliasedName obj)
-                    (Input.decodeWrapper obj.wrapper
-                        (decodeFields namespace
-                            version
-                            (child index)
-                            obj.selection
-                            (Decode.succeed (Elm.val (Can.nameToString obj.globalAlias)))
-                        )
+                    (Can.getAliasedName details)
+                    (decodeSelection
+                        namespace
+                        version
+                        details
+                        (child index)
+                        |> Input.decodeWrapper details.wrapper
                     )
+            )
 
-        Can.FieldScalar scal ->
-            exp
-                |> decodeSingleField version
-                    index
-                    (Can.getAliasedName scal)
-                    (decodeScalarType scal.type_)
-
-        Can.FieldEnum enum ->
-            exp
-                |> decodeSingleField version
-                    index
-                    (Can.getAliasedName enum)
-                    (Input.decodeWrapper enum.wrapper
-                        (Elm.value
-                            { importFrom =
-                                [ namespace.enums
-                                , "Enum"
-                                , Utils.String.formatTypename enum.enumName
-                                ]
-                            , name = "decoder"
-                            , annotation =
-                                Nothing
-                            }
-                        )
-                    )
-
-        Can.FieldUnion union ->
-            exp
-                |> decodeSingleField version
-                    index
-                    (Can.getAliasedName union)
-                    (Input.decodeWrapper union.wrapper
-                        (decodeUnion namespace
-                            version
-                            (child index)
-                            (Can.getAliasedName union)
-                            union
-                        )
-                    )
-
-        Can.FieldInterface interface ->
-            exp
-                |> decodeSingleField version
-                    index
-                    (Can.getAliasedName interface)
-                    (Input.decodeWrapper interface.wrapper
-                        (decodeInterface namespace
-                            version
-                            (child index)
-                            (Can.getAliasedName interface)
-                            interface
-                        )
-                    )
-
-        Can.FieldFragment fragment ->
-            exp
+        Can.Frag fragment ->
+            ( index
+            , exp
                 |> Elm.Op.pipe
                     (Elm.value
                         { importFrom = []
@@ -1099,7 +960,47 @@ decodeFieldsHelper namespace version field ( index, exp ) =
                         |> Elm.get (Can.nameToString fragment.fragment.name)
                         |> Elm.get "decoder"
                     )
-    )
+            )
+
+
+decodeSelection : Namespace -> Elm.Expression -> Can.FieldDetails -> Index -> Elm.Expression
+decodeSelection namespace version field index =
+    case field.selection of
+        Can.FieldObject objSelection ->
+            decodeFields namespace
+                version
+                (child index)
+                objSelection
+                (Decode.succeed (Elm.val (Can.nameToString field.globalAlias)))
+
+        Can.FieldScalar type_ ->
+            decodeScalarType type_
+
+        Can.FieldEnum enum ->
+            Elm.value
+                { importFrom =
+                    [ namespace.enums
+                    , "Enum"
+                    , Utils.String.formatTypename enum.enumName
+                    ]
+                , name = "decoder"
+                , annotation =
+                    Nothing
+                }
+
+        Can.FieldUnion union ->
+            decodeUnion namespace
+                version
+                (child index)
+                field
+                union
+
+        Can.FieldInterface interface ->
+            decodeInterface namespace
+                version
+                (child index)
+                field
+                interface
 
 
 decodeSingleField version index name decoder exp =
@@ -1119,8 +1020,8 @@ decodeSingleField version index name decoder exp =
             )
 
 
-decodeInterface : Namespace -> Elm.Expression -> Index -> String -> Can.FieldInterfaceDetails -> Elm.Expression
-decodeInterface namespace version index fieldName interface =
+decodeInterface : Namespace -> Elm.Expression -> Index -> Can.FieldDetails -> Can.FieldVariantDetails -> Elm.Expression
+decodeInterface namespace version index field interface =
     let
         selection =
             List.filter (not << Can.isTypeNameSelection) interface.selection
@@ -1129,22 +1030,23 @@ decodeInterface namespace version index fieldName interface =
     case interface.variants of
         [] ->
             Decode.succeed
-                (Elm.val (Can.nameToString interface.globalAlias))
+                (Elm.val (Can.nameToString field.globalAlias))
                 |> decodeFields namespace version (child index) selection
 
         _ ->
             Decode.succeed
-                (Elm.val (Can.nameToString interface.globalAlias))
+                (Elm.val (Can.nameToString field.globalAlias))
                 |> decodeFields namespace version (child index) selection
-                |> andMap (decodeInterfaceSpecifics namespace version index fieldName interface)
+                |> andMap (decodeInterfaceSpecifics namespace version index interface)
 
 
-decodeInterfaceSpecifics namespace version index fieldName interface =
+decodeInterfaceSpecifics : Namespace -> Elm.Expression -> Index -> Can.FieldVariantDetails -> Elm.Expression
+decodeInterfaceSpecifics namespace version index interface =
     Decode.field "__typename" Decode.string
         |> Decode.andThen
             (\_ ->
                 Elm.fn
-                    ( "typename" ++ fieldName ++ indexToString index
+                    ( "typename" ++ indexToString index
                     , Just Type.string
                     )
                     (\val ->
@@ -1154,7 +1056,6 @@ decodeInterfaceSpecifics namespace version index fieldName interface =
                                     (interfacePattern namespace
                                         version
                                         (child index)
-                                        interface.alias_
                                         interface.selection
                                     )
                                     interface.variants
@@ -1178,7 +1079,11 @@ decodeInterfaceSpecifics namespace version index fieldName interface =
             )
 
 
-interfacePattern namespace version index maybeAlias commonFields var =
+
+-- interfacePattern : Namespace -> Elm.Expression -> Index ->
+
+
+interfacePattern namespace version index commonFields var =
     let
         tag =
             Utils.String.formatTypename (Can.nameToString var.tag)
@@ -1210,8 +1115,8 @@ interfacePattern namespace version index maybeAlias commonFields var =
     )
 
 
-decodeUnion : Namespace -> Elm.Expression -> Index -> String -> Can.FieldUnionDetails -> Elm.Expression
-decodeUnion namespace version index fieldName union =
+decodeUnion : Namespace -> Elm.Expression -> Index -> Can.FieldDetails -> Can.FieldVariantDetails -> Elm.Expression
+decodeUnion namespace version index field union =
     Decode.field "__typename" Decode.string
         |> Decode.andThen
             (\typename ->
@@ -1221,7 +1126,7 @@ decodeUnion namespace version index fieldName union =
                             (unionPattern namespace
                                 version
                                 (child index)
-                                union.alias_
+                                field.alias_
                             )
                             union.variants
                             ++ List.map

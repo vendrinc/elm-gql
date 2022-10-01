@@ -27,7 +27,7 @@ type alias OperationDetails =
     , name : Maybe Name
     , variableDefinitions : List VariableDefinition
     , directives : List Directive
-    , fields : List Selection
+    , fields : List Field
     }
 
 
@@ -40,38 +40,6 @@ type alias Directive =
     { name : Name
     , arguments : List Argument
     }
-
-
-type alias Fragment =
-    { name : Name
-    , typeCondition : Name
-    , directives : List Directive
-    , selection : FragmentSelection
-    }
-
-
-type FragmentSelection
-    = FragmentObject
-        { selection : List Selection
-        }
-    | FragmentUnion
-        { selection : List Selection
-        , variants : List VariantCase
-        , remainingTags :
-            List
-                { tag : Name
-                , globalAlias : Name
-                }
-        }
-    | FragmentInterface
-        { selection : List Selection
-        , variants : List VariantCase
-        , remainingTags :
-            List
-                { tag : Name
-                , globalAlias : Name
-                }
-        }
 
 
 type alias Argument =
@@ -91,13 +59,33 @@ type alias Variable =
     }
 
 
-type Selection
-    = FieldObject FieldObjectDetails
-    | FieldUnion FieldUnionDetails
-    | FieldScalar FieldScalarDetails
-    | FieldEnum FieldEnumDetails
-    | FieldInterface FieldInterfaceDetails
-    | FieldFragment FragmentDetails
+{-| A selection is a few different pieces
+
+    myAlias: fieldName(args) @directive {
+        # selected fields
+    }
+
+  - name -> the field name in the schema
+  - alias\_ -> the alias provided in the query
+  - globalAlias ->
+    The name that's guaranteed to be unique for the query.
+    This is used to generate record types for the results of an operation.
+
+-}
+type Field
+    = Field FieldDetails
+    | Frag FragmentDetails
+
+
+type alias FieldDetails =
+    { alias_ : Maybe Name
+    , name : Name
+    , globalAlias : Name
+    , arguments : List Argument
+    , directives : List Directive
+    , wrapper : GraphQL.Schema.Wrapped
+    , selection : Selection
+    }
 
 
 type alias FragmentDetails =
@@ -106,67 +94,59 @@ type alias FragmentDetails =
     }
 
 
-isTypeNameSelection : Selection -> Bool
-isTypeNameSelection sel =
-    case sel of
-        FieldScalar scal ->
-            nameToString scal.name == "__typename"
-
-        _ ->
-            False
-
-
-{-|
-
-    - name        -> the field name in the schema
-    - alias_      -> the alias provided in the query
-    - globalAlias ->
-            The name that's guaranteed to be unique for the query.
-            This is used to generate record types for the results of an operation.
-
--}
-type alias FieldObjectDetails =
-    { alias_ : Maybe Name
-    , name : Name
-    , globalAlias : Name
-    , arguments : List Argument
+type alias Fragment =
+    { name : Name
+    , typeCondition : Name
     , directives : List Directive
-    , selection : List Selection
-    , wrapper : GraphQL.Schema.Wrapped
+    , selection : FragmentSelection
     }
 
 
-type alias FieldUnionDetails =
-    { alias_ : Maybe Name
-    , name : Name
-    , globalAlias : Name
-    , arguments : List Argument
-    , directives : List Directive
-    , selection : List Selection
+type FragmentSelection
+    = FragmentObject
+        { selection : List Field
+        }
+    | FragmentUnion FieldVariantDetails
+    | FragmentInterface FieldVariantDetails
+
+
+type Selection
+    = FieldScalar GraphQL.Schema.Type
+    | FieldEnum FieldEnumDetails
+    | FieldObject (List Field)
+    | FieldUnion FieldVariantDetails
+    | FieldInterface FieldVariantDetails
+
+
+isTypeNameSelection : Field -> Bool
+isTypeNameSelection field =
+    case field of
+        Field details ->
+            nameToString details.name == "__typename"
+
+        Frag frag ->
+            False
+
+
+type alias FieldVariantDetails =
+    { selection : List Field
     , variants : List VariantCase
     , remainingTags :
         List
             { tag : Name
             , globalAlias : Name
             }
-    , wrapper : GraphQL.Schema.Wrapped
     }
 
 
 type alias FieldInterfaceDetails =
-    { alias_ : Maybe Name
-    , name : Name
-    , globalAlias : Name
-    , arguments : List Argument
-    , directives : List Directive
-    , selection : List Selection
+    { selection : List Field
     , variants : List VariantCase
     , remainingTags :
         List
             { tag : Name
             , globalAlias : Name
             }
-    , wrapper : GraphQL.Schema.Wrapped
     }
 
 
@@ -175,27 +155,13 @@ type alias VariantCase =
     , globalTagName : Name
     , globalDetailsAlias : Name
     , directives : List Directive
-    , selection : List Selection
-    }
-
-
-type alias FieldScalarDetails =
-    { alias_ : Maybe Name
-    , name : Name
-    , arguments : List Argument
-    , directives : List Directive
-    , type_ : GraphQL.Schema.Type
+    , selection : List Field
     }
 
 
 type alias FieldEnumDetails =
-    { alias_ : Maybe Name
-    , name : Name
-    , arguments : List Argument
-    , directives : List Directive
-    , enumName : String
+    { enumName : String
     , values : List { name : String, description : Maybe String }
-    , wrapper : GraphQL.Schema.Wrapped
     }
 
 
@@ -203,16 +169,13 @@ type Name
     = Name String
 
 
-getAliasedName : { details | name : Name, alias_ : Maybe Name } -> String
+getAliasedName : FieldDetails -> String
 getAliasedName details =
     nameToString (Maybe.withDefault details.name details.alias_)
 
 
 getAliasedFieldName :
-    { field
-        | alias_ : Maybe Name
-        , name : Name
-    }
+    FieldDetails
     -> String
 getAliasedFieldName details =
     nameToString (Maybe.withDefault details.name details.alias_)
@@ -264,7 +227,7 @@ toString (Operation def) =
         ++ variableDefinitions
         ++ " "
         ++ brackets
-            (foldToString "\n" selectionToString def.fields)
+            (foldToString "\n" fieldToString def.fields)
 
 
 {-| Only render the fields of the query, but with no outer brackets
@@ -283,55 +246,56 @@ operationLabel (Operation def) =
 -}
 toStringFields : Definition -> String
 toStringFields (Operation def) =
-    foldToString "\n" selectionToString def.fields
+    foldToString "\n" fieldToString def.fields
+
+
+fieldToString : Field -> String
+fieldToString field =
+    case field of
+        Field details ->
+            aliasedName details
+                ++ renderArguments details.arguments
+                ++ selectionToString details.selection
+
+        Frag frag ->
+            "..." ++ nameToString frag.fragment.name
 
 
 selectionToString : Selection -> String
-selectionToString sel =
-    case sel of
-        FieldObject details ->
-            aliasedName details
-                ++ renderArguments details.arguments
-                ++ renderSelection details.selection
+selectionToString selection =
+    case selection of
+        FieldObject fields ->
+            selectionGroupToString fields
 
         FieldUnion details ->
-            aliasedName details
-                ++ renderArguments details.arguments
-                ++ " "
-                ++ brackets
-                    (foldToString "\n" selectionToString details.selection
-                        ++ (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
-                                "\n"
+            brackets
+                (foldToString "\n" fieldToString details.selection
+                    ++ (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
+                            "\n"
 
-                            else
-                                ""
-                           )
-                        ++ foldToString "\n" variantFragmentToString details.variants
-                    )
+                        else
+                            ""
+                       )
+                    ++ foldToString "\n" variantFragmentToString details.variants
+                )
 
         FieldScalar details ->
-            aliasedName details ++ renderArguments details.arguments
+            ""
 
         FieldEnum details ->
-            aliasedName details ++ renderArguments details.arguments
+            ""
 
         FieldInterface details ->
-            aliasedName details
-                ++ renderArguments details.arguments
-                ++ " "
-                ++ brackets
-                    (foldToString "\n" selectionToString details.selection
-                        ++ (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
-                                "\n"
+            brackets
+                (foldToString "\n" fieldToString details.selection
+                    ++ (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
+                            "\n"
 
-                            else
-                                ""
-                           )
-                        ++ foldToString "\n" variantFragmentToString details.variants
-                    )
-
-        FieldFragment { fragment } ->
-            "..." ++ nameToString fragment.name
+                        else
+                            ""
+                       )
+                    ++ foldToString "\n" variantFragmentToString details.variants
+                )
 
 
 variantFragmentToString : VariantCase -> String
@@ -339,18 +303,18 @@ variantFragmentToString instance =
     "... on "
         ++ nameToString instance.tag
         ++ " "
-        ++ brackets (foldToString "\n" selectionToString instance.selection)
+        ++ brackets (foldToString "\n" fieldToString instance.selection)
 
 
-renderSelection : List Selection -> String
-renderSelection selection =
+selectionGroupToString : List Field -> String
+selectionGroupToString selection =
     case selection of
         [] ->
             ""
 
         _ ->
             " "
-                ++ brackets (foldToString "\n" selectionToString selection)
+                ++ brackets (foldToString "\n" fieldToString selection)
 
 
 renderArguments : List Argument -> String
@@ -412,7 +376,7 @@ argValToString val =
                 ++ "]"
 
 
-aliasedName : { a | alias_ : Maybe Name, name : Name } -> String
+aliasedName : FieldDetails -> String
 aliasedName details =
     case details.alias_ of
         Nothing ->
@@ -550,7 +514,7 @@ renderFields fields cursor =
                      else
                         ""
                     )
-                |> selectionToExpressionString sel
+                |> renderField sel
             )
         )
         ( False, cursor )
@@ -639,53 +603,45 @@ addExp new cursor =
     }
 
 
-selectionToExpressionString : Selection -> RenderingCursor -> RenderingCursor
-selectionToExpressionString sel cursor =
-    case sel of
-        FieldObject details ->
+renderField : Field -> RenderingCursor -> RenderingCursor
+renderField field cursor =
+    case field of
+        Frag frag ->
+            cursor
+                |> addString ("\n..." ++ nameToString frag.fragment.name)
+
+        Field details ->
             cursor
                 |> aliasedNameExp details
                 |> renderArgumentsExp details.arguments
-                |> renderSelectionExp details.selection
+                -- Do we include client side directives?
+                -- For now, no.
+                |> renderSelection details.selection
 
-        FieldUnion details ->
-            cursor
-                |> aliasedNameExp details
-                |> renderArgumentsExp details.arguments
-                |> addString " {"
-                |> addLevelToCursor
-                |> renderFields details.selection
-                |> removeLevelToCursor
-                |> addString
-                    (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
-                        "\n"
 
-                     else
-                        ""
-                    )
-                |> addLevelToCursor
-                |> (\currentCursor ->
-                        List.foldr renderVariantFragmentToExp currentCursor details.variants
-                   )
-                |> removeLevelToCursor
-                |> addString " }"
-
+renderSelection : Selection -> RenderingCursor -> RenderingCursor
+renderSelection selection cursor =
+    case selection of
         FieldScalar details ->
             cursor
-                |> aliasedNameExp details
-                |> renderArgumentsExp details.arguments
 
         FieldEnum details ->
             cursor
-                |> aliasedNameExp details
-                |> renderArgumentsExp details.arguments
 
-        FieldInterface details ->
+        FieldObject fields ->
             cursor
-                |> aliasedNameExp details
-                |> renderArgumentsExp details.arguments
                 |> addString " {"
+                |> addLevelToCursor
+                |> renderFields fields
+                |> removeLevelToCursor
+                |> addString " }"
+
+        FieldUnion details ->
+            cursor
+                |> addString " {"
+                |> addLevelToCursor
                 |> renderFields details.selection
+                |> removeLevelToCursor
                 |> addString
                     (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
                         "\n"
@@ -693,14 +649,42 @@ selectionToExpressionString sel cursor =
                      else
                         ""
                     )
+                |> addLevelToCursor
                 |> (\currentCursor ->
-                        List.foldr renderVariantFragmentToExp currentCursor details.variants
+                        List.foldr renderVariant currentCursor details.variants
                    )
+                |> removeLevelToCursor
                 |> addString " }"
 
-        FieldFragment { fragment } ->
+        FieldInterface details ->
             cursor
-                |> addString ("\n..." ++ nameToString fragment.name)
+                |> addString " {"
+                |> addLevelToCursor
+                |> renderFields details.selection
+                |> removeLevelToCursor
+                |> addString
+                    (if not (List.isEmpty details.selection && List.isEmpty details.variants) then
+                        "\n"
+
+                     else
+                        ""
+                    )
+                |> addLevelToCursor
+                |> (\currentCursor ->
+                        List.foldr renderVariant currentCursor details.variants
+                   )
+                |> removeLevelToCursor
+                |> addString " }"
+
+
+renderVariant : VariantCase -> RenderingCursor -> RenderingCursor
+renderVariant instance cursor =
+    cursor
+        |> addString ("\n... on " ++ nameToString instance.tag ++ " {")
+        |> addLevelToCursor
+        |> renderFields instance.selection
+        |> removeLevelToCursor
+        |> addString "}"
 
 
 aliasedNameExp : { a | alias_ : Maybe Name, name : Name } -> RenderingCursor -> RenderingCursor
@@ -853,23 +837,3 @@ addArgValue val cursor =
                 vals
                 |> Tuple.second
                 |> addString "]"
-
-
-renderSelectionExp : List Selection -> RenderingCursor -> RenderingCursor
-renderSelectionExp selection cursor =
-    cursor
-        |> addString " {"
-        |> addLevelToCursor
-        |> renderFields selection
-        |> removeLevelToCursor
-        |> addString "}"
-
-
-renderVariantFragmentToExp : VariantCase -> RenderingCursor -> RenderingCursor
-renderVariantFragmentToExp instance cursor =
-    cursor
-        |> addString ("\n... on " ++ nameToString instance.tag ++ " {")
-        |> addLevelToCursor
-        |> renderFields instance.selection
-        |> removeLevelToCursor
-        |> addString "}"
