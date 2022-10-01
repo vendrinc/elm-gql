@@ -174,13 +174,6 @@ getAliasedName details =
     nameToString (Maybe.withDefault details.name details.alias_)
 
 
-getAliasedFieldName :
-    FieldDetails
-    -> String
-getAliasedFieldName details =
-    nameToString (Maybe.withDefault details.name details.alias_)
-
-
 nameToString : Name -> String
 nameToString (Name str) =
     str

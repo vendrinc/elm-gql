@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.CanonicalAST exposing (addArgValue, addExp, addLevelToCursor, addString, aliasedName, aliasedNameExp, annotation_, argToString, argValToString, brackets, call_, caseOf_, commit, fieldToString, foldToString, getAliasedFieldName, getAliasedName, getWrapper, initCursor, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, operationName, removeLevelToCursor, renderArguments, renderArgumentsExp, renderField, renderSelection, renderVariant, selectionGroupToString, selectionToString, toRendererExpression, toString, toStringFields, typeToString, unwrap, values_, variantFragmentToString)
+module Gen.GraphQL.Operations.CanonicalAST exposing (addArgValue, addExp, addLevelToCursor, addString, aliasedName, aliasedNameExp, annotation_, argToString, argValToString, brackets, call_, caseOf_, commit, fieldToString, foldToString, getAliasedName, getWrapper, initCursor, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, operationName, removeLevelToCursor, renderArguments, renderArgumentsExp, renderField, renderSelection, renderVariant, selectionGroupToString, selectionToString, toRendererExpression, toString, toStringFields, typeToString, unwrap, values_, variantFragmentToString)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, getAliasedFieldName, nameToString, toString, operationLabel, toStringFields, fieldToString, selectionToString, variantFragmentToString, selectionGroupToString, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toRendererExpression, initCursor, addLevelToCursor, removeLevelToCursor, commit, addString, addExp, renderField, renderSelection, renderVariant, aliasedNameExp, renderArgumentsExp, addArgValue, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, nameToString, toString, operationLabel, toStringFields, fieldToString, selectionToString, variantFragmentToString, selectionGroupToString, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toRendererExpression, initCursor, addLevelToCursor, removeLevelToCursor, commit, addString, addExp, renderField, renderSelection, renderVariant, aliasedNameExp, renderArgumentsExp, addArgValue, moduleName_
 -}
 
 
@@ -637,24 +637,6 @@ nameToString nameToStringArg =
             }
         )
         [ nameToStringArg ]
-
-
-{-| getAliasedFieldName: FieldDetails -> String -}
-getAliasedFieldName : Elm.Expression -> Elm.Expression
-getAliasedFieldName getAliasedFieldNameArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-            , name = "getAliasedFieldName"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "FieldDetails" [] ]
-                        Type.string
-                    )
-            }
-        )
-        [ getAliasedFieldNameArg ]
 
 
 {-| getAliasedName: FieldDetails -> String -}
@@ -1696,48 +1678,14 @@ caseOf_ =
                     fragmentSelectionTags.fragmentObject
                 , Elm.Case.branch1
                     "FragmentUnion"
-                    ( "one"
-                    , Type.record
-                        [ ( "selection"
-                          , Type.list (Type.namedWith [] "Field" [])
-                          )
-                        , ( "variants"
-                          , Type.list (Type.namedWith [] "VariantCase" [])
-                          )
-                        , ( "remainingTags"
-                          , Type.list
-                                (Type.record
-                                    [ ( "tag", Type.namedWith [] "Name" [] )
-                                    , ( "globalAlias"
-                                      , Type.namedWith [] "Name" []
-                                      )
-                                    ]
-                                )
-                          )
-                        ]
+                    ( "fieldVariantDetails"
+                    , Type.namedWith [] "FieldVariantDetails" []
                     )
                     fragmentSelectionTags.fragmentUnion
                 , Elm.Case.branch1
                     "FragmentInterface"
-                    ( "one"
-                    , Type.record
-                        [ ( "selection"
-                          , Type.list (Type.namedWith [] "Field" [])
-                          )
-                        , ( "variants"
-                          , Type.list (Type.namedWith [] "VariantCase" [])
-                          )
-                        , ( "remainingTags"
-                          , Type.list
-                                (Type.record
-                                    [ ( "tag", Type.namedWith [] "Name" [] )
-                                    , ( "globalAlias"
-                                      , Type.namedWith [] "Name" []
-                                      )
-                                    ]
-                                )
-                          )
-                        ]
+                    ( "fieldVariantDetails"
+                    , Type.namedWith [] "FieldVariantDetails" []
                     )
                     fragmentSelectionTags.fragmentInterface
                 ]
@@ -1825,7 +1773,6 @@ call_ :
     , operationLabel : Elm.Expression -> Elm.Expression
     , toString : Elm.Expression -> Elm.Expression
     , nameToString : Elm.Expression -> Elm.Expression
-    , getAliasedFieldName : Elm.Expression -> Elm.Expression
     , getAliasedName : Elm.Expression -> Elm.Expression
     , isTypeNameSelection : Elm.Expression -> Elm.Expression
     }
@@ -2325,21 +2272,6 @@ call_ =
                     }
                 )
                 [ nameToStringArg ]
-    , getAliasedFieldName =
-        \getAliasedFieldNameArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-                    , name = "getAliasedFieldName"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "FieldDetails" [] ]
-                                Type.string
-                            )
-                    }
-                )
-                [ getAliasedFieldNameArg ]
     , getAliasedName =
         \getAliasedNameArg ->
             Elm.apply
@@ -2405,7 +2337,6 @@ values_ :
     , operationLabel : Elm.Expression
     , toString : Elm.Expression
     , nameToString : Elm.Expression
-    , getAliasedFieldName : Elm.Expression
     , getAliasedName : Elm.Expression
     , isTypeNameSelection : Elm.Expression
     }
@@ -2770,17 +2701,6 @@ values_ =
             , name = "nameToString"
             , annotation =
                 Just (Type.function [ Type.namedWith [] "Name" [] ] Type.string)
-            }
-    , getAliasedFieldName =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
-            , name = "getAliasedFieldName"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "FieldDetails" [] ]
-                        Type.string
-                    )
             }
     , getAliasedName =
         Elm.value

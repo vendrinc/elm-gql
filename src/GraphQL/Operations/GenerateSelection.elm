@@ -545,7 +545,7 @@ fieldAliasedAnnotation :
 fieldAliasedAnnotation namespace field =
     case field of
         Can.Field details ->
-            [ ( Can.getAliasedFieldName details
+            [ ( Can.getAliasedName details
               , selectionAliasedAnnotation namespace details
                     |> Input.wrapElmType details.wrapper
               )
@@ -741,7 +741,7 @@ fieldAnnotation :
 fieldAnnotation namespace field =
     case field of
         Can.Field details ->
-            [ ( Can.getAliasedFieldName details
+            [ ( Can.getAliasedName details
               , selectionAnnotation namespace details details.selection
                     |> Input.wrapElmType details.wrapper
               )
@@ -801,12 +801,12 @@ selectionAnnotation namespace field selection =
         Can.FieldUnion union ->
             Type.named
                 []
-                (Can.getAliasedFieldName field)
+                (Can.getAliasedName field)
 
         Can.FieldInterface interface ->
             Type.named
                 []
-                (Can.getAliasedFieldName field)
+                (Can.getAliasedName field)
 
 
 enumType : Namespace -> String -> Type.Annotation
