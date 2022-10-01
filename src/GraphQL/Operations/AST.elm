@@ -233,3 +233,23 @@ unwrap wrapper str =
 
             else
                 unwrap inner ("[" ++ str ++ "]")
+
+
+{-| Bfore canonicalizing fragments, we need to order them so that fragments with no fragments start first
+-}
+fragmentCount : FragmentDetails -> Int
+fragmentCount fragment =
+    List.foldl fragmentCountHelper 0 fragment.selection
+
+
+fragmentCountHelper : Selection -> Int -> Int
+fragmentCountHelper selection count =
+    case selection of
+        Field field ->
+            List.foldl fragmentCountHelper count field.selection
+
+        FragmentSpreadSelection spread ->
+            count + 1
+
+        InlineFragmentSelection inline ->
+            List.foldl fragmentCountHelper count inline.selection

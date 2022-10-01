@@ -692,8 +692,6 @@ interfaceVariants namespace unionCase gathered =
                         |> List.reverse
                         |> Type.record
 
-                -- variantName =
-                --     Can.nameToString unionCase.globalTagName
                 detailsName =
                     Can.nameToString unionCase.globalDetailsAlias
 

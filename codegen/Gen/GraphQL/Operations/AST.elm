@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.AST exposing (annotation_, brackets, call_, caseOf_, getAliasedName, getWrapper, make_, moduleName_, nameToString, typeToGqlString, typeToString, unwrap, valueToString, values_)
+module Gen.GraphQL.Operations.AST exposing (annotation_, brackets, call_, caseOf_, fragmentCount, fragmentCountHelper, getAliasedName, getWrapper, make_, moduleName_, nameToString, typeToGqlString, typeToString, unwrap, valueToString, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, getAliasedName, nameToString, valueToString, brackets, typeToGqlString, getWrapper, typeToString, unwrap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, getAliasedName, nameToString, valueToString, brackets, typeToGqlString, getWrapper, typeToString, unwrap, fragmentCount, fragmentCountHelper, moduleName_
 -}
 
 
@@ -15,6 +15,46 @@ import Tuple
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "AST" ]
+
+
+{-| fragmentCountHelper: Selection -> Int -> Int -}
+fragmentCountHelper : Elm.Expression -> Int -> Elm.Expression
+fragmentCountHelper fragmentCountHelperArg fragmentCountHelperArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "AST" ]
+            , name = "fragmentCountHelper"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Selection" [], Type.int ]
+                        Type.int
+                    )
+            }
+        )
+        [ fragmentCountHelperArg, Elm.int fragmentCountHelperArg0 ]
+
+
+{-| {-| Bfore canonicalizing fragments, we need to order them so that fragments with no fragments start first
+-}
+
+fragmentCount: FragmentDetails -> Int
+-}
+fragmentCount : Elm.Expression -> Elm.Expression
+fragmentCount fragmentCountArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "AST" ]
+            , name = "fragmentCount"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "FragmentDetails" [] ]
+                        Type.int
+                    )
+            }
+        )
+        [ fragmentCountArg ]
 
 
 {-| unwrap: Wrapper -> String -> String -}
@@ -1034,7 +1074,9 @@ caseOf_ =
 
 
 call_ :
-    { unwrap : Elm.Expression -> Elm.Expression -> Elm.Expression
+    { fragmentCountHelper : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , fragmentCount : Elm.Expression -> Elm.Expression
+    , unwrap : Elm.Expression -> Elm.Expression -> Elm.Expression
     , typeToString : Elm.Expression -> Elm.Expression -> Elm.Expression
     , getWrapper : Elm.Expression -> Elm.Expression -> Elm.Expression
     , typeToGqlString : Elm.Expression -> Elm.Expression
@@ -1044,7 +1086,37 @@ call_ :
     , getAliasedName : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { unwrap =
+    { fragmentCountHelper =
+        \fragmentCountHelperArg fragmentCountHelperArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "AST" ]
+                    , name = "fragmentCountHelper"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Selection" [], Type.int ]
+                                Type.int
+                            )
+                    }
+                )
+                [ fragmentCountHelperArg, fragmentCountHelperArg0 ]
+    , fragmentCount =
+        \fragmentCountArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "AST" ]
+                    , name = "fragmentCount"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "FragmentDetails" [] ]
+                                Type.int
+                            )
+                    }
+                )
+                [ fragmentCountArg ]
+    , unwrap =
         \unwrapArg unwrapArg0 ->
             Elm.apply
                 (Elm.value
@@ -1168,7 +1240,9 @@ call_ =
 
 
 values_ :
-    { unwrap : Elm.Expression
+    { fragmentCountHelper : Elm.Expression
+    , fragmentCount : Elm.Expression
+    , unwrap : Elm.Expression
     , typeToString : Elm.Expression
     , getWrapper : Elm.Expression
     , typeToGqlString : Elm.Expression
@@ -1178,7 +1252,29 @@ values_ :
     , getAliasedName : Elm.Expression
     }
 values_ =
-    { unwrap =
+    { fragmentCountHelper =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "AST" ]
+            , name = "fragmentCountHelper"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Selection" [], Type.int ]
+                        Type.int
+                    )
+            }
+    , fragmentCount =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "AST" ]
+            , name = "fragmentCount"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "FragmentDetails" [] ]
+                        Type.int
+                    )
+            }
+    , unwrap =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "AST" ]
             , name = "unwrap"

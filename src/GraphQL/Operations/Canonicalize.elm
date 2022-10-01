@@ -549,7 +549,9 @@ canonicalize schema doc =
                     List.foldl
                         (canonicalizeFragment schema)
                         (CanSuccess emptyCache Dict.empty)
-                        (Dict.values fragments)
+                        (List.sortBy AST.fragmentCount
+                            (Dict.values fragments)
+                        )
             in
             case canonicalizedFragments of
                 CanSuccess fragmentCacne canonicalFrags ->
