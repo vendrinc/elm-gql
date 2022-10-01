@@ -1851,7 +1851,7 @@ canonicalizeFieldTypeHelper :
     -> VarCache
     -> GraphQL.Schema.Field
     -> ( UsedNames, CanResult Can.Field )
-canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
+canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaField =
     let
         argValidation =
             canonicalizeArguments refs schemaField.arguments field.arguments
@@ -1878,7 +1878,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
                 List.reverse argValidation.valid
 
             newCache =
-                addVars vars varCache
+                addVars vars initialVarCache
         in
         case type_ of
             GraphQL.Schema.Scalar name ->
@@ -1981,7 +1981,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
                                 ( finalUsedNames
                                 , case canVarSelectionResult of
                                     CanSuccess cache variantSelection ->
-                                        CanSuccess (mergeCaches varCache cache)
+                                        CanSuccess (mergeCaches newCache cache)
                                             (Can.Field
                                                 { alias_ = Maybe.map convertName field.alias_
                                                 , name = convertName field.name
@@ -2033,7 +2033,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames varCache schemaField =
                         ( finalUsedNames
                         , case canVarSelectionResult of
                             CanSuccess cache variantSelection ->
-                                CanSuccess (mergeCaches varCache cache)
+                                CanSuccess (mergeCaches newCache cache)
                                     (Can.Field
                                         { alias_ = Maybe.map convertName field.alias_
                                         , name = convertName field.name
