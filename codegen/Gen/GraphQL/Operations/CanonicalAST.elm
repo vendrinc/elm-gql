@@ -17,7 +17,7 @@ moduleName_ =
     [ "GraphQL", "Operations", "CanonicalAST" ]
 
 
-{-| renderVariantFragmentToExp: UnionCaseDetails -> RenderingCursor -> RenderingCursor -}
+{-| renderVariantFragmentToExp: VariantCase -> RenderingCursor -> RenderingCursor -}
 renderVariantFragmentToExp : Elm.Expression -> Elm.Expression -> Elm.Expression
 renderVariantFragmentToExp renderVariantFragmentToExpArg renderVariantFragmentToExpArg0 =
     Elm.apply
@@ -27,7 +27,7 @@ renderVariantFragmentToExp renderVariantFragmentToExpArg renderVariantFragmentTo
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [] "UnionCaseDetails" []
+                        [ Type.namedWith [] "VariantCase" []
                         , Type.namedWith [] "RenderingCursor" []
                         ]
                         (Type.namedWith [] "RenderingCursor" [])
@@ -524,7 +524,7 @@ renderSelection renderSelectionArg =
         [ Elm.list renderSelectionArg ]
 
 
-{-| variantFragmentToString: UnionCaseDetails -> String -}
+{-| variantFragmentToString: VariantCase -> String -}
 variantFragmentToString : Elm.Expression -> Elm.Expression
 variantFragmentToString variantFragmentToStringArg =
     Elm.apply
@@ -534,7 +534,7 @@ variantFragmentToString variantFragmentToStringArg =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [] "UnionCaseDetails" [] ]
+                        [ Type.namedWith [] "VariantCase" [] ]
                         Type.string
                     )
             }
@@ -726,10 +726,9 @@ isTypeNameSelection isTypeNameSelectionArg =
 
 annotation_ :
     { renderingCursor : Type.Annotation
-    , unionCaseDetails : Type.Annotation
     , fieldEnumDetails : Type.Annotation
     , fieldScalarDetails : Type.Annotation
-    , interfaceCase : Type.Annotation
+    , variantCase : Type.Annotation
     , fieldInterfaceDetails : Type.Annotation
     , fieldUnionDetails : Type.Annotation
     , fieldObjectDetails : Type.Annotation
@@ -744,6 +743,7 @@ annotation_ :
     , wrapper : Type.Annotation
     , name : Type.Annotation
     , selection : Type.Annotation
+    , fragmentSelection : Type.Annotation
     , operationType : Type.Annotation
     , definition : Type.Annotation
     }
@@ -763,19 +763,6 @@ annotation_ =
                   )
                 , ( "depth", Type.int )
                 , ( "version", Type.namedWith [ "Elm" ] "Expression" [] )
-                ]
-            )
-    , unionCaseDetails =
-        Type.alias
-            moduleName_
-            "UnionCaseDetails"
-            []
-            (Type.record
-                [ ( "tag", Type.namedWith [] "Name" [] )
-                , ( "globalTagName", Type.namedWith [] "Name" [] )
-                , ( "globalDetailsAlias", Type.namedWith [] "Name" [] )
-                , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
-                , ( "selection", Type.list (Type.namedWith [] "Selection" []) )
                 ]
             )
     , fieldEnumDetails =
@@ -821,10 +808,10 @@ annotation_ =
                 , ( "type_", Type.namedWith [ "GraphQL", "Schema" ] "Type" [] )
                 ]
             )
-    , interfaceCase =
+    , variantCase =
         Type.alias
             moduleName_
-            "InterfaceCase"
+            "VariantCase"
             []
             (Type.record
                 [ ( "tag", Type.namedWith [] "Name" [] )
@@ -848,9 +835,7 @@ annotation_ =
                 , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
                 , ( "selection", Type.list (Type.namedWith [] "Selection" []) )
-                , ( "variants"
-                  , Type.list (Type.namedWith [] "InterfaceCase" [])
-                  )
+                , ( "variants", Type.list (Type.namedWith [] "VariantCase" []) )
                 , ( "remainingTags"
                   , Type.list
                         (Type.record
@@ -878,9 +863,7 @@ annotation_ =
                 , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
                 , ( "selection", Type.list (Type.namedWith [] "Selection" []) )
-                , ( "variants"
-                  , Type.list (Type.namedWith [] "UnionCaseDetails" [])
-                  )
+                , ( "variants", Type.list (Type.namedWith [] "VariantCase" []) )
                 , ( "remainingTags"
                   , Type.list
                         (Type.record
@@ -963,7 +946,7 @@ annotation_ =
                 [ ( "name", Type.namedWith [] "Name" [] )
                 , ( "typeCondition", Type.namedWith [] "Name" [] )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
-                , ( "selection", Type.list (Type.namedWith [] "Selection" []) )
+                , ( "selection", Type.namedWith [] "FragmentSelection" [] )
                 ]
             )
     , directive =
@@ -1014,6 +997,11 @@ annotation_ =
             [ "GraphQL", "Operations", "CanonicalAST" ]
             "Selection"
             []
+    , fragmentSelection =
+        Type.namedWith
+            [ "GraphQL", "Operations", "CanonicalAST" ]
+            "FragmentSelection"
+            []
     , operationType =
         Type.namedWith
             [ "GraphQL", "Operations", "CanonicalAST" ]
@@ -1035,14 +1023,6 @@ make_ :
         , version : Elm.Expression
         }
         -> Elm.Expression
-    , unionCaseDetails :
-        { tag : Elm.Expression
-        , globalTagName : Elm.Expression
-        , globalDetailsAlias : Elm.Expression
-        , directives : Elm.Expression
-        , selection : Elm.Expression
-        }
-        -> Elm.Expression
     , fieldEnumDetails :
         { alias_ : Elm.Expression
         , name : Elm.Expression
@@ -1061,7 +1041,7 @@ make_ :
         , type_ : Elm.Expression
         }
         -> Elm.Expression
-    , interfaceCase :
+    , variantCase :
         { tag : Elm.Expression
         , globalTagName : Elm.Expression
         , globalDetailsAlias : Elm.Expression
@@ -1143,6 +1123,9 @@ make_ :
     , fieldEnum : Elm.Expression -> Elm.Expression
     , fieldInterface : Elm.Expression -> Elm.Expression
     , fieldFragment : Elm.Expression -> Elm.Expression
+    , fragmentObject : Elm.Expression -> Elm.Expression
+    , fragmentUnion : Elm.Expression -> Elm.Expression
+    , fragmentInterface : Elm.Expression -> Elm.Expression
     , query : Elm.Expression
     , mutation : Elm.Expression
     , operation : Elm.Expression -> Elm.Expression
@@ -1175,38 +1158,6 @@ make_ =
                     , Tuple.pair "exp" renderingCursor_args.exp
                     , Tuple.pair "depth" renderingCursor_args.depth
                     , Tuple.pair "version" renderingCursor_args.version
-                    ]
-                )
-    , unionCaseDetails =
-        \unionCaseDetails_args ->
-            Elm.withType
-                (Type.alias
-                    [ "GraphQL", "Operations", "CanonicalAST" ]
-                    "UnionCaseDetails"
-                    []
-                    (Type.record
-                        [ ( "tag", Type.namedWith [] "Name" [] )
-                        , ( "globalTagName", Type.namedWith [] "Name" [] )
-                        , ( "globalDetailsAlias", Type.namedWith [] "Name" [] )
-                        , ( "directives"
-                          , Type.list (Type.namedWith [] "Directive" [])
-                          )
-                        , ( "selection"
-                          , Type.list (Type.namedWith [] "Selection" [])
-                          )
-                        ]
-                    )
-                )
-                (Elm.record
-                    [ Tuple.pair "tag" unionCaseDetails_args.tag
-                    , Tuple.pair
-                        "globalTagName"
-                        unionCaseDetails_args.globalTagName
-                    , Tuple.pair
-                        "globalDetailsAlias"
-                        unionCaseDetails_args.globalDetailsAlias
-                    , Tuple.pair "directives" unionCaseDetails_args.directives
-                    , Tuple.pair "selection" unionCaseDetails_args.selection
                     ]
                 )
     , fieldEnumDetails =
@@ -1295,12 +1246,12 @@ make_ =
                     , Tuple.pair "type_" fieldScalarDetails_args.type_
                     ]
                 )
-    , interfaceCase =
-        \interfaceCase_args ->
+    , variantCase =
+        \variantCase_args ->
             Elm.withType
                 (Type.alias
                     [ "GraphQL", "Operations", "CanonicalAST" ]
-                    "InterfaceCase"
+                    "VariantCase"
                     []
                     (Type.record
                         [ ( "tag", Type.namedWith [] "Name" [] )
@@ -1316,15 +1267,13 @@ make_ =
                     )
                 )
                 (Elm.record
-                    [ Tuple.pair "tag" interfaceCase_args.tag
-                    , Tuple.pair
-                        "globalTagName"
-                        interfaceCase_args.globalTagName
+                    [ Tuple.pair "tag" variantCase_args.tag
+                    , Tuple.pair "globalTagName" variantCase_args.globalTagName
                     , Tuple.pair
                         "globalDetailsAlias"
-                        interfaceCase_args.globalDetailsAlias
-                    , Tuple.pair "directives" interfaceCase_args.directives
-                    , Tuple.pair "selection" interfaceCase_args.selection
+                        variantCase_args.globalDetailsAlias
+                    , Tuple.pair "directives" variantCase_args.directives
+                    , Tuple.pair "selection" variantCase_args.selection
                     ]
                 )
     , fieldInterfaceDetails =
@@ -1353,7 +1302,7 @@ make_ =
                           , Type.list (Type.namedWith [] "Selection" [])
                           )
                         , ( "variants"
-                          , Type.list (Type.namedWith [] "InterfaceCase" [])
+                          , Type.list (Type.namedWith [] "VariantCase" [])
                           )
                         , ( "remainingTags"
                           , Type.list
@@ -1419,7 +1368,7 @@ make_ =
                           , Type.list (Type.namedWith [] "Selection" [])
                           )
                         , ( "variants"
-                          , Type.list (Type.namedWith [] "UnionCaseDetails" [])
+                          , Type.list (Type.namedWith [] "VariantCase" [])
                           )
                         , ( "remainingTags"
                           , Type.list
@@ -1571,7 +1520,7 @@ make_ =
                           , Type.list (Type.namedWith [] "Directive" [])
                           )
                         , ( "selection"
-                          , Type.list (Type.namedWith [] "Selection" [])
+                          , Type.namedWith [] "FragmentSelection" []
                           )
                         ]
                     )
@@ -1757,6 +1706,39 @@ make_ =
                     }
                 )
                 [ ar0 ]
+    , fragmentObject =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "FragmentObject"
+                    , annotation =
+                        Just (Type.namedWith [] "FragmentSelection" [])
+                    }
+                )
+                [ ar0 ]
+    , fragmentUnion =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "FragmentUnion"
+                    , annotation =
+                        Just (Type.namedWith [] "FragmentSelection" [])
+                    }
+                )
+                [ ar0 ]
+    , fragmentInterface =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "FragmentInterface"
+                    , annotation =
+                        Just (Type.namedWith [] "FragmentSelection" [])
+                    }
+                )
+                [ ar0 ]
     , query =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
@@ -1805,16 +1787,24 @@ caseOf_ :
             , fieldFragment : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
+    , fragmentSelection :
+        Elm.Expression
+        -> { fragmentSelectionTags_3_0
+            | fragmentObject : Elm.Expression -> Elm.Expression
+            , fragmentUnion : Elm.Expression -> Elm.Expression
+            , fragmentInterface : Elm.Expression -> Elm.Expression
+        }
+        -> Elm.Expression
     , operationType :
         Elm.Expression
-        -> { operationTypeTags_3_0
+        -> { operationTypeTags_4_0
             | query : Elm.Expression
             , mutation : Elm.Expression
         }
         -> Elm.Expression
     , definition :
         Elm.Expression
-        -> { definitionTags_4_0 | operation : Elm.Expression -> Elm.Expression }
+        -> { definitionTags_5_0 | operation : Elm.Expression -> Elm.Expression }
         -> Elm.Expression
     }
 caseOf_ =
@@ -1897,6 +1887,72 @@ caseOf_ =
                     )
                     selectionTags.fieldFragment
                 ]
+    , fragmentSelection =
+        \fragmentSelectionExpression fragmentSelectionTags ->
+            Elm.Case.custom
+                fragmentSelectionExpression
+                (Type.namedWith
+                    [ "GraphQL", "Operations", "CanonicalAST" ]
+                    "FragmentSelection"
+                    []
+                )
+                [ Elm.Case.branch1
+                    "FragmentObject"
+                    ( "one"
+                    , Type.record
+                        [ ( "selection"
+                          , Type.list (Type.namedWith [] "Selection" [])
+                          )
+                        ]
+                    )
+                    fragmentSelectionTags.fragmentObject
+                , Elm.Case.branch1
+                    "FragmentUnion"
+                    ( "one"
+                    , Type.record
+                        [ ( "selection"
+                          , Type.list (Type.namedWith [] "Selection" [])
+                          )
+                        , ( "variants"
+                          , Type.list (Type.namedWith [] "VariantCase" [])
+                          )
+                        , ( "remainingTags"
+                          , Type.list
+                                (Type.record
+                                    [ ( "tag", Type.namedWith [] "Name" [] )
+                                    , ( "globalAlias"
+                                      , Type.namedWith [] "Name" []
+                                      )
+                                    ]
+                                )
+                          )
+                        ]
+                    )
+                    fragmentSelectionTags.fragmentUnion
+                , Elm.Case.branch1
+                    "FragmentInterface"
+                    ( "one"
+                    , Type.record
+                        [ ( "selection"
+                          , Type.list (Type.namedWith [] "Selection" [])
+                          )
+                        , ( "variants"
+                          , Type.list (Type.namedWith [] "VariantCase" [])
+                          )
+                        , ( "remainingTags"
+                          , Type.list
+                                (Type.record
+                                    [ ( "tag", Type.namedWith [] "Name" [] )
+                                    , ( "globalAlias"
+                                      , Type.namedWith [] "Name" []
+                                      )
+                                    ]
+                                )
+                          )
+                        ]
+                    )
+                    fragmentSelectionTags.fragmentInterface
+                ]
     , operationType =
         \operationTypeExpression operationTypeTags ->
             Elm.Case.custom
@@ -1976,7 +2032,7 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.namedWith [] "UnionCaseDetails" []
+                                [ Type.namedWith [] "VariantCase" []
                                 , Type.namedWith [] "RenderingCursor" []
                                 ]
                                 (Type.namedWith [] "RenderingCursor" [])
@@ -2380,7 +2436,7 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.namedWith [] "UnionCaseDetails" [] ]
+                                [ Type.namedWith [] "VariantCase" [] ]
                                 Type.string
                             )
                     }
@@ -2572,7 +2628,7 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [] "UnionCaseDetails" []
+                        [ Type.namedWith [] "VariantCase" []
                         , Type.namedWith [] "RenderingCursor" []
                         ]
                         (Type.namedWith [] "RenderingCursor" [])
@@ -2873,7 +2929,7 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [] "UnionCaseDetails" [] ]
+                        [ Type.namedWith [] "VariantCase" [] ]
                         Type.string
                     )
             }

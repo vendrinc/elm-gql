@@ -1469,16 +1469,11 @@ canonicalizeFragment schema frag currentResult =
             CanError errMsg
 
         CanSuccess cache existingFrags ->
-            case Dict.get (AST.nameToString frag.typeCondition) schema.objects of
-                Nothing ->
-                    CanError
-                        [ error <|
-                            FragmentTargetDoesntExist
-                                { fragmentName = AST.nameToString frag.name
-                                , typeCondition = AST.nameToString frag.typeCondition
-                                }
-                        ]
-
+            let
+                typeCondition =
+                    AST.nameToString frag.typeCondition
+            in
+            case Dict.get typeCondition schema.objects of
                 Just obj ->
                     let
                         aliasedName =
@@ -1513,12 +1508,45 @@ canonicalizeFragment schema frag currentResult =
                                         { name = convertName frag.name
                                         , typeCondition = convertName frag.typeCondition
                                         , directives = List.map convertDirective frag.directives
-                                        , selection = selection
+                                        , selection =
+                                            Can.FragmentObject
+                                                { selection = selection }
                                         }
                                 )
 
                         CanError errorMsg ->
                             CanError errorMsg
+
+                Nothing ->
+                    case Dict.get typeCondition schema.interfaces of
+                        Just interface ->
+                            CanError
+                                [ error <|
+                                    FragmentTargetDoesntExist
+                                        { fragmentName = AST.nameToString frag.name
+                                        , typeCondition = AST.nameToString frag.typeCondition
+                                        }
+                                ]
+
+                        Nothing ->
+                            case Dict.get typeCondition schema.unions of
+                                Just union ->
+                                    CanError
+                                        [ error <|
+                                            FragmentTargetDoesntExist
+                                                { fragmentName = AST.nameToString frag.name
+                                                , typeCondition = AST.nameToString frag.typeCondition
+                                                }
+                                        ]
+
+                                Nothing ->
+                                    CanError
+                                        [ error <|
+                                            FragmentTargetDoesntExist
+                                                { fragmentName = AST.nameToString frag.name
+                                                , typeCondition = AST.nameToString frag.typeCondition
+                                                }
+                                        ]
 
 
 canonicalizeField :
@@ -2175,14 +2203,14 @@ canonicalizeFieldWithVariants :
         { result : CanResult (List Can.Selection)
         , fieldNames : UsedNames
         , variants : List String
-        , capturedVariants : List Can.UnionCaseDetails
+        , capturedVariants : List Can.VariantCase
         , typenameAlreadySelected : Bool
         }
     ->
         { result : CanResult (List Can.Selection)
         , fieldNames : UsedNames
         , variants : List String
-        , capturedVariants : List Can.UnionCaseDetails
+        , capturedVariants : List Can.VariantCase
         , typenameAlreadySelected : Bool
         }
 canonicalizeFieldWithVariants refs unionOrInterface selection found =

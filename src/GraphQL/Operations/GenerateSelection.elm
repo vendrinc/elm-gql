@@ -591,10 +591,24 @@ fieldAliasedAnnotation namespace selection =
             ]
 
         Can.FieldFragment fragment ->
-            List.foldl
-                (aliasedFieldRecord namespace)
-                []
-                fragment.fragment.selection
+            case fragment.fragment.selection of
+                Can.FragmentObject fragObj ->
+                    List.foldl
+                        (aliasedFieldRecord namespace)
+                        []
+                        fragObj.selection
+
+                Can.FragmentUnion fragUnion ->
+                    List.foldl
+                        (aliasedFieldRecord namespace)
+                        []
+                        fragUnion.selection
+
+                Can.FragmentInterface fragInterface ->
+                    List.foldl
+                        (aliasedFieldRecord namespace)
+                        []
+                        fragInterface.selection
 
         Can.FieldUnion field ->
             let
@@ -628,7 +642,7 @@ fieldAliasedAnnotation namespace selection =
 {-| -}
 unionVars :
     Namespace
-    -> Can.UnionCaseDetails
+    -> Can.VariantCase
     ->
         { variants : List Elm.Variant
         , declarations : List Elm.Declaration
@@ -692,7 +706,7 @@ unionVars namespace unionCase gathered =
 {-| -}
 interfaceVariants :
     Namespace
-    -> Can.UnionCaseDetails
+    -> Can.VariantCase
     ->
         { variants : List Elm.Variant
         , declarations : List Elm.Declaration
@@ -1337,14 +1351,36 @@ genFragDecoder namespace frag =
     ( Can.nameToString frag.name
     , Elm.record
         [ ( "decoder"
-          , Elm.fn ( "start_", Nothing )
-                (\start ->
-                    decodeFields namespace
-                        (Elm.int 0)
-                        initIndex
-                        frag.selection
-                        start
-                )
+          , case frag.selection of
+                Can.FragmentObject fragSelection ->
+                    Elm.fn ( "start_", Nothing )
+                        (\start ->
+                            decodeFields namespace
+                                (Elm.int 0)
+                                initIndex
+                                fragSelection.selection
+                                start
+                        )
+
+                Can.FragmentUnion fragSelection ->
+                    Elm.fn ( "start_", Nothing )
+                        (\start ->
+                            decodeFields namespace
+                                (Elm.int 0)
+                                initIndex
+                                fragSelection.selection
+                                start
+                        )
+
+                Can.FragmentInterface fragSelection ->
+                    Elm.fn ( "start_", Nothing )
+                        (\start ->
+                            decodeFields namespace
+                                (Elm.int 0)
+                                initIndex
+                                fragSelection.selection
+                                start
+                        )
           )
         ]
     )

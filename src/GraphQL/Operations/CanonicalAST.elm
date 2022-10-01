@@ -46,8 +46,32 @@ type alias Fragment =
     { name : Name
     , typeCondition : Name
     , directives : List Directive
-    , selection : List Selection
+    , selection : FragmentSelection
     }
+
+
+type FragmentSelection
+    = FragmentObject
+        { selection : List Selection
+        }
+    | FragmentUnion
+        { selection : List Selection
+        , variants : List VariantCase
+        , remainingTags :
+            List
+                { tag : Name
+                , globalAlias : Name
+                }
+        }
+    | FragmentInterface
+        { selection : List Selection
+        , variants : List VariantCase
+        , remainingTags :
+            List
+                { tag : Name
+                , globalAlias : Name
+                }
+        }
 
 
 type alias Argument =
@@ -119,7 +143,7 @@ type alias FieldUnionDetails =
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection
-    , variants : List UnionCaseDetails
+    , variants : List VariantCase
     , remainingTags :
         List
             { tag : Name
@@ -136,7 +160,7 @@ type alias FieldInterfaceDetails =
     , arguments : List Argument
     , directives : List Directive
     , selection : List Selection
-    , variants : List InterfaceCase
+    , variants : List VariantCase
     , remainingTags :
         List
             { tag : Name
@@ -146,7 +170,7 @@ type alias FieldInterfaceDetails =
     }
 
 
-type alias InterfaceCase =
+type alias VariantCase =
     { tag : Name
     , globalTagName : Name
     , globalDetailsAlias : Name
@@ -172,15 +196,6 @@ type alias FieldEnumDetails =
     , enumName : String
     , values : List { name : String, description : Maybe String }
     , wrapper : GraphQL.Schema.Wrapped
-    }
-
-
-type alias UnionCaseDetails =
-    { tag : Name
-    , globalTagName : Name
-    , globalDetailsAlias : Name
-    , directives : List Directive
-    , selection : List Selection
     }
 
 
@@ -319,7 +334,7 @@ selectionToString sel =
             "..." ++ nameToString fragment.name
 
 
-variantFragmentToString : UnionCaseDetails -> String
+variantFragmentToString : VariantCase -> String
 variantFragmentToString instance =
     "... on "
         ++ nameToString instance.tag
@@ -850,7 +865,7 @@ renderSelectionExp selection cursor =
         |> addString "}"
 
 
-renderVariantFragmentToExp : UnionCaseDetails -> RenderingCursor -> RenderingCursor
+renderVariantFragmentToExp : VariantCase -> RenderingCursor -> RenderingCursor
 renderVariantFragmentToExp instance cursor =
     cursor
         |> addString ("\n... on " ++ nameToString instance.tag ++ " {")
