@@ -98,6 +98,18 @@ type ErrorDetails
         , options :
             List Can.Fragment
         }
+    | FragmentTargetDoesntExist
+        { fragmentName : String
+        , typeCondition : String
+        }
+    | FragmentDuplicateFound
+        { firstName : String
+        , firstTypeCondition : String
+        , firstFieldCount : Int
+        , secondName : String
+        , secondTypeCondition : String
+        , secondFieldCount : Int
+        }
     | Todo String
 
 
@@ -334,14 +346,84 @@ errorToString (Error details) =
         FragmentNotFound deets ->
             let
                 fragmentsThatMatchThisObject =
-                    []
+                    List.filter
+                        (\frag ->
+                            deets.object == Can.nameToString frag.typeCondition
+                        )
+                        deets.options
             in
+            case fragmentsThatMatchThisObject of
+                [] ->
+                    case deets.options of
+                        [] ->
+                            String.join "\n"
+                                [ "I found a usage of a fragment named " ++ cyan deets.found ++ ", but I don't see any fragments defined in this document!"
+                                , "You could add one by adding this if you want."
+                                , block
+                                    [ cyan "fragment" ++ " on " ++ yellow deets.object ++ " {"
+                                    , "    # select some fields here!"
+                                    , "}"
+                                    ]
+                                , "Check out https://graphql.org/learn/queries/#fragments to learn more!"
+                                ]
+
+                        _ ->
+                            String.join "\n"
+                                [ "I don't recognize the fragment named " ++ cyan deets.found ++ "."
+                                , "Here are the fragments I know about."
+                                , block
+                                    (List.map (yellow << Can.nameToString << .name)
+                                        deets.options
+                                    )
+                                ]
+
+                [ single ] ->
+                    String.join "\n"
+                        [ "I don't recognize the fragment named " ++ cyan deets.found ++ "."
+                        , "Do you mean?"
+                        , block
+                            (List.map (yellow << Can.nameToString << .name)
+                                fragmentsThatMatchThisObject
+                            )
+                        ]
+
+                _ ->
+                    String.join "\n"
+                        [ "I don't recognize the fragment named " ++ cyan deets.found ++ "."
+                        , "Do you mean one of these?"
+                        , block
+                            (List.map (yellow << Can.nameToString << .name)
+                                fragmentsThatMatchThisObject
+                            )
+                        ]
+
+        FragmentTargetDoesntExist deets ->
             String.join "\n"
-                [ "I don't recognize the fragment named " ++ cyan deets.found ++ "."
-                , "Do you mean one of these?"
+                [ "I found this fragment:"
                 , block
-                    (List.map yellow [])
+                    [ "fragment " ++ cyan deets.fragmentName ++ " on " ++ yellow deets.typeCondition
+                    ]
+                , "But I wasn't able to find " ++ yellow deets.typeCondition ++ " in the schema."
+                , "Is there a typo?"
                 ]
+
+        FragmentDuplicateFound deets ->
+            if deets.firstTypeCondition == deets.secondTypeCondition && deets.firstFieldCount == deets.secondFieldCount then
+                String.join "\n"
+                    [ "I found two fragments with the name " ++ yellow deets.firstName
+                    , "Maybe they're just duplicates?"
+                    , "Fragments need to have globally unique names. Can you rename one?"
+                    ]
+
+            else
+                String.join "\n"
+                    [ "I found two fragments with the name " ++ yellow deets.firstName
+                    , block
+                        [ "fragment " ++ cyan deets.firstName ++ " on " ++ yellow deets.firstTypeCondition
+                        , "fragment " ++ cyan deets.secondName ++ " on " ++ yellow deets.secondTypeCondition
+                        ]
+                    , "Fragments need to have globally unique names. Can you rename one?"
+                    ]
 
         VariableIssueSummary summary ->
             case summary.declared of
@@ -449,57 +531,52 @@ emptySuccess =
 canonicalize : GraphQL.Schema.Schema -> AST.Document -> Result (List Error) Can.Document
 canonicalize schema doc =
     let
-        fragments =
+        fragmentResult =
             List.foldl
                 (getFragments
                     schema
                 )
-                Dict.empty
+                (Ok Dict.empty)
                 doc.definitions
-
-        canonicalizedFragments =
-            reduce
-                (canonicalizeFragment
-                    { schema = schema
-                    , fragments = Dict.empty
-                    }
-                )
-                (Dict.values fragments)
-                emptySuccess
     in
-    case canonicalizedFragments of
-        CanSuccess fragmentCacne canonicalFrags ->
+    case fragmentResult of
+        Err fragErrorDetails ->
+            Err (List.map error fragErrorDetails)
+
+        Ok fragments ->
             let
-                canonicalizedDefinitions =
-                    reduce
-                        (canonicalizeDefinition
-                            { schema = schema
-                            , fragments =
-                                canonicalFrags
-                                    |> List.map
-                                        (\canFrag ->
-                                            ( Can.nameToString canFrag.name
-                                            , canFrag
-                                            )
-                                        )
-                                    |> Dict.fromList
-                            }
-                        )
-                        doc.definitions
-                        emptySuccess
+                canonicalizedFragments =
+                    List.foldl
+                        (canonicalizeFragment schema)
+                        (CanSuccess emptyCache Dict.empty)
+                        (Dict.values fragments)
             in
-            case canonicalizedDefinitions of
-                CanSuccess cache defs ->
-                    Ok
-                        { definitions = defs
-                        , fragments = canonicalFrags
-                        }
+            case canonicalizedFragments of
+                CanSuccess fragmentCacne canonicalFrags ->
+                    let
+                        canonicalizedDefinitions =
+                            reduce
+                                (canonicalizeDefinition
+                                    { schema = schema
+                                    , fragments =
+                                        canonicalFrags
+                                    }
+                                )
+                                doc.definitions
+                                emptySuccess
+                    in
+                    case canonicalizedDefinitions of
+                        CanSuccess cache defs ->
+                            Ok
+                                { definitions = defs
+                                , fragments = Dict.values canonicalFrags
+                                }
+
+                        CanError errorMsg ->
+                            Err errorMsg
 
                 CanError errorMsg ->
                     Err errorMsg
-
-        CanError errorMsg ->
-            Err errorMsg
 
 
 type alias References =
@@ -535,17 +612,45 @@ mergeCaches one two =
     }
 
 
-getFragments : GraphQL.Schema.Schema -> AST.Definition -> Dict String AST.FragmentDetails -> Dict String AST.FragmentDetails
-getFragments schema def frags =
-    case def of
-        AST.Operation op ->
-            frags
+getFragments :
+    GraphQL.Schema.Schema
+    -> AST.Definition
+    -> Result (List ErrorDetails) (Dict String AST.FragmentDetails)
+    -> Result (List ErrorDetails) (Dict String AST.FragmentDetails)
+getFragments schema def result =
+    case result of
+        Err errs ->
+            Err errs
 
-        AST.Fragment frag ->
-            frags
-                |> Dict.insert
-                    (AST.nameToString frag.name)
-                    frag
+        Ok frags ->
+            case def of
+                AST.Operation op ->
+                    result
+
+                AST.Fragment frag ->
+                    let
+                        name =
+                            AST.nameToString frag.name
+                    in
+                    case Dict.get name frags of
+                        Nothing ->
+                            frags
+                                |> Dict.insert
+                                    (AST.nameToString frag.name)
+                                    frag
+                                |> Ok
+
+                        Just found ->
+                            Err
+                                [ FragmentDuplicateFound
+                                    { firstName = AST.nameToString frag.name
+                                    , firstTypeCondition = AST.nameToString frag.typeCondition
+                                    , firstFieldCount = List.length frag.selection
+                                    , secondName = AST.nameToString found.name
+                                    , secondTypeCondition = AST.nameToString found.typeCondition
+                                    , secondFieldCount = List.length found.selection
+                                    }
+                                ]
 
 
 reduce :
@@ -1354,47 +1459,66 @@ resetSiblings (UsedNames to) (UsedNames used) =
 
 
 canonicalizeFragment :
-    References
+    GraphQL.Schema.Schema
     -> AST.FragmentDetails
-    -> Maybe (CanResult Can.Fragment)
-canonicalizeFragment refs frag =
-    case Dict.get (AST.nameToString frag.typeCondition) refs.schema.objects of
-        Nothing ->
-            Nothing
+    -> CanResult (Dict String Can.Fragment)
+    -> CanResult (Dict String Can.Fragment)
+canonicalizeFragment schema frag currentResult =
+    case currentResult of
+        CanError errMsg ->
+            CanError errMsg
 
-        Just obj ->
-            let
-                aliasedName =
-                    frag.name
-                        |> AST.nameToString
-
-                selectionResult =
-                    List.foldl
-                        (canonicalizeField refs obj)
-                        { result = emptySuccess
-                        , fieldNames =
-                            UsedNames
-                                { siblingAliases = []
-                                , siblingStack = []
-                                , breadcrumbs = []
-                                , globalNames =
-                                    []
+        CanSuccess cache existingFrags ->
+            case Dict.get (AST.nameToString frag.typeCondition) schema.objects of
+                Nothing ->
+                    CanError
+                        [ error <|
+                            FragmentTargetDoesntExist
+                                { fragmentName = AST.nameToString frag.name
+                                , typeCondition = AST.nameToString frag.typeCondition
                                 }
-                        }
-                        frag.selection
-            in
-            case selectionResult.result of
-                CanSuccess newCache selection ->
-                    Just <|
-                        CanSuccess newCache
-                            { name = convertName frag.name
-                            , typeCondition = convertName frag.typeCondition
-                            , directives = List.map convertDirective frag.directives
-                            , selection = selection
-                            }
+                        ]
 
-                CanError errorMsg ->
-                    Just (CanError errorMsg)
+                Just obj ->
+                    let
+                        aliasedName =
+                            frag.name
+                                |> AST.nameToString
+
+                        selectionResult =
+                            List.foldl
+                                (canonicalizeField
+                                    { schema = schema
+                                    , fragments = existingFrags
+                                    }
+                                    obj
+                                )
+                                { result = CanSuccess cache []
+                                , fieldNames =
+                                    UsedNames
+                                        { siblingAliases = []
+                                        , siblingStack = []
+                                        , breadcrumbs = []
+                                        , globalNames =
+                                            []
+                                        }
+                                }
+                                frag.selection
+                    in
+                    case selectionResult.result of
+                        CanSuccess newCache selection ->
+                            CanSuccess newCache
+                                (existingFrags
+                                    |> Dict.insert (AST.nameToString frag.name)
+                                        { name = convertName frag.name
+                                        , typeCondition = convertName frag.typeCondition
+                                        , directives = List.map convertDirective frag.directives
+                                        , selection = selection
+                                        }
+                                )
+
+                        CanError errorMsg ->
+                            CanError errorMsg
 
 
 canonicalizeField :
