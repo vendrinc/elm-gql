@@ -984,18 +984,6 @@ type InputValidation
     | Mismatch
 
 
-builtinNames : List String
-builtinNames =
-    [ "List"
-    , "String"
-    , "Maybe"
-    , "Result"
-    , "Bool"
-    , "Float"
-    , "Int"
-    ]
-
-
 validateInput :
     References
     -> GraphQL.Schema.Type
@@ -1187,8 +1175,27 @@ formatTypename name =
     let
         first =
             String.left 1 name
+
+        uppercase =
+            String.toUpper first ++ String.dropLeft 1 name
     in
-    String.toUpper first ++ String.dropLeft 1 name
+    if List.member uppercase builtinNames then
+        uppercase ++ "_"
+
+    else
+        uppercase
+
+
+builtinNames : List String
+builtinNames =
+    [ "List"
+    , "String"
+    , "Maybe"
+    , "Result"
+    , "Bool"
+    , "Float"
+    , "Int"
+    ]
 
 
 {-| -}

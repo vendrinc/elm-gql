@@ -271,18 +271,6 @@ modifyFilePath pieces file =
     }
 
 
-builtinNames : List String
-builtinNames =
-    [ "List"
-    , "String"
-    , "Maybe"
-    , "Result"
-    , "Bool"
-    , "Float"
-    , "Int"
-    ]
-
-
 renderStandardComment :
     List
         { group : Maybe String
@@ -311,17 +299,6 @@ andMap decoder builder =
                 [ decoder
                 ]
             )
-
-
-primitives : Set.Set String
-primitives =
-    Set.fromList
-        [ "Int"
-        , "String"
-        , "Float"
-        , "Boolean"
-        , "ID"
-        ]
 
 
 
@@ -1338,15 +1315,10 @@ decodeScalarType type_ =
 generateFragmentDecoders : Namespace -> List Can.Fragment -> List Elm.Declaration
 generateFragmentDecoders namespace fragments =
     let
-        -- types =
-        --     List.concatMap
-        --         (genFragTypes namespace schema)
-        --         fragments
         decoderRecord =
             List.map (genFragDecoder namespace) fragments
                 |> Elm.record
                 |> Elm.declaration "fragments_"
-                |> Elm.expose
     in
     [ decoderRecord ]
 
