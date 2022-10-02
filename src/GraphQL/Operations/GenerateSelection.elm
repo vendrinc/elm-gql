@@ -543,30 +543,34 @@ fieldAliasedAnnotation :
     -> Can.Field
     -> List ( String, Type.Annotation )
 fieldAliasedAnnotation namespace field =
-    case field of
-        Can.Field details ->
-            [ ( Can.getAliasedName details
-              , selectionAliasedAnnotation namespace details
-                    |> Input.wrapElmType details.wrapper
-              )
-            ]
+    if Can.isTypeNameSelection field then
+        []
 
-        Can.Frag frag ->
-            case frag.fragment.selection of
-                Can.FragmentObject { selection } ->
-                    List.concatMap
-                        (fieldAliasedAnnotation namespace)
-                        selection
+    else
+        case field of
+            Can.Field details ->
+                [ ( Can.getAliasedName details
+                  , selectionAliasedAnnotation namespace details
+                        |> Input.wrapElmType details.wrapper
+                  )
+                ]
 
-                Can.FragmentUnion union ->
-                    List.concatMap
-                        (fieldAliasedAnnotation namespace)
-                        union.selection
+            Can.Frag frag ->
+                case frag.fragment.selection of
+                    Can.FragmentObject { selection } ->
+                        List.concatMap
+                            (fieldAliasedAnnotation namespace)
+                            selection
 
-                Can.FragmentInterface interface ->
-                    List.concatMap
-                        (fieldAliasedAnnotation namespace)
-                        interface.selection
+                    Can.FragmentUnion union ->
+                        List.concatMap
+                            (fieldAliasedAnnotation namespace)
+                            union.selection
+
+                    Can.FragmentInterface interface ->
+                        List.concatMap
+                            (fieldAliasedAnnotation namespace)
+                            interface.selection
 
 
 selectionAliasedAnnotation :
