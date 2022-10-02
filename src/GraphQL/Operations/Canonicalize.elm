@@ -110,6 +110,13 @@ type ErrorDetails
         , secondTypeCondition : String
         , secondFieldCount : Int
         }
+    | FragmentSelectionNotAllowedInObjects
+        { fragment : AST.InlineFragment
+        , objectName : String
+        }
+    | FragmentInlineTopLevel
+        { fragment : AST.InlineFragment
+        }
     | Todo String
 
 
@@ -424,6 +431,20 @@ errorToString (Error details) =
                         ]
                     , "Fragments need to have globally unique names. Can you rename one?"
                     ]
+
+        FragmentSelectionNotAllowedInObjects deets ->
+            String.join "\n"
+                [ "I found a fragment named " ++ yellow (AST.nameToString deets.fragment.tag)
+                , "but it is inside the object named " ++ cyan deets.objectName ++ ", which is neither an interface or a union."
+                , "Is it in the right place?"
+                ]
+
+        FragmentInlineTopLevel deets ->
+            String.join "\n"
+                [ "I found an inline fragment named " ++ yellow (AST.nameToString deets.fragment.tag) ++ " at the top level of the query."
+                , "But this sort of fragment must be inside a union or an interface."
+                , "Is it in the right place?"
+                ]
 
         VariableIssueSummary summary ->
             case summary.declared of
@@ -1082,7 +1103,7 @@ canonicalizeOperation refs op used selection =
 
         AST.InlineFragmentSelection inline ->
             -- This is when we're selecting a union fragment
-            ( used, err [ todo "Unions not supported yet" ] )
+            ( used, err [ error (FragmentInlineTopLevel { fragment = inline }) ] )
 
 
 type InputValidation
@@ -1812,7 +1833,15 @@ canonicalizeField refs object selection found =
                         }
 
         AST.InlineFragmentSelection inline ->
-            { result = err [ todo "Inline fragments are not allowed" ]
+            { result =
+                err
+                    [ error
+                        (FragmentSelectionNotAllowedInObjects
+                            { fragment = inline
+                            , objectName = object.name
+                            }
+                        )
+                    ]
             , fieldNames = found.fieldNames
             }
 
@@ -2296,7 +2325,6 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                 fieldName =
                     AST.nameToString field.name
             in
-            --- NOTE, we could probably be more sophisticated here!
             if fieldName == "__typename" then
                 { result =
                     addToResult emptyCache
@@ -2340,13 +2368,63 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                 }
 
         AST.FragmentSpreadSelection frag ->
-            { result =
-                err [ todo "Fragments in objects aren't suported yet!" ]
-            , fieldNames = found.fieldNames
-            , variants = found.variants
-            , capturedVariants = found.capturedVariants
-            , typenameAlreadySelected = found.typenameAlreadySelected
-            }
+            let
+                fragName =
+                    AST.nameToString frag.name
+            in
+            case Dict.get fragName refs.fragments of
+                Nothing ->
+                    { result =
+                        err
+                            [ error <|
+                                FragmentNotFound
+                                    { found = fragName
+                                    , object = unionOrInterface.name
+                                    , options =
+                                        Dict.values refs.fragments
+                                    }
+                            ]
+                    , fieldNames = found.fieldNames
+                    , variants = found.variants
+                    , capturedVariants = found.capturedVariants
+                    , typenameAlreadySelected = found.typenameAlreadySelected
+                    }
+
+                Just foundFrag ->
+                    if Can.nameToString foundFrag.typeCondition == unionOrInterface.name then
+                        { result =
+                            addToResult emptyCache
+                                (Can.Frag
+                                    { fragment = foundFrag
+                                    , directives =
+                                        frag.directives
+                                            |> List.map
+                                                convertDirective
+                                    }
+                                )
+                                found.result
+                        , fieldNames = found.fieldNames
+                        , variants = found.variants
+                        , capturedVariants = found.capturedVariants
+                        , typenameAlreadySelected = found.typenameAlreadySelected
+                        }
+
+                    else
+                        { result =
+                            err
+                                [ error <|
+                                    FragmentNotFound
+                                        { found = fragName
+                                        , object = unionOrInterface.name
+                                        , options =
+                                            Dict.values refs.fragments
+                                        }
+                                ]
+                        , fieldNames = found.fieldNames
+                        , variants = found.variants
+                        , capturedVariants = found.capturedVariants
+                        , typenameAlreadySelected = found.typenameAlreadySelected
+                        }
 
         AST.InlineFragmentSelection inline ->
             case inline.selection of
