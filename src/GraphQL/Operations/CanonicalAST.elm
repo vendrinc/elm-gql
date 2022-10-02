@@ -500,19 +500,39 @@ toRendererExpression version (Operation def) =
         |> renderFields def.fields
         |> commit
         |> (\cursor ->
-                case def.fragmentsUsed of
+                let
+                    frags =
+                        def.fragmentsUsed
+                            |> List.map .fragment
+                            |> deduplicateFragments
+                in
+                case frags of
                     [] ->
                         Maybe.withDefault (Elm.string "") cursor.exp
 
                     _ ->
                         let
                             renderedFragments =
-                                List.map (renderFragment << .fragment) def.fragmentsUsed
+                                frags
+                                    |> List.map renderFragment
                                     |> String.join "\n"
                         in
                         Elm.Op.append (Maybe.withDefault (Elm.string "") cursor.exp)
                             (Elm.string renderedFragments)
            )
+
+
+deduplicateFragments : List Fragment -> List Fragment
+deduplicateFragments frags =
+    frags
+        |> List.map
+            (\f ->
+                ( nameToString f.name
+                , f
+                )
+            )
+        |> Dict.fromList
+        |> Dict.values
 
 
 renderFragment : Fragment -> String
