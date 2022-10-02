@@ -464,21 +464,6 @@ genAliasedTypes namespace fieldOrFrag =
                                 _ ->
                                     True
 
-                        -- Generate the record
-                        interfaceRecord =
-                            List.foldl (aliasedFieldRecord namespace)
-                                (if selectingForVariants then
-                                    [ ( "specifics_"
-                                      , Type.named [] (name ++ "_Specifics")
-                                      )
-                                    ]
-
-                                 else
-                                    []
-                                )
-                                interface.selection
-                                |> Type.record
-
                         final =
                             List.foldl
                                 (interfaceVariants namespace)
@@ -487,11 +472,12 @@ genAliasedTypes namespace fieldOrFrag =
                                 }
                                 interface.variants
 
-                        ghostVariants =
-                            List.map (Elm.variant << unionVariantName) interface.remainingTags
-
                         withSpecificType existingList =
                             if selectingForVariants then
+                                let
+                                    ghostVariants =
+                                        List.map (Elm.variant << unionVariantName) interface.remainingTags
+                                in
                                 (Elm.customType
                                     (name ++ "_Specifics")
                                     (final.variants ++ ghostVariants)
@@ -505,13 +491,10 @@ genAliasedTypes namespace fieldOrFrag =
                             else
                                 existingList
                     in
-                    (Elm.alias name interfaceRecord
-                        |> Elm.exposeWith { exposeConstructor = True, group = Just "necessary" }
-                    )
-                        :: withSpecificType
-                            (final.declarations
-                                ++ newDecls
-                            )
+                    withSpecificType
+                        (final.declarations
+                            ++ newDecls
+                        )
 
         Can.Field field ->
             let
@@ -685,9 +668,21 @@ fieldAliasedAnnotation namespace field =
                             union.selection
 
                     Can.FragmentInterface interface ->
-                        List.concatMap
-                            (fieldAliasedAnnotation namespace)
-                            interface.selection
+                        if not (List.isEmpty interface.variants) || not (List.isEmpty interface.remainingTags) then
+                            let
+                                name =
+                                    Can.nameToString frag.fragment.name
+                            in
+                            List.concatMap
+                                (fieldAliasedAnnotation namespace)
+                                interface.selection
+                                ++ [ ( name, Type.named [] (name ++ "_Specifics") )
+                                   ]
+
+                        else
+                            List.concatMap
+                                (fieldAliasedAnnotation namespace)
+                                interface.selection
 
 
 selectionAliasedAnnotation :
@@ -1086,11 +1081,11 @@ decodeSelection : Namespace -> Elm.Expression -> Can.FieldDetails -> Index -> El
 decodeSelection namespace version field index =
     case field.selection of
         Can.FieldObject objSelection ->
-            decodeFields namespace
-                version
-                (child index)
-                objSelection
-                (Decode.succeed (Elm.val (Can.nameToString field.globalAlias)))
+            Decode.succeed (Elm.val (Can.nameToString field.globalAlias))
+                |> decodeFields namespace
+                    version
+                    (child index)
+                    objSelection
 
         Can.FieldScalar type_ ->
             decodeScalarType type_
@@ -1114,11 +1109,11 @@ decodeSelection namespace version field index =
                 union
 
         Can.FieldInterface interface ->
-            decodeInterface namespace
-                version
-                (child index)
-                (Can.nameToString field.globalAlias)
-                interface
+            Decode.succeed (Elm.val (Can.nameToString field.globalAlias))
+                |> decodeInterface namespace
+                    version
+                    (child index)
+                    interface
 
 
 decodeSingleField version index name decoder exp =
@@ -1142,10 +1137,10 @@ decodeInterface :
     Namespace
     -> Elm.Expression
     -> Index
-    -> String
     -> Can.FieldVariantDetails
     -> Elm.Expression
-decodeInterface namespace version index globalAlias interface =
+    -> Elm.Expression
+decodeInterface namespace version index interface start =
     let
         selection =
             List.filter (not << Can.isTypeNameSelection) interface.selection
@@ -1153,13 +1148,11 @@ decodeInterface namespace version index globalAlias interface =
     in
     case interface.variants of
         [] ->
-            Decode.succeed
-                (Elm.val globalAlias)
+            start
                 |> decodeFields namespace version (child index) selection
 
         _ ->
-            Decode.succeed
-                (Elm.val globalAlias)
+            start
                 |> decodeFields namespace version (child index) selection
                 |> andMap (decodeInterfaceSpecifics namespace version index interface)
 
@@ -1168,38 +1161,32 @@ decodeInterfaceSpecifics : Namespace -> Elm.Expression -> Index -> Can.FieldVari
 decodeInterfaceSpecifics namespace version index interface =
     Decode.field "__typename" Decode.string
         |> Decode.andThen
-            (\_ ->
-                Elm.fn
-                    ( "typename" ++ indexToString index
-                    , Just Type.string
-                    )
-                    (\val ->
-                        Elm.Case.string val
-                            { cases =
-                                List.map
-                                    (interfacePattern namespace
-                                        version
-                                        (child index)
-                                        interface.selection
-                                    )
-                                    interface.variants
-                                    ++ List.map
-                                        (\tag ->
-                                            ( Can.nameToString tag.tag
-                                            , Decode.succeed
-                                                (Elm.value
-                                                    { importFrom = []
-                                                    , name = unionVariantName tag
-                                                    , annotation = Nothing
-                                                    }
-                                                )
-                                            )
+            (\val ->
+                Elm.Case.string val
+                    { cases =
+                        List.map
+                            (interfacePattern namespace
+                                version
+                                (child index)
+                                interface.selection
+                            )
+                            interface.variants
+                            ++ List.map
+                                (\tag ->
+                                    ( Can.nameToString tag.tag
+                                    , Decode.succeed
+                                        (Elm.value
+                                            { importFrom = []
+                                            , name = unionVariantName tag
+                                            , annotation = Nothing
+                                            }
                                         )
-                                        interface.remainingTags
-                            , otherwise =
-                                Decode.fail "Unknown interface type"
-                            }
-                    )
+                                    )
+                                )
+                                interface.remainingTags
+                    , otherwise =
+                        Decode.fail "Unknown interface type"
+                    }
             )
 
 
@@ -1398,20 +1385,25 @@ genFragDecoder namespace frag =
                 Can.FragmentUnion fragSelection ->
                     Elm.fn ( "start_", Nothing )
                         (\start ->
-                            decodeUnion namespace
-                                (Elm.int 0)
-                                initIndex
-                                fragSelection
+                            start
+                                |> decodeSingleField (Elm.int 0)
+                                    initIndex
+                                    (Can.nameToString frag.name)
+                                    (decodeUnion namespace
+                                        (Elm.int 0)
+                                        initIndex
+                                        fragSelection
+                                    )
                         )
 
                 Can.FragmentInterface fragSelection ->
                     Elm.fn ( "start_", Nothing )
                         (\start ->
-                            decodeInterface namespace
-                                (Elm.int 0)
-                                initIndex
-                                (Can.nameToString frag.name)
-                                fragSelection
+                            start
+                                |> decodeInterface namespace
+                                    (Elm.int 0)
+                                    initIndex
+                                    fragSelection
                         )
           )
         ]
