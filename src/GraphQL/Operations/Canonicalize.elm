@@ -6,6 +6,7 @@ import Dict exposing (Dict)
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize.Cache as Cache
+import GraphQL.Operations.Canonicalize.UsedNames as UsedNames
 import GraphQL.Schema
 
 
@@ -716,14 +717,8 @@ canonicalizeDefinition refs def =
                             Can.Mutation
 
                 initialNameCache =
-                    UsedNames
-                        { siblingAliases = []
-                        , siblingStack = []
-                        , breadcrumbs = []
-                        , globalNames =
-                            []
-                        }
-                        |> getGlobalName
+                    UsedNames.empty
+                        |> UsedNames.getGlobalName
                             (globalOperationName
                                 |> Maybe.map Can.nameToString
                                 |> Maybe.withDefault (opTypeName operationType)
@@ -1041,9 +1036,9 @@ find str items =
 canonicalizeOperation :
     References
     -> AST.OperationType
-    -> UsedNames
+    -> UsedNames.UsedNames
     -> AST.Selection
-    -> ( UsedNames, CanResult Can.Field )
+    -> ( UsedNames.UsedNames, CanResult Can.Field )
 canonicalizeOperation refs op used selection =
     case selection of
         AST.Field field ->
@@ -1071,7 +1066,7 @@ canonicalizeOperation refs op used selection =
                         field
                         used
                         query
-                        |> Tuple.mapFirst dropLevel
+                        |> Tuple.mapFirst UsedNames.dropLevel
 
         AST.FragmentSpreadSelection frag ->
             ( used, err [ todo "Fragments in unions aren't suported yet!" ] )
@@ -1253,24 +1248,23 @@ validateObject refs fieldName keyValues inputObject =
         keyValues
 
 
-type UsedNames
-    = UsedNames
-        -- sibling errors will cause a compiler error if there is a collision
-        { siblingAliases : List String
-        , siblingStack : List (List String)
 
-        -- All parent aliased names
-        -- we keep track of if something is an alias because
-        -- it can be really intuitive to just use aliases to generate names
-        , breadcrumbs :
-            List
-                { name : String
-                , isAlias : Bool
-                }
-
-        -- All global field aliases
-        , globalNames : List String
-        }
+-- type UsedNames
+--     = UsedNames
+--         -- sibling errors will cause a compiler error if there is a collision
+--         { siblingAliases : List String
+--         , siblingStack : List (List String)
+--         -- All parent aliased names
+--         -- we keep track of if something is an alias because
+--         -- it can be really intuitive to just use aliases to generate names
+--         , breadcrumbs :
+--             List
+--                 { name : String
+--                 , isAlias : Bool
+--                 }
+--         -- All global field aliases
+--         , globalNames : List String
+--         }
 
 
 formatTypename : String -> String
@@ -1313,157 +1307,17 @@ getFragmentOverrideName selectedFields name =
 
 
 {-| -}
-getGlobalNameWithFragmentAlias : List AST.Selection -> String -> UsedNames -> { globalName : String, used : UsedNames }
+getGlobalNameWithFragmentAlias :
+    List AST.Selection
+    -> String
+    -> UsedNames.UsedNames
+    ->
+        { globalName : String
+        , used : UsedNames.UsedNames
+        }
 getGlobalNameWithFragmentAlias selection name usedNames =
-    getGlobalName (getFragmentOverrideName selection name)
+    UsedNames.getGlobalName (getFragmentOverrideName selection name)
         usedNames
-
-
-{-|
-
-    This will retrieve a globally unique name.
-    The intention is that an aliased name is passed in.
-    If it's used, then this returns nothing
-    and the query should fail to compile.
-    If not, then a new globally unique name is returend that can be used for code generation.
-
--}
-getGlobalName : String -> UsedNames -> { globalName : String, used : UsedNames }
-getGlobalName rawName (UsedNames used) =
-    if rawName == "__typename" then
-        { used = UsedNames used
-        , globalName = "__typename"
-        }
-
-    else
-        let
-            name =
-                formatTypename rawName
-
-            newGlobalName =
-                if List.member name used.globalNames then
-                    let
-                        allAliases =
-                            List.filter .isAlias used.breadcrumbs
-                    in
-                    case allAliases of
-                        [] ->
-                            case used.breadcrumbs of
-                                [] ->
-                                    -- shouldnt happen
-                                    name
-
-                                top :: remain ->
-                                    let
-                                        unaliasedName =
-                                            top.name ++ "_" ++ name
-                                    in
-                                    if List.member unaliasedName used.globalNames then
-                                        String.join "_" (List.reverse (List.map .name used.breadcrumbs)) ++ "_" ++ name
-
-                                    else
-                                        unaliasedName
-
-                        topAlias :: remainingAliases ->
-                            let
-                                aliasedName =
-                                    topAlias.name ++ "_" ++ name
-                            in
-                            if List.member aliasedName used.globalNames then
-                                String.join "_" (List.reverse (List.map .name used.breadcrumbs)) ++ "_" ++ name
-
-                            else
-                                aliasedName
-
-                else
-                    name
-        in
-        { used =
-            UsedNames
-                { used
-                    | globalNames =
-                        newGlobalName :: used.globalNames
-                }
-        , globalName = newGlobalName
-        }
-
-
-saveSibling : String -> UsedNames -> UsedNames
-saveSibling name (UsedNames used) =
-    UsedNames
-        { used
-            | siblingAliases = formatTypename name :: used.siblingAliases
-        }
-
-
-siblingCollision : String -> UsedNames -> Bool
-siblingCollision name (UsedNames used) =
-    List.member (formatTypename name) used.siblingAliases
-
-
-{-|
-
-    levels should be the alias name
-
--}
-addLevel :
-    { field
-        | name : AST.Name
-        , alias_ : Maybe AST.Name
-    }
-    -> UsedNames
-    -> UsedNames
-addLevel field (UsedNames used) =
-    let
-        aliased =
-            field.alias_
-                |> Maybe.withDefault field.name
-                |> convertName
-                |> Can.nameToString
-    in
-    UsedNames
-        { used
-            | breadcrumbs =
-                { name = formatTypename aliased
-                , isAlias = field.alias_ /= Nothing
-                }
-                    :: used.breadcrumbs
-            , siblingStack = used.siblingAliases :: used.siblingStack
-            , siblingAliases = []
-        }
-
-
-{-| -}
-dropLevel : UsedNames -> UsedNames
-dropLevel (UsedNames used) =
-    UsedNames
-        { used
-            | breadcrumbs = List.drop 1 used.breadcrumbs
-            , siblingStack = List.drop 1 used.siblingStack
-            , siblingAliases =
-                List.head used.siblingStack
-                    |> Maybe.withDefault []
-        }
-
-
-{-| -}
-resetSiblings : UsedNames -> UsedNames -> UsedNames
-resetSiblings (UsedNames to) (UsedNames used) =
-    UsedNames
-        { used
-            | siblingAliases =
-                to.siblingAliases
-        }
-
-
-emptyUsedNames =
-    UsedNames
-        { siblingAliases = []
-        , siblingStack = []
-        , breadcrumbs = []
-        , globalNames =
-            []
-        }
 
 
 canonicalizeFragment :
@@ -1494,7 +1348,7 @@ canonicalizeFragment schema frag currentResult =
                                 )
                                 { result = CanSuccess cache []
                                 , fieldNames =
-                                    emptyUsedNames
+                                    UsedNames.empty
                                 }
                                 frag.selection
                     in
@@ -1527,7 +1381,7 @@ canonicalizeFragment schema frag currentResult =
                                         { schema = schema
                                         , fragments = existingFrags
                                         }
-                                        emptyUsedNames
+                                        UsedNames.empty
                                         { name = interface.name
                                         , description = interface.description
                                         , fields = interface.fields
@@ -1563,7 +1417,7 @@ canonicalizeFragment schema frag currentResult =
                                                 { schema = schema
                                                 , fragments = existingFrags
                                                 }
-                                                emptyUsedNames
+                                                UsedNames.empty
                                                 { name = union.name
                                                 , description = union.description
                                                 , fields = []
@@ -1641,7 +1495,7 @@ canonicalizeVariantSelection refs usedNames unionOrInterface selection variants 
     case selectionResult.result of
         CanSuccess cache canSelection ->
             ( remainingUsedNames
-                |> dropLevel
+                |> UsedNames.dropLevel
             , CanSuccess cache
                 { selection = canSelection
                 , variants = selectionResult.capturedVariants
@@ -1666,11 +1520,11 @@ canonicalizeField :
     -> AST.Selection
     ->
         { result : CanResult (List Can.Field)
-        , fieldNames : UsedNames
+        , fieldNames : UsedNames.UsedNames
         }
     ->
         { result : CanResult (List Can.Field)
-        , fieldNames : UsedNames
+        , fieldNames : UsedNames.UsedNames
         }
 canonicalizeField refs object selection found =
     case selection of
@@ -1682,7 +1536,7 @@ canonicalizeField refs object selection found =
                 aliased =
                     AST.getAliasedName field
             in
-            if siblingCollision aliased found.fieldNames then
+            if UsedNames.siblingCollision aliased found.fieldNames then
                 -- There has been a collision, abort!
                 { result =
                     err
@@ -1741,7 +1595,7 @@ canonicalizeField refs object selection found =
                                     CanError errMsg
                         , fieldNames =
                             newNames
-                                |> saveSibling aliased
+                                |> UsedNames.saveSibling aliased
                         }
 
                     Nothing ->
@@ -1837,10 +1691,10 @@ convertDirective dir =
 canonicalizeFieldType :
     References
     -> AST.FieldDetails
-    -> UsedNames
+    -> UsedNames.UsedNames
     -> GraphQL.Schema.Field
     ->
-        ( UsedNames
+        ( UsedNames.UsedNames
         , CanResult Can.Field
         )
 canonicalizeFieldType refs field usedNames schemaField =
@@ -1904,10 +1758,10 @@ canonicalizeFieldTypeHelper :
     References
     -> AST.FieldDetails
     -> GraphQL.Schema.Type
-    -> UsedNames
+    -> UsedNames.UsedNames
     -> Cache.Cache
     -> GraphQL.Schema.Field
-    -> ( UsedNames, CanResult Can.Field )
+    -> ( UsedNames.UsedNames, CanResult Can.Field )
 canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaField =
     let
         argValidation =
@@ -2029,7 +1883,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                     ( finalUsedNames, canVarSelectionResult ) =
                                         canonicalizeVariantSelection refs
                                             (global.used
-                                                |> addLevel field
+                                                |> UsedNames.addLevel field
                                             )
                                             { name = union.name
                                             , description = union.description
@@ -2086,7 +1940,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                             ( finalUsedNames, canVarSelectionResult ) =
                                 canonicalizeVariantSelection refs
                                     (global.used
-                                        |> addLevel field
+                                        |> UsedNames.addLevel field
                                     )
                                     { name = interface.name
                                     , description = interface.description
@@ -2126,7 +1980,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
 gatherRemaining tag ( used, gathered ) =
     let
         global =
-            getGlobalName tag used
+            UsedNames.getGlobalName tag used
     in
     ( global.used
     , { globalAlias = Can.Name global.globalName
@@ -2139,11 +1993,11 @@ gatherRemaining tag ( used, gathered ) =
 canonicalizeObject :
     References
     -> AST.FieldDetails
-    -> UsedNames
+    -> UsedNames.UsedNames
     -> GraphQL.Schema.Field
     -> Cache.Cache
     -> GraphQL.Schema.ObjectDetails
-    -> ( UsedNames, CanResult Can.Field )
+    -> ( UsedNames.UsedNames, CanResult Can.Field )
 canonicalizeObject refs field usedNames schemaField varCache obj =
     case field.selection of
         [] ->
@@ -2194,15 +2048,15 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                         { result = emptySuccess
                         , fieldNames =
                             global.used
-                                |> addLevel field
+                                |> UsedNames.addLevel field
                         }
                         field.selection
             in
             case selectionResult.result of
                 CanSuccess cache canSelection ->
-                    if siblingCollision aliasedName global.used then
+                    if UsedNames.siblingCollision aliasedName global.used then
                         ( selectionResult.fieldNames
-                            |> dropLevel
+                            |> UsedNames.dropLevel
                         , err
                             [ error
                                 (FieldAliasRequired
@@ -2214,8 +2068,8 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
 
                     else
                         ( selectionResult.fieldNames
-                            |> dropLevel
-                            |> saveSibling aliasedName
+                            |> UsedNames.dropLevel
+                            |> UsedNames.saveSibling aliasedName
                         , CanSuccess (Cache.merge varCache cache)
                             (Can.Field
                                 { alias_ = Maybe.map convertName field.alias_
@@ -2287,14 +2141,14 @@ canonicalizeFieldWithVariants :
     -> AST.Selection
     ->
         { result : CanResult (List Can.Field)
-        , fieldNames : UsedNames
+        , fieldNames : UsedNames.UsedNames
         , variants : List String
         , capturedVariants : List Can.VariantCase
         , typenameAlreadySelected : Bool
         }
     ->
         { result : CanResult (List Can.Field)
-        , fieldNames : UsedNames
+        , fieldNames : UsedNames.UsedNames
         , variants : List String
         , capturedVariants : List Can.VariantCase
         , typenameAlreadySelected : Bool
@@ -2478,7 +2332,7 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                                         -- the weird thing we're doing here is so that field-name-collision
                                                         -- does not occur within a UnionCase
                                                         -- meaning separate UnionCases can use the same names and not collide.
-                                                        resetSiblings cursor.fieldNames
+                                                        UsedNames.resetSiblings cursor.fieldNames
                                                             canoned.fieldNames
                                                 }
                                             )
@@ -2492,7 +2346,7 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                         CanSuccess cache canSelection ->
                                             let
                                                 global =
-                                                    getGlobalName tag selectionResult.fieldNames
+                                                    UsedNames.getGlobalName tag selectionResult.fieldNames
 
                                                 globalDetailsAlias =
                                                     getGlobalNameWithFragmentAlias
