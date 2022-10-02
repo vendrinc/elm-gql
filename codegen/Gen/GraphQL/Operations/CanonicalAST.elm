@@ -877,6 +877,19 @@ annotation_ =
                   )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
                 , ( "fields", Type.list (Type.namedWith [] "Field" []) )
+                , ( "fragmentsUsed"
+                  , Type.namedWith
+                        []
+                        "Dict"
+                        [ Type.string
+                        , Type.record
+                            [ ( "fragment"
+                              , Type.namedWith [ "Can" ] "Fragment" []
+                              )
+                            , ( "alongsideOtherFields", Type.bool )
+                            ]
+                        ]
+                  )
                 ]
             )
     , document =
@@ -986,6 +999,7 @@ make_ :
         , variableDefinitions : Elm.Expression
         , directives : Elm.Expression
         , fields : Elm.Expression
+        , fragmentsUsed : Elm.Expression
         }
         -> Elm.Expression
     , document :
@@ -1341,6 +1355,19 @@ make_ =
                           , Type.list (Type.namedWith [] "Directive" [])
                           )
                         , ( "fields", Type.list (Type.namedWith [] "Field" []) )
+                        , ( "fragmentsUsed"
+                          , Type.namedWith
+                                []
+                                "Dict"
+                                [ Type.string
+                                , Type.record
+                                    [ ( "fragment"
+                                      , Type.namedWith [ "Can" ] "Fragment" []
+                                      )
+                                    , ( "alongsideOtherFields", Type.bool )
+                                    ]
+                                ]
+                          )
                         ]
                     )
                 )
@@ -1354,6 +1381,9 @@ make_ =
                         operationDetails_args.variableDefinitions
                     , Tuple.pair "directives" operationDetails_args.directives
                     , Tuple.pair "fields" operationDetails_args.fields
+                    , Tuple.pair
+                        "fragmentsUsed"
+                        operationDetails_args.fragmentsUsed
                     ]
                 )
     , document =

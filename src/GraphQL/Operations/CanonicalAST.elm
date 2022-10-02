@@ -1,5 +1,6 @@
 module GraphQL.Operations.CanonicalAST exposing (..)
 
+import Dict exposing (Dict)
 import Elm
 import Elm.Annotation as Type
 import Elm.Op
@@ -28,6 +29,14 @@ type alias OperationDetails =
     , variableDefinitions : List VariableDefinition
     , directives : List Directive
     , fields : List Field
+    , fragmentsUsed :
+        -- NOTE: WE capture alongsideOtherFields in order to inform code generation
+        -- If the fragment is selected by itself, then we can generate a record specifically for that fragment
+        -- otherwise, we only generate stuff for it's downstream stuff.
+        List
+            { fragment : Fragment
+            , alongsideOtherFields : Bool
+            }
     }
 
 
@@ -491,8 +500,53 @@ toRendererExpression version (Operation def) =
         |> renderFields def.fields
         |> commit
         |> (\cursor ->
-                Maybe.withDefault (Elm.string "") cursor.exp
+                case def.fragmentsUsed of
+                    [] ->
+                        Maybe.withDefault (Elm.string "") cursor.exp
+
+                    _ ->
+                        let
+                            renderedFragments =
+                                List.map (renderFragment << .fragment) def.fragmentsUsed
+                                    |> String.join "\n"
+                        in
+                        Elm.Op.append (Maybe.withDefault (Elm.string "") cursor.exp)
+                            (Elm.string renderedFragments)
            )
+
+
+renderFragment : Fragment -> String
+renderFragment frag =
+    let
+        selection =
+            case frag.selection of
+                FragmentObject obj ->
+                    selectionGroupToString obj.selection
+
+                FragmentUnion union ->
+                    foldToString "\n" fieldToString union.selection
+                        ++ (if not (List.isEmpty union.selection && List.isEmpty union.variants) then
+                                "\n"
+
+                            else
+                                ""
+                           )
+                        ++ foldToString "\n" variantFragmentToString union.variants
+
+                FragmentInterface interface ->
+                    -- selectionGroupToString interface.selection
+                    foldToString "\n" fieldToString interface.selection
+                        ++ (if not (List.isEmpty interface.selection && List.isEmpty interface.variants) then
+                                "\n"
+
+                            else
+                                ""
+                           )
+                        ++ foldToString "\n" variantFragmentToString interface.variants
+    in
+    ("fragment " ++ nameToString frag.name ++ " on " ++ nameToString frag.typeCondition ++ " {")
+        ++ selection
+        ++ " }"
 
 
 renderFields fields cursor =

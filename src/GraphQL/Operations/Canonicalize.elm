@@ -5,6 +5,7 @@ module GraphQL.Operations.Canonicalize exposing (canonicalize, cyan, errorToStri
 import Dict exposing (Dict)
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
+import GraphQL.Operations.Canonicalize.Cache as Cache
 import GraphQL.Schema
 
 
@@ -531,7 +532,13 @@ renderIssue issue =
 
 type CanResult success
     = CanError (List Error)
-    | CanSuccess VarCache success
+    | CanSuccess Cache.Cache success
+
+
+type alias References =
+    { schema : GraphQL.Schema.Schema
+    , fragments : Dict String Can.Fragment
+    }
 
 
 err : List Error -> CanResult success
@@ -539,14 +546,14 @@ err =
     CanError
 
 
-success : VarCache -> success -> CanResult success
+success : Cache.Cache -> success -> CanResult success
 success =
     CanSuccess
 
 
 emptySuccess : CanResult (List a)
 emptySuccess =
-    CanSuccess emptyCache []
+    CanSuccess Cache.empty []
 
 
 canonicalize : GraphQL.Schema.Schema -> AST.Document -> Result (List Error) Can.Document
@@ -569,7 +576,7 @@ canonicalize schema doc =
                 canonicalizedFragments =
                     List.foldl
                         (canonicalizeFragment schema)
-                        (CanSuccess emptyCache Dict.empty)
+                        (CanSuccess Cache.empty Dict.empty)
                         (List.sortBy AST.fragmentCount
                             (Dict.values fragments)
                         )
@@ -600,39 +607,6 @@ canonicalize schema doc =
 
                 CanError errorMsg ->
                     Err errorMsg
-
-
-type alias References =
-    { schema : GraphQL.Schema.Schema
-    , fragments : Dict String Can.Fragment
-    }
-
-
-type alias VarCache =
-    { varTypes : List ( String, GraphQL.Schema.Type )
-    }
-
-
-emptyCache : VarCache
-emptyCache =
-    { varTypes = []
-    }
-
-
-addVars vars cache =
-    { varTypes =
-        -- NOTE, there is an opporunity to check if there is avariable collision here
-        -- not a problem if there is a collision, only if they have conflicting gql types
-        vars ++ cache.varTypes
-    }
-
-
-mergeCaches one two =
-    { varTypes =
-        -- NOTE, there is an opporunity to check if there is avariable collision here
-        -- not a problem if there is a collision, only if they have conflicting gql types
-        one.varTypes ++ two.varTypes
-    }
 
 
 getFragments :
@@ -696,7 +670,7 @@ reduce isValid items res =
                         CanSuccess existingCache existing ->
                             reduce isValid
                                 remain
-                                (CanSuccess (mergeCaches cache existingCache) (valid :: existing))
+                                (CanSuccess (Cache.merge cache existingCache) (valid :: existing))
 
                         CanError _ ->
                             res
@@ -775,7 +749,7 @@ canonicalizeDefinition refs def =
 
                                         CanSuccess newCache validItem ->
                                             CanSuccess
-                                                (mergeCaches oldCache newCache)
+                                                (Cache.merge oldCache newCache)
                                                 (validItem :: oldItems)
                                     )
 
@@ -818,6 +792,7 @@ canonicalizeDefinition refs def =
                                     , directives =
                                         List.map convertDirective details.directives
                                     , fields = fields
+                                    , fragmentsUsed = cache.fragmentsUsed
                                     }
 
                     CanError errorMsg ->
@@ -1722,7 +1697,7 @@ canonicalizeField refs object selection found =
 
             else if fieldName == "__typename" then
                 { result =
-                    addToResult emptyCache
+                    addToResult Cache.empty
                         (Can.Field
                             { alias_ = Maybe.map convertName field.alias_
                             , name = convertName field.name
@@ -1805,16 +1780,22 @@ canonicalizeField refs object selection found =
                 Just foundFrag ->
                     if Can.nameToString foundFrag.typeCondition == object.name then
                         { result =
-                            addToResult emptyCache
-                                (Can.Frag
-                                    { fragment = foundFrag
-                                    , directives =
-                                        frag.directives
-                                            |> List.map
-                                                convertDirective
-                                    }
-                                )
-                                found.result
+                            found.result
+                                |> addToResult
+                                    (Cache.empty
+                                        |> Cache.addFragment
+                                            { fragment = foundFrag
+                                            , alongsideOtherFields = False
+                                            }
+                                    )
+                                    (Can.Frag
+                                        { fragment = foundFrag
+                                        , directives =
+                                            frag.directives
+                                                |> List.map
+                                                    convertDirective
+                                        }
+                                    )
                         , fieldNames = found.fieldNames
                         }
 
@@ -1863,7 +1844,7 @@ canonicalizeFieldType :
         , CanResult Can.Field
         )
 canonicalizeFieldType refs field usedNames schemaField =
-    canonicalizeFieldTypeHelper refs field schemaField.type_ usedNames emptyCache schemaField
+    canonicalizeFieldTypeHelper refs field schemaField.type_ usedNames Cache.empty schemaField
 
 
 canonicalizeArguments refs schemaArguments arguments =
@@ -1924,7 +1905,7 @@ canonicalizeFieldTypeHelper :
     -> AST.FieldDetails
     -> GraphQL.Schema.Type
     -> UsedNames
-    -> VarCache
+    -> Cache.Cache
     -> GraphQL.Schema.Field
     -> ( UsedNames, CanResult Can.Field )
 canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaField =
@@ -1954,7 +1935,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                 List.reverse argValidation.valid
 
             newCache =
-                addVars vars initialVarCache
+                initialVarCache |> Cache.addVars vars
         in
         case type_ of
             GraphQL.Schema.Scalar name ->
@@ -2062,7 +2043,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                 ( finalUsedNames
                                 , case canVarSelectionResult of
                                     CanSuccess cache variantSelection ->
-                                        CanSuccess (mergeCaches newCache cache)
+                                        CanSuccess (Cache.merge newCache cache)
                                             (Can.Field
                                                 { alias_ = Maybe.map convertName field.alias_
                                                 , name = convertName field.name
@@ -2117,7 +2098,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                         ( finalUsedNames
                         , case canVarSelectionResult of
                             CanSuccess cache variantSelection ->
-                                CanSuccess (mergeCaches newCache cache)
+                                CanSuccess (Cache.merge newCache cache)
                                     (Can.Field
                                         { alias_ = Maybe.map convertName field.alias_
                                         , name = convertName field.name
@@ -2160,7 +2141,7 @@ canonicalizeObject :
     -> AST.FieldDetails
     -> UsedNames
     -> GraphQL.Schema.Field
-    -> VarCache
+    -> Cache.Cache
     -> GraphQL.Schema.ObjectDetails
     -> ( UsedNames, CanResult Can.Field )
 canonicalizeObject refs field usedNames schemaField varCache obj =
@@ -2235,7 +2216,7 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                         ( selectionResult.fieldNames
                             |> dropLevel
                             |> saveSibling aliasedName
-                        , CanSuccess (mergeCaches varCache cache)
+                        , CanSuccess (Cache.merge varCache cache)
                             (Can.Field
                                 { alias_ = Maybe.map convertName field.alias_
                                 , name = convertName field.name
@@ -2280,7 +2261,7 @@ extractUnionTags vars captured =
 addToResult newCache newItem result =
     case result of
         CanSuccess cache existing ->
-            CanSuccess (mergeCaches newCache cache) (newItem :: existing)
+            CanSuccess (Cache.merge newCache cache) (newItem :: existing)
 
         CanError errs ->
             CanError errs
@@ -2289,7 +2270,7 @@ addToResult newCache newItem result =
 addCache newCache result =
     case result of
         CanSuccess cache existing ->
-            CanSuccess (mergeCaches newCache cache) existing
+            CanSuccess (Cache.merge newCache cache) existing
 
         CanError errs ->
             CanError errs
@@ -2327,7 +2308,7 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
             in
             if fieldName == "__typename" then
                 { result =
-                    addToResult emptyCache
+                    addToResult Cache.empty
                         (Can.Field
                             { alias_ = Maybe.map convertName field.alias_
                             , name = convertName field.name
@@ -2393,16 +2374,22 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                 Just foundFrag ->
                     if Can.nameToString foundFrag.typeCondition == unionOrInterface.name then
                         { result =
-                            addToResult emptyCache
-                                (Can.Frag
-                                    { fragment = foundFrag
-                                    , directives =
-                                        frag.directives
-                                            |> List.map
-                                                convertDirective
-                                    }
-                                )
-                                found.result
+                            found.result
+                                |> addToResult
+                                    (Cache.empty
+                                        |> Cache.addFragment
+                                            { fragment = foundFrag
+                                            , alongsideOtherFields = False
+                                            }
+                                    )
+                                    (Can.Frag
+                                        { fragment = foundFrag
+                                        , directives =
+                                            frag.directives
+                                                |> List.map
+                                                    convertDirective
+                                        }
+                                    )
                         , fieldNames = found.fieldNames
                         , variants = found.variants
                         , capturedVariants = found.capturedVariants
