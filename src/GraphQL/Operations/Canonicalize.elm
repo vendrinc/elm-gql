@@ -1460,6 +1460,16 @@ resetSiblings (UsedNames to) (UsedNames used) =
         }
 
 
+emptyUsedNames =
+    UsedNames
+        { siblingAliases = []
+        , siblingStack = []
+        , breadcrumbs = []
+        , globalNames =
+            []
+        }
+
+
 canonicalizeFragment :
     GraphQL.Schema.Schema
     -> AST.FragmentDetails
@@ -1478,10 +1488,6 @@ canonicalizeFragment schema frag currentResult =
             case Dict.get typeCondition schema.objects of
                 Just obj ->
                     let
-                        aliasedName =
-                            frag.name
-                                |> AST.nameToString
-
                         selectionResult =
                             List.foldl
                                 (canonicalizeField
@@ -1492,13 +1498,7 @@ canonicalizeFragment schema frag currentResult =
                                 )
                                 { result = CanSuccess cache []
                                 , fieldNames =
-                                    UsedNames
-                                        { siblingAliases = []
-                                        , siblingStack = []
-                                        , breadcrumbs = []
-                                        , globalNames =
-                                            []
-                                        }
+                                    emptyUsedNames
                                 }
                                 frag.selection
                     in
@@ -1522,24 +1522,74 @@ canonicalizeFragment schema frag currentResult =
                 Nothing ->
                     case Dict.get typeCondition schema.interfaces of
                         Just interface ->
-                            CanError
-                                [ error <|
-                                    FragmentTargetDoesntExist
-                                        { fragmentName = AST.nameToString frag.name
-                                        , typeCondition = AST.nameToString frag.typeCondition
+                            let
+                                variants =
+                                    List.foldl getInterfaceNames [] interface.implementedBy
+
+                                ( finalUsedNames, canVarSelectionResult ) =
+                                    canonicalizeVariantSelection
+                                        { schema = schema
+                                        , fragments = existingFrags
                                         }
-                                ]
+                                        emptyUsedNames
+                                        { name = interface.name
+                                        , description = interface.description
+                                        , fields = interface.fields
+                                        }
+                                        frag.selection
+                                        variants
+                            in
+                            case canVarSelectionResult of
+                                CanSuccess finalCache selection ->
+                                    CanSuccess finalCache
+                                        (existingFrags
+                                            |> Dict.insert (AST.nameToString frag.name)
+                                                { name = convertName frag.name
+                                                , typeCondition = convertName frag.typeCondition
+                                                , directives = List.map convertDirective frag.directives
+                                                , selection =
+                                                    Can.FragmentInterface selection
+                                                }
+                                        )
+
+                                CanError errorMsg ->
+                                    CanError errorMsg
 
                         Nothing ->
                             case Dict.get typeCondition schema.unions of
                                 Just union ->
-                                    CanError
-                                        [ error <|
-                                            FragmentTargetDoesntExist
-                                                { fragmentName = AST.nameToString frag.name
-                                                , typeCondition = AST.nameToString frag.typeCondition
+                                    let
+                                        variants =
+                                            Maybe.withDefault [] <| extractUnionTags union.variants []
+
+                                        ( finalUsedNames, canVarSelectionResult ) =
+                                            canonicalizeVariantSelection
+                                                { schema = schema
+                                                , fragments = existingFrags
                                                 }
-                                        ]
+                                                emptyUsedNames
+                                                { name = union.name
+                                                , description = union.description
+                                                , fields = []
+                                                }
+                                                frag.selection
+                                                variants
+                                    in
+                                    case canVarSelectionResult of
+                                        CanSuccess finalCache selection ->
+                                            CanSuccess finalCache
+                                                (existingFrags
+                                                    |> Dict.insert (AST.nameToString frag.name)
+                                                        { name = convertName frag.name
+                                                        , typeCondition = convertName frag.typeCondition
+                                                        , directives = List.map convertDirective frag.directives
+                                                        , selection =
+                                                            Can.FragmentUnion selection
+                                                        }
+                                                )
+
+                                        CanError errorMsg ->
+                                            CanError errorMsg
 
                                 Nothing ->
                                     CanError
@@ -1573,10 +1623,7 @@ canonicalizeVariantSelection refs usedNames unionOrInterface selection variants 
         selectionResult =
             List.foldl
                 (canonicalizeFieldWithVariants refs
-                    { name = unionOrInterface.name
-                    , description = unionOrInterface.description
-                    , fields = []
-                    }
+                    unionOrInterface
                 )
                 { result = emptySuccess
                 , capturedVariants = []
@@ -1895,7 +1942,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                         , directives = List.map convertDirective field.directives
                         , wrapper = GraphQL.Schema.getWrap schemaField.type_
                         , selection =
-                            Can.FieldScalar schemaField.type_
+                            Can.FieldScalar (GraphQL.Schema.getInner schemaField.type_)
                         }
                     )
                 )
@@ -1974,7 +2021,12 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                             (global.used
                                                 |> addLevel field
                                             )
-                                            union
+                                            { name = union.name
+                                            , description = union.description
+
+                                            -- #Note, unions dont have any fields themselves, unlick interfaces
+                                            , fields = []
+                                            }
                                             field.selection
                                             variants
                                 in
@@ -2026,7 +2078,10 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                     (global.used
                                         |> addLevel field
                                     )
-                                    interface
+                                    { name = interface.name
+                                    , description = interface.description
+                                    , fields = interface.fields
+                                    }
                                     field.selection
                                     variants
                         in
