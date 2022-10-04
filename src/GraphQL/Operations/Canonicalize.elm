@@ -1248,53 +1248,6 @@ validateObject refs fieldName keyValues inputObject =
         keyValues
 
 
-
--- type UsedNames
---     = UsedNames
---         -- sibling errors will cause a compiler error if there is a collision
---         { siblingAliases : List String
---         , siblingStack : List (List String)
---         -- All parent aliased names
---         -- we keep track of if something is an alias because
---         -- it can be really intuitive to just use aliases to generate names
---         , breadcrumbs :
---             List
---                 { name : String
---                 , isAlias : Bool
---                 }
---         -- All global field aliases
---         , globalNames : List String
---         }
-
-
-formatTypename : String -> String
-formatTypename name =
-    let
-        first =
-            String.left 1 name
-
-        uppercase =
-            String.toUpper first ++ String.dropLeft 1 name
-    in
-    if List.member uppercase builtinNames then
-        uppercase ++ "_"
-
-    else
-        uppercase
-
-
-builtinNames : List String
-builtinNames =
-    [ "List"
-    , "String"
-    , "Maybe"
-    , "Result"
-    , "Bool"
-    , "Float"
-    , "Int"
-    ]
-
-
 {-| -}
 getFragmentOverrideName : List AST.Selection -> String -> String
 getFragmentOverrideName selectedFields name =
@@ -1349,6 +1302,10 @@ canonicalizeFragment schema frag currentResult =
                                 { result = CanSuccess cache []
                                 , fieldNames =
                                     UsedNames.empty
+                                        |> UsedNames.addLevel
+                                            { name = AST.nameToString frag.name
+                                            , isAlias = False
+                                            }
                                 }
                                 frag.selection
                     in
@@ -1381,7 +1338,12 @@ canonicalizeFragment schema frag currentResult =
                                         { schema = schema
                                         , fragments = existingFrags
                                         }
-                                        UsedNames.empty
+                                        (UsedNames.empty
+                                            |> UsedNames.addLevel
+                                                { name = AST.nameToString frag.name
+                                                , isAlias = False
+                                                }
+                                        )
                                         { name = interface.name
                                         , description = interface.description
                                         , fields = interface.fields
@@ -1417,7 +1379,12 @@ canonicalizeFragment schema frag currentResult =
                                                 { schema = schema
                                                 , fragments = existingFrags
                                                 }
-                                                UsedNames.empty
+                                                (UsedNames.empty
+                                                    |> UsedNames.addLevel
+                                                        { name = AST.nameToString frag.name
+                                                        , isAlias = False
+                                                        }
+                                                )
                                                 { name = union.name
                                                 , description = union.description
                                                 , fields = []
@@ -1883,12 +1850,12 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                     ( finalUsedNames, canVarSelectionResult ) =
                                         canonicalizeVariantSelection refs
                                             (global.used
-                                                |> UsedNames.addLevel field
+                                                |> UsedNames.addLevel (UsedNames.levelFromField field)
                                             )
                                             { name = union.name
                                             , description = union.description
 
-                                            -- #Note, unions dont have any fields themselves, unlick interfaces
+                                            -- Note, unions dont have any fields themselves, unlick interfaces
                                             , fields = []
                                             }
                                             field.selection
@@ -1940,7 +1907,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                             ( finalUsedNames, canVarSelectionResult ) =
                                 canonicalizeVariantSelection refs
                                     (global.used
-                                        |> UsedNames.addLevel field
+                                        |> UsedNames.addLevel (UsedNames.levelFromField field)
                                     )
                                     { name = interface.name
                                     , description = interface.description
@@ -2048,7 +2015,7 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                         { result = emptySuccess
                         , fieldNames =
                             global.used
-                                |> UsedNames.addLevel field
+                                |> UsedNames.addLevel (UsedNames.levelFromField field)
                         }
                         field.selection
             in
@@ -2191,7 +2158,8 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                             unionOrInterface
                             selection
                             { result = found.result
-                            , fieldNames = found.fieldNames
+                            , fieldNames =
+                                found.fieldNames
                             }
                 in
                 { result =
@@ -2337,7 +2305,12 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                                 }
                                             )
                                             { result = emptySuccess
-                                            , fieldNames = found.fieldNames
+                                            , fieldNames =
+                                                found.fieldNames
+                                                    |> UsedNames.addLevel
+                                                        { name = tag
+                                                        , isAlias = False
+                                                        }
                                             }
                                             inline.selection
                                 in
@@ -2346,7 +2319,10 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                         CanSuccess cache canSelection ->
                                             let
                                                 global =
-                                                    UsedNames.getGlobalName tag selectionResult.fieldNames
+                                                    UsedNames.getGlobalName tag
+                                                        (selectionResult.fieldNames
+                                                            |> UsedNames.dropLevel
+                                                        )
 
                                                 globalDetailsAlias =
                                                     getGlobalNameWithFragmentAlias
@@ -2357,17 +2333,15 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                             { result =
                                                 found.result
                                                     |> addCache cache
-
-                                            -- selectionResult.result
                                             , capturedVariants =
                                                 { tag = Can.Name tag
                                                 , globalTagName = Can.Name global.globalName
-                                                , globalDetailsAlias = Can.Name (global.globalName ++ "_Details")
+                                                , globalDetailsAlias = Can.Name globalDetailsAlias.globalName
                                                 , directives = List.map convertDirective inline.directives
                                                 , selection = canSelection
                                                 }
                                                     :: found.capturedVariants
-                                            , fieldNames = global.used
+                                            , fieldNames = globalDetailsAlias.used
                                             , variants = leftOvertags
                                             , typenameAlreadySelected = found.typenameAlreadySelected
                                             }

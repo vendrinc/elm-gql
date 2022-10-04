@@ -406,17 +406,18 @@ genAliasedTypes namespace fieldOrFrag =
                                 []
                                 selection
 
-                        fieldResult =
-                            List.foldl (aliasedFieldRecord namespace)
-                                []
-                                selection
-                                |> List.reverse
-                                |> Type.record
+                        -- fieldResult =
+                        --     List.foldl (aliasedFieldRecord namespace)
+                        --         []
+                        --         selection
+                        --         |> List.reverse
+                        --         |> Type.record
                     in
-                    (Elm.alias name fieldResult
-                        |> Elm.expose
-                    )
-                        :: newDecls
+                    -- (Elm.alias name fieldResult
+                    --     |> Elm.expose
+                    -- )
+                    --     ::
+                    newDecls
 
                 Can.FragmentUnion union ->
                     let
@@ -992,18 +993,17 @@ generateDecoder version namespace (Can.Operation op) =
                     op.name
                 )
     in
-    decodeFields namespace
-        version
-        initIndex
-        op.fields
-        (Decode.succeed
-            (Elm.value
-                { importFrom = []
-                , name = opName
-                , annotation = Nothing
-                }
-            )
+    Decode.succeed
+        (Elm.value
+            { importFrom = []
+            , name = opName
+            , annotation = Nothing
+            }
         )
+        |> decodeFields namespace
+            version
+            initIndex
+            op.fields
 
 
 type Index

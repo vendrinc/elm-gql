@@ -4,6 +4,7 @@ module GraphQL.Operations.Canonicalize.UsedNames exposing
     , dropLevel
     , empty
     , getGlobalName
+    , levelFromField
     , resetSiblings
     , saveSibling
     , siblingCollision
@@ -156,19 +157,16 @@ getGlobalName rawName (UsedNames used) =
         }
 
 
-{-|
-
-    levels should be the alias name
-
--}
-addLevel :
+levelFromField :
     { field
         | name : AST.Name
         , alias_ : Maybe AST.Name
     }
-    -> UsedNames
-    -> UsedNames
-addLevel field (UsedNames used) =
+    ->
+        { name : String
+        , isAlias : Bool
+        }
+levelFromField field =
     let
         aliased =
             field.alias_
@@ -176,11 +174,28 @@ addLevel field (UsedNames used) =
                 |> convertName
                 |> Can.nameToString
     in
+    { name = formatTypename aliased
+    , isAlias = field.alias_ /= Nothing
+    }
+
+
+{-|
+
+    levels should be the alias name
+
+-}
+addLevel :
+    { name : String
+    , isAlias : Bool
+    }
+    -> UsedNames
+    -> UsedNames
+addLevel level (UsedNames used) =
     UsedNames
         { used
             | breadcrumbs =
-                { name = formatTypename aliased
-                , isAlias = field.alias_ /= Nothing
+                { name = formatTypename level.name
+                , isAlias = level.isAlias
                 }
                     :: used.breadcrumbs
             , siblingStack = used.siblingAliases :: used.siblingStack
