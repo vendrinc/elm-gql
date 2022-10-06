@@ -1259,6 +1259,16 @@ getFragmentOverrideName selectedFields name =
             name
 
 
+selectsSingleFragment : List AST.Selection -> Maybe String
+selectsSingleFragment fields =
+    case fields of
+        [ AST.FragmentSpreadSelection fragment ] ->
+            Just (AST.nameToString fragment.name)
+
+        _ ->
+            Nothing
+
+
 {-| -}
 getGlobalNameWithFragmentAlias :
     List AST.Selection
@@ -1269,8 +1279,15 @@ getGlobalNameWithFragmentAlias :
         , used : UsedNames.UsedNames
         }
 getGlobalNameWithFragmentAlias selection name usedNames =
-    UsedNames.getGlobalName (getFragmentOverrideName selection name)
-        usedNames
+    case selectsSingleFragment selection of
+        Nothing ->
+            UsedNames.getGlobalName name
+                usedNames
+
+        Just fragName ->
+            { globalName = fragName
+            , used = usedNames
+            }
 
 
 canonicalizeFragment :
@@ -1526,6 +1543,7 @@ canonicalizeField refs object selection found =
                                 field.alias_
                                     |> Maybe.withDefault field.name
                                     |> convertName
+                            , selectsOnlyFragment = Nothing
                             , arguments = []
                             , directives = List.map convertDirective field.directives
                             , wrapper = GraphQL.Schema.UnwrappedValue
@@ -1617,7 +1635,8 @@ canonicalizeField refs object selection found =
                                                     convertDirective
                                         }
                                     )
-                        , fieldNames = found.fieldNames
+                        , fieldNames =
+                            found.fieldNames
                         }
 
                     else
@@ -1765,6 +1784,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                     (Can.Field
                         { alias_ = Maybe.map convertName field.alias_
                         , name = convertName field.name
+                        , selectsOnlyFragment = Nothing
                         , globalAlias =
                             field.alias_
                                 |> Maybe.withDefault field.name
@@ -1811,6 +1831,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                     field.alias_
                                         |> Maybe.withDefault field.name
                                         |> convertName
+                                , selectsOnlyFragment = Nothing
                                 , arguments = []
                                 , directives = List.map convertDirective field.directives
                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
@@ -1870,6 +1891,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                                 , name = convertName field.name
                                                 , globalAlias =
                                                     Can.Name global.globalName
+                                                , selectsOnlyFragment = selectsSingleFragment field.selection
                                                 , arguments = []
                                                 , directives = List.map convertDirective field.directives
                                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
@@ -1925,6 +1947,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                         , name = convertName field.name
                                         , globalAlias =
                                             Can.Name global.globalName
+                                        , selectsOnlyFragment = selectsSingleFragment field.selection
                                         , arguments = []
                                         , directives = List.map convertDirective field.directives
                                         , wrapper = GraphQL.Schema.getWrap schemaField.type_
@@ -2042,6 +2065,7 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                                 { alias_ = Maybe.map convertName field.alias_
                                 , name = convertName field.name
                                 , globalAlias = Can.Name global.globalName
+                                , selectsOnlyFragment = selectsSingleFragment field.selection
                                 , arguments = field.arguments
                                 , directives = List.map convertDirective field.directives
                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
@@ -2137,6 +2161,7 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                 field.alias_
                                     |> Maybe.withDefault field.name
                                     |> convertName
+                            , selectsOnlyFragment = Nothing
                             , arguments = []
                             , directives = List.map convertDirective field.directives
                             , wrapper = GraphQL.Schema.UnwrappedValue
@@ -2212,7 +2237,8 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                                     convertDirective
                                         }
                                     )
-                        , fieldNames = found.fieldNames
+                        , fieldNames =
+                            found.fieldNames
                         , variants = found.variants
                         , capturedVariants = found.capturedVariants
                         , typenameAlreadySelected = found.typenameAlreadySelected

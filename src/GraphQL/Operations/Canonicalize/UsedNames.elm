@@ -1,16 +1,19 @@
 module GraphQL.Operations.Canonicalize.UsedNames exposing
-    ( UsedNames
-    , addLevel
-    , dropLevel
-    , empty
-    , getGlobalName
+    ( UsedNames, empty
+    , addLevel, dropLevel, getGlobalName
+    , saveSibling, resetSiblings, siblingCollision
     , levelFromField
-    , resetSiblings
-    , saveSibling
-    , siblingCollision
     )
 
-{-| -}
+{-|
+
+@docs UsedNames, empty
+
+@docs addLevel, dropLevel, getGlobalName
+
+@docs saveSibling, resetSiblings, siblingCollision
+
+-}
 
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can

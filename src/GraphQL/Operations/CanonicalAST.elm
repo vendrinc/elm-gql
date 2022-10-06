@@ -90,6 +90,7 @@ type alias FieldDetails =
     { alias_ : Maybe Name
     , name : Name
     , globalAlias : Name
+    , selectsOnlyFragment : Maybe String
     , arguments : List Argument
     , directives : List Directive
     , wrapper : GraphQL.Schema.Wrapped
