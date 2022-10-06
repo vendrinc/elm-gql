@@ -574,10 +574,13 @@ canonicalize schema doc =
 
         Ok fragments ->
             let
-                canonicalizedFragments =
+                usedNames =
+                    UsedNames.empty
+
+                ( fragUsedNames, canonicalizedFragments ) =
                     List.foldl
                         (canonicalizeFragment schema)
-                        (CanSuccess Cache.empty Dict.empty)
+                        ( usedNames, CanSuccess Cache.empty Dict.empty )
                         (List.sortBy AST.fragmentCount
                             (Dict.values fragments)
                         )
@@ -592,6 +595,7 @@ canonicalize schema doc =
                                     , fragments =
                                         canonicalFrags
                                     }
+                                    fragUsedNames
                                 )
                                 doc.definitions
                                 emptySuccess
@@ -696,9 +700,10 @@ convertName (AST.Name str) =
 
 canonicalizeDefinition :
     References
+    -> UsedNames.UsedNames
     -> AST.Definition
     -> Maybe (CanResult Can.Definition)
-canonicalizeDefinition refs def =
+canonicalizeDefinition refs usedNames def =
     case def of
         AST.Fragment details ->
             Nothing
@@ -717,7 +722,7 @@ canonicalizeDefinition refs def =
                             Can.Mutation
 
                 initialNameCache =
-                    UsedNames.empty
+                    usedNames
                         |> UsedNames.getGlobalName
                             (globalOperationName
                                 |> Maybe.map Can.nameToString
@@ -1293,12 +1298,12 @@ getGlobalNameWithFragmentAlias selection name usedNames =
 canonicalizeFragment :
     GraphQL.Schema.Schema
     -> AST.FragmentDetails
-    -> CanResult (Dict String Can.Fragment)
-    -> CanResult (Dict String Can.Fragment)
-canonicalizeFragment schema frag currentResult =
+    -> ( UsedNames.UsedNames, CanResult (Dict String Can.Fragment) )
+    -> ( UsedNames.UsedNames, CanResult (Dict String Can.Fragment) )
+canonicalizeFragment schema frag ( usedNames, currentResult ) =
     case currentResult of
         CanError errMsg ->
-            CanError errMsg
+            ( usedNames, CanError errMsg )
 
         CanSuccess cache existingFrags ->
             let
@@ -1318,7 +1323,7 @@ canonicalizeFragment schema frag currentResult =
                                 )
                                 { result = CanSuccess cache []
                                 , fieldNames =
-                                    UsedNames.empty
+                                    usedNames
                                         |> UsedNames.addLevel
                                             { name = AST.nameToString frag.name
                                             , isAlias = False
@@ -1326,7 +1331,8 @@ canonicalizeFragment schema frag currentResult =
                                 }
                                 frag.selection
                     in
-                    case selectionResult.result of
+                    ( selectionResult.fieldNames
+                    , case selectionResult.result of
                         CanSuccess newCache selection ->
                             CanSuccess newCache
                                 (existingFrags
@@ -1342,6 +1348,7 @@ canonicalizeFragment schema frag currentResult =
 
                         CanError errorMsg ->
                             CanError errorMsg
+                    )
 
                 Nothing ->
                     case Dict.get typeCondition schema.interfaces of
@@ -1355,7 +1362,7 @@ canonicalizeFragment schema frag currentResult =
                                         { schema = schema
                                         , fragments = existingFrags
                                         }
-                                        (UsedNames.empty
+                                        (usedNames
                                             |> UsedNames.addLevel
                                                 { name = AST.nameToString frag.name
                                                 , isAlias = False
@@ -1368,7 +1375,8 @@ canonicalizeFragment schema frag currentResult =
                                         frag.selection
                                         variants
                             in
-                            case canVarSelectionResult of
+                            ( finalUsedNames
+                            , case canVarSelectionResult of
                                 CanSuccess finalCache selection ->
                                     CanSuccess finalCache
                                         (existingFrags
@@ -1383,6 +1391,7 @@ canonicalizeFragment schema frag currentResult =
 
                                 CanError errorMsg ->
                                     CanError errorMsg
+                            )
 
                         Nothing ->
                             case Dict.get typeCondition schema.unions of
@@ -1396,7 +1405,7 @@ canonicalizeFragment schema frag currentResult =
                                                 { schema = schema
                                                 , fragments = existingFrags
                                                 }
-                                                (UsedNames.empty
+                                                (usedNames
                                                     |> UsedNames.addLevel
                                                         { name = AST.nameToString frag.name
                                                         , isAlias = False
@@ -1409,7 +1418,8 @@ canonicalizeFragment schema frag currentResult =
                                                 frag.selection
                                                 variants
                                     in
-                                    case canVarSelectionResult of
+                                    ( finalUsedNames
+                                    , case canVarSelectionResult of
                                         CanSuccess finalCache selection ->
                                             CanSuccess finalCache
                                                 (existingFrags
@@ -1424,15 +1434,18 @@ canonicalizeFragment schema frag currentResult =
 
                                         CanError errorMsg ->
                                             CanError errorMsg
+                                    )
 
                                 Nothing ->
-                                    CanError
+                                    ( usedNames
+                                    , CanError
                                         [ error <|
                                             FragmentTargetDoesntExist
                                                 { fragmentName = AST.nameToString frag.name
                                                 , typeCondition = AST.nameToString frag.typeCondition
                                                 }
                                         ]
+                                    )
 
 
 canonicalizeVariantSelection refs usedNames unionOrInterface selection variants =
