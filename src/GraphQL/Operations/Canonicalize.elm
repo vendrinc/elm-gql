@@ -76,6 +76,7 @@ type ErrorDetails
         , field : String
         }
     | VariableIssueSummary VariableSummary
+    | FragmentVariableIssue FragmentVariableSummary
     | FieldAliasRequired
         { fieldName : String
         }
@@ -127,6 +128,13 @@ type alias VariableSummary =
     , valid : List Can.VariableDefinition
     , issues : List VarIssue
     , suggestions : List SuggestedVariable
+    }
+
+
+type alias FragmentVariableSummary =
+    { fragmentName : String
+    , declared : List { name : String, type_ : String }
+    , used : List { name : String, type_ : String }
     }
 
 
@@ -452,7 +460,7 @@ errorToString (Error details) =
             case summary.declared of
                 [] ->
                     String.join "\n"
-                        [ "It looks like no variables are declared."
+                        [ "I wasn't able to find any declared variables."
                         , "Here's what I think the variables should be:"
                         , block
                             (List.map
@@ -486,6 +494,27 @@ errorToString (Error details) =
                                 (List.reverse summary.suggestions)
                             )
                         ]
+
+        FragmentVariableIssue summary ->
+            String.join "\n"
+                [ "It looks like the " ++ cyan summary.fragmentName ++ " fragment uses the following variables:"
+                , block
+                    (List.map
+                        renderVariable
+                        summary.used
+                    )
+                , "But the only variables that are declared are"
+                , block
+                    (List.map
+                        renderVariable
+                        summary.declared
+                    )
+                ]
+
+
+renderVariable : { name : String, type_ : String } -> String
+renderVariable var =
+    yellow var.name ++ cyan ": " ++ yellow var.type_
 
 
 renderDeclared : DeclaredVariable -> String
@@ -774,12 +803,24 @@ canonicalizeDefinition refs usedNames def =
                                     , suggestions = []
                                     }
                                     (mergeVars cache.varTypes details.variableDefinitions)
+
+                            fragmentVariableIssues =
+                                List.filterMap
+                                    (fragmentVariableErrors details.variableDefinitions)
+                                    (List.map .fragment cache.fragmentsUsed)
                         in
                         if not (List.isEmpty variableSummary.issues) then
                             CanError
                                 [ error
                                     (VariableIssueSummary variableSummary)
                                 ]
+
+                        else if not (List.isEmpty fragmentVariableIssues) then
+                            CanError
+                                (List.map
+                                    (error << FragmentVariableIssue)
+                                    fragmentVariableIssues
+                                )
 
                         else
                             CanSuccess cache <|
@@ -797,6 +838,49 @@ canonicalizeDefinition refs usedNames def =
 
                     CanError errorMsg ->
                         CanError errorMsg
+
+
+fragmentVariableErrors : List AST.VariableDefinition -> Can.Fragment -> Maybe FragmentVariableSummary
+fragmentVariableErrors varDefs frag =
+    let
+        varSummary =
+            { fragmentName = Can.nameToString frag.name
+            , declared =
+                List.map
+                    (\def ->
+                        { name = AST.nameToString def.variable.name
+                        , type_ = AST.typeToGqlString def.type_
+                        }
+                    )
+                    varDefs
+            , used =
+                List.map
+                    (\( name, varType ) ->
+                        { name = name
+                        , type_ = GraphQL.Schema.typeToString varType
+                        }
+                    )
+                    frag.usedVariables
+            }
+
+        variableIssue ( name, varType ) existingIssue =
+            case existingIssue of
+                Just _ ->
+                    existingIssue
+
+                _ ->
+                    case List.head (List.filter (\def -> AST.nameToString def.variable.name == name) varDefs) of
+                        Nothing ->
+                            Just varSummary
+
+                        Just found ->
+                            if String.toLower (AST.typeToGqlString found.type_) == String.toLower (GraphQL.Schema.typeToString varType) then
+                                Nothing
+
+                            else
+                                Just varSummary
+    in
+    List.foldl variableIssue Nothing frag.usedVariables
 
 
 opTypeName : Can.OperationType -> String
@@ -1321,7 +1405,7 @@ canonicalizeFragment schema frag ( usedNames, currentResult ) =
                                     }
                                     obj
                                 )
-                                { result = CanSuccess cache []
+                                { result = CanSuccess Cache.empty []
                                 , fieldNames =
                                     usedNames
                                         |> UsedNames.addLevel
@@ -1333,12 +1417,15 @@ canonicalizeFragment schema frag ( usedNames, currentResult ) =
                     in
                     ( selectionResult.fieldNames
                     , case selectionResult.result of
-                        CanSuccess newCache selection ->
-                            CanSuccess newCache
+                        CanSuccess fragmentSpecificCache selection ->
+                            CanSuccess fragmentSpecificCache
                                 (existingFrags
                                     |> Dict.insert (AST.nameToString frag.name)
                                         { name = convertName frag.name
                                         , typeCondition = convertName frag.typeCondition
+                                        , usedVariables = fragmentSpecificCache.varTypes
+                                        , fragmentsUsed =
+                                            List.map (.fragment >> .name) fragmentSpecificCache.fragmentsUsed
                                         , directives = List.map convertDirective frag.directives
                                         , selection =
                                             Can.FragmentObject
@@ -1377,12 +1464,14 @@ canonicalizeFragment schema frag ( usedNames, currentResult ) =
                             in
                             ( finalUsedNames
                             , case canVarSelectionResult of
-                                CanSuccess finalCache selection ->
-                                    CanSuccess finalCache
+                                CanSuccess fragmentSpecificCache selection ->
+                                    CanSuccess fragmentSpecificCache
                                         (existingFrags
                                             |> Dict.insert (AST.nameToString frag.name)
                                                 { name = convertName frag.name
                                                 , typeCondition = convertName frag.typeCondition
+                                                , usedVariables = fragmentSpecificCache.varTypes
+                                                , fragmentsUsed = List.map (.fragment >> .name) fragmentSpecificCache.fragmentsUsed
                                                 , directives = List.map convertDirective frag.directives
                                                 , selection =
                                                     Can.FragmentInterface selection
@@ -1420,12 +1509,15 @@ canonicalizeFragment schema frag ( usedNames, currentResult ) =
                                     in
                                     ( finalUsedNames
                                     , case canVarSelectionResult of
-                                        CanSuccess finalCache selection ->
-                                            CanSuccess finalCache
+                                        CanSuccess fragmentSpecificCache selection ->
+                                            CanSuccess fragmentSpecificCache
                                                 (existingFrags
                                                     |> Dict.insert (AST.nameToString frag.name)
                                                         { name = convertName frag.name
                                                         , typeCondition = convertName frag.typeCondition
+                                                        , usedVariables = fragmentSpecificCache.varTypes
+                                                        , fragmentsUsed =
+                                                            List.map (.fragment >> .name) fragmentSpecificCache.fragmentsUsed
                                                         , directives = List.map convertDirective frag.directives
                                                         , selection =
                                                             Can.FragmentUnion selection

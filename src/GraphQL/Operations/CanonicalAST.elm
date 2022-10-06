@@ -107,6 +107,9 @@ type alias FragmentDetails =
 type alias Fragment =
     { name : Name
     , typeCondition : Name
+    , usedVariables : List ( String, GraphQL.Schema.Type )
+    , fragmentsUsed :
+        List Name
     , directives : List Directive
     , selection : FragmentSelection
     }
