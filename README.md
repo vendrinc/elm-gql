@@ -150,4 +150,4 @@ This turns out to be a really nice way to handle things.
 1. You avoid writing a _ton_ of code that is largely concerned with mapping into and out of large nested structures.
 2. It's very easy to understand where everything is.
 
-Potentially a nice way to think about this is to think about your model as a mini relational database. Organizing things sort of like a collection of tables can be really beneficial.
+Potentially a nice way to think about this is to approach about your model as a mini relational database. Organizing things like a collection of tables can be really beneficial.
