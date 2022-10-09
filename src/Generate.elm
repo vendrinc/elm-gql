@@ -124,8 +124,6 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
             , enums = Maybe.withDefault namespaceStr flagDetails.existingEnumDefinitions
             }
 
-        -- _ =
-        --     Generate.Paged.generate namespace schema
         parsedGqlQueries =
             parseGql namespace schema flagDetails flagDetails.gql []
     in
@@ -139,27 +137,16 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                     enumFiles =
                         Generate.Enums.generateFiles namespace schema
 
-                    -- unionFiles =
-                    --     Generate.Unions.generateFiles namespace schema
                     objectFiles =
                         Generate.Objects.generateFiles namespace schema
 
                     inputFiles =
                         Generate.InputObjects.generateFiles namespace schema
 
-                    -- queryFiles =
-                    --     Generate.Operations.generateFiles namespace Input.Query schema
-                    -- mutationFiles =
-                    --     Generate.Operations.generateFiles namespace Input.Mutation schema
                     schemaFiles =
                         Generate.Root.generate namespace schema
                             :: saveSchema namespace schemaAsJson
-                            :: --  unionFiles
-                               -- ++
-                               enumFiles
-                            -- ++ objectFiles
-                            -- ++ queryFiles
-                            -- ++ mutationFiles
+                            :: enumFiles
                             ++ inputFiles
 
                     all =
