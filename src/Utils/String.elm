@@ -71,13 +71,13 @@ formatValue name =
 elmify : Char -> ( Bool, String ) -> ( Bool, String )
 elmify char ( passedLower, gathered ) =
     if Char.isUpper char && passedLower then
-        ( Char.isLower char
+        ( Char.isLower char || passedLower
         , gathered
             ++ String.fromChar char
         )
 
     else
-        ( Char.isLower char
+        ( Char.isLower char || passedLower
         , gathered
             ++ String.toLower
                 (String.fromChar char)

@@ -1,4 +1,4 @@
-module Generate.Scalar exposing (generate)
+module Generate.Scalar exposing (decode, encode, generate)
 
 import Dict
 import Elm
@@ -8,9 +8,124 @@ import Gen.GraphQL.Engine as Engine
 import Gen.Json.Decode
 import Gen.Json.Encode
 import Generate.Common as Common
-import Generate.Decode
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
+
+
+encode : Namespace -> String -> GraphQL.Schema.Wrapped -> (Elm.Expression -> Elm.Expression)
+encode namespace scalarName wrapped =
+    case wrapped of
+        GraphQL.Schema.InList inner ->
+            encodeList
+                (encode namespace scalarName inner)
+
+        GraphQL.Schema.InMaybe inner ->
+            Engine.maybeScalarEncode
+                (encode namespace
+                    scalarName
+                    inner
+                )
+
+        GraphQL.Schema.UnwrappedValue ->
+            let
+                lowered =
+                    String.toLower scalarName
+            in
+            case lowered of
+                "int" ->
+                    Gen.Json.Encode.call_.int
+
+                "float" ->
+                    Gen.Json.Encode.call_.float
+
+                "string" ->
+                    Gen.Json.Encode.call_.string
+
+                "boolean" ->
+                    Gen.Json.Encode.call_.bool
+
+                _ ->
+                    \val ->
+                        Elm.apply
+                            (Elm.value
+                                { importFrom =
+                                    [ namespace.namespace
+                                    , "Scalar"
+                                    ]
+                                , name = Utils.String.formatValue scalarName
+                                , annotation = Nothing
+                                }
+                                |> Elm.get "encode"
+                            )
+                            [ val ]
+
+
+{-|
+
+    list : (a -> Json.Encode.Value) -> List a -> Json.Encode.Value
+
+-}
+encodeList : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
+encodeList fn listExpr =
+    Elm.apply
+        Gen.Json.Encode.values_.list
+        [ Elm.functionReduced "listUnpack" fn, listExpr ]
+
+
+decode : Namespace -> String -> GraphQL.Schema.Wrapped -> Elm.Expression
+decode namespace scalarName wrapped =
+    let
+        lowered =
+            String.toLower scalarName
+
+        decoder =
+            case lowered of
+                "string" ->
+                    Gen.Json.Decode.string
+
+                "int" ->
+                    Gen.Json.Decode.int
+
+                "float" ->
+                    Gen.Json.Decode.float
+
+                "boolean" ->
+                    Gen.Json.Decode.bool
+
+                "bool" ->
+                    Gen.Json.Decode.bool
+
+                _ ->
+                    Elm.value
+                        { importFrom =
+                            [ namespace.namespace
+                            , "Scalar"
+                            ]
+                        , name = Utils.String.formatValue scalarName
+                        , annotation = Nothing
+                        }
+                        |> Elm.get "decoder"
+    in
+    decodeWrapper wrapped decoder
+
+
+decodeWrapper : GraphQL.Schema.Wrapped -> Elm.Expression -> Elm.Expression
+decodeWrapper wrap exp =
+    case wrap of
+        GraphQL.Schema.UnwrappedValue ->
+            exp
+
+        GraphQL.Schema.InList inner ->
+            Gen.Json.Decode.list
+                (decodeWrapper inner exp)
+
+        GraphQL.Schema.InMaybe inner ->
+            Engine.decodeNullable
+                (decodeWrapper inner exp)
+
+
+
+{- Generated scalra file -}
 
 
 builtIn : List String
@@ -28,7 +143,7 @@ generate namespace schema =
         { docs =
             \docs ->
                 "This is a file used by `elm-gql` to decode your GraphQL scalars."
-                    "You'll need to maintain it and ensure that each scalar type is being encoded and decoded correctly!"
+                    :: "You'll need to maintain it and ensure that each scalar type is being encoded and decoded correctly!"
                     :: List.map Elm.docs (List.reverse docs)
         , aliases = []
         }
@@ -54,17 +169,17 @@ generate namespace schema =
 
 
 generateScalarCodec : ( String, GraphQL.Schema.ScalarDetails ) -> List Elm.Declaration
-generateScalarCodec ( typename, details ) =
-    if List.member (String.toLower typename) builtIn then
+generateScalarCodec ( rawname, details ) =
+    if List.member (String.toLower rawname) builtIn then
         []
 
     else
         let
-            name =
-                if typename == "ID" then
-                    "id"
+            typename =
+                Utils.String.formatTypename rawname
 
-                else
+            name =
+                Utils.String.formatValue
                     typename
         in
         [ Elm.customType typename

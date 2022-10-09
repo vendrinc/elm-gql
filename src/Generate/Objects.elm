@@ -8,7 +8,7 @@ import Gen.Json.Decode as Json
 import Gen.Platform.Cmd
 import Gen.Result
 import Generate.Common as Common
-import Generate.Decode
+import Generate.Scalar
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
 
@@ -107,7 +107,7 @@ implementField namespace objectName fieldName fieldType wrapped =
                 Engine.field
                     fieldName
                     scalarName
-                    (Generate.Decode.scalar scalarName wrapped)
+                    (Generate.Scalar.decode namespace scalarName wrapped)
             , annotation = signature.annotation
             }
 

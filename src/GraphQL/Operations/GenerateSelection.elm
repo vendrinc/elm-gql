@@ -622,7 +622,7 @@ selectionAliasedAnnotation namespace field =
                 (Can.nameToString field.globalAlias)
 
         Can.FieldScalar type_ ->
-            schemaTypeToPrefab type_
+            schemaTypeToPrefab namespace type_
 
         Can.FieldEnum enum ->
             enumType namespace enum.enumName
@@ -832,7 +832,7 @@ selectionAnnotation namespace field selection =
             record
 
         Can.FieldScalar type_ ->
-            schemaTypeToPrefab type_
+            schemaTypeToPrefab namespace type_
 
         Can.FieldEnum enum ->
             enumType namespace enum.enumName
@@ -858,8 +858,8 @@ enumType namespace enumName =
         enumName
 
 
-schemaTypeToPrefab : GraphQL.Schema.Type -> Type.Annotation
-schemaTypeToPrefab schemaType =
+schemaTypeToPrefab : Namespace -> GraphQL.Schema.Type -> Type.Annotation
+schemaTypeToPrefab namespace schemaType =
     case schemaType of
         GraphQL.Schema.Scalar scalarName ->
             case String.toLower scalarName of
@@ -876,7 +876,7 @@ schemaTypeToPrefab schemaType =
                     Type.bool
 
                 _ ->
-                    Type.namedWith [ "Scalar" ]
+                    Type.namedWith [ namespace.namespace, "Scalar" ]
                         (Utils.String.formatScalar scalarName)
                         []
 
@@ -896,10 +896,10 @@ schemaTypeToPrefab schemaType =
             Type.unit
 
         GraphQL.Schema.List_ inner ->
-            Type.list (schemaTypeToPrefab inner)
+            Type.list (schemaTypeToPrefab namespace inner)
 
         GraphQL.Schema.Nullable inner ->
-            Type.maybe (schemaTypeToPrefab inner)
+            Type.maybe (schemaTypeToPrefab namespace inner)
 
 
 

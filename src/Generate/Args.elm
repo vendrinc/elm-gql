@@ -19,9 +19,9 @@ import Gen.Json.Encode as Encode
 import Gen.List
 import Gen.Maybe
 import Generate.Common
-import Generate.Decode
 import Generate.Input as Input
 import Generate.Input.Encode
+import Generate.Scalar
 import GraphQL.Schema
 import Set exposing (Set)
 import String
@@ -405,7 +405,7 @@ inputAnnotationRecursive namespace schema type_ wrapped optForm =
             inputAnnotationRecursive namespace schema newType wrapped optForm
 
         GraphQL.Schema.Scalar scalarName ->
-            Generate.Input.Encode.scalarType wrapped scalarName
+            Generate.Input.Encode.scalarType namespace wrapped scalarName
 
         GraphQL.Schema.Enum enumName ->
             Elm.Annotation.named
@@ -540,7 +540,8 @@ toJsonValue namespace schema fieldType wrapped val =
             toJsonValue namespace schema newType wrapped val
 
         GraphQL.Schema.Scalar scalarName ->
-            Generate.Input.Encode.encodeScalar scalarName
+            Generate.Scalar.encode namespace
+                scalarName
                 wrapped
                 val
 
@@ -657,7 +658,8 @@ toEngineArg namespace schema fieldType wrapped val =
 
         GraphQL.Schema.Scalar scalarName ->
             Engine.arg
-                (Generate.Input.Encode.encodeScalar scalarName
+                (Generate.Scalar.encode namespace
+                    scalarName
                     wrapped
                     val
                 )
@@ -1089,7 +1091,7 @@ decodeSelection : Namespace -> GraphQL.Schema.Type -> Elm.Expression -> Elm.Expr
 decodeSelection namespace returnType subselector =
     case returnType of
         GraphQL.Schema.Scalar name ->
-            Generate.Decode.scalar
+            Generate.Scalar.decode namespace
                 name
                 GraphQL.Schema.UnwrappedValue
                 |> Engine.decode

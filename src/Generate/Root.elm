@@ -11,7 +11,6 @@ import Gen.Json.Decode as Json
 import Gen.Platform.Cmd
 import Gen.Result
 import Generate.Common as Common
-import Generate.Decode
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
 

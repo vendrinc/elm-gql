@@ -6,7 +6,6 @@ import Elm.Annotation
 import Gen.GraphQL.Engine as Engine
 import Generate.Args
 import Generate.Common
-import Generate.Decode
 import Generate.Example
 import Generate.Input as Input
 import Generate.Input.Encode

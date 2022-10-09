@@ -1,7 +1,7 @@
-module Gen.Generate.Scalar exposing (call_, generate, moduleName_, values_)
+module Gen.Generate.Scalar exposing (call_, decode, encode, generate, moduleName_, values_)
 
 {-| 
-@docs values_, call_, generate, moduleName_
+@docs values_, call_, encode, decode, generate, moduleName_
 -}
 
 
@@ -35,7 +35,71 @@ generate generateArg generateArg0 =
         [ generateArg, generateArg0 ]
 
 
-call_ : { generate : Elm.Expression -> Elm.Expression -> Elm.Expression }
+{-| decode: Namespace -> String -> GraphQL.Schema.Wrapped -> Elm.Expression -}
+decode : Elm.Expression -> String -> Elm.Expression -> Elm.Expression
+decode decodeArg decodeArg0 decodeArg1 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Generate", "Scalar" ]
+            , name = "decode"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" []
+                        , Type.string
+                        , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+        )
+        [ decodeArg, Elm.string decodeArg0, decodeArg1 ]
+
+
+{-| encode: 
+    Namespace
+    -> String
+    -> GraphQL.Schema.Wrapped
+    -> Elm.Expression
+    -> Elm.Expression
+-}
+encode :
+    Elm.Expression
+    -> String
+    -> Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+encode encodeArg encodeArg0 encodeArg1 encodeArg2 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Generate", "Scalar" ]
+            , name = "encode"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" []
+                        , Type.string
+                        , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
+                        , Type.namedWith [ "Elm" ] "Expression" []
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+        )
+        [ encodeArg, Elm.string encodeArg0, encodeArg1, encodeArg2 ]
+
+
+call_ :
+    { generate : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , decode :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , encode :
+        Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+    }
 call_ =
     { generate =
         \generateArg generateArg0 ->
@@ -57,10 +121,57 @@ call_ =
                     }
                 )
                 [ generateArg, generateArg0 ]
+    , decode =
+        \decodeArg decodeArg0 decodeArg1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "Generate", "Scalar" ]
+                    , name = "decode"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Namespace" []
+                                , Type.string
+                                , Type.namedWith
+                                    [ "GraphQL", "Schema" ]
+                                    "Wrapped"
+                                    []
+                                ]
+                                (Type.namedWith [ "Elm" ] "Expression" [])
+                            )
+                    }
+                )
+                [ decodeArg, decodeArg0, decodeArg1 ]
+    , encode =
+        \encodeArg encodeArg0 encodeArg1 encodeArg2 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "Generate", "Scalar" ]
+                    , name = "encode"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Namespace" []
+                                , Type.string
+                                , Type.namedWith
+                                    [ "GraphQL", "Schema" ]
+                                    "Wrapped"
+                                    []
+                                , Type.namedWith [ "Elm" ] "Expression" []
+                                ]
+                                (Type.namedWith [ "Elm" ] "Expression" [])
+                            )
+                    }
+                )
+                [ encodeArg, encodeArg0, encodeArg1, encodeArg2 ]
     }
 
 
-values_ : { generate : Elm.Expression }
+values_ :
+    { generate : Elm.Expression
+    , decode : Elm.Expression
+    , encode : Elm.Expression
+    }
 values_ =
     { generate =
         Elm.value
@@ -73,6 +184,35 @@ values_ =
                         , Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
                         ]
                         (Type.namedWith [ "Elm" ] "File" [])
+                    )
+            }
+    , decode =
+        Elm.value
+            { importFrom = [ "Generate", "Scalar" ]
+            , name = "decode"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" []
+                        , Type.string
+                        , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+    , encode =
+        Elm.value
+            { importFrom = [ "Generate", "Scalar" ]
+            , name = "encode"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" []
+                        , Type.string
+                        , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
+                        , Type.namedWith [ "Elm" ] "Expression" []
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
                     )
             }
     }

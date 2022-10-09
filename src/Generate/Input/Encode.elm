@@ -3,7 +3,7 @@ module Generate.Input.Encode exposing
     , toInputObject, toOptionHelpers, toNulls
     , toOneOfHelper, toOneOfNulls
     , fullRecordToInputObject
-    , encodeScalar, encodeEnum
+    , encodeEnum
     , docGroups
     , encode, scalarType, toElmType
     )
@@ -18,7 +18,7 @@ module Generate.Input.Encode exposing
 
 @docs fullRecordToInputObject
 
-@docs encodeScalar, encodeEnum
+@docs encodeEnum
 
 @docs docGroups
 
@@ -30,6 +30,7 @@ import Elm.Op
 import Gen.GraphQL.Engine as Engine
 import Gen.Json.Encode as Encode
 import Generate.Common
+import Generate.Scalar
 import GraphQL.Schema
 import Set exposing (Set)
 import Utils.String
@@ -663,7 +664,7 @@ toElmType namespace schema type_ wrapped =
             toElmType namespace schema newType wrapped
 
         GraphQL.Schema.Scalar scalarName ->
-            scalarType wrapped scalarName
+            scalarType namespace wrapped scalarName
 
         GraphQL.Schema.Enum enumName ->
             Type.named
@@ -718,31 +719,10 @@ encodeHelper namespace schema type_ val =
                 val
 
         GraphQL.Schema.Scalar scalarName ->
-            -- encodeScalar scalarName wrapped val
-            let
-                lowered =
-                    String.toLower scalarName
-            in
-            case lowered of
-                "int" ->
-                    Encode.call_.int val
-
-                "float" ->
-                    Encode.call_.float val
-
-                "string" ->
-                    Encode.call_.string val
-
-                "boolean" ->
-                    Encode.call_.bool val
-
-                _ ->
-                    Elm.apply
-                        (valueFrom [ "Scalar" ]
-                            (Utils.String.formatValue scalarName)
-                            |> Elm.get "encode"
-                        )
-                        [ val ]
+            Generate.Scalar.encode namespace
+                scalarName
+                GraphQL.Schema.UnwrappedValue
+                val
 
         GraphQL.Schema.Enum enumName ->
             if namespace.namespace /= namespace.enums then
@@ -799,16 +779,16 @@ wrappedToStringIndex wrapped =
             "l" ++ wrappedToStringIndex inner
 
 
-scalarType : GraphQL.Schema.Wrapped -> String -> Type.Annotation
-scalarType wrapped scalarName =
+scalarType : Namespace -> GraphQL.Schema.Wrapped -> String -> Type.Annotation
+scalarType namespace wrapped scalarName =
     case wrapped of
         GraphQL.Schema.InList inner ->
             Type.list
-                (scalarType inner scalarName)
+                (scalarType namespace inner scalarName)
 
         GraphQL.Schema.InMaybe inner ->
             Type.maybe
-                (scalarType inner scalarName)
+                (scalarType namespace inner scalarName)
 
         GraphQL.Schema.UnwrappedValue ->
             let
@@ -830,7 +810,7 @@ scalarType wrapped scalarName =
 
                 _ ->
                     Type.named
-                        [ "Scalar" ]
+                        [ namespace.namespace, "Scalar" ]
                         (Utils.String.formatScalar scalarName)
 
 
@@ -867,47 +847,6 @@ encodeWrapped wrapper encoder val =
 
         GraphQL.Schema.InList inner ->
             encodeWrapped inner (encodeList encoder) val
-
-
-encodeScalar : String -> GraphQL.Schema.Wrapped -> (Elm.Expression -> Elm.Expression)
-encodeScalar scalarName wrapped =
-    case wrapped of
-        GraphQL.Schema.InList inner ->
-            encodeList
-                (encodeScalar scalarName inner)
-
-        GraphQL.Schema.InMaybe inner ->
-            Engine.maybeScalarEncode
-                (encodeScalar scalarName
-                    inner
-                )
-
-        GraphQL.Schema.UnwrappedValue ->
-            let
-                lowered =
-                    String.toLower scalarName
-            in
-            case lowered of
-                "int" ->
-                    Encode.call_.int
-
-                "float" ->
-                    Encode.call_.float
-
-                "string" ->
-                    Encode.call_.string
-
-                "boolean" ->
-                    Encode.call_.bool
-
-                _ ->
-                    \val ->
-                        Elm.apply
-                            (valueFrom [ "Scalar" ]
-                                (Utils.String.formatValue scalarName)
-                                |> Elm.get "encode"
-                            )
-                            [ val ]
 
 
 encodeEnum : Namespace -> GraphQL.Schema.Wrapped -> Elm.Expression -> String -> Elm.Expression
