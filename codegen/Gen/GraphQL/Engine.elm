@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with)
+module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, mapRequest, toRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, mapRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
 -}
 
 
@@ -18,9 +18,9 @@ moduleName_ =
 
 
 {-| andMap: 
-    Json.Decode.Decoder map2Unpack
-    -> Json.Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    Decode.Decoder map2Unpack
+    -> Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
+    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 -}
 andMap : Elm.Expression -> Elm.Expression -> Elm.Expression
 andMap andMapArg andMapArg0 =
@@ -32,11 +32,11 @@ andMap andMapArg andMapArg0 =
                 Just
                     (Type.function
                         [ Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.var "map2Unpack" ]
                         , Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "map2Unpack"
@@ -49,7 +49,7 @@ andMap andMapArg andMapArg0 =
                             ]
                         ]
                         (Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -68,9 +68,9 @@ andMap andMapArg andMapArg0 =
 
 {-| jsonField: 
     String
-    -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Decode.Decoder a
+    -> Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 -}
 jsonField : String -> Elm.Expression -> Elm.Expression -> Elm.Expression
 jsonField jsonFieldArg jsonFieldArg0 jsonFieldArg1 =
@@ -82,12 +82,9 @@ jsonField jsonFieldArg jsonFieldArg0 jsonFieldArg1 =
                 Just
                     (Type.function
                         [ Type.string
+                        , Type.namedWith [ "Decode" ] "Decoder" [ Type.var "a" ]
                         , Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "a" ]
-                        , Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "a"
@@ -100,7 +97,7 @@ jsonField jsonFieldArg jsonFieldArg0 jsonFieldArg1 =
                             ]
                         ]
                         (Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -165,9 +162,9 @@ versionedName versionedNameArg versionedNameArg0 =
 {-| versionedJsonField: 
     Int
     -> String
-    -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Decode.Decoder a
+    -> Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 -}
 versionedJsonField :
     Int -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -181,12 +178,9 @@ versionedJsonField versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFie
                     (Type.function
                         [ Type.int
                         , Type.string
+                        , Type.namedWith [ "Decode" ] "Decoder" [ Type.var "a" ]
                         , Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "a" ]
-                        , Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "a"
@@ -199,7 +193,7 @@ versionedJsonField versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFie
                             ]
                         ]
                         (Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -279,10 +273,10 @@ maybeScalarEncode maybeScalarEncodeArg maybeScalarEncodeArg0 =
 
 {-| {-| -}
 
-queryString: String -> Maybe String -> Selection source data -> String
+queryString: String -> Selection source data -> String
 -}
-queryString : String -> Elm.Expression -> Elm.Expression -> Elm.Expression
-queryString queryStringArg queryStringArg0 queryStringArg1 =
+queryString : String -> Elm.Expression -> Elm.Expression
+queryString queryStringArg queryStringArg0 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
@@ -291,7 +285,6 @@ queryString queryStringArg queryStringArg0 queryStringArg1 =
                 Just
                     (Type.function
                         [ Type.string
-                        , Type.namedWith [] "Maybe" [ Type.string ]
                         , Type.namedWith
                             []
                             "Selection"
@@ -301,15 +294,14 @@ queryString queryStringArg queryStringArg0 queryStringArg1 =
                     )
             }
         )
-        [ Elm.string queryStringArg, queryStringArg0, queryStringArg1 ]
+        [ Elm.string queryStringArg, queryStringArg0 ]
 
 
 {-| {-| -}
 
 mutation: 
     Selection Mutation msg
-    -> { name : Maybe String
-    , headers : List Http.Header
+    -> { headers : List Http.Header
     , url : String
     , timeout : Maybe Float
     , tracker : Maybe String
@@ -318,8 +310,7 @@ mutation:
 -}
 mutation :
     Elm.Expression
-    -> { name : Elm.Expression
-    , headers : List Elm.Expression
+    -> { headers : List Elm.Expression
     , url : String
     , timeout : Elm.Expression
     , tracker : Elm.Expression
@@ -338,10 +329,7 @@ mutation mutationArg mutationArg0 =
                             "Selection"
                             [ Type.namedWith [] "Mutation" [], Type.var "msg" ]
                         , Type.record
-                            [ ( "name"
-                              , Type.namedWith [] "Maybe" [ Type.string ]
-                              )
-                            , ( "headers"
+                            [ ( "headers"
                               , Type.list
                                     (Type.namedWith [ "Http" ] "Header" [])
                               )
@@ -368,8 +356,7 @@ mutation mutationArg mutationArg0 =
         )
         [ mutationArg
         , Elm.record
-            [ Tuple.pair "name" mutationArg0.name
-            , Tuple.pair "headers" (Elm.list mutationArg0.headers)
+            [ Tuple.pair "headers" (Elm.list mutationArg0.headers)
             , Tuple.pair "url" (Elm.string mutationArg0.url)
             , Tuple.pair "timeout" mutationArg0.timeout
             , Tuple.pair "tracker" mutationArg0.tracker
@@ -381,8 +368,7 @@ mutation mutationArg mutationArg0 =
 
 query: 
     Selection Query value
-    -> { name : Maybe String
-    , headers : List Http.Header
+    -> { headers : List Http.Header
     , url : String
     , timeout : Maybe Float
     , tracker : Maybe String
@@ -391,8 +377,7 @@ query:
 -}
 query :
     Elm.Expression
-    -> { name : Elm.Expression
-    , headers : List Elm.Expression
+    -> { headers : List Elm.Expression
     , url : String
     , timeout : Elm.Expression
     , tracker : Elm.Expression
@@ -411,10 +396,7 @@ query queryArg queryArg0 =
                             "Selection"
                             [ Type.namedWith [] "Query" [], Type.var "value" ]
                         , Type.record
-                            [ ( "name"
-                              , Type.namedWith [] "Maybe" [ Type.string ]
-                              )
-                            , ( "headers"
+                            [ ( "headers"
                               , Type.list
                                     (Type.namedWith [ "Http" ] "Header" [])
                               )
@@ -443,8 +425,7 @@ query queryArg queryArg0 =
         )
         [ queryArg
         , Elm.record
-            [ Tuple.pair "name" queryArg0.name
-            , Tuple.pair "headers" (Elm.list queryArg0.headers)
+            [ Tuple.pair "headers" (Elm.list queryArg0.headers)
             , Tuple.pair "url" (Elm.string queryArg0.url)
             , Tuple.pair "timeout" queryArg0.timeout
             , Tuple.pair "tracker" queryArg0.tracker
@@ -604,65 +585,6 @@ send sendArg =
             }
         )
         [ sendArg ]
-
-
-{-| {-| Return details that can be directly given to `Http.request`.
-
-This is so that wiring up [Elm Program Test](https://package.elm-lang.org/packages/avh4/elm-program-test/latest/ProgramTest) is relatively easy.
-
--}
-
-toRequest: 
-    Premade value
-    -> { headers : List ( String, String )
-    , url : String
-    , timeout : Maybe Float
-    , tracker : Maybe String
-    }
-    -> Request value
--}
-toRequest :
-    Elm.Expression
-    -> { headers : List Elm.Expression
-    , url : String
-    , timeout : Elm.Expression
-    , tracker : Elm.Expression
-    }
-    -> Elm.Expression
-toRequest toRequestArg toRequestArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "toRequest"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Premade" [ Type.var "value" ]
-                        , Type.record
-                            [ ( "headers"
-                              , Type.list (Type.tuple Type.string Type.string)
-                              )
-                            , ( "url", Type.string )
-                            , ( "timeout"
-                              , Type.namedWith [] "Maybe" [ Type.float ]
-                              )
-                            , ( "tracker"
-                              , Type.namedWith [] "Maybe" [ Type.string ]
-                              )
-                            ]
-                        ]
-                        (Type.namedWith [] "Request" [ Type.var "value" ])
-                    )
-            }
-        )
-        [ toRequestArg
-        , Elm.record
-            [ Tuple.pair "headers" (Elm.list toRequestArg0.headers)
-            , Tuple.pair "url" (Elm.string toRequestArg0.url)
-            , Tuple.pair "timeout" toRequestArg0.timeout
-            , Tuple.pair "tracker" toRequestArg0.tracker
-            ]
-        ]
 
 
 {-| {-| -}
@@ -1897,13 +1819,11 @@ call_ :
         -> Elm.Expression
     , decodeNullable : Elm.Expression -> Elm.Expression
     , maybeScalarEncode : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , queryString :
-        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , queryString : Elm.Expression -> Elm.Expression -> Elm.Expression
     , mutation : Elm.Expression -> Elm.Expression -> Elm.Expression
     , query : Elm.Expression -> Elm.Expression -> Elm.Expression
     , simulate : Elm.Expression -> Elm.Expression -> Elm.Expression
     , send : Elm.Expression -> Elm.Expression
-    , toRequest : Elm.Expression -> Elm.Expression -> Elm.Expression
     , mapRequest : Elm.Expression -> Elm.Expression -> Elm.Expression
     , bakeToSelection :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -1968,11 +1888,11 @@ call_ =
                         Just
                             (Type.function
                                 [ Type.namedWith
-                                    [ "Json", "Decode" ]
+                                    [ "Decode" ]
                                     "Decoder"
                                     [ Type.var "map2Unpack" ]
                                 , Type.namedWith
-                                    [ "Json", "Decode" ]
+                                    [ "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "map2Unpack"
@@ -1985,7 +1905,7 @@ call_ =
                                     ]
                                 ]
                                 (Type.namedWith
-                                    [ "Json", "Decode" ]
+                                    [ "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "inner"
@@ -2011,11 +1931,11 @@ call_ =
                             (Type.function
                                 [ Type.string
                                 , Type.namedWith
-                                    [ "Json", "Decode" ]
+                                    [ "Decode" ]
                                     "Decoder"
                                     [ Type.var "a" ]
                                 , Type.namedWith
-                                    [ "Json", "Decode" ]
+                                    [ "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "a"
@@ -2028,7 +1948,7 @@ call_ =
                                     ]
                                 ]
                                 (Type.namedWith
-                                    [ "Json", "Decode" ]
+                                    [ "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "inner"
@@ -2081,11 +2001,11 @@ call_ =
                                 [ Type.int
                                 , Type.string
                                 , Type.namedWith
-                                    [ "Json", "Decode" ]
+                                    [ "Decode" ]
                                     "Decoder"
                                     [ Type.var "a" ]
                                 , Type.namedWith
-                                    [ "Json", "Decode" ]
+                                    [ "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "a"
@@ -2098,7 +2018,7 @@ call_ =
                                     ]
                                 ]
                                 (Type.namedWith
-                                    [ "Json", "Decode" ]
+                                    [ "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "inner"
@@ -2164,7 +2084,7 @@ call_ =
                 )
                 [ maybeScalarEncodeArg, maybeScalarEncodeArg0 ]
     , queryString =
-        \queryStringArg queryStringArg0 queryStringArg1 ->
+        \queryStringArg queryStringArg0 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Engine" ]
@@ -2173,7 +2093,6 @@ call_ =
                         Just
                             (Type.function
                                 [ Type.string
-                                , Type.namedWith [] "Maybe" [ Type.string ]
                                 , Type.namedWith
                                     []
                                     "Selection"
@@ -2183,7 +2102,7 @@ call_ =
                             )
                     }
                 )
-                [ queryStringArg, queryStringArg0, queryStringArg1 ]
+                [ queryStringArg, queryStringArg0 ]
     , mutation =
         \mutationArg mutationArg0 ->
             Elm.apply
@@ -2200,13 +2119,7 @@ call_ =
                                     , Type.var "msg"
                                     ]
                                 , Type.record
-                                    [ ( "name"
-                                      , Type.namedWith
-                                            []
-                                            "Maybe"
-                                            [ Type.string ]
-                                      )
-                                    , ( "headers"
+                                    [ ( "headers"
                                       , Type.list
                                             (Type.namedWith
                                                 [ "Http" ]
@@ -2257,13 +2170,7 @@ call_ =
                                     , Type.var "value"
                                     ]
                                 , Type.record
-                                    [ ( "name"
-                                      , Type.namedWith
-                                            []
-                                            "Maybe"
-                                            [ Type.string ]
-                                      )
-                                    , ( "headers"
+                                    [ ( "headers"
                                       , Type.list
                                             (Type.namedWith
                                                 [ "Http" ]
@@ -2412,45 +2319,6 @@ call_ =
                     }
                 )
                 [ sendArg ]
-    , toRequest =
-        \toRequestArg toRequestArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "toRequest"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith
-                                    []
-                                    "Premade"
-                                    [ Type.var "value" ]
-                                , Type.record
-                                    [ ( "headers"
-                                      , Type.list
-                                            (Type.tuple Type.string Type.string)
-                                      )
-                                    , ( "url", Type.string )
-                                    , ( "timeout"
-                                      , Type.namedWith [] "Maybe" [ Type.float ]
-                                      )
-                                    , ( "tracker"
-                                      , Type.namedWith
-                                            []
-                                            "Maybe"
-                                            [ Type.string ]
-                                      )
-                                    ]
-                                ]
-                                (Type.namedWith
-                                    []
-                                    "Request"
-                                    [ Type.var "value" ]
-                                )
-                            )
-                    }
-                )
-                [ toRequestArg, toRequestArg0 ]
     , mapRequest =
         \mapRequestArg mapRequestArg0 ->
             Elm.apply
@@ -3259,7 +3127,6 @@ values_ :
     , query : Elm.Expression
     , simulate : Elm.Expression
     , send : Elm.Expression
-    , toRequest : Elm.Expression
     , mapRequest : Elm.Expression
     , bakeToSelection : Elm.Expression
     , map2 : Elm.Expression
@@ -3302,11 +3169,11 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.var "map2Unpack" ]
                         , Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "map2Unpack"
@@ -3319,7 +3186,7 @@ values_ =
                             ]
                         ]
                         (Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -3340,12 +3207,9 @@ values_ =
                 Just
                     (Type.function
                         [ Type.string
+                        , Type.namedWith [ "Decode" ] "Decoder" [ Type.var "a" ]
                         , Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "a" ]
-                        , Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "a"
@@ -3358,7 +3222,7 @@ values_ =
                             ]
                         ]
                         (Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -3394,12 +3258,9 @@ values_ =
                     (Type.function
                         [ Type.int
                         , Type.string
+                        , Type.namedWith [ "Decode" ] "Decoder" [ Type.var "a" ]
                         , Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "a" ]
-                        , Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "a"
@@ -3412,7 +3273,7 @@ values_ =
                             ]
                         ]
                         (Type.namedWith
-                            [ "Json", "Decode" ]
+                            [ "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -3467,7 +3328,6 @@ values_ =
                 Just
                     (Type.function
                         [ Type.string
-                        , Type.namedWith [] "Maybe" [ Type.string ]
                         , Type.namedWith
                             []
                             "Selection"
@@ -3488,10 +3348,7 @@ values_ =
                             "Selection"
                             [ Type.namedWith [] "Mutation" [], Type.var "msg" ]
                         , Type.record
-                            [ ( "name"
-                              , Type.namedWith [] "Maybe" [ Type.string ]
-                              )
-                            , ( "headers"
+                            [ ( "headers"
                               , Type.list
                                     (Type.namedWith [ "Http" ] "Header" [])
                               )
@@ -3527,10 +3384,7 @@ values_ =
                             "Selection"
                             [ Type.namedWith [] "Query" [], Type.var "value" ]
                         , Type.record
-                            [ ( "name"
-                              , Type.namedWith [] "Maybe" [ Type.string ]
-                              )
-                            , ( "headers"
+                            [ ( "headers"
                               , Type.list
                                     (Type.namedWith [ "Http" ] "Header" [])
                               )
@@ -3643,30 +3497,6 @@ values_ =
                                 ]
                             ]
                         )
-                    )
-            }
-    , toRequest =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "toRequest"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Premade" [ Type.var "value" ]
-                        , Type.record
-                            [ ( "headers"
-                              , Type.list (Type.tuple Type.string Type.string)
-                              )
-                            , ( "url", Type.string )
-                            , ( "timeout"
-                              , Type.namedWith [] "Maybe" [ Type.float ]
-                              )
-                            , ( "tracker"
-                              , Type.namedWith [] "Maybe" [ Type.string ]
-                              )
-                            ]
-                        ]
-                        (Type.namedWith [] "Request" [ Type.var "value" ])
                     )
             }
     , mapRequest =

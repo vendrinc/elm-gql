@@ -1792,6 +1792,15 @@ canonicalizeFieldType refs field usedNames schemaField =
     canonicalizeFieldTypeHelper refs field schemaField.type_ usedNames Cache.empty schemaField
 
 
+canonicalizeArguments :
+    References
+    -> List GraphQL.Schema.Argument
+    -> List AST.Argument
+    ->
+        { valid : List ( String, GraphQL.Schema.Type )
+        , unknown : List String
+        , errs : List Error
+        }
 canonicalizeArguments refs schemaArguments arguments =
     List.foldl
         (\arg found ->
@@ -1894,7 +1903,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                             field.alias_
                                 |> Maybe.withDefault field.name
                                 |> convertName
-                        , arguments = []
+                        , arguments = field.arguments
                         , directives = List.map convertDirective field.directives
                         , wrapper = GraphQL.Schema.getWrap schemaField.type_
                         , selection =
@@ -1937,7 +1946,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                         |> Maybe.withDefault field.name
                                         |> convertName
                                 , selectsOnlyFragment = Nothing
-                                , arguments = []
+                                , arguments = field.arguments
                                 , directives = List.map convertDirective field.directives
                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
                                 , selection =
@@ -1997,7 +2006,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                                 , globalAlias =
                                                     Can.Name global.globalName
                                                 , selectsOnlyFragment = selectsSingleFragment field.selection
-                                                , arguments = []
+                                                , arguments = field.arguments
                                                 , directives = List.map convertDirective field.directives
                                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
                                                 , selection =
@@ -2053,7 +2062,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                         , globalAlias =
                                             Can.Name global.globalName
                                         , selectsOnlyFragment = selectsSingleFragment field.selection
-                                        , arguments = []
+                                        , arguments = field.arguments
                                         , directives = List.map convertDirective field.directives
                                         , wrapper = GraphQL.Schema.getWrap schemaField.type_
                                         , selection =
