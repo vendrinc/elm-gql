@@ -1158,7 +1158,7 @@ canonicalizeOperation refs op used selection =
                         |> Tuple.mapFirst UsedNames.dropLevel
 
         AST.FragmentSpreadSelection frag ->
-            ( used, err [ todo "Fragments in unions aren't suported yet!" ] )
+            ( used, err [ todo "Top level Fragments aren't suported yet!" ] )
 
         AST.InlineFragmentSelection inline ->
             -- This is when we're selecting a union fragment
@@ -2193,6 +2193,12 @@ getInterfaceNames kind found =
             found
 
 
+{-| Members of a union can only be objects:
+<https://spec.graphql.org/June2018/#sec-Unions>
+
+Some more details: <https://github.com/graphql/graphql-js/issues/451>
+
+-}
 extractUnionTags : List GraphQL.Schema.Variant -> List String -> Maybe (List String)
 extractUnionTags vars captured =
     case vars of
