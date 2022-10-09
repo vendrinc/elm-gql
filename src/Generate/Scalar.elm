@@ -1,4 +1,4 @@
-module Generate.Scalar exposing (decode, encode, generate)
+module Generate.Scalar exposing (decode, encode, generate, type_)
 
 import Dict
 import Elm
@@ -10,6 +10,27 @@ import Gen.Json.Encode
 import Generate.Common as Common
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
+
+
+type_ : Namespace -> String -> Type.Annotation
+type_ namespace scalar =
+    case String.toLower scalar of
+        "string" ->
+            Type.string
+
+        "int" ->
+            Type.int
+
+        "float" ->
+            Type.float
+
+        "boolean" ->
+            Type.bool
+
+        _ ->
+            Type.namedWith [ namespace.namespace ]
+                (Utils.String.formatScalar scalar)
+                []
 
 
 encode : Namespace -> String -> GraphQL.Schema.Wrapped -> (Elm.Expression -> Elm.Expression)
@@ -50,7 +71,6 @@ encode namespace scalarName wrapped =
                             (Elm.value
                                 { importFrom =
                                     [ namespace.namespace
-                                    , "Scalar"
                                     ]
                                 , name = Utils.String.formatValue scalarName
                                 , annotation = Nothing
@@ -99,7 +119,6 @@ decode namespace scalarName wrapped =
                     Elm.value
                         { importFrom =
                             [ namespace.namespace
-                            , "Scalar"
                             ]
                         , name = Utils.String.formatValue scalarName
                         , annotation = Nothing
@@ -137,35 +156,26 @@ builtIn =
     ]
 
 
-generate : Namespace -> GraphQL.Schema.Schema -> Elm.File
+generate : Namespace -> GraphQL.Schema.Schema -> List Elm.Declaration
 generate namespace schema =
-    Elm.fileWith [ namespace.namespace, "Scalar" ]
-        { docs =
-            \docs ->
-                "This is a file used by `elm-gql` to decode your GraphQL scalars."
-                    :: "You'll need to maintain it and ensure that each scalar type is being encoded and decoded correctly!"
-                    :: List.map Elm.docs (List.reverse docs)
-        , aliases = []
-        }
-        (Elm.alias "Codec"
-            (Type.record
-                [ ( "encode"
-                  , Type.function
-                        [ Type.var "scalar"
-                        ]
-                        Gen.Json.Encode.annotation_.value
-                  )
-                , ( "decoder"
-                  , Gen.Json.Decode.annotation_.decoder
-                        (Type.var "scalar")
-                  )
-                ]
-            )
-            :: (schema.scalars
-                    |> Dict.toList
-                    |> List.concatMap generateScalarCodec
-               )
+    Elm.alias "Codec"
+        (Type.record
+            [ ( "encode"
+              , Type.function
+                    [ Type.var "scalar"
+                    ]
+                    Gen.Json.Encode.annotation_.value
+              )
+            , ( "decoder"
+              , Gen.Json.Decode.annotation_.decoder
+                    (Type.var "scalar")
+              )
+            ]
         )
+        :: (schema.scalars
+                |> Dict.toList
+                |> List.concatMap generateScalarCodec
+           )
 
 
 generateScalarCodec : ( String, GraphQL.Schema.ScalarDetails ) -> List Elm.Declaration

@@ -12,6 +12,7 @@ import Gen.GraphQL.Engine as Engine
 import Gen.Json.Decode as Decode
 import Generate.Input as Input
 import Generate.Input.Encode
+import Generate.Scalar
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
@@ -862,23 +863,7 @@ schemaTypeToPrefab : Namespace -> GraphQL.Schema.Type -> Type.Annotation
 schemaTypeToPrefab namespace schemaType =
     case schemaType of
         GraphQL.Schema.Scalar scalarName ->
-            case String.toLower scalarName of
-                "string" ->
-                    Type.string
-
-                "int" ->
-                    Type.int
-
-                "float" ->
-                    Type.float
-
-                "boolean" ->
-                    Type.bool
-
-                _ ->
-                    Type.namedWith [ namespace.namespace, "Scalar" ]
-                        (Utils.String.formatScalar scalarName)
-                        []
+            Generate.Scalar.type_ namespace scalarName
 
         GraphQL.Schema.InputObject input ->
             Type.unit

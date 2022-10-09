@@ -1,7 +1,7 @@
-module Gen.Generate.Scalar exposing (call_, decode, encode, generate, moduleName_, values_)
+module Gen.Generate.Scalar exposing (call_, decode, encode, generate, moduleName_, type_, values_)
 
 {-| 
-@docs values_, call_, encode, decode, generate, moduleName_
+@docs values_, call_, type_, encode, decode, generate, moduleName_
 -}
 
 
@@ -15,7 +15,7 @@ moduleName_ =
     [ "Generate", "Scalar" ]
 
 
-{-| generate: Namespace -> GraphQL.Schema.Schema -> Elm.File -}
+{-| generate: Namespace -> GraphQL.Schema.Schema -> List Elm.Declaration -}
 generate : Elm.Expression -> Elm.Expression -> Elm.Expression
 generate generateArg generateArg0 =
     Elm.apply
@@ -28,7 +28,7 @@ generate generateArg generateArg0 =
                         [ Type.namedWith [] "Namespace" []
                         , Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
                         ]
-                        (Type.namedWith [ "Elm" ] "File" [])
+                        (Type.list (Type.namedWith [ "Elm" ] "Declaration" []))
                     )
             }
         )
@@ -89,6 +89,24 @@ encode encodeArg encodeArg0 encodeArg1 encodeArg2 =
         [ encodeArg, Elm.string encodeArg0, encodeArg1, encodeArg2 ]
 
 
+{-| type_: Namespace -> String -> Type.Annotation -}
+type_ : Elm.Expression -> String -> Elm.Expression
+type_ type_Arg type_Arg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Generate", "Scalar" ]
+            , name = "type_"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" [], Type.string ]
+                        (Type.namedWith [ "Type" ] "Annotation" [])
+                    )
+            }
+        )
+        [ type_Arg, Elm.string type_Arg0 ]
+
+
 call_ :
     { generate : Elm.Expression -> Elm.Expression -> Elm.Expression
     , decode :
@@ -99,6 +117,7 @@ call_ :
         -> Elm.Expression
         -> Elm.Expression
         -> Elm.Expression
+    , type_ : Elm.Expression -> Elm.Expression -> Elm.Expression
     }
 call_ =
     { generate =
@@ -116,7 +135,9 @@ call_ =
                                     "Schema"
                                     []
                                 ]
-                                (Type.namedWith [ "Elm" ] "File" [])
+                                (Type.list
+                                    (Type.namedWith [ "Elm" ] "Declaration" [])
+                                )
                             )
                     }
                 )
@@ -164,6 +185,23 @@ call_ =
                     }
                 )
                 [ encodeArg, encodeArg0, encodeArg1, encodeArg2 ]
+    , type_ =
+        \type_Arg type_Arg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "Generate", "Scalar" ]
+                    , name = "type_"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Namespace" []
+                                , Type.string
+                                ]
+                                (Type.namedWith [ "Type" ] "Annotation" [])
+                            )
+                    }
+                )
+                [ type_Arg, type_Arg0 ]
     }
 
 
@@ -171,6 +209,7 @@ values_ :
     { generate : Elm.Expression
     , decode : Elm.Expression
     , encode : Elm.Expression
+    , type_ : Elm.Expression
     }
 values_ =
     { generate =
@@ -183,7 +222,7 @@ values_ =
                         [ Type.namedWith [] "Namespace" []
                         , Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
                         ]
-                        (Type.namedWith [ "Elm" ] "File" [])
+                        (Type.list (Type.namedWith [ "Elm" ] "Declaration" []))
                     )
             }
     , decode =
@@ -213,6 +252,17 @@ values_ =
                         , Type.namedWith [ "Elm" ] "Expression" []
                         ]
                         (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+    , type_ =
+        Elm.value
+            { importFrom = [ "Generate", "Scalar" ]
+            , name = "type_"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" [], Type.string ]
+                        (Type.namedWith [ "Type" ] "Annotation" [])
                     )
             }
     }

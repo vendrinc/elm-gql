@@ -791,27 +791,7 @@ scalarType namespace wrapped scalarName =
                 (scalarType namespace inner scalarName)
 
         GraphQL.Schema.UnwrappedValue ->
-            let
-                lowered =
-                    String.toLower scalarName
-            in
-            case lowered of
-                "int" ->
-                    Type.int
-
-                "float" ->
-                    Type.float
-
-                "string" ->
-                    Type.string
-
-                "boolean" ->
-                    Type.bool
-
-                _ ->
-                    Type.named
-                        [ namespace.namespace, "Scalar" ]
-                        (Utils.String.formatScalar scalarName)
+            Generate.Scalar.type_ namespace scalarName
 
 
 unwrapWith :

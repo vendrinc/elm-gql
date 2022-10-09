@@ -138,7 +138,6 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                     schemaFiles =
                         Generate.Root.generate namespace schema
                             :: saveSchema namespace schemaAsJson
-                            :: Generate.Scalar.generate namespace schema
                             :: Generate.Enums.generateFiles namespace schema
                             ++ Generate.InputObjects.generateFiles namespace schema
 
