@@ -12,6 +12,7 @@ import Generate.InputObjects
 import Generate.Objects
 import Generate.Operations
 import Generate.Paged
+import Generate.Root
 import Generate.Unions
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.GenerateSelection
@@ -140,8 +141,9 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
 
                     -- unionFiles =
                     --     Generate.Unions.generateFiles namespace schema
-                    -- objectFiles =
-                    --     Generate.Objects.generateFiles namespace schema
+                    objectFiles =
+                        Generate.Objects.generateFiles namespace schema
+
                     inputFiles =
                         Generate.InputObjects.generateFiles namespace schema
 
@@ -150,7 +152,8 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                     -- mutationFiles =
                     --     Generate.Operations.generateFiles namespace Input.Mutation schema
                     schemaFiles =
-                        saveSchema namespace schemaAsJson
+                        Generate.Root.generate namespace schema
+                            :: saveSchema namespace schemaAsJson
                             :: --  unionFiles
                                -- ++
                                enumFiles
