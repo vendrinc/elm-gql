@@ -207,6 +207,7 @@ annotation_ :
     , objectDetails : Type.Annotation
     , variant : Type.Annotation
     , unionDetails : Type.Annotation
+    , scalarDetails : Type.Annotation
     , schema : Type.Annotation
     , namespace : Type.Annotation
     , wrapped : Type.Annotation
@@ -295,6 +296,16 @@ annotation_ =
                 [ ( "name", Type.string )
                 , ( "description", Type.namedWith [] "Maybe" [ Type.string ] )
                 , ( "variants", Type.list (Type.namedWith [] "Variant" []) )
+                ]
+            )
+    , scalarDetails =
+        Type.alias
+            moduleName_
+            "ScalarDetails"
+            []
+            (Type.record
+                [ ( "name", Type.string )
+                , ( "description", Type.namedWith [] "Maybe" [ Type.string ] )
                 ]
             )
     , schema =
@@ -426,6 +437,9 @@ make_ :
         , description : Elm.Expression
         , variants : Elm.Expression
         }
+        -> Elm.Expression
+    , scalarDetails :
+        { name : Elm.Expression, description : Elm.Expression }
         -> Elm.Expression
     , schema :
         { queries : Elm.Expression
@@ -625,6 +639,26 @@ make_ =
                     [ Tuple.pair "name" unionDetails_args.name
                     , Tuple.pair "description" unionDetails_args.description
                     , Tuple.pair "variants" unionDetails_args.variants
+                    ]
+                )
+    , scalarDetails =
+        \scalarDetails_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Schema" ]
+                    "ScalarDetails"
+                    []
+                    (Type.record
+                        [ ( "name", Type.string )
+                        , ( "description"
+                          , Type.namedWith [] "Maybe" [ Type.string ]
+                          )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "name" scalarDetails_args.name
+                    , Tuple.pair "description" scalarDetails_args.description
                     ]
                 )
     , schema =

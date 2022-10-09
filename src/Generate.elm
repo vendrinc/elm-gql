@@ -13,6 +13,7 @@ import Generate.Objects
 import Generate.Operations
 import Generate.Paged
 import Generate.Root
+import Generate.Scalar
 import Generate.Unions
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.GenerateSelection
@@ -134,20 +135,12 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
         Ok gqlFiles ->
             if flagDetails.generatePlatform then
                 let
-                    enumFiles =
-                        Generate.Enums.generateFiles namespace schema
-
-                    objectFiles =
-                        Generate.Objects.generateFiles namespace schema
-
-                    inputFiles =
-                        Generate.InputObjects.generateFiles namespace schema
-
                     schemaFiles =
                         Generate.Root.generate namespace schema
                             :: saveSchema namespace schemaAsJson
-                            :: enumFiles
-                            ++ inputFiles
+                            :: Generate.Scalar.generate namespace schema
+                            :: Generate.Enums.generateFiles namespace schema
+                            ++ Generate.InputObjects.generateFiles namespace schema
 
                     all =
                         List.map (addOutputDir flagDetails.elmBaseSchema) schemaFiles
