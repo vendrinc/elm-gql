@@ -198,7 +198,7 @@ generateScalarCodec ( rawname, details ) =
                 ]
             ]
             |> Elm.exposeWith
-                { group = Just typename
+                { group = Just "Scalar Decoders and Encoders"
                 , exposeConstructor = True
                 }
         , Elm.declaration name
@@ -228,7 +228,7 @@ generateScalarCodec ( rawname, details ) =
                     )
             )
             |> Elm.exposeWith
-                { group = Just typename
+                { group = Just "Scalar Decoders and Encoders"
                 , exposeConstructor = True
                 }
         ]
