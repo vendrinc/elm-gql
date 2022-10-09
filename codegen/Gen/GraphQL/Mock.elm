@@ -18,7 +18,7 @@ moduleName_ =
 {-| {-| Given a premade query or mutation, return an auto-mocked, json-stringified version of what the query is expecting
 -}
 
-mock: Schema -> Premade value -> Result Error String
+mock: Schema -> Selection Query value -> Result Error String
 -}
 mock : Elm.Expression -> Elm.Expression -> Elm.Expression
 mock mockArg mockArg0 =
@@ -30,7 +30,10 @@ mock mockArg mockArg0 =
                 Just
                     (Type.function
                         [ Type.namedWith [] "Schema" []
-                        , Type.namedWith [] "Premade" [ Type.var "value" ]
+                        , Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Query" [], Type.var "value" ]
                         ]
                         (Type.namedWith
                             []
@@ -86,8 +89,10 @@ call_ =
                                 [ Type.namedWith [] "Schema" []
                                 , Type.namedWith
                                     []
-                                    "Premade"
-                                    [ Type.var "value" ]
+                                    "Selection"
+                                    [ Type.namedWith [] "Query" []
+                                    , Type.var "value"
+                                    ]
                                 ]
                                 (Type.namedWith
                                     []
@@ -128,7 +133,10 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith [] "Schema" []
-                        , Type.namedWith [] "Premade" [ Type.var "value" ]
+                        , Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Query" [], Type.var "value" ]
                         ]
                         (Type.namedWith
                             []

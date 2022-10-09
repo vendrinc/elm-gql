@@ -30,51 +30,52 @@ schemaFromString =
 
 {-| Given a premade query or mutation, return an auto-mocked, json-stringified version of what the query is expecting
 -}
-mock : Schema -> Premade value -> Result Error String
-mock (Schema schemaStr) premade =
+mock : Schema -> Selection Query value -> Result Error String
+mock (Schema schemaStr) q =
     case Json.Decode.decodeString GraphQL.Schema.decoder schemaStr of
         Ok schema ->
-            case Parse.parse (GraphQL.Engine.getGql premade) of
-                Err err ->
-                    Err
-                        { title = "Malformed query"
-                        , description =
-                            Parse.errorToString err
-                        }
-
-                Ok query ->
-                    case Canonicalize.canonicalize schema query of
-                        Err errors ->
-                            Err
-                                { title = "Errors"
-                                , description =
-                                    List.map Canonicalize.errorToString errors
-                                        |> String.join "\n\n    "
-                                }
-
-                        Ok canAST ->
-                            case Mock.generate canAST of
-                                Ok [] ->
-                                    Err
-                                        { title = "No named queries present"
-                                        , description =
-                                            "Can't generate data if there are no queries"
-                                        }
-
-                                Ok (op :: _) ->
-                                    -- this throws away everything but the first named operation
-                                    -- But ultimately there should be only one named operation
-                                    Ok
-                                        (op.body
-                                            |> Json.Encode.encode 4
-                                        )
-
-                                Err mockError ->
-                                    Err
-                                        { title = "Errors"
-                                        , description =
-                                            "Issue generating mocked data"
-                                        }
+            -- case Parse.parse (GraphQL.Engine.getGql premade) of
+            --     Err err ->
+            --         Err
+            --             { title = "Malformed query"
+            --             , description =
+            --                 Parse.errorToString err
+            --             }
+            --     Ok query ->
+            --         case Canonicalize.canonicalize schema query of
+            --             Err errors ->
+            --                 Err
+            --                     { title = "Errors"
+            --                     , description =
+            --                         List.map Canonicalize.errorToString errors
+            --                             |> String.join "\n\n    "
+            --                     }
+            --             Ok canAST ->
+            --                 case Mock.generate canAST of
+            --                     Ok [] ->
+            --                         Err
+            --                             { title = "No named queries present"
+            --                             , description =
+            --                                 "Can't generate data if there are no queries"
+            --                             }
+            --                     Ok (op :: _) ->
+            --                         -- this throws away everything but the first named operation
+            --                         -- But ultimately there should be only one named operation
+            --                         Ok
+            --                             (op.body
+            --                                 |> Json.Encode.encode 4
+            --                             )
+            --                     Err mockError ->
+            --                         Err
+            --                             { title = "Errors"
+            --                             , description =
+            --                                 "Issue generating mocked data"
+            --                             }
+            Err
+                { title = "Mock is not implemented!"
+                , description =
+                    "Rerun elm-gql"
+                }
 
         Err errors ->
             Err

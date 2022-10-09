@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, getGql, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapPremade, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, prebakedQuery, premadeOperation, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with)
+module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, toRequest, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, prebakedQuery, getGql, mapPremade, premadeOperation, mapRequest, toRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, mapRequest, toRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
 -}
 
 
@@ -691,161 +691,11 @@ mapRequest mapRequestArg mapRequestArg0 =
 
 {-| {-| -}
 
-premadeOperation: 
-    Premade value
-    -> { headers : List Http.Header
-    , url : String
-    , timeout : Maybe Float
-    , tracker : Maybe String
-    }
-    -> Cmd (Result Error value)
--}
-premadeOperation :
-    Elm.Expression
-    -> { headers : List Elm.Expression
-    , url : String
-    , timeout : Elm.Expression
-    , tracker : Elm.Expression
-    }
-    -> Elm.Expression
-premadeOperation premadeOperationArg premadeOperationArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "premadeOperation"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Premade" [ Type.var "value" ]
-                        , Type.record
-                            [ ( "headers"
-                              , Type.list
-                                    (Type.namedWith [ "Http" ] "Header" [])
-                              )
-                            , ( "url", Type.string )
-                            , ( "timeout"
-                              , Type.namedWith [] "Maybe" [ Type.float ]
-                              )
-                            , ( "tracker"
-                              , Type.namedWith [] "Maybe" [ Type.string ]
-                              )
-                            ]
-                        ]
-                        (Type.namedWith
-                            []
-                            "Cmd"
-                            [ Type.namedWith
-                                []
-                                "Result"
-                                [ Type.namedWith [] "Error" []
-                                , Type.var "value"
-                                ]
-                            ]
-                        )
-                    )
-            }
-        )
-        [ premadeOperationArg
-        , Elm.record
-            [ Tuple.pair "headers" (Elm.list premadeOperationArg0.headers)
-            , Tuple.pair "url" (Elm.string premadeOperationArg0.url)
-            , Tuple.pair "timeout" premadeOperationArg0.timeout
-            , Tuple.pair "tracker" premadeOperationArg0.tracker
-            ]
-        ]
-
-
-{-| {-| -}
-
-mapPremade: (a -> b) -> Premade a -> Premade b
--}
-mapPremade :
-    (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
-mapPremade mapPremadeArg mapPremadeArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "mapPremade"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.function [ Type.var "a" ] (Type.var "b")
-                        , Type.namedWith [] "Premade" [ Type.var "a" ]
-                        ]
-                        (Type.namedWith [] "Premade" [ Type.var "b" ])
-                    )
-            }
-        )
-        [ Elm.functionReduced "mapPremadeUnpack" mapPremadeArg, mapPremadeArg0 ]
-
-
-{-| {-| -}
-
-getGql: Premade data -> String
--}
-getGql : Elm.Expression -> Elm.Expression
-getGql getGqlArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "getGql"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Premade" [ Type.var "data" ] ]
-                        Type.string
-                    )
-            }
-        )
-        [ getGqlArg ]
-
-
-{-| {-| -}
-
-prebakedQuery: 
-    String
-    -> List ( String, VariableDetails )
-    -> Decode.Decoder data
-    -> Premade data
--}
-prebakedQuery :
-    String -> List Elm.Expression -> Elm.Expression -> Elm.Expression
-prebakedQuery prebakedQueryArg prebakedQueryArg0 prebakedQueryArg1 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "prebakedQuery"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string
-                        , Type.list
-                            (Type.tuple
-                                Type.string
-                                (Type.namedWith [] "VariableDetails" [])
-                            )
-                        , Type.namedWith
-                            [ "Decode" ]
-                            "Decoder"
-                            [ Type.var "data" ]
-                        ]
-                        (Type.namedWith [] "Premade" [ Type.var "data" ])
-                    )
-            }
-        )
-        [ Elm.string prebakedQueryArg
-        , Elm.list prebakedQueryArg0
-        , prebakedQueryArg1
-        ]
-
-
-{-| {-| -}
-
 bakeToSelection: 
     Maybe String
     -> (Int -> ( List ( String, VariableDetails ), String ))
     -> (Int -> Decode.Decoder data)
-    -> Premade data
+    -> Selection source data
 -}
 bakeToSelection :
     Elm.Expression
@@ -880,7 +730,11 @@ bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
                                 [ Type.var "data" ]
                             )
                         ]
-                        (Type.namedWith [] "Premade" [ Type.var "data" ])
+                        (Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.var "source", Type.var "data" ]
+                        )
                     )
             }
         )
@@ -1791,7 +1645,6 @@ annotation_ :
     , request : Type.Annotation -> Type.Annotation
     , mutation : Type.Annotation
     , query : Type.Annotation
-    , premade : Type.Annotation -> Type.Annotation
     , optional : Type.Annotation -> Type.Annotation
     , inputObject : Type.Annotation -> Type.Annotation
     , option : Type.Annotation -> Type.Annotation
@@ -1805,9 +1658,6 @@ annotation_ =
             Type.namedWith [ "GraphQL", "Engine" ] "Request" [ requestArg0 ]
     , mutation = Type.namedWith [ "GraphQL", "Engine" ] "Mutation" []
     , query = Type.namedWith [ "GraphQL", "Engine" ] "Query" []
-    , premade =
-        \premadeArg0 ->
-            Type.namedWith [ "GraphQL", "Engine" ] "Premade" [ premadeArg0 ]
     , optional =
         \optionalArg0 ->
             Type.namedWith [ "GraphQL", "Engine" ] "Optional" [ optionalArg0 ]
@@ -2055,11 +1905,6 @@ call_ :
     , send : Elm.Expression -> Elm.Expression
     , toRequest : Elm.Expression -> Elm.Expression -> Elm.Expression
     , mapRequest : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , premadeOperation : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , mapPremade : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , getGql : Elm.Expression -> Elm.Expression
-    , prebakedQuery :
-        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , bakeToSelection :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , map2 :
@@ -2623,117 +2468,6 @@ call_ =
                     }
                 )
                 [ mapRequestArg, mapRequestArg0 ]
-    , premadeOperation =
-        \premadeOperationArg premadeOperationArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "premadeOperation"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith
-                                    []
-                                    "Premade"
-                                    [ Type.var "value" ]
-                                , Type.record
-                                    [ ( "headers"
-                                      , Type.list
-                                            (Type.namedWith
-                                                [ "Http" ]
-                                                "Header"
-                                                []
-                                            )
-                                      )
-                                    , ( "url", Type.string )
-                                    , ( "timeout"
-                                      , Type.namedWith [] "Maybe" [ Type.float ]
-                                      )
-                                    , ( "tracker"
-                                      , Type.namedWith
-                                            []
-                                            "Maybe"
-                                            [ Type.string ]
-                                      )
-                                    ]
-                                ]
-                                (Type.namedWith
-                                    []
-                                    "Cmd"
-                                    [ Type.namedWith
-                                        []
-                                        "Result"
-                                        [ Type.namedWith [] "Error" []
-                                        , Type.var "value"
-                                        ]
-                                    ]
-                                )
-                            )
-                    }
-                )
-                [ premadeOperationArg, premadeOperationArg0 ]
-    , mapPremade =
-        \mapPremadeArg mapPremadeArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "mapPremade"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.function [ Type.var "a" ] (Type.var "b")
-                                , Type.namedWith [] "Premade" [ Type.var "a" ]
-                                ]
-                                (Type.namedWith [] "Premade" [ Type.var "b" ])
-                            )
-                    }
-                )
-                [ mapPremadeArg, mapPremadeArg0 ]
-    , getGql =
-        \getGqlArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "getGql"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith
-                                    []
-                                    "Premade"
-                                    [ Type.var "data" ]
-                                ]
-                                Type.string
-                            )
-                    }
-                )
-                [ getGqlArg ]
-    , prebakedQuery =
-        \prebakedQueryArg prebakedQueryArg0 prebakedQueryArg1 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "prebakedQuery"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.string
-                                , Type.list
-                                    (Type.tuple
-                                        Type.string
-                                        (Type.namedWith [] "VariableDetails" [])
-                                    )
-                                , Type.namedWith
-                                    [ "Decode" ]
-                                    "Decoder"
-                                    [ Type.var "data" ]
-                                ]
-                                (Type.namedWith [] "Premade" [ Type.var "data" ]
-                                )
-                            )
-                    }
-                )
-                [ prebakedQueryArg, prebakedQueryArg0, prebakedQueryArg1 ]
     , bakeToSelection =
         \bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 ->
             Elm.apply
@@ -2767,7 +2501,10 @@ call_ =
                                         [ Type.var "data" ]
                                     )
                                 ]
-                                (Type.namedWith [] "Premade" [ Type.var "data" ]
+                                (Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.var "source", Type.var "data" ]
                                 )
                             )
                     }
@@ -3524,10 +3261,6 @@ values_ :
     , send : Elm.Expression
     , toRequest : Elm.Expression
     , mapRequest : Elm.Expression
-    , premadeOperation : Elm.Expression
-    , mapPremade : Elm.Expression
-    , getGql : Elm.Expression
-    , prebakedQuery : Elm.Expression
     , bakeToSelection : Elm.Expression
     , map2 : Elm.Expression
     , map : Elm.Expression
@@ -3949,86 +3682,6 @@ values_ =
                         (Type.namedWith [] "Request" [ Type.var "b" ])
                     )
             }
-    , premadeOperation =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "premadeOperation"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Premade" [ Type.var "value" ]
-                        , Type.record
-                            [ ( "headers"
-                              , Type.list
-                                    (Type.namedWith [ "Http" ] "Header" [])
-                              )
-                            , ( "url", Type.string )
-                            , ( "timeout"
-                              , Type.namedWith [] "Maybe" [ Type.float ]
-                              )
-                            , ( "tracker"
-                              , Type.namedWith [] "Maybe" [ Type.string ]
-                              )
-                            ]
-                        ]
-                        (Type.namedWith
-                            []
-                            "Cmd"
-                            [ Type.namedWith
-                                []
-                                "Result"
-                                [ Type.namedWith [] "Error" []
-                                , Type.var "value"
-                                ]
-                            ]
-                        )
-                    )
-            }
-    , mapPremade =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "mapPremade"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.function [ Type.var "a" ] (Type.var "b")
-                        , Type.namedWith [] "Premade" [ Type.var "a" ]
-                        ]
-                        (Type.namedWith [] "Premade" [ Type.var "b" ])
-                    )
-            }
-    , getGql =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "getGql"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Premade" [ Type.var "data" ] ]
-                        Type.string
-                    )
-            }
-    , prebakedQuery =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "prebakedQuery"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string
-                        , Type.list
-                            (Type.tuple
-                                Type.string
-                                (Type.namedWith [] "VariableDetails" [])
-                            )
-                        , Type.namedWith
-                            [ "Decode" ]
-                            "Decoder"
-                            [ Type.var "data" ]
-                        ]
-                        (Type.namedWith [] "Premade" [ Type.var "data" ])
-                    )
-            }
     , bakeToSelection =
         Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
@@ -4056,7 +3709,11 @@ values_ =
                                 [ Type.var "data" ]
                             )
                         ]
-                        (Type.namedWith [] "Premade" [ Type.var "data" ])
+                        (Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.var "source", Type.var "data" ]
+                        )
                     )
             }
     , map2 =

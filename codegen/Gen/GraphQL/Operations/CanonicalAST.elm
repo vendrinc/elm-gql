@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.CanonicalAST exposing (addArgValue, addExp, addLevelToCursor, addString, aliasedName, aliasedNameExp, annotation_, argToString, argValToString, brackets, call_, caseOf_, commit, fieldToString, foldToString, getAliasedName, getWrapper, initCursor, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, operationName, removeLevelToCursor, renderArguments, renderArgumentsExp, renderField, renderSelection, renderVariant, selectionGroupToString, selectionToString, toRendererExpression, toString, toStringFields, typeToString, unwrap, values_, variantFragmentToString)
+module Gen.GraphQL.Operations.CanonicalAST exposing (addArgValue, addExp, addLevelToCursor, addString, aliasedName, aliasedNameExp, annotation_, argToString, argValToString, brackets, call_, caseOf_, commit, deduplicateFragments, fieldToString, foldToString, getAliasedName, getWrapper, initCursor, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, operationName, removeLevelToCursor, renderArguments, renderArgumentsExp, renderField, renderFragment, renderSelection, renderVariant, selectionGroupToString, selectionToString, toRendererExpression, toString, toStringFields, typeToString, unwrap, values_, variantFragmentToString)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, nameToString, toString, operationLabel, toStringFields, fieldToString, selectionToString, variantFragmentToString, selectionGroupToString, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toRendererExpression, initCursor, addLevelToCursor, removeLevelToCursor, commit, addString, addExp, renderField, renderSelection, renderVariant, aliasedNameExp, renderArgumentsExp, addArgValue, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, nameToString, toString, operationLabel, toStringFields, fieldToString, selectionToString, variantFragmentToString, selectionGroupToString, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toRendererExpression, deduplicateFragments, renderFragment, initCursor, addLevelToCursor, removeLevelToCursor, commit, addString, addExp, renderField, renderSelection, renderVariant, aliasedNameExp, renderArgumentsExp, addArgValue, moduleName_
 -}
 
 
@@ -262,6 +262,42 @@ initCursor initCursorArg =
             }
         )
         [ initCursorArg ]
+
+
+{-| renderFragment: Fragment -> String -}
+renderFragment : Elm.Expression -> Elm.Expression
+renderFragment renderFragmentArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderFragment"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Fragment" [] ]
+                        Type.string
+                    )
+            }
+        )
+        [ renderFragmentArg ]
+
+
+{-| deduplicateFragments: List Fragment -> List Fragment -}
+deduplicateFragments : List Elm.Expression -> Elm.Expression
+deduplicateFragments deduplicateFragmentsArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "deduplicateFragments"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.list (Type.namedWith [] "Fragment" []) ]
+                        (Type.list (Type.namedWith [] "Fragment" []))
+                    )
+            }
+        )
+        [ Elm.list deduplicateFragmentsArg ]
 
 
 {-| {-| We want to render a string of this, but with a `version`
@@ -788,6 +824,14 @@ annotation_ =
             (Type.record
                 [ ( "name", Type.namedWith [] "Name" [] )
                 , ( "typeCondition", Type.namedWith [] "Name" [] )
+                , ( "usedVariables"
+                  , Type.list
+                        (Type.tuple
+                            Type.string
+                            (Type.namedWith [ "GraphQL", "Schema" ] "Type" [])
+                        )
+                  )
+                , ( "fragmentsUsed", Type.list (Type.namedWith [] "Name" []) )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
                 , ( "selection", Type.namedWith [] "FragmentSelection" [] )
                 ]
@@ -813,6 +857,9 @@ annotation_ =
                   )
                 , ( "name", Type.namedWith [] "Name" [] )
                 , ( "globalAlias", Type.namedWith [] "Name" [] )
+                , ( "selectsOnlyFragment"
+                  , Type.namedWith [] "Maybe" [ Type.string ]
+                  )
                 , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
                 , ( "wrapper"
@@ -878,17 +925,12 @@ annotation_ =
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
                 , ( "fields", Type.list (Type.namedWith [] "Field" []) )
                 , ( "fragmentsUsed"
-                  , Type.namedWith
-                        []
-                        "Dict"
-                        [ Type.string
-                        , Type.record
-                            [ ( "fragment"
-                              , Type.namedWith [ "Can" ] "Fragment" []
-                              )
+                  , Type.list
+                        (Type.record
+                            [ ( "fragment", Type.namedWith [] "Fragment" [] )
                             , ( "alongsideOtherFields", Type.bool )
                             ]
-                        ]
+                        )
                   )
                 ]
             )
@@ -966,6 +1008,8 @@ make_ :
     , fragment :
         { name : Elm.Expression
         , typeCondition : Elm.Expression
+        , usedVariables : Elm.Expression
+        , fragmentsUsed : Elm.Expression
         , directives : Elm.Expression
         , selection : Elm.Expression
         }
@@ -977,6 +1021,7 @@ make_ :
         { alias_ : Elm.Expression
         , name : Elm.Expression
         , globalAlias : Elm.Expression
+        , selectsOnlyFragment : Elm.Expression
         , arguments : Elm.Expression
         , directives : Elm.Expression
         , wrapper : Elm.Expression
@@ -1194,6 +1239,20 @@ make_ =
                     (Type.record
                         [ ( "name", Type.namedWith [] "Name" [] )
                         , ( "typeCondition", Type.namedWith [] "Name" [] )
+                        , ( "usedVariables"
+                          , Type.list
+                                (Type.tuple
+                                    Type.string
+                                    (Type.namedWith
+                                        [ "GraphQL", "Schema" ]
+                                        "Type"
+                                        []
+                                    )
+                                )
+                          )
+                        , ( "fragmentsUsed"
+                          , Type.list (Type.namedWith [] "Name" [])
+                          )
                         , ( "directives"
                           , Type.list (Type.namedWith [] "Directive" [])
                           )
@@ -1206,6 +1265,8 @@ make_ =
                 (Elm.record
                     [ Tuple.pair "name" fragment_args.name
                     , Tuple.pair "typeCondition" fragment_args.typeCondition
+                    , Tuple.pair "usedVariables" fragment_args.usedVariables
+                    , Tuple.pair "fragmentsUsed" fragment_args.fragmentsUsed
                     , Tuple.pair "directives" fragment_args.directives
                     , Tuple.pair "selection" fragment_args.selection
                     ]
@@ -1246,6 +1307,9 @@ make_ =
                           )
                         , ( "name", Type.namedWith [] "Name" [] )
                         , ( "globalAlias", Type.namedWith [] "Name" [] )
+                        , ( "selectsOnlyFragment"
+                          , Type.namedWith [] "Maybe" [ Type.string ]
+                          )
                         , ( "arguments"
                           , Type.list (Type.namedWith [] "Argument" [])
                           )
@@ -1263,6 +1327,9 @@ make_ =
                     [ Tuple.pair "alias_" fieldDetails_args.alias_
                     , Tuple.pair "name" fieldDetails_args.name
                     , Tuple.pair "globalAlias" fieldDetails_args.globalAlias
+                    , Tuple.pair
+                        "selectsOnlyFragment"
+                        fieldDetails_args.selectsOnlyFragment
                     , Tuple.pair "arguments" fieldDetails_args.arguments
                     , Tuple.pair "directives" fieldDetails_args.directives
                     , Tuple.pair "wrapper" fieldDetails_args.wrapper
@@ -1356,17 +1423,14 @@ make_ =
                           )
                         , ( "fields", Type.list (Type.namedWith [] "Field" []) )
                         , ( "fragmentsUsed"
-                          , Type.namedWith
-                                []
-                                "Dict"
-                                [ Type.string
-                                , Type.record
+                          , Type.list
+                                (Type.record
                                     [ ( "fragment"
-                                      , Type.namedWith [ "Can" ] "Fragment" []
+                                      , Type.namedWith [] "Fragment" []
                                       )
                                     , ( "alongsideOtherFields", Type.bool )
                                     ]
-                                ]
+                                )
                           )
                         ]
                     )
@@ -1783,6 +1847,8 @@ call_ :
     , removeLevelToCursor : Elm.Expression -> Elm.Expression
     , addLevelToCursor : Elm.Expression -> Elm.Expression
     , initCursor : Elm.Expression -> Elm.Expression
+    , renderFragment : Elm.Expression -> Elm.Expression
+    , deduplicateFragments : Elm.Expression -> Elm.Expression
     , toRendererExpression : Elm.Expression -> Elm.Expression -> Elm.Expression
     , unwrap : Elm.Expression -> Elm.Expression -> Elm.Expression
     , typeToString : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -2012,6 +2078,36 @@ call_ =
                     }
                 )
                 [ initCursorArg ]
+    , renderFragment =
+        \renderFragmentArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "renderFragment"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Fragment" [] ]
+                                Type.string
+                            )
+                    }
+                )
+                [ renderFragmentArg ]
+    , deduplicateFragments =
+        \deduplicateFragmentsArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "deduplicateFragments"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.list (Type.namedWith [] "Fragment" []) ]
+                                (Type.list (Type.namedWith [] "Fragment" []))
+                            )
+                    }
+                )
+                [ deduplicateFragmentsArg ]
     , toRendererExpression =
         \toRendererExpressionArg toRendererExpressionArg0 ->
             Elm.apply
@@ -2348,6 +2444,8 @@ values_ :
     , removeLevelToCursor : Elm.Expression
     , addLevelToCursor : Elm.Expression
     , initCursor : Elm.Expression
+    , renderFragment : Elm.Expression
+    , deduplicateFragments : Elm.Expression
     , toRendererExpression : Elm.Expression
     , unwrap : Elm.Expression
     , typeToString : Elm.Expression
@@ -2524,6 +2622,28 @@ values_ =
                     (Type.function
                         [ Type.namedWith [ "Elm" ] "Expression" [] ]
                         (Type.namedWith [] "RenderingCursor" [])
+                    )
+            }
+    , renderFragment =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "renderFragment"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Fragment" [] ]
+                        Type.string
+                    )
+            }
+    , deduplicateFragments =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "deduplicateFragments"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.list (Type.namedWith [] "Fragment" []) ]
+                        (Type.list (Type.namedWith [] "Fragment" []))
                     )
             }
     , toRendererExpression =

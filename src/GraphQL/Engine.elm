@@ -7,13 +7,12 @@ module GraphQL.Engine exposing
     , Selection, select, with, map, map2, recover
     , arg, argList, Optional, optional
     , Query, query, Mutation, mutation, Error(..)
-    , prebakedQuery, Premade, premadeOperation
     , queryString
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeOptionalsAsJson, encodeInputObject, encodeArgument
-    , decodeNullable, getGql, mapPremade
+    , decodeNullable
     , unsafe, selectTypeNameButSkip
-    , Request, toRequest, send, simulate, mapRequest
+    , Request, send, simulate, mapRequest
     , Option(..), InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
     , jsonField, andMap, versionedJsonField, versionedName, versionedAlias
     , bakeToSelection
@@ -37,15 +36,13 @@ module GraphQL.Engine exposing
 
 @docs Query, query, Mutation, mutation, Error
 
-@docs prebakedQuery, Premade, premadeOperation
-
 @docs queryString
 
 @docs Argument, maybeScalarEncode
 
 @docs encodeOptionals, encodeOptionalsAsJson, encodeInputObject, encodeArgument
 
-@docs decodeNullable, getGql, mapPremade
+@docs decodeNullable
 
 @docs unsafe, selectTypeNameButSkip
 
@@ -70,9 +67,16 @@ batch : List (Selection source data) -> Selection source (List data)
 batch selections =
     Selection <|
         Details
+            (List.foldl
+                (\(Selection (Details newOpName _ _)) maybeOpName ->
+                    mergeOpNames maybeOpName newOpName
+                )
+                Nothing
+                selections
+            )
             (\context ->
                 List.foldl
-                    (\(Selection (Details toFieldsGql _)) ( ctxt, fields ) ->
+                    (\(Selection (Details _ toFieldsGql _)) ( ctxt, fields ) ->
                         let
                             ( newCtxt, newFields ) =
                                 toFieldsGql ctxt
@@ -86,7 +90,7 @@ batch selections =
             )
             (\context ->
                 List.foldl
-                    (\(Selection (Details _ toItemDecoder)) ( ctxt, cursorFieldsDecoder ) ->
+                    (\(Selection (Details _ _ toItemDecoder)) ( ctxt, cursorFieldsDecoder ) ->
                         let
                             ( newCtxt, itemDecoder ) =
                                 toItemDecoder ctxt
@@ -110,9 +114,10 @@ batch selections =
 
 {-| -}
 recover : recovered -> (data -> recovered) -> Selection source data -> Selection source recovered
-recover default wrapValue (Selection (Details toQuery toDecoder)) =
+recover default wrapValue (Selection (Details opName toQuery toDecoder)) =
     Selection
-        (Details toQuery
+        (Details opName
+            toQuery
             (\context ->
                 let
                     ( newContext, decoder ) =
@@ -132,12 +137,12 @@ recover default wrapValue (Selection (Details toQuery toDecoder)) =
 union : List ( String, Selection source data ) -> Selection source data
 union options =
     Selection <|
-        Details
+        Details Nothing
             (\context ->
                 let
                     ( fragments, fragmentContext ) =
                         List.foldl
-                            (\( name, Selection (Details fragQuery _) ) ( frags, currentContext ) ->
+                            (\( name, Selection (Details _ fragQuery _) ) ( frags, currentContext ) ->
                                 let
                                     ( newContext, fields ) =
                                         fragQuery currentContext
@@ -167,7 +172,7 @@ union options =
                 let
                     ( fragmentDecoders, fragmentContext ) =
                         List.foldl
-                            (\( name, Selection (Details _ toFragDecoder) ) ( frags, currentContext ) ->
+                            (\( name, Selection (Details _ _ toFragDecoder) ) ( frags, currentContext ) ->
                                 let
                                     ( newContext, fragDecoder ) =
                                         toFragDecoder currentContext
@@ -230,9 +235,10 @@ findFirstMatch options str =
 {-| Used in generated code to handle maybes
 -}
 nullable : Selection source data -> Selection source (Maybe data)
-nullable (Selection (Details toFieldsGql toFieldsDecoder)) =
+nullable (Selection (Details opName toFieldsGql toFieldsDecoder)) =
     Selection <|
         Details
+            opName
             toFieldsGql
             (\context ->
                 let
@@ -251,9 +257,10 @@ nullable (Selection (Details toFieldsGql toFieldsDecoder)) =
 {-| Used in generated code to handle maybes
 -}
 list : Selection source data -> Selection source (List data)
-list (Selection (Details toFieldsGql toFieldsDecoder)) =
+list (Selection (Details opName toFieldsGql toFieldsDecoder)) =
     Selection <|
         Details
+            opName
             toFieldsGql
             (\context ->
                 let
@@ -278,9 +285,10 @@ type Variable
 
 {-| -}
 objectWith : InputObject args -> String -> Selection source data -> Selection otherSource data
-objectWith inputObj name (Selection (Details toFieldsGql toFieldsDecoder)) =
+objectWith inputObj name (Selection (Details opName toFieldsGql toFieldsDecoder)) =
     Selection <|
         Details
+            opName
             (\context ->
                 let
                     ( fieldContext, fields ) =
@@ -319,7 +327,7 @@ Note, this is rarely needed! So far, only when a query or mutation returns a sca
 decode : Decode.Decoder data -> Selection source data
 decode decoder =
     Selection <|
-        Details
+        Details Nothing
             (\context ->
                 ( context
                 , []
@@ -336,7 +344,7 @@ decode decoder =
 selectTypeNameButSkip : Selection source ()
 selectTypeNameButSkip =
     Selection <|
-        Details
+        Details Nothing
             (\context ->
                 ( context
                 , [ Field "__typename" Nothing [] []
@@ -360,7 +368,7 @@ field name gqlTypeName decoder =
 fieldWith : InputObject args -> String -> String -> Decode.Decoder data -> Selection source data
 fieldWith args name gqlType decoder =
     Selection <|
-        Details
+        Details Nothing
             (\context ->
                 let
                     new =
@@ -405,6 +413,7 @@ applyContext args name context =
     { context =
         { aliases = newAliases
         , variables = newVariables
+        , version = context.version
         }
     , aliasString = maybeAlias
     , args = vars
@@ -782,8 +791,8 @@ mergeOpNames maybeOne maybeTwo =
         ( Just one, _ ) ->
             Just one
 
-        _ ->
-            two
+        ( _, Just two ) ->
+            Just two
 
 
 {-| -}
@@ -823,7 +832,7 @@ bakeToSelection :
     Maybe String
     -> (Int -> ( List ( String, VariableDetails ), String ))
     -> (Int -> Decode.Decoder data)
-    -> Premade data
+    -> Selection source data
 bakeToSelection maybeOpName toGql toDecoder =
     Selection
         (Details maybeOpName
@@ -836,7 +845,7 @@ bakeToSelection maybeOpName toGql toDecoder =
                     | version = context.version + 1
                     , variables =
                         args
-                            |> List.map (protectArgs context.version) args
+                            |> List.map (protectArgs context.version)
                             |> Dict.fromList
                             |> Dict.union context.variables
                   }
@@ -862,27 +871,8 @@ protectArgs version ( name, var ) =
     ( versionedName version name, var )
 
 
-{-| -}
-prebakedQuery : String -> List ( String, VariableDetails ) -> Decode.Decoder data -> Premade data
-prebakedQuery gql args decoder =
-    Premade
-        { gql = gql
-        , args = List.map (Tuple.mapSecond .value) args
-        , decoder = decoder
-        }
-
-
 
 {- Making requests -}
-
-
-{-| -}
-type Premade data
-    = Premade
-        { gql : String
-        , decoder : Decode.Decoder data
-        , args : List ( String, Encode.Value )
-        }
 
 
 {-| -}
@@ -893,44 +883,6 @@ type Query
 {-| -}
 type Mutation
     = Mutation
-
-
-{-| -}
-getGql : Premade data -> String
-getGql (Premade { gql }) =
-    gql
-
-
-{-| -}
-mapPremade : (a -> b) -> Premade a -> Premade b
-mapPremade fn (Premade details) =
-    Premade
-        { gql = details.gql
-        , decoder = Decode.map fn details.decoder
-        , args = details.args
-        }
-
-
-{-| -}
-premadeOperation :
-    Premade value
-    ->
-        { headers : List Http.Header
-        , url : String
-        , timeout : Maybe Float
-        , tracker : Maybe String
-        }
-    -> Cmd (Result Error value)
-premadeOperation sel config =
-    Http.request
-        { method = "POST"
-        , headers = config.headers
-        , url = config.url
-        , body = Http.jsonBody (bodyPremade sel)
-        , expect = expectPremade sel
-        , timeout = config.timeout
-        , tracker = config.tracker
-        }
 
 
 {-| -}
@@ -957,32 +909,6 @@ mapRequest fn (Request request) =
         , expect = request.expect >> Result.map fn
         , timeout = request.timeout
         , tracker = request.tracker
-        }
-
-
-{-| Return details that can be directly given to `Http.request`.
-
-This is so that wiring up [Elm Program Test](https://package.elm-lang.org/packages/avh4/elm-program-test/latest/ProgramTest) is relatively easy.
-
--}
-toRequest :
-    Premade value
-    ->
-        { headers : List ( String, String )
-        , url : String
-        , timeout : Maybe Float
-        , tracker : Maybe String
-        }
-    -> Request value
-toRequest sel config =
-    Request
-        { method = "POST"
-        , headers = config.headers
-        , url = config.url
-        , body = bodyPremade sel
-        , expect = decodePremade sel
-        , timeout = config.timeout
-        , tracker = config.tracker
         }
 
 
@@ -1035,8 +961,7 @@ simulate config (Request req) =
 query :
     Selection Query value
     ->
-        { name : Maybe String
-        , headers : List Http.Header
+        { headers : List Http.Header
         , url : String
         , timeout : Maybe Float
         , tracker : Maybe String
@@ -1047,7 +972,7 @@ query sel config =
         { method = "POST"
         , headers = config.headers
         , url = config.url
-        , body = body "query" config.name sel
+        , body = body "query" sel
         , expect = expect identity sel
         , timeout = config.timeout
         , tracker = config.tracker
@@ -1058,8 +983,7 @@ query sel config =
 mutation :
     Selection Mutation msg
     ->
-        { name : Maybe String
-        , headers : List Http.Header
+        { headers : List Http.Header
         , url : String
         , timeout : Maybe Float
         , tracker : Maybe String
@@ -1070,7 +994,7 @@ mutation sel config =
         { method = "POST"
         , headers = config.headers
         , url = config.url
-        , body = body "mutation" config.name sel
+        , body = body "mutation" sel
         , expect = expect identity sel
         , timeout = config.timeout
         , tracker = config.tracker
@@ -1090,17 +1014,9 @@ mutation sel config =
         }
 
 -}
-body : String -> Maybe String -> Selection source data -> Http.Body
-body operation maybeUnformattedName q =
+body : String -> Selection source data -> Http.Body
+body operation q =
     let
-        maybeName =
-            case maybeUnformattedName of
-                Nothing ->
-                    getOperationLabel q
-
-                Just unformatted ->
-                    Just (sanitizeOperationName unformatted)
-
         variables : Dict String VariableDetails
         variables =
             (getContext q).variables
@@ -1115,33 +1031,11 @@ body operation maybeUnformattedName q =
     Http.jsonBody
         (Encode.object
             (List.filterMap identity
-                [ Maybe.map (\name -> ( "operationName", Encode.string name )) maybeName
-                , Just ( "query", Encode.string (queryString operation maybeName q) )
+                [ Just ( "query", Encode.string (queryString operation q) )
                 , Just ( "variables", encodedVariables )
                 ]
             )
         )
-
-
-{-|
-
-      Http.request
-        { method = "POST"
-        , headers = []
-        , url = "https://example.com/gql-endpoint"
-        , body = Gql.body query
-        , expect = Gql.expect Received query
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
--}
-bodyPremade : Premade data -> Encode.Value
-bodyPremade (Premade q) =
-    Encode.object
-        [ ( "query", Encode.string q.gql )
-        , ( "variables", Encode.object q.args )
-        ]
 
 
 {-|
@@ -1168,7 +1062,7 @@ sanitizeOperationName input =
 
 
 getContext : Selection source selected -> Context
-getContext (Selection (Details gql _)) =
+getContext (Selection (Details maybeOpName gql _)) =
     let
         ( context, fields ) =
             gql empty
@@ -1176,14 +1070,9 @@ getContext (Selection (Details gql _)) =
     context
 
 
-getOperationLabel : Selection source selected -> Maybe String
-getOperationLabel (Selection (Details maybeLabel _ _)) =
-    maybeLabel
-
-
 {-| -}
 expect : (Result Error data -> msg) -> Selection source data -> Http.Expect msg
-expect toMsg (Selection (Details gql toDecoder)) =
+expect toMsg (Selection (Details maybeOpName gql toDecoder)) =
     let
         ( context, decoder ) =
             toDecoder empty
@@ -1223,46 +1112,6 @@ expect toMsg (Selection (Details gql toDecoder)) =
 
 
 {-| -}
-expectPremade : Premade data -> Http.Expect (Result Error data)
-expectPremade q =
-    Http.expectStringResponse identity (decodePremade q)
-
-
-decodePremade : Premade value -> Http.Response String -> Result Error value
-decodePremade (Premade premadeQuery) response =
-    case response of
-        Http.BadUrl_ url ->
-            Err (BadUrl url)
-
-        Http.Timeout_ ->
-            Err Timeout
-
-        Http.NetworkError_ ->
-            Err NetworkError
-
-        Http.BadStatus_ metadata responseBody ->
-            Err
-                (BadStatus
-                    { status = metadata.statusCode
-                    , responseBody = responseBody
-                    }
-                )
-
-        Http.GoodStatus_ metadata responseBody ->
-            case Decode.decodeString (Decode.field "data" premadeQuery.decoder) responseBody of
-                Ok value ->
-                    Ok value
-
-                Err err ->
-                    Err
-                        (BadBody
-                            { responseBody = responseBody
-                            , decodingError = Decode.errorToString err
-                            }
-                        )
-
-
-{-| -}
 type Error
     = BadUrl String
     | Timeout
@@ -1278,15 +1127,15 @@ type Error
 
 
 {-| -}
-queryString : String -> Maybe String -> Selection source data -> String
-queryString operation queryName (Selection (Details gql _)) =
+queryString : String -> Selection source data -> String
+queryString operation (Selection (Details maybeOpName gql _)) =
     let
         ( context, fields ) =
             gql empty
     in
     operation
         ++ " "
-        ++ Maybe.withDefault "" queryName
+        ++ Maybe.withDefault "" maybeOpName
         ++ renderParameters context.variables
         ++ "{"
         ++ fieldsToQueryString fields ""
@@ -1425,13 +1274,13 @@ decodeNullable =
 versionedJsonField :
     Int
     -> String
-    -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Decode.Decoder a
+    -> Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 versionedJsonField int name new build =
-    Json.Decode.map2
+    Decode.map2
         (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
-        (Json.Decode.field (versionedName int name) new)
+        (Decode.field (versionedName int name) new)
         build
 
 
@@ -1470,22 +1319,22 @@ versionedAlias i name =
 
 jsonField :
     String
-    -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Decode.Decoder a
+    -> Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 jsonField name new build =
-    Json.Decode.map2
+    Decode.map2
         (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
-        (Json.Decode.field name new)
+        (Decode.field name new)
         build
 
 
 andMap :
-    Json.Decode.Decoder map2Unpack
-    -> Json.Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    Decode.Decoder map2Unpack
+    -> Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
+    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 andMap new build =
-    Json.Decode.map2
+    Decode.map2
         (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
         new
         build
