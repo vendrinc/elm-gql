@@ -136,8 +136,7 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
             if flagDetails.generatePlatform then
                 let
                     schemaFiles =
-                        Generate.Root.generate namespace schema
-                            :: saveSchema namespace schemaAsJson
+                        saveSchema namespace schemaAsJson
                             :: Generate.Enums.generateFiles namespace schema
                             ++ Generate.InputObjects.generateFiles namespace schema
 
@@ -153,7 +152,15 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                     --         ]
                 in
                 Generate.files
-                    all
+                    (if flagDetails.isInit then
+                        (Generate.Root.generate namespace schema
+                            |> addOutputDir [ "src" ]
+                        )
+                            :: all
+
+                     else
+                        all
+                    )
 
             else
                 Generate.files
@@ -210,11 +217,12 @@ parseGql namespace schema flagDetails gql rendered =
 
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
-    Json.Decode.map7
-        (\elmBase elmBaseSchema namespace gql schemaUrl genPlatform existingEnums ->
+    Json.Decode.map8
+        (\elmBase elmBaseSchema namespace isInit gql schemaUrl genPlatform existingEnums ->
             Flags
                 { schema = schemaUrl
                 , gql = gql
+                , isInit = isInit
                 , elmBase = elmBase
                 , elmBaseSchema = elmBaseSchema
                 , namespace = namespace
@@ -225,6 +233,7 @@ flagsDecoder =
         (Json.Decode.field "elmBase" (Json.Decode.list Json.Decode.string))
         (Json.Decode.field "elmBaseSchema" (Json.Decode.list Json.Decode.string))
         (Json.Decode.field "namespace" Json.Decode.string)
+        (Json.Decode.field "init" Json.Decode.bool)
         (Json.Decode.field "gql"
             (Json.Decode.list
                 (Json.Decode.map2
@@ -282,6 +291,9 @@ type alias FlagDetails =
 
     -- all directories between cwd and the elm src dir
     , elmBase : List String
+
+    -- We do a little bit more generation if init is called
+    , isInit : Bool
 
     -- same as above, but for the schema-related files
     -- sometimes it's nice to separate that out into a separate dir.

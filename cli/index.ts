@@ -107,11 +107,14 @@ async function run_generator(generator: any, flags: any) {
       }
       console.log(format_block(lines));
     })
-    .catch((reason) => {
-      console.error(
-        format_title(reason.title),
-        "\n\n" + reason.description + "\n"
-      );
+    .catch((errorList) => {
+      for (const error of errorList) {
+        console.error(
+          format_title(error.title),
+          "\n\n" + error.description + "\n"
+        );
+      }
+
       process.exit(1);
     });
   return promise;
@@ -203,7 +206,7 @@ const readCache = (force: boolean) => {
 };
 
 const isDev = () => {
-  return false;
+  return true;
 };
 
 const clearDir = (dir: string) => {
@@ -216,12 +219,11 @@ const clearDir = (dir: string) => {
   } catch {}
 };
 
-async function action(options: Options, com: any) {
+async function run(schema: string, options: Options) {
   let newCache = emptyCache;
 
   let cache = readCache(options.force);
 
-  let schema = options.schema;
   let schemaWasModified = { at: new Date(), was: false };
   if (!schema.startsWith("http") && schema.endsWith("json")) {
     schemaWasModified = wasModified(cache, schema);
@@ -253,6 +255,7 @@ async function action(options: Options, com: any) {
       elmBaseSchema: options.output.split(path.sep),
       schema: schema,
       generatePlatform: schemaWasModified.was || options.force,
+      init: options.init,
       existingEnumDefinitions: options.existingEnumDefinitions,
     });
   } else {
@@ -293,25 +296,36 @@ async function action(options: Options, com: any) {
   fs.writeFileSync(".elm-gql-cache", JSON.stringify(newCache));
 }
 
+async function action(schema: string, options: Options) {
+  options.init = false;
+  run(schema, options);
+}
+
+async function init(schema: string, options: Options) {
+  options.init = true;
+  options.force = true;
+  run(schema, options);
+}
+
 const program = new commander.Command();
 
 type Options = {
-  schema: string;
   output: string;
   namespace: string;
   force: boolean;
   existingEnumDefinitions: string | null;
+  init: boolean;
 };
 
 program
   .version(version)
-  .option("--schema <fileOrUrl>")
+  .argument("<schema>", "The schema.")
   .option(
     "--namespace <namespace>",
     "Change the namespace that the generated code should have.",
     "Api"
   )
-  .option("--force", "Skip the cache")
+  .option("--force", "Skip the cache.")
   .option(
     "--output <dir>",
     "The directory where your generated files should go.",
@@ -322,5 +336,25 @@ program
     "This option isn't used very commonly.  If you already have Enum definitions generated, this will skip Enum generation and point to your existing enums."
   )
   .action(action);
+
+program
+  .command("init")
+  .argument("<schema>", "The schema.")
+  .option(
+    "--namespace <namespace>",
+    "Change the namespace that the generated code should have.",
+    "Api"
+  )
+  .option("--force", "Skip the cache.")
+  .option(
+    "--output <dir>",
+    "The directory where your generated files should go.",
+    "api"
+  )
+  .option(
+    "--existing-enum-definitions <name>",
+    "This option isn't used very commonly.  If you already have Enum definitions generated, this will skip Enum generation and point to your existing enums."
+  )
+  .action(init);
 
 program.parseAsync();
