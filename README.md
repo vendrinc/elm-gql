@@ -64,11 +64,11 @@ type alias AllFilms = {
     films : List Films
 }
 
-type alias Films = {
-    title : String
-    director : String
-    releaseDate : String
-}
+type alias Films =
+    { title : String
+    , director : String
+    , releaseDate : String
+    }
 ```
 
 If you add a graphQL alias to a field, that will inform what code is generated.
@@ -90,11 +90,11 @@ type alias AllFilms = {
     films : List Films
 }
 
-type alias Films = {
-    filmTitle : String
-    director : String
-    releaseDate : String
-}
+type alias Films =
+    { filmTitle : String
+    , director : String
+    , releaseDate : String
+    }
 ```
 
 Though you may also note that `films` is pluralized both for the field name and the record representing a single field. That ain't great!
@@ -122,11 +122,11 @@ type alias AllFilms = {
     films : List Film
 }
 
-type alias Film = {
-    filmTitle : String
-    director : String
-    releaseDate : String
-}
+type alias Film =
+    { filmTitle : String
+    , director : String
+    , releaseDate : String
+    }
 ```
 
 Huray! Note, this case of allowing fragments to name a generated type only applies in the case where you use exactly one fragment for a selection.
