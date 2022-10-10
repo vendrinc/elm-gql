@@ -64,48 +64,56 @@ async function run_generator(generator: any, flags: any) {
         }
       }
 
-      const lines = [];
-      if (files_written_count > 0) {
-        let modifiedFileNames = "";
+      if (flags.init) {
+        initGreeting(files_written_count, flags);
+      } else {
+        const lines = [];
+        if (files_written_count > 0) {
+          let modifiedFileNames = "";
 
-        if (flags.generatePlatform) {
-          modifiedFileNames = `The ${chalk.cyan("GQL schema")} has changed, `;
-        } else if (flags.gql.length == 1) {
-          modifiedFileNames = `${chalk.cyan(flags.gql[0].path)} was modified, `;
-        } else {
-          modifiedFileNames = `${flags.gql.length} GQL files were modified, `;
-        }
+          if (flags.init) {
+            modifiedFileNames += "";
+          } else if (flags.generatePlatform) {
+            modifiedFileNames = `The ${chalk.cyan("GQL schema")} has changed, `;
+          } else if (flags.gql.length == 1) {
+            modifiedFileNames = `${chalk.cyan(
+              flags.gql[0].path
+            )} was modified, `;
+          } else {
+            modifiedFileNames = `${flags.gql.length} GQL files were modified, `;
+          }
 
-        if (files_written_count == 1) {
-          lines.push(
-            `${modifiedFileNames}${chalk.yellow(
-              files_written_count
-            )} file generated!`
-          );
-        } else {
-          lines.push(
-            `${modifiedFileNames}${chalk.yellow(
-              files_written_count
-            )} files generated!`
-          );
+          if (files_written_count == 1) {
+            lines.push(
+              `${modifiedFileNames}${chalk.yellow(
+                files_written_count
+              )} file generated!`
+            );
+          } else {
+            lines.push(
+              `${modifiedFileNames}${chalk.yellow(
+                files_written_count
+              )} files generated!`
+            );
+          }
         }
-      }
-      if (files_skipped > 0) {
-        if (files_skipped == 1) {
-          lines.push(
-            `${chalk.gray(
-              files_skipped
-            )} file skipped because it was already present and up-to-date`
-          );
-        } else {
-          lines.push(
-            `${chalk.gray(
-              files_skipped
-            )} files skipped because they were already present and up-to-date`
-          );
+        if (files_skipped > 0) {
+          if (files_skipped == 1) {
+            lines.push(
+              `${chalk.gray(
+                files_skipped
+              )} file skipped because it was already present and up-to-date`
+            );
+          } else {
+            lines.push(
+              `${chalk.gray(
+                files_skipped
+              )} files skipped because they were already present and up-to-date`
+            );
+          }
         }
+        console.log(format_block(lines));
       }
-      console.log(format_block(lines));
     })
     .catch((errorList) => {
       for (const error of errorList) {
@@ -218,6 +226,38 @@ const clearDir = (dir: string) => {
     }
   } catch {}
 };
+
+function initGreeting(filesGenerated: number, flags: any) {
+  const lines = [];
+  lines.push(`Welcome to ${chalk.cyan("elm-gql")}!`);
+
+  lines.push(
+    `I've generated ${chalk.yellow(filesGenerated)} files in ${chalk.cyan(
+      flags.elmBaseSchema.join("/") + "/"
+    )}, as well as ${chalk.cyan("src/" + flags.namespace + ".elm")}.`
+  );
+
+  if (flags.gql.length == 1) {
+    lines.push(
+      `I also found ${chalk.yellow(
+        flags.gql.length
+      )} GQL file and generated Elm code to help you use it.`
+    );
+  } else if (flags.gql.length > 0) {
+    lines.push(
+      `I also found ${chalk.yellow(
+        flags.gql.length
+      )} GQL files and generated Elm code to help you use them.`
+    );
+  }
+  lines.push(`Check out the getting started guide for more details!`);
+  lines.push(
+    chalk.yellow(
+      "https://github.com/vendrinc/elm-gql/blob/main/guide/GettingStarted.md"
+    )
+  );
+  console.log(format_block(lines));
+}
 
 async function run(schema: string, options: Options) {
   let newCache = emptyCache;
