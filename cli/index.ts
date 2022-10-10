@@ -373,11 +373,16 @@ const program = new commander.Command();
 type Options = {
   output: string;
   namespace: string;
-  header: string;
+  header: string[];
   force: boolean;
   existingEnumDefinitions: string | null;
   init: boolean;
 };
+
+function collect(val: string, memo: string[]) {
+  memo.push(val);
+  return memo;
+}
 
 program
   .version(version)
@@ -388,7 +393,12 @@ program
     "Api"
   )
   .option("--force", "Skip the cache.")
-  .option("--header", "The header to include in the introspection query.", "")
+  .option(
+    "-h, --header <header>",
+    "The header to include in the introspection query.",
+    collect,
+    []
+  )
   .option(
     "--output <dir>",
     "The directory where your generated files should go.",
@@ -409,7 +419,12 @@ program
     "Api"
   )
   .option("--force", "Skip the cache.")
-  .option("--header", "The header to include in the introspection query.", "")
+  .option(
+    "--header <header>",
+    "The header to include in the introspection query.",
+    collect,
+    []
+  )
   .option(
     "--output <dir>",
     "The directory where your generated files should go.",

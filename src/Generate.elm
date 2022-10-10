@@ -129,16 +129,11 @@ main =
         }
 
 
-parseHeaders : String -> Result { title : String, description : String } (List ( String, String ))
-parseHeaders str =
-    if String.isEmpty str then
-        Ok []
-
-    else
-        str
-            |> String.split ","
-            |> List.foldl parseSingleHeader (Ok [])
-            |> Result.map List.reverse
+parseHeaders : List String -> Result { title : String, description : String } (List ( String, String ))
+parseHeaders headers =
+    headers
+        |> List.foldl parseSingleHeader (Ok [])
+        |> Result.map List.reverse
 
 
 parseSingleHeader : String -> Result { title : String, description : String } (List ( String, String )) -> Result { title : String, description : String } (List ( String, String ))
@@ -293,7 +288,7 @@ flagsDecoder =
         |> andField "elmBase" (Json.Decode.list Json.Decode.string)
         |> andField "elmBaseSchema" (Json.Decode.list Json.Decode.string)
         |> andField "namespace" Json.Decode.string
-        |> andField "header" Json.Decode.string
+        |> andField "header" (Json.Decode.list Json.Decode.string)
         |> andField "init" Json.Decode.bool
         |> andField "gql"
             (Json.Decode.list
@@ -370,7 +365,7 @@ type alias FlagDetails =
     , namespace : String
 
     -- The unparsed header for the introspection query
-    , header : String
+    , header : List String
     , generatePlatform : Bool
     , existingEnumDefinitions : Maybe String
     }
