@@ -33,14 +33,14 @@ main :
 main =
     Platform.worker
         { init =
-            \flags ->
+            \json ->
                 let
                     decoded =
-                        Json.Decode.decodeValue flagsDecoder flags
+                        Json.Decode.decodeValue flagsDecoder json
                 in
                 case decoded of
                     Err err ->
-                        ( { flags = flags
+                        ( { flags = json
                           , input = InputError
                           , namespace = "Api"
                           }
@@ -54,7 +54,7 @@ main =
                     Ok input ->
                         case input of
                             InputError ->
-                                ( { flags = flags
+                                ( { flags = json
                                   , input = InputError
                                   , namespace = "Api"
                                   }
@@ -65,24 +65,36 @@ main =
                                     ]
                                 )
 
-                            Flags details ->
-                                case details.schema of
+                            Flags flags ->
+                                case flags.schema of
                                     SchemaUrl url ->
-                                        ( { flags = flags
-                                          , input = input
-                                          , namespace = details.namespace
-                                          }
-                                        , GraphQL.Schema.getJsonValue
-                                            url
-                                            (SchemaReceived details)
-                                        )
+                                        case parseHeaders flags.header of
+                                            Err error ->
+                                                ( { flags = json
+                                                  , input = InputError
+                                                  , namespace = "Api"
+                                                  }
+                                                , Generate.error
+                                                    [ error
+                                                    ]
+                                                )
+
+                                            Ok headers ->
+                                                ( { flags = json
+                                                  , input = input
+                                                  , namespace = flags.namespace
+                                                  }
+                                                , GraphQL.Schema.getJsonValue headers
+                                                    url
+                                                    (SchemaReceived flags)
+                                                )
 
                                     Schema schemaAsJson schema ->
-                                        ( { flags = flags
+                                        ( { flags = json
                                           , input = input
-                                          , namespace = details.namespace
+                                          , namespace = flags.namespace
                                           }
-                                        , generatePlatform details.namespace schema schemaAsJson details
+                                        , generatePlatform flags.namespace schema schemaAsJson flags
                                         )
         , update =
             \msg model ->
@@ -115,6 +127,44 @@ main =
                         )
         , subscriptions = \_ -> Sub.none
         }
+
+
+parseHeaders : String -> Result { title : String, description : String } (List ( String, String ))
+parseHeaders str =
+    if String.isEmpty str then
+        Ok []
+
+    else
+        str
+            |> String.split ","
+            |> List.foldl parseSingleHeader (Ok [])
+            |> Result.map List.reverse
+
+
+parseSingleHeader : String -> Result { title : String, description : String } (List ( String, String )) -> Result { title : String, description : String } (List ( String, String ))
+parseSingleHeader headerString result =
+    case result of
+        Err err ->
+            Err err
+
+        Ok headers ->
+            case String.split ":" headerString of
+                [] ->
+                    Err
+                        { title = "Unknown Header Format"
+                        , description =
+                            "I received the header '"
+                                ++ headerString
+                                ++ "' but I wasn't able parse it."
+                                ++ """
+Headers should be provided 
+
+    --header 'Authorization: bearer TOKEN'
+"""
+                        }
+
+                key :: remaining ->
+                    Ok (( String.trim key, String.join "," remaining ) :: headers)
 
 
 generatePlatform : String -> GraphQL.Schema.Schema -> Json.Encode.Value -> FlagDetails -> Cmd Msg
@@ -226,7 +276,7 @@ parseGql namespace schema flagDetails gql rendered =
 
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
-    Json.Decode.map8
+    Json.Decode.succeed
         (\elmBase elmBaseSchema namespace isInit gql schemaUrl genPlatform existingEnums ->
             Flags
                 { schema = schemaUrl
@@ -235,15 +285,17 @@ flagsDecoder =
                 , elmBase = elmBase
                 , elmBaseSchema = elmBaseSchema
                 , namespace = namespace
+                , header = ""
                 , generatePlatform = genPlatform
                 , existingEnumDefinitions = existingEnums
                 }
         )
-        (Json.Decode.field "elmBase" (Json.Decode.list Json.Decode.string))
-        (Json.Decode.field "elmBaseSchema" (Json.Decode.list Json.Decode.string))
-        (Json.Decode.field "namespace" Json.Decode.string)
-        (Json.Decode.field "init" Json.Decode.bool)
-        (Json.Decode.field "gql"
+        |> andField "elmBase" (Json.Decode.list Json.Decode.string)
+        |> andField "elmBaseSchema" (Json.Decode.list Json.Decode.string)
+        |> andField "namespace" Json.Decode.string
+        -- |> andField "header" Json.Decode.string
+        |> andField "init" Json.Decode.bool
+        |> andField "gql"
             (Json.Decode.list
                 (Json.Decode.map2
                     (\path src ->
@@ -255,8 +307,7 @@ flagsDecoder =
                     (Json.Decode.field "src" Json.Decode.string)
                 )
             )
-        )
-        (Json.Decode.field "schema"
+        |> andField "schema"
             (Json.Decode.oneOf
                 [ Json.Decode.map SchemaUrl
                     (Json.Decode.string
@@ -274,12 +325,21 @@ flagsDecoder =
                     GraphQL.Schema.decoder
                 ]
             )
+        |> andField "generatePlatform" Json.Decode.bool
+        |> andField "existingEnumDefinitions"
+            (Json.Decode.string
+                |> Json.Decode.maybe
+            )
+
+
+andField : String -> Json.Decode.Decoder a -> Json.Decode.Decoder (a -> b) -> Json.Decode.Decoder b
+andField name fieldDecoder baseDecoder =
+    Json.Decode.map2
+        (\a fn ->
+            fn a
         )
-        (Json.Decode.field "generatePlatform" Json.Decode.bool)
-        (Json.Decode.field "existingEnumDefinitions"
-            Json.Decode.string
-            |> Json.Decode.maybe
-        )
+        fieldDecoder
+        baseDecoder
 
 
 type alias Model =
@@ -308,6 +368,9 @@ type alias FlagDetails =
     -- sometimes it's nice to separate that out into a separate dir.
     , elmBaseSchema : List String
     , namespace : String
+
+    -- The unparsed header for the introspection query
+    , header : String
     , generatePlatform : Bool
     , existingEnumDefinitions : Maybe String
     }

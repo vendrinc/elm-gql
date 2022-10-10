@@ -31,9 +31,18 @@ kindToString kindToStringArg =
         [ kindToStringArg ]
 
 
-{-| getJsonValue: String -> (Result Http.Error Json.Value -> msg) -> Cmd msg -}
-getJsonValue : String -> (Elm.Expression -> Elm.Expression) -> Elm.Expression
-getJsonValue getJsonValueArg getJsonValueArg0 =
+{-| getJsonValue: 
+    List ( String, String )
+    -> String
+    -> (Result Http.Error Json.Value -> msg)
+    -> Cmd msg
+-}
+getJsonValue :
+    List Elm.Expression
+    -> String
+    -> (Elm.Expression -> Elm.Expression)
+    -> Elm.Expression
+getJsonValue getJsonValueArg getJsonValueArg0 getJsonValueArg1 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Schema" ]
@@ -41,7 +50,8 @@ getJsonValue getJsonValueArg getJsonValueArg0 =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.string
+                        [ Type.list (Type.tuple Type.string Type.string)
+                        , Type.string
                         , Type.function
                             [ Type.namedWith
                                 []
@@ -56,8 +66,9 @@ getJsonValue getJsonValueArg getJsonValueArg0 =
                     )
             }
         )
-        [ Elm.string getJsonValueArg
-        , Elm.functionReduced "getJsonValueUnpack" getJsonValueArg0
+        [ Elm.list getJsonValueArg
+        , Elm.string getJsonValueArg0
+        , Elm.functionReduced "getJsonValueUnpack" getJsonValueArg1
         ]
 
 
@@ -1057,7 +1068,8 @@ caseOf_ =
 
 call_ :
     { kindToString : Elm.Expression -> Elm.Expression
-    , getJsonValue : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , getJsonValue :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , get : Elm.Expression -> Elm.Expression -> Elm.Expression
     , typeToString : Elm.Expression -> Elm.Expression
     , typeToElmString : Elm.Expression -> Elm.Expression
@@ -1082,7 +1094,7 @@ call_ =
                 )
                 [ kindToStringArg ]
     , getJsonValue =
-        \getJsonValueArg getJsonValueArg0 ->
+        \getJsonValueArg getJsonValueArg0 getJsonValueArg1 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Schema" ]
@@ -1090,7 +1102,8 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.string
+                                [ Type.list (Type.tuple Type.string Type.string)
+                                , Type.string
                                 , Type.function
                                     [ Type.namedWith
                                         []
@@ -1105,7 +1118,7 @@ call_ =
                             )
                     }
                 )
-                [ getJsonValueArg, getJsonValueArg0 ]
+                [ getJsonValueArg, getJsonValueArg0, getJsonValueArg1 ]
     , get =
         \getArg getArg0 ->
             Elm.apply
@@ -1236,7 +1249,8 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.string
+                        [ Type.list (Type.tuple Type.string Type.string)
+                        , Type.string
                         , Type.function
                             [ Type.namedWith
                                 []

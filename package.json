@@ -14,7 +14,8 @@
     "elm-gql": "node ./dist/index.js",
     "elm-gql:test": "node ./dist/index.js --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
     "elm-gql:test-json-schema-file": "node ./dist/index.js --namespace=Api2 --schema=schema.json --gql=gql-ops --force",
-    "elm-gql:run": "node ./dist/index.js --schema=schema.json --force",
+    "elm-gql:run": "node ./dist/index.js schema.json --force",
+    "elm-gql:init": "node ./dist/index.js init schema.json",
     "test": "elm-test"
   },
   "repository": {
@@ -36,6 +37,7 @@
   "dependencies": {
     "@types/node": "^15.0.3",
     "chalk": "^4.1.1",
-    "chokidar": "^3.5.1"
+    "chokidar": "^3.5.1",
+    "commander": "^9.4.1"
   }
 }

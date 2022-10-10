@@ -541,8 +541,8 @@ get url toMsg =
         }
 
 
-getJsonValue : String -> (Result Http.Error Json.Value -> msg) -> Cmd msg
-getJsonValue url toMsg =
+getJsonValue : List ( String, String ) -> String -> (Result Http.Error Json.Value -> msg) -> Cmd msg
+getJsonValue headers url toMsg =
     Http.post
         { url = url
         , body =

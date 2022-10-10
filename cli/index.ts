@@ -311,6 +311,7 @@ async function run(schema: string, options: Options) {
       namespace: options.namespace,
       // @ts-ignore
       gql: fileSources,
+      // header: options.header,
       elmBase: gqlBase,
       elmBaseSchema: options.output.split(path.sep),
       schema: schema,
@@ -372,6 +373,7 @@ const program = new commander.Command();
 type Options = {
   output: string;
   namespace: string;
+  header: string;
   force: boolean;
   existingEnumDefinitions: string | null;
   init: boolean;
@@ -386,6 +388,7 @@ program
     "Api"
   )
   .option("--force", "Skip the cache.")
+  .option("--header", "The header to include in the introspection query.", "")
   .option(
     "--output <dir>",
     "The directory where your generated files should go.",
@@ -406,6 +409,7 @@ program
     "Api"
   )
   .option("--force", "Skip the cache.")
+  .option("--header", "The header to include in the introspection query.", "")
   .option(
     "--output <dir>",
     "The directory where your generated files should go.",
