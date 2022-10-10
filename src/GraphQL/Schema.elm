@@ -543,16 +543,19 @@ get url toMsg =
 
 getJsonValue : List ( String, String ) -> String -> (Result Http.Error Json.Value -> msg) -> Cmd msg
 getJsonValue headers url toMsg =
-    Http.post
-        { url = url
+    Http.request
+        { method = "POST"
+        , headers = headers |> List.map (\( key, val ) -> Http.header key val)
+        , url = url
         , body =
             Http.jsonBody
                 (Json.Encode.object
                     [ ( "query", Json.Encode.string introspection )
                     ]
                 )
-        , expect =
-            Http.expectJson toMsg Json.value
+        , expect = Http.expectJson toMsg Json.value
+        , timeout = Nothing
+        , tracker = Nothing
         }
 
 
