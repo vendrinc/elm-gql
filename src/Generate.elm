@@ -136,7 +136,8 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
             if flagDetails.generatePlatform then
                 let
                     schemaFiles =
-                        saveSchema namespace schemaAsJson
+                        saveSchemaAsElm namespace schemaAsJson
+                            :: saveSchemaAsJson namespace schemaAsJson
                             :: Generate.Enums.generateFiles namespace schema
                             ++ Generate.InputObjects.generateFiles namespace schema
 
@@ -181,13 +182,21 @@ addOutputDir pieces file =
     }
 
 
-saveSchema : Namespace -> Json.Encode.Value -> Elm.File
-saveSchema namespace val =
+saveSchemaAsElm : Namespace -> Json.Encode.Value -> Elm.File
+saveSchemaAsElm namespace val =
     Elm.file [ namespace.namespace, "Meta", "Schema" ]
         [ Elm.declaration "schema"
             (Gen.GraphQL.Mock.schemaFromString (Json.Encode.encode 4 val))
             |> Elm.expose
         ]
+
+
+saveSchemaAsJson : Namespace -> Json.Encode.Value -> Elm.File
+saveSchemaAsJson namespace val =
+    { path = namespace.namespace ++ "/" ++ "schema.json"
+    , warnings = []
+    , contents = Json.Encode.encode 4 val
+    }
 
 
 parseGql :

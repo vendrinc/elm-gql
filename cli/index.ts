@@ -164,6 +164,10 @@ function format_block(content: string[]) {
   return "\n    " + content.join("\n    ") + "\n";
 }
 
+function format_bullet(content: string) {
+  return `  ${chalk.yellow("•")} ` + content;
+}
+
 function writeIfChanged(filepath: string, content: string): boolean {
   try {
     const foundContents = fs.readFileSync(filepath);
@@ -230,26 +234,42 @@ const clearDir = (dir: string) => {
 function initGreeting(filesGenerated: number, flags: any) {
   const lines = [];
   lines.push(`Welcome to ${chalk.cyan("elm-gql")}!`);
+  lines.push(`I've generated a number of files to get you started:`);
+  lines.push("");
+  lines.push(format_bullet(`${chalk.cyan("src/" + flags.namespace + ".elm")}`));
 
   lines.push(
-    `I've generated ${chalk.yellow(filesGenerated)} files in ${chalk.cyan(
-      flags.elmBaseSchema.join("/") + "/"
-    )}, as well as ${chalk.cyan("src/" + flags.namespace + ".elm")}.`
+    format_bullet(
+      `${chalk.yellow(filesGenerated)} files in ${chalk.cyan(
+        flags.elmBaseSchema.join("/") + "/"
+      )}`
+    )
   );
 
   if (flags.gql.length == 1) {
     lines.push(
-      `I also found ${chalk.yellow(
-        flags.gql.length
-      )} GQL file and generated Elm code to help you use it.`
+      format_bullet(
+        `I also found ${chalk.yellow(
+          flags.gql.length
+        )} GQL file and generated Elm code to help you use it.`
+      )
     );
   } else if (flags.gql.length > 0) {
     lines.push(
-      `I also found ${chalk.yellow(
-        flags.gql.length
-      )} GQL files and generated Elm code to help you use them.`
+      format_bullet(
+        `I also found ${chalk.yellow(
+          flags.gql.length
+        )} GQL files and generated Elm code to help you use them.`
+      )
     );
   }
+  lines.push(
+    format_bullet(
+      `I've saved the schema as ${chalk.cyan(flags.namespace + "/schema.json")}`
+    )
+  );
+
+  lines.push("");
   lines.push(`Check out the getting started guide for more details!`);
   lines.push(
     chalk.yellow(
