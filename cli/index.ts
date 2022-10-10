@@ -311,7 +311,7 @@ async function run(schema: string, options: Options) {
       namespace: options.namespace,
       // @ts-ignore
       gql: fileSources,
-      // header: options.header,
+      header: options.header,
       elmBase: gqlBase,
       elmBaseSchema: options.output.split(path.sep),
       schema: schema,

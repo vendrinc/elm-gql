@@ -277,7 +277,7 @@ parseGql namespace schema flagDetails gql rendered =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.succeed
-        (\elmBase elmBaseSchema namespace isInit gql schemaUrl genPlatform existingEnums ->
+        (\elmBase elmBaseSchema namespace header isInit gql schemaUrl genPlatform existingEnums ->
             Flags
                 { schema = schemaUrl
                 , gql = gql
@@ -285,7 +285,7 @@ flagsDecoder =
                 , elmBase = elmBase
                 , elmBaseSchema = elmBaseSchema
                 , namespace = namespace
-                , header = ""
+                , header = header
                 , generatePlatform = genPlatform
                 , existingEnumDefinitions = existingEnums
                 }
@@ -293,7 +293,7 @@ flagsDecoder =
         |> andField "elmBase" (Json.Decode.list Json.Decode.string)
         |> andField "elmBaseSchema" (Json.Decode.list Json.Decode.string)
         |> andField "namespace" Json.Decode.string
-        -- |> andField "header" Json.Decode.string
+        |> andField "header" Json.Decode.string
         |> andField "init" Json.Decode.bool
         |> andField "gql"
             (Json.Decode.list
@@ -338,7 +338,7 @@ andField name fieldDecoder baseDecoder =
         (\a fn ->
             fn a
         )
-        fieldDecoder
+        (Json.Decode.field name fieldDecoder)
         baseDecoder
 
 
