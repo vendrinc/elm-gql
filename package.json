@@ -1,33 +1,37 @@
 {
-  "name": "elm-graphql",
+  "name": "elm-gql",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs",
-    "example": "examples"
+  "main": "./dist/index.js",
+  "bin": {
+    "elm-gql": "./bin/elm-gql"
   },
   "scripts": {
     "build": "node cli/build.js ; tsc ; yarn build:elm:opt ; cp cli/package.json dist/package.json",
     "build:elm": "elm-codegen install; elm make src/Generate.elm --output=./dist/generators/schema.js",
     "build:elm:opt": "elm-codegen install; elm-optimize-level-2 src/Generate.elm --output=./dist/generators/schema.js",
-    "elm-gql": "node ./dist/index.js",
-    "elm-gql:test": "node ./dist/index.js --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
-    "elm-gql:test-json-schema-file": "node ./dist/index.js --namespace=Api2 --schema=schema.json --gql=gql-ops --force",
-    "elm-gql:run": "node ./dist/index.js schema.json --force",
-    "elm-gql:init": "node ./dist/index.js init schema.json",
+    "prepublishOnly": "npm run build",
+    "elm-gql": "node ./bin/elm-gql",
+    "elm-gql:test": "node ./bin/elm-gql --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
+    "elm-gql:test-json-schema-file": "node ./bin/elm-gql --namespace=Api2 --schema=schema.json --gql=gql-ops --force",
+    "elm-gql:run": "node ./bin/elm-gql schema.json --force",
+    "elm-gql:init": "node ./bin/elm-gql init schema.json",
     "test": "elm-test"
   },
+  "files": [
+    "dist",
+    "bin"
+  ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Blissfully/elm-gql.git"
+    "url": "git+https://github.com/vendrinc/elm-gql.git"
   },
   "author": "",
   "license": "BSD-3",
   "bugs": {
-    "url": "https://github.com/Blissfully/elm-gql/issues"
+    "url": "https://github.com/vendrinc/elm-gql/issues"
   },
-  "homepage": "https://github.com/Blissfully/elm-gql#readme",
+  "homepage": "https://github.com/vendrinc/elm-gql#readme",
   "devDependencies": {
     "elm-codegen": "^0.2.0",
     "elm-doc-preview": "^5.0.5",
