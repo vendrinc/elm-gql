@@ -1,7 +1,7 @@
-module Gen.GraphQL.Schema exposing (annotation_, call_, caseOf_, decoder, empty, get, getInner, getJsonValue, getWrap, kindToString, make_, mockScalar, moduleName_, typeToElmString, typeToString, values_)
+module Gen.GraphQL.Schema exposing (annotation_, call_, caseOf_, decoder, empty, getInner, getJsonValue, getWrap, kindToString, make_, mockScalar, moduleName_, typeToElmString, typeToString, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, getWrap, getInner, mockScalar, typeToElmString, typeToString, decoder, empty, get, getJsonValue, kindToString, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, getWrap, getInner, mockScalar, typeToElmString, typeToString, decoder, empty, getJsonValue, kindToString, moduleName_
 -}
 
 
@@ -70,34 +70,6 @@ getJsonValue getJsonValueArg getJsonValueArg0 getJsonValueArg1 =
         , Elm.string getJsonValueArg0
         , Elm.functionReduced "getJsonValueUnpack" getJsonValueArg1
         ]
-
-
-{-| get: String -> (Result Http.Error Schema -> msg) -> Cmd msg -}
-get : String -> (Elm.Expression -> Elm.Expression) -> Elm.Expression
-get getArg getArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Schema" ]
-            , name = "get"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string
-                        , Type.function
-                            [ Type.namedWith
-                                []
-                                "Result"
-                                [ Type.namedWith [ "Http" ] "Error" []
-                                , Type.namedWith [] "Schema" []
-                                ]
-                            ]
-                            (Type.var "msg")
-                        ]
-                        (Type.namedWith [] "Cmd" [ Type.var "msg" ])
-                    )
-            }
-        )
-        [ Elm.string getArg, Elm.functionReduced "getUnpack" getArg0 ]
 
 
 {-| empty: Schema -}
@@ -1070,7 +1042,6 @@ call_ :
     { kindToString : Elm.Expression -> Elm.Expression
     , getJsonValue :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
-    , get : Elm.Expression -> Elm.Expression -> Elm.Expression
     , typeToString : Elm.Expression -> Elm.Expression
     , typeToElmString : Elm.Expression -> Elm.Expression
     , mockScalar : Elm.Expression -> Elm.Expression
@@ -1119,31 +1090,6 @@ call_ =
                     }
                 )
                 [ getJsonValueArg, getJsonValueArg0, getJsonValueArg1 ]
-    , get =
-        \getArg getArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Schema" ]
-                    , name = "get"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.string
-                                , Type.function
-                                    [ Type.namedWith
-                                        []
-                                        "Result"
-                                        [ Type.namedWith [ "Http" ] "Error" []
-                                        , Type.namedWith [] "Schema" []
-                                        ]
-                                    ]
-                                    (Type.var "msg")
-                                ]
-                                (Type.namedWith [] "Cmd" [ Type.var "msg" ])
-                            )
-                    }
-                )
-                [ getArg, getArg0 ]
     , typeToString =
         \typeToStringArg ->
             Elm.apply
@@ -1225,7 +1171,6 @@ call_ =
 values_ :
     { kindToString : Elm.Expression
     , getJsonValue : Elm.Expression
-    , get : Elm.Expression
     , empty : Elm.Expression
     , decoder : Elm.Expression
     , typeToString : Elm.Expression
@@ -1257,27 +1202,6 @@ values_ =
                                 "Result"
                                 [ Type.namedWith [ "Http" ] "Error" []
                                 , Type.namedWith [ "Json" ] "Value" []
-                                ]
-                            ]
-                            (Type.var "msg")
-                        ]
-                        (Type.namedWith [] "Cmd" [ Type.var "msg" ])
-                    )
-            }
-    , get =
-        Elm.value
-            { importFrom = [ "GraphQL", "Schema" ]
-            , name = "get"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string
-                        , Type.function
-                            [ Type.namedWith
-                                []
-                                "Result"
-                                [ Type.namedWith [ "Http" ] "Error" []
-                                , Type.namedWith [] "Schema" []
                                 ]
                             ]
                             (Type.var "msg")

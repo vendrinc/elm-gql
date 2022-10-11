@@ -1,5 +1,5 @@
 module GraphQL.Schema exposing
-    ( get, getJsonValue
+    ( getJsonValue
     , Mutation, Query, decoder, empty
     , Kind(..), Schema, Type(..)
     , mockScalar
@@ -9,7 +9,7 @@ module GraphQL.Schema exposing
 
 {-|
 
-@docs get, getJsonValue
+@docs getJsonValue
 
 @docs Mutation, Query, decoder, empty
 
@@ -524,21 +524,6 @@ empty =
     , unions = Dict.empty
     , interfaces = Dict.empty
     }
-
-
-get : String -> (Result Http.Error Schema -> msg) -> Cmd msg
-get url toMsg =
-    Http.post
-        { url = url
-        , body =
-            Http.jsonBody
-                (Json.Encode.object
-                    [ ( "query", Json.Encode.string introspection )
-                    ]
-                )
-        , expect =
-            Http.expectJson toMsg (Json.field "data" decoder)
-        }
 
 
 getJsonValue : List ( String, String ) -> String -> (Result Http.Error Json.Value -> msg) -> Cmd msg
