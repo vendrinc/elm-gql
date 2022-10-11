@@ -360,17 +360,19 @@ async function run(schema: string, options: Options) {
 }
 
 async function action(schema: string, options: Options) {
+  console.log(options);
   options.init = false;
   run(schema, options);
 }
 
 async function init(schema: string, options: Options) {
+  console.log(options);
   options.init = true;
   options.force = true;
+  console.log(options);
+  console.log(process.argv);
   run(schema, options);
 }
-
-const program = new commander.Command();
 
 type Options = {
   output: string;
@@ -386,17 +388,28 @@ function collect(val: string, memo: string[]) {
   return memo;
 }
 
+const program = new commander.Command();
+
+const helpText = `
+Welcome to ${chalk.cyan("elm-gql")}!
+
+Make sure to check out the ${chalk.yellow("guides")}:
+    https://github.com/vendrinc/elm-gql
+`;
+
+program.version("0.1.0").name("elm-gql").addHelpText("before", helpText);
+
 program
   .version(version)
   .argument("<schema>", "The schema.")
   .option(
     "--namespace <namespace>",
-    "Change the namespace that the generated code should have.",
+    "Change the namespace for the generated code.",
     "Api"
   )
   .option("--force", "Skip the cache.")
   .option(
-    "-h, --header <header>",
+    "--header <header>",
     "The header to include in the introspection query.",
     collect,
     []
@@ -417,7 +430,7 @@ program
   .argument("<schema>", "The schema.")
   .option(
     "--namespace <namespace>",
-    "Change the namespace that the generated code should have.",
+    "Change the namespace for the generated code.",
     "Api"
   )
   .option("--force", "Skip the cache.")
@@ -438,4 +451,5 @@ program
   )
   .action(init);
 
-program.parseAsync();
+program.showHelpAfterError();
+program.parseAsync(process.argv);

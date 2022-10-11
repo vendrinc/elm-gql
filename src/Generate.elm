@@ -72,7 +72,7 @@ main =
                                             Err error ->
                                                 ( { flags = json
                                                   , input = InputError
-                                                  , namespace = "Api"
+                                                  , namespace = flags.namespace
                                                   }
                                                 , Generate.error
                                                     [ error
@@ -426,7 +426,7 @@ parseAndValidateQuery namespace schema flags gql =
     case GraphQL.Operations.Parse.parse gql.src of
         Err err ->
             Err
-                { title = formatTitle "WEIRD QUERY" gql.path
+                { title = formatTitle "UNABLE TO PARSE QUERY" gql.path
                 , description =
                     GraphQL.Operations.Parse.errorToString err
                 }
