@@ -138,7 +138,9 @@ const getDirectories = (pathStr: string) =>
     .filter(isDirectory);
 
 const isFile = (filepath: string) =>
-  fs.statSync(filepath).isFile() && filepath.endsWith("gql");
+  fs.statSync(filepath).isFile() &&
+  (filepath.endsWith(".gql") || filepath.endsWith(".graphql"));
+
 const getFiles = (filepath: string) =>
   fs
     .readdirSync(filepath)
