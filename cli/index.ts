@@ -422,7 +422,7 @@ program
   )
   .option("--force", "Skip the cache.")
   .option(
-    "--header <header>",
+    "-h, --header <header>",
     "The header to include in the introspection query.",
     collect,
     []
