@@ -26,8 +26,8 @@
     "type": "git",
     "url": "git+https://github.com/vendrinc/elm-gql.git"
   },
-  "author": "",
-  "license": "BSD-3",
+  "author": "Matthew Griffith",
+  "license": "BSD-3-Clause",
   "bugs": {
     "url": "https://github.com/vendrinc/elm-gql/issues"
   },
