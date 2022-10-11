@@ -1,7 +1,7 @@
 {
   "name": "elm-gql",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.1.0",
+  "description": "Write GraphQL, get nice Elm code!",
   "main": "./dist/index.js",
   "bin": {
     "elm-gql": "./bin/elm-gql"
