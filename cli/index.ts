@@ -167,7 +167,7 @@ function format_block(content: string[]) {
 }
 
 function format_bullet(content: string) {
-  return `  ${chalk.yellow("•")} ` + content;
+  return `  • ` + content;
 }
 
 function writeIfChanged(filepath: string, content: string): boolean {
@@ -360,17 +360,13 @@ async function run(schema: string, options: Options) {
 }
 
 async function action(schema: string, options: Options) {
-  console.log(options);
   options.init = false;
   run(schema, options);
 }
 
 async function init(schema: string, options: Options) {
-  console.log(options);
   options.init = true;
   options.force = true;
-  console.log(options);
-  console.log(process.argv);
   run(schema, options);
 }
 
@@ -397,10 +393,20 @@ Make sure to check out the ${chalk.yellow("guides")}:
     https://github.com/vendrinc/elm-gql
 `;
 
-program.version("0.1.0").name("elm-gql").addHelpText("before", helpText);
+program.version(version).name("elm-gql").addHelpText("before", helpText);
 
 program
-  .version(version)
+  .command("run")
+  .description(
+    `
+    Generate Elm code from a GraphQL schema and ${chalk.yellow(
+      ".graphql"
+    )} files.
+    This will create a ${chalk.yellow(
+      "codegen"
+    )} directory and provide you with everything you need to get started.
+`
+  )
   .argument("<schema>", "The schema.")
   .option(
     "--namespace <namespace>",
@@ -427,6 +433,16 @@ program
 
 program
   .command("init")
+  .description(
+    `
+    Start an Elm GQL project.
+    
+    This will generate Elm code from a GraphQL schema and ${chalk.yellow(
+      ".graphql"
+    )} files.
+    It's nearly the same as 'run', but will generate a file for handling your Scalars as well.
+`
+  )
   .argument("<schema>", "The schema.")
   .option(
     "--namespace <namespace>",
