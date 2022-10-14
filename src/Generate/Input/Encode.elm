@@ -496,11 +496,11 @@ toOptionHelpers namespace schema input =
             case field.type_ of
                 GraphQL.Schema.Nullable type_ ->
                     Elm.fn2
-                        ( "newArg"
+                        ( "newArg_"
                         , toElmType namespace schema type_ (GraphQL.Schema.getWrap type_)
                             |> Just
                         )
-                        ( "inputObj", Just <| Type.named [] input.name )
+                        ( "inputObj_", Just <| Type.named [] input.name )
                         (\new inputObj ->
                             inputObj
                                 |> Engine.addField
@@ -514,7 +514,8 @@ toOptionHelpers namespace schema input =
                                     )
                                 |> Elm.withType (Type.named [] input.name)
                         )
-                        |> Elm.declaration field.name
+                        |> Elm.declaration
+                            (Utils.String.formatValue field.name)
                         |> Elm.exposeWith
                             { exposeConstructor = False
                             , group = Just docGroups.optionalFields
@@ -616,7 +617,7 @@ toNulls inputName fields =
                 GraphQL.Schema.Nullable _ ->
                     Just
                         (Tuple.pair
-                            field.name
+                            (Utils.String.formatValue field.name)
                             (Elm.fn
                                 ( "inputObj"
                                 , Just (Type.named [] inputName)
