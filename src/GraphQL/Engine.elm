@@ -56,8 +56,8 @@ module GraphQL.Engine exposing
 
 import Dict exposing (Dict)
 import Http
-import Json.Decode as Decode
-import Json.Encode as Encode
+import Json.Decode
+import Json.Encode
 import Set
 
 
@@ -511,7 +511,7 @@ type alias Context =
 
 type alias VariableDetails =
     { gqlTypeName : String
-    , value : Encode.Value
+    , value : Json.Encode.Value
     }
 
 
@@ -577,7 +577,7 @@ But we can define anything else in terms of these:
 
 -}
 type Argument obj
-    = ArgValue Encode.Value String
+    = ArgValue Json.Encode.Value String
     | Var String
 
 
@@ -600,7 +600,7 @@ inputObject name =
 
 
 {-| -}
-addField : String -> String -> Encode.Value -> InputObject value -> InputObject value
+addField : String -> String -> Json.Encode.Value -> InputObject value -> InputObject value
 addField fieldName gqlFieldType val (InputObject name inputFields) =
     InputObject name
         (( fieldName
@@ -613,7 +613,7 @@ addField fieldName gqlFieldType val (InputObject name inputFields) =
 
 
 {-| -}
-addOptionalField : String -> String -> Option value -> (value -> Encode.Value) -> InputObject input -> InputObject input
+addOptionalField : String -> String -> Option value -> (value -> Json.Encode.Value) -> InputObject input -> InputObject input
 addOptionalField fieldName gqlFieldType optionalValue toJsonValue (InputObject name inputFields) =
     InputObject name
         (case optionalValue of
@@ -621,7 +621,7 @@ addOptionalField fieldName gqlFieldType optionalValue toJsonValue (InputObject n
                 inputFields
 
             Null ->
-                ( fieldName, { value = Encode.null, gqlTypeName = gqlFieldType } ) :: inputFields
+                ( fieldName, { value = Json.Encode.null, gqlTypeName = gqlFieldType } ) :: inputFields
 
             Present val ->
                 ( fieldName, { value = toJsonValue val, gqlTypeName = gqlFieldType } ) :: inputFields
@@ -635,7 +635,7 @@ type Optional arg
 
 {-| The encoded value and the name of the expected type for this argument
 -}
-arg : Encode.Value -> String -> Argument obj
+arg : Json.Encode.Value -> String -> Argument obj
 arg val typename =
     ArgValue val typename
 
@@ -645,14 +645,14 @@ argList : List (Argument obj) -> String -> Argument input
 argList fields typeName =
     ArgValue
         (fields
-            |> Encode.list
+            |> Json.Encode.list
                 (\argVal ->
                     case argVal of
                         ArgValue val _ ->
                             val
 
                         Var varName ->
-                            Encode.string varName
+                            Json.Encode.string varName
                 )
         )
         typeName
@@ -665,9 +665,9 @@ inputObjectToFieldList (InputObject _ fields) =
 
 
 {-| -}
-encodeInputObjectAsJson : InputObject value -> Decode.Value
+encodeInputObjectAsJson : InputObject value -> Json.Decode.Value
 encodeInputObjectAsJson (InputObject _ fields) =
-    Encode.object (List.map (\( fieldName, details ) -> ( fieldName, details.value )) fields)
+    Json.Encode.object (List.map (\( fieldName, details ) -> ( fieldName, details.value )) fields)
 
 
 {-| -}
@@ -682,22 +682,22 @@ encodeInputObject fields typeName =
                             ( name, val )
 
                         Var varName ->
-                            ( name, Encode.string varName )
+                            ( name, Json.Encode.string varName )
                 )
-            |> Encode.object
+            |> Json.Encode.object
         )
         typeName
 
 
 {-| -}
-encodeArgument : Argument obj -> Encode.Value
+encodeArgument : Argument obj -> Json.Encode.Value
 encodeArgument argVal =
     case argVal of
         ArgValue val _ ->
             val
 
         Var varName ->
-            Encode.string varName
+            Json.Encode.string varName
 
 
 {-| -}
@@ -719,7 +719,7 @@ encodeOptionals opts =
 
 
 {-| -}
-encodeOptionalsAsJson : List (Optional arg) -> List ( String, Encode.Value )
+encodeOptionalsAsJson : List (Optional arg) -> List ( String, Json.Encode.Value )
 encodeOptionalsAsJson opts =
     List.foldl
         (\(Optional optName argument) (( found, gathered ) as skip) ->
@@ -756,7 +756,7 @@ select data =
                 ( context, [] )
             )
             (\context ->
-                ( context, Decode.succeed data )
+                ( context, Json.Decode.succeed data )
             )
         )
 
@@ -778,7 +778,7 @@ map fn (Selection (Details maybeOpName fields decoder)) =
                     ( newAliases, newDecoder ) =
                         decoder aliases
                 in
-                ( newAliases, Decode.map fn newDecoder )
+                ( newAliases, Json.Decode.map fn newDecoder )
             )
 
 
@@ -822,7 +822,7 @@ map2 fn (Selection (Details oneOpName oneFields oneDecoder)) (Selection (Details
                         twoDecoder oneAliasesNew
                 in
                 ( twoAliasesNew
-                , Decode.map2 fn oneDecoderNew twoDecoderNew
+                , Json.Decode.map2 fn oneDecoderNew twoDecoderNew
                 )
             )
 
@@ -831,7 +831,7 @@ map2 fn (Selection (Details oneOpName oneFields oneDecoder)) (Selection (Details
 bakeToSelection :
     Maybe String
     -> (Int -> ( List ( String, VariableDetails ), String ))
-    -> (Int -> Decode.Decoder data)
+    -> (Int -> Json.Decode.Decoder data)
     -> Selection source data
 bakeToSelection maybeOpName toGql toDecoder =
     Selection
@@ -891,7 +891,7 @@ type Request value
         { method : String
         , headers : List ( String, String )
         , url : String
-        , body : Encode.Value
+        , body : Json.Encode.Value
         , expect : Http.Response String -> Result Error value
         , timeout : Maybe Float
         , tracker : Maybe String
@@ -931,7 +931,7 @@ send (Request req) =
 simulate :
     { toHeader : String -> String -> header
     , toExpectation : (Http.Response String -> Result Error value) -> expectation
-    , toBody : Encode.Value -> body
+    , toBody : Json.Encode.Value -> body
     , toRequest :
         { method : String
         , headers : List header
@@ -1021,17 +1021,17 @@ body operation q =
         variables =
             (getContext q).variables
 
-        encodedVariables : Decode.Value
+        encodedVariables : Json.Decode.Value
         encodedVariables =
             variables
                 |> Dict.toList
                 |> List.map (Tuple.mapSecond .value)
-                |> Encode.object
+                |> Json.Encode.object
     in
     Http.jsonBody
-        (Encode.object
+        (Json.Encode.object
             (List.filterMap identity
-                [ Just ( "query", Encode.string (queryString operation q) )
+                [ Just ( "query", Json.Encode.string (queryString operation q) )
                 , Just ( "variables", encodedVariables )
                 ]
             )
@@ -1098,7 +1098,7 @@ expect toMsg (Selection (Details maybeOpName gql toDecoder)) =
                         )
 
                 Http.GoodStatus_ metadata responseBody ->
-                    case Decode.decodeString (Decode.field "data" decoder) responseBody of
+                    case Json.Decode.decodeString (Json.Decode.field "data" decoder) responseBody of
                         Ok value ->
                             Ok value
 
@@ -1106,7 +1106,7 @@ expect toMsg (Selection (Details maybeOpName gql toDecoder)) =
                             Err
                                 (BadBody
                                     { responseBody = responseBody
-                                    , decodingError = Decode.errorToString err
+                                    , decodingError = Json.Decode.errorToString err
                                     }
                                 )
 
@@ -1241,7 +1241,7 @@ argToString : Argument arg -> String
 argToString argument =
     case argument of
         ArgValue json typename ->
-            Encode.encode 0 json
+            Json.Encode.encode 0 json
 
         Var str ->
             "$" ++ str
@@ -1258,29 +1258,29 @@ argToTypeString argument =
 
 
 {-| -}
-maybeScalarEncode : (a -> Encode.Value) -> Maybe a -> Encode.Value
+maybeScalarEncode : (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
 maybeScalarEncode encoder maybeA =
     maybeA
         |> Maybe.map encoder
-        |> Maybe.withDefault Encode.null
+        |> Maybe.withDefault Json.Encode.null
 
 
 {-| -}
-decodeNullable : Decode.Decoder data -> Decode.Decoder (Maybe data)
+decodeNullable : Json.Decode.Decoder data -> Json.Decode.Decoder (Maybe data)
 decodeNullable =
-    Decode.nullable
+    Json.Decode.nullable
 
 
 versionedJsonField :
     Int
     -> String
-    -> Decode.Decoder a
-    -> Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder a
+    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 versionedJsonField int name new build =
-    Decode.map2
+    Json.Decode.map2
         (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
-        (Decode.field (versionedName int name) new)
+        (Json.Decode.field (versionedName int name) new)
         build
 
 
@@ -1319,22 +1319,22 @@ versionedAlias i name =
 
 jsonField :
     String
-    -> Decode.Decoder a
-    -> Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder a
+    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 jsonField name new build =
-    Decode.map2
+    Json.Decode.map2
         (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
-        (Decode.field name new)
+        (Json.Decode.field name new)
         build
 
 
 andMap :
-    Decode.Decoder map2Unpack
-    -> Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
-    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    Json.Decode.Decoder map2Unpack
+    -> Json.Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 andMap new build =
-    Decode.map2
+    Json.Decode.map2
         (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
         new
         build

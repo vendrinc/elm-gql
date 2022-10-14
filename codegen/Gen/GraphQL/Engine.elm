@@ -18,9 +18,9 @@ moduleName_ =
 
 
 {-| andMap: 
-    Decode.Decoder map2Unpack
-    -> Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
-    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    Json.Decode.Decoder map2Unpack
+    -> Json.Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 -}
 andMap : Elm.Expression -> Elm.Expression -> Elm.Expression
 andMap andMapArg andMapArg0 =
@@ -32,11 +32,11 @@ andMap andMapArg andMapArg0 =
                 Just
                     (Type.function
                         [ Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "map2Unpack" ]
                         , Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "map2Unpack"
@@ -49,7 +49,7 @@ andMap andMapArg andMapArg0 =
                             ]
                         ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -68,9 +68,9 @@ andMap andMapArg andMapArg0 =
 
 {-| jsonField: 
     String
-    -> Decode.Decoder a
-    -> Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder a
+    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 -}
 jsonField : String -> Elm.Expression -> Elm.Expression -> Elm.Expression
 jsonField jsonFieldArg jsonFieldArg0 jsonFieldArg1 =
@@ -82,9 +82,12 @@ jsonField jsonFieldArg jsonFieldArg0 jsonFieldArg1 =
                 Just
                     (Type.function
                         [ Type.string
-                        , Type.namedWith [ "Decode" ] "Decoder" [ Type.var "a" ]
                         , Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
+                            "Decoder"
+                            [ Type.var "a" ]
+                        , Type.namedWith
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "a"
@@ -97,7 +100,7 @@ jsonField jsonFieldArg jsonFieldArg0 jsonFieldArg1 =
                             ]
                         ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -162,9 +165,9 @@ versionedName versionedNameArg versionedNameArg0 =
 {-| versionedJsonField: 
     Int
     -> String
-    -> Decode.Decoder a
-    -> Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder a
+    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
 -}
 versionedJsonField :
     Int -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -178,9 +181,12 @@ versionedJsonField versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFie
                     (Type.function
                         [ Type.int
                         , Type.string
-                        , Type.namedWith [ "Decode" ] "Decoder" [ Type.var "a" ]
                         , Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
+                            "Decoder"
+                            [ Type.var "a" ]
+                        , Type.namedWith
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "a"
@@ -193,7 +199,7 @@ versionedJsonField versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFie
                             ]
                         ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -216,7 +222,7 @@ versionedJsonField versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFie
 
 {-| {-| -}
 
-decodeNullable: Decode.Decoder data -> Decode.Decoder (Maybe data)
+decodeNullable: Json.Decode.Decoder data -> Json.Decode.Decoder (Maybe data)
 -}
 decodeNullable : Elm.Expression -> Elm.Expression
 decodeNullable decodeNullableArg =
@@ -228,12 +234,12 @@ decodeNullable decodeNullableArg =
                 Just
                     (Type.function
                         [ Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "data" ]
                         ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.namedWith [] "Maybe" [ Type.var "data" ] ]
                         )
@@ -245,7 +251,7 @@ decodeNullable decodeNullableArg =
 
 {-| {-| -}
 
-maybeScalarEncode: (a -> Encode.Value) -> Maybe a -> Encode.Value
+maybeScalarEncode: (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
 -}
 maybeScalarEncode :
     (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
@@ -259,10 +265,10 @@ maybeScalarEncode maybeScalarEncodeArg maybeScalarEncodeArg0 =
                     (Type.function
                         [ Type.function
                             [ Type.var "a" ]
-                            (Type.namedWith [ "Encode" ] "Value" [])
+                            (Type.namedWith [ "Json", "Encode" ] "Value" [])
                         , Type.namedWith [] "Maybe" [ Type.var "a" ]
                         ]
-                        (Type.namedWith [ "Encode" ] "Value" [])
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
                     )
             }
         )
@@ -438,7 +444,7 @@ query queryArg queryArg0 =
 simulate: 
     { toHeader : String -> String -> header
     , toExpectation : (Http.Response String -> Result Error value) -> expectation
-    , toBody : Encode.Value -> body
+    , toBody : Json.Encode.Value -> body
     , toRequest :
         { method : String
         , headers : List header
@@ -495,7 +501,11 @@ simulate simulateArg simulateArg0 =
                               )
                             , ( "toBody"
                               , Type.function
-                                    [ Type.namedWith [ "Encode" ] "Value" [] ]
+                                    [ Type.namedWith
+                                        [ "Json", "Encode" ]
+                                        "Value"
+                                        []
+                                    ]
                                     (Type.var "body")
                               )
                             , ( "toRequest"
@@ -616,7 +626,7 @@ mapRequest mapRequestArg mapRequestArg0 =
 bakeToSelection: 
     Maybe String
     -> (Int -> ( List ( String, VariableDetails ), String ))
-    -> (Int -> Decode.Decoder data)
+    -> (Int -> Json.Decode.Decoder data)
     -> Selection source data
 -}
 bakeToSelection :
@@ -647,7 +657,7 @@ bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
                         , Type.function
                             [ Type.int ]
                             (Type.namedWith
-                                [ "Decode" ]
+                                [ "Json", "Decode" ]
                                 "Decoder"
                                 [ Type.var "data" ]
                             )
@@ -832,7 +842,7 @@ optional optionalArg optionalArg0 =
 
 {-| {-| -}
 
-encodeOptionalsAsJson: List (Optional arg) -> List ( String, Encode.Value )
+encodeOptionalsAsJson: List (Optional arg) -> List ( String, Json.Encode.Value )
 -}
 encodeOptionalsAsJson : List Elm.Expression -> Elm.Expression
 encodeOptionalsAsJson encodeOptionalsAsJsonArg =
@@ -849,7 +859,7 @@ encodeOptionalsAsJson encodeOptionalsAsJsonArg =
                         (Type.list
                             (Type.tuple
                                 Type.string
-                                (Type.namedWith [ "Encode" ] "Value" [])
+                                (Type.namedWith [ "Json", "Encode" ] "Value" [])
                             )
                         )
                     )
@@ -889,7 +899,7 @@ encodeOptionals encodeOptionalsArg =
 
 {-| {-| -}
 
-encodeArgument: Argument obj -> Encode.Value
+encodeArgument: Argument obj -> Json.Encode.Value
 -}
 encodeArgument : Elm.Expression -> Elm.Expression
 encodeArgument encodeArgumentArg =
@@ -901,7 +911,7 @@ encodeArgument encodeArgumentArg =
                 Just
                     (Type.function
                         [ Type.namedWith [] "Argument" [ Type.var "obj" ] ]
-                        (Type.namedWith [ "Encode" ] "Value" [])
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
                     )
             }
         )
@@ -938,7 +948,7 @@ encodeInputObject encodeInputObjectArg encodeInputObjectArg0 =
 
 {-| {-| -}
 
-encodeInputObjectAsJson: InputObject value -> Decode.Value
+encodeInputObjectAsJson: InputObject value -> Json.Decode.Value
 -}
 encodeInputObjectAsJson : Elm.Expression -> Elm.Expression
 encodeInputObjectAsJson encodeInputObjectAsJsonArg =
@@ -950,7 +960,7 @@ encodeInputObjectAsJson encodeInputObjectAsJsonArg =
                 Just
                     (Type.function
                         [ Type.namedWith [] "InputObject" [ Type.var "value" ] ]
-                        (Type.namedWith [ "Decode" ] "Value" [])
+                        (Type.namedWith [ "Json", "Decode" ] "Value" [])
                     )
             }
         )
@@ -1010,7 +1020,7 @@ argList argListArg argListArg0 =
 {-| {-| The encoded value and the name of the expected type for this argument
 -}
 
-arg: Encode.Value -> String -> Argument obj
+arg: Json.Encode.Value -> String -> Argument obj
 -}
 arg : Elm.Expression -> String -> Elm.Expression
 arg argArg argArg0 =
@@ -1021,7 +1031,9 @@ arg argArg argArg0 =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [ "Encode" ] "Value" [], Type.string ]
+                        [ Type.namedWith [ "Json", "Encode" ] "Value" []
+                        , Type.string
+                        ]
                         (Type.namedWith [] "Argument" [ Type.var "obj" ])
                     )
             }
@@ -1035,7 +1047,7 @@ addOptionalField:
     String
     -> String
     -> Option value
-    -> (value -> Encode.Value)
+    -> (value -> Json.Encode.Value)
     -> InputObject input
     -> InputObject input
 -}
@@ -1059,7 +1071,7 @@ addOptionalField addOptionalFieldArg addOptionalFieldArg0 addOptionalFieldArg1 a
                         , Type.namedWith [] "Option" [ Type.var "value" ]
                         , Type.function
                             [ Type.var "value" ]
-                            (Type.namedWith [ "Encode" ] "Value" [])
+                            (Type.namedWith [ "Json", "Encode" ] "Value" [])
                         , Type.namedWith [] "InputObject" [ Type.var "input" ]
                         ]
                         (Type.namedWith [] "InputObject" [ Type.var "input" ])
@@ -1076,7 +1088,7 @@ addOptionalField addOptionalFieldArg addOptionalFieldArg0 addOptionalFieldArg1 a
 
 {-| {-| -}
 
-addField: String -> String -> Encode.Value -> InputObject value -> InputObject value
+addField: String -> String -> Json.Encode.Value -> InputObject value -> InputObject value
 -}
 addField :
     String -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -1090,7 +1102,7 @@ addField addFieldArg addFieldArg0 addFieldArg1 addFieldArg2 =
                     (Type.function
                         [ Type.string
                         , Type.string
-                        , Type.namedWith [ "Encode" ] "Value" []
+                        , Type.namedWith [ "Json", "Encode" ] "Value" []
                         , Type.namedWith [] "InputObject" [ Type.var "value" ]
                         ]
                         (Type.namedWith [] "InputObject" [ Type.var "value" ])
@@ -1794,7 +1806,9 @@ caseOf_ =
                 )
                 [ Elm.Case.branch2
                     "ArgValue"
-                    ( "encode.Value", Type.namedWith [ "Encode" ] "Value" [] )
+                    ( "json.Encode.Value"
+                    , Type.namedWith [ "Json", "Encode" ] "Value" []
+                    )
                     ( "string.String", Type.string )
                     argumentTags.argValue
                 , Elm.Case.branch1
@@ -1888,11 +1902,11 @@ call_ =
                         Just
                             (Type.function
                                 [ Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.var "map2Unpack" ]
                                 , Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "map2Unpack"
@@ -1905,7 +1919,7 @@ call_ =
                                     ]
                                 ]
                                 (Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "inner"
@@ -1931,11 +1945,11 @@ call_ =
                             (Type.function
                                 [ Type.string
                                 , Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.var "a" ]
                                 , Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "a"
@@ -1948,7 +1962,7 @@ call_ =
                                     ]
                                 ]
                                 (Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "inner"
@@ -2001,11 +2015,11 @@ call_ =
                                 [ Type.int
                                 , Type.string
                                 , Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.var "a" ]
                                 , Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "a"
@@ -2018,7 +2032,7 @@ call_ =
                                     ]
                                 ]
                                 (Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.function
                                         [ Type.var "inner"
@@ -2047,12 +2061,12 @@ call_ =
                         Just
                             (Type.function
                                 [ Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.var "data" ]
                                 ]
                                 (Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.namedWith
                                         []
@@ -2075,10 +2089,14 @@ call_ =
                             (Type.function
                                 [ Type.function
                                     [ Type.var "a" ]
-                                    (Type.namedWith [ "Encode" ] "Value" [])
+                                    (Type.namedWith
+                                        [ "Json", "Encode" ]
+                                        "Value"
+                                        []
+                                    )
                                 , Type.namedWith [] "Maybe" [ Type.var "a" ]
                                 ]
-                                (Type.namedWith [ "Encode" ] "Value" [])
+                                (Type.namedWith [ "Json", "Encode" ] "Value" [])
                             )
                     }
                 )
@@ -2244,7 +2262,7 @@ call_ =
                                     , ( "toBody"
                                       , Type.function
                                             [ Type.namedWith
-                                                [ "Encode" ]
+                                                [ "Json", "Encode" ]
                                                 "Value"
                                                 []
                                             ]
@@ -2364,7 +2382,7 @@ call_ =
                                 , Type.function
                                     [ Type.int ]
                                     (Type.namedWith
-                                        [ "Decode" ]
+                                        [ "Json", "Decode" ]
                                         "Decoder"
                                         [ Type.var "data" ]
                                     )
@@ -2522,7 +2540,11 @@ call_ =
                                 (Type.list
                                     (Type.tuple
                                         Type.string
-                                        (Type.namedWith [ "Encode" ] "Value" [])
+                                        (Type.namedWith
+                                            [ "Json", "Encode" ]
+                                            "Value"
+                                            []
+                                        )
                                     )
                                 )
                             )
@@ -2573,7 +2595,7 @@ call_ =
                                     "Argument"
                                     [ Type.var "obj" ]
                                 ]
-                                (Type.namedWith [ "Encode" ] "Value" [])
+                                (Type.namedWith [ "Json", "Encode" ] "Value" [])
                             )
                     }
                 )
@@ -2621,7 +2643,7 @@ call_ =
                                     "InputObject"
                                     [ Type.var "value" ]
                                 ]
-                                (Type.namedWith [ "Decode" ] "Value" [])
+                                (Type.namedWith [ "Json", "Decode" ] "Value" [])
                             )
                     }
                 )
@@ -2685,7 +2707,7 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.namedWith [ "Encode" ] "Value" []
+                                [ Type.namedWith [ "Json", "Encode" ] "Value" []
                                 , Type.string
                                 ]
                                 (Type.namedWith [] "Argument" [ Type.var "obj" ]
@@ -2711,7 +2733,11 @@ call_ =
                                     [ Type.var "value" ]
                                 , Type.function
                                     [ Type.var "value" ]
-                                    (Type.namedWith [ "Encode" ] "Value" [])
+                                    (Type.namedWith
+                                        [ "Json", "Encode" ]
+                                        "Value"
+                                        []
+                                    )
                                 , Type.namedWith
                                     []
                                     "InputObject"
@@ -2742,7 +2768,7 @@ call_ =
                             (Type.function
                                 [ Type.string
                                 , Type.string
-                                , Type.namedWith [ "Encode" ] "Value" []
+                                , Type.namedWith [ "Json", "Encode" ] "Value" []
                                 , Type.namedWith
                                     []
                                     "InputObject"
@@ -3169,11 +3195,11 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "map2Unpack" ]
                         , Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "map2Unpack"
@@ -3186,7 +3212,7 @@ values_ =
                             ]
                         ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -3207,9 +3233,12 @@ values_ =
                 Just
                     (Type.function
                         [ Type.string
-                        , Type.namedWith [ "Decode" ] "Decoder" [ Type.var "a" ]
                         , Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
+                            "Decoder"
+                            [ Type.var "a" ]
+                        , Type.namedWith
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "a"
@@ -3222,7 +3251,7 @@ values_ =
                             ]
                         ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -3258,9 +3287,12 @@ values_ =
                     (Type.function
                         [ Type.int
                         , Type.string
-                        , Type.namedWith [ "Decode" ] "Decoder" [ Type.var "a" ]
                         , Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
+                            "Decoder"
+                            [ Type.var "a" ]
+                        , Type.namedWith
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "a"
@@ -3273,7 +3305,7 @@ values_ =
                             ]
                         ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.function
                                 [ Type.var "inner"
@@ -3294,12 +3326,12 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "data" ]
                         ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.namedWith [] "Maybe" [ Type.var "data" ] ]
                         )
@@ -3314,10 +3346,10 @@ values_ =
                     (Type.function
                         [ Type.function
                             [ Type.var "a" ]
-                            (Type.namedWith [ "Encode" ] "Value" [])
+                            (Type.namedWith [ "Json", "Encode" ] "Value" [])
                         , Type.namedWith [] "Maybe" [ Type.var "a" ]
                         ]
-                        (Type.namedWith [ "Encode" ] "Value" [])
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
                     )
             }
     , queryString =
@@ -3443,7 +3475,11 @@ values_ =
                               )
                             , ( "toBody"
                               , Type.function
-                                    [ Type.namedWith [ "Encode" ] "Value" [] ]
+                                    [ Type.namedWith
+                                        [ "Json", "Encode" ]
+                                        "Value"
+                                        []
+                                    ]
                                     (Type.var "body")
                               )
                             , ( "toRequest"
@@ -3534,7 +3570,7 @@ values_ =
                         , Type.function
                             [ Type.int ]
                             (Type.namedWith
-                                [ "Decode" ]
+                                [ "Json", "Decode" ]
                                 "Decoder"
                                 [ Type.var "data" ]
                             )
@@ -3658,7 +3694,7 @@ values_ =
                         (Type.list
                             (Type.tuple
                                 Type.string
-                                (Type.namedWith [ "Encode" ] "Value" [])
+                                (Type.namedWith [ "Json", "Encode" ] "Value" [])
                             )
                         )
                     )
@@ -3690,7 +3726,7 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith [] "Argument" [ Type.var "obj" ] ]
-                        (Type.namedWith [ "Encode" ] "Value" [])
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
                     )
             }
     , encodeInputObject =
@@ -3719,7 +3755,7 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith [] "InputObject" [ Type.var "value" ] ]
-                        (Type.namedWith [ "Decode" ] "Value" [])
+                        (Type.namedWith [ "Json", "Decode" ] "Value" [])
                     )
             }
     , inputObjectToFieldList =
@@ -3759,7 +3795,9 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [ "Encode" ] "Value" [], Type.string ]
+                        [ Type.namedWith [ "Json", "Encode" ] "Value" []
+                        , Type.string
+                        ]
                         (Type.namedWith [] "Argument" [ Type.var "obj" ])
                     )
             }
@@ -3775,7 +3813,7 @@ values_ =
                         , Type.namedWith [] "Option" [ Type.var "value" ]
                         , Type.function
                             [ Type.var "value" ]
-                            (Type.namedWith [ "Encode" ] "Value" [])
+                            (Type.namedWith [ "Json", "Encode" ] "Value" [])
                         , Type.namedWith [] "InputObject" [ Type.var "input" ]
                         ]
                         (Type.namedWith [] "InputObject" [ Type.var "input" ])
@@ -3790,7 +3828,7 @@ values_ =
                     (Type.function
                         [ Type.string
                         , Type.string
-                        , Type.namedWith [ "Encode" ] "Value" []
+                        , Type.namedWith [ "Json", "Encode" ] "Value" []
                         , Type.namedWith [] "InputObject" [ Type.var "value" ]
                         ]
                         (Type.namedWith [] "InputObject" [ Type.var "value" ])
