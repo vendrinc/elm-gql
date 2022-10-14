@@ -340,7 +340,7 @@ async function run(schema: string, options: Options) {
 
   if (cache.engineVersion != newCache.engineVersion || isDev()) {
     // Copy gql engine to target dir
-    fs.mkdirSync(path.join(options.output, "GraphQL", "Operations"), {
+    fs.mkdirSync(path.join(options.output, "GraphQL"), {
       recursive: true,
     });
 
@@ -350,22 +350,31 @@ async function run(schema: string, options: Options) {
       engine()
     );
 
-    // Everything required for auto-mocking
-    writeIfChanged(path.join(options.output, "GraphQL", "Mock.elm"), mock());
-    writeIfChanged(
-      path.join(options.output, "GraphQL", "Schema.elm"),
-      schemaModule()
-    );
-
-    const ops = path.join(options.output, "GraphQL", "Operations");
-    writeIfChanged(path.join(ops, "Mock.elm"), opsMock());
-    writeIfChanged(path.join(ops, "AST.elm"), opsAST());
-    writeIfChanged(path.join(ops, "Parse.elm"), opsParse());
-    writeIfChanged(path.join(ops, "CanonicalAST.elm"), opsCanAST());
-    writeIfChanged(path.join(ops, "Canonicalize.elm"), opsCanonicalize());
+    // When mocking becomes a thing again, we'll turn this on
+    // write_mock(options)
   }
 
   fs.writeFileSync(".elm-gql-cache", JSON.stringify(newCache));
+}
+
+function write_mock(options: Options) {
+  fs.mkdirSync(path.join(options.output, "GraphQL", "Operations"), {
+    recursive: true,
+  });
+
+  const ops = path.join(options.output, "GraphQL", "Operations");
+  writeIfChanged(path.join(ops, "Mock.elm"), opsMock());
+  writeIfChanged(path.join(ops, "AST.elm"), opsAST());
+  writeIfChanged(path.join(ops, "Parse.elm"), opsParse());
+  writeIfChanged(path.join(ops, "CanonicalAST.elm"), opsCanAST());
+  writeIfChanged(path.join(ops, "Canonicalize.elm"), opsCanonicalize());
+
+  // Everything required for auto-mocking
+  writeIfChanged(path.join(options.output, "GraphQL", "Mock.elm"), mock());
+  writeIfChanged(
+    path.join(options.output, "GraphQL", "Schema.elm"),
+    schemaModule()
+  );
 }
 
 async function action(schema: string, options: Options) {
