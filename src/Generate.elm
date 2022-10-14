@@ -272,12 +272,12 @@ parseGql namespace schema flagDetails gql rendered =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.succeed
-        (\elmBase elmBaseSchema namespace header isInit gql schemaUrl genPlatform existingEnums ->
+        (\gqlDir elmBaseSchema namespace header isInit gql schemaUrl genPlatform existingEnums ->
             Flags
                 { schema = schemaUrl
                 , gql = gql
                 , isInit = isInit
-                , elmBase = elmBase
+                , gqlDir = gqlDir
                 , elmBaseSchema = elmBaseSchema
                 , namespace = namespace
                 , header = header
@@ -285,7 +285,7 @@ flagsDecoder =
                 , existingEnumDefinitions = existingEnums
                 }
         )
-        |> andField "elmBase" (Json.Decode.list Json.Decode.string)
+        |> andField "gqlDir" (Json.Decode.list Json.Decode.string)
         |> andField "elmBaseSchema" (Json.Decode.list Json.Decode.string)
         |> andField "namespace" Json.Decode.string
         |> andField "header" (Json.Decode.list Json.Decode.string)
@@ -353,8 +353,8 @@ type alias FlagDetails =
     { schema : Schema
     , gql : List Gql
 
-    -- all directories between cwd and the elm src dir
-    , elmBase : List String
+    -- all directories between and including cwd and the elm src dir
+    , gqlDir : List String
 
     -- We do a little bit more generation if init is called
     , isInit : Bool
@@ -372,10 +372,10 @@ type alias FlagDetails =
 
 
 type alias Gql =
-    --
+    -- relative path from cwd to gql file, including the gql filename
     { path : String
 
-    -- relative path from cwd to gql file, including the gql filename
+    -- the entire source file
     , src : String
     }
 
@@ -444,16 +444,6 @@ parseAndValidateQuery namespace schema flags gql =
                         }
 
                 Ok canAST ->
-                    let
-                        name =
-                            gql.path
-                                |> String.split "/"
-                                |> List.reverse
-                                |> List.head
-                                |> Maybe.withDefault "Query"
-                                |> String.replace ".gql" ""
-                                |> Utils.String.formatTypename
-                    in
                     GraphQL.Operations.GenerateSelection.generate
                         { namespace =
                             namespace
@@ -462,8 +452,11 @@ parseAndValidateQuery namespace schema flags gql =
                         , path =
                             gql.path
                                 |> String.split "/"
-                                |> List.map (String.replace ".gql" "")
-                        , elmBase = flags.elmBase
+                                |> List.map
+                                    (String.replace ".gql" ""
+                                        >> String.replace ".graphql" ""
+                                    )
+                        , gqlDir = flags.gqlDir
                         }
                         |> Ok
 

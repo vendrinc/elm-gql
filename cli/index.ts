@@ -22,13 +22,18 @@ const version: string = "0.1.0";
 
 type Cache = {
   engineVersion: string;
-  files: { [name: string]: { modified: Date } };
+  files: { [namespace: string]: { [name: string]: { modified: Date } } };
 };
 
-const emptyCache: Cache = {
-  engineVersion: version,
-  files: {},
-};
+function emptyCache(namespace: string): Cache {
+  let emptyFiles: any = {};
+  emptyFiles[namespace] = {};
+
+  return {
+    engineVersion: version,
+    files: emptyFiles,
+  };
+}
 
 // Run a standard generator made by elm-prefab
 async function run_generator(generator: any, flags: any) {
@@ -49,7 +54,7 @@ async function run_generator(generator: any, flags: any) {
       // clear generated queries/mutations
       // because now we're confident we can replace them.
       for (const file of flags.gql) {
-        const targetDir = file.path.replace(".gql", "");
+        const targetDir = file.path.replace(".gql", "").replace(".graphql", "");
         clearDir(targetDir);
       }
 
@@ -203,16 +208,21 @@ const wasModified = (cache: Cache, file: string) => {
   }
 };
 
-const readCache = (force: boolean) => {
-  let cache = emptyCache;
+const readCache = (namespace: string, force: boolean) => {
+  let cache = emptyCache(namespace);
   if (force) {
     return cache;
   }
   try {
     cache = JSON.parse(fs.readFileSync(".elm-gql-cache").toString());
-
-    for (const path in cache.files) {
-      cache.files[path] = { modified: new Date(cache.files[path].modified) };
+    if (namespace in cache.files) {
+      for (const path in cache.files[namespace]) {
+        cache.files[namespace][path] = {
+          modified: new Date(cache.files[namespace][path].modified),
+        };
+      }
+    } else {
+      return emptyCache(namespace);
     }
   } catch {}
 
@@ -282,21 +292,21 @@ function initGreeting(filesGenerated: number, flags: any) {
 }
 
 async function run(schema: string, options: Options) {
-  let newCache = emptyCache;
+  let newCache = emptyCache(options.namespace);
 
-  let cache = readCache(options.force);
+  let cache = readCache(options.namespace, options.force);
 
   let schemaWasModified = { at: new Date(), was: false };
   if (!schema.startsWith("http") && schema.endsWith("json")) {
     schemaWasModified = wasModified(cache, schema);
 
-    newCache.files[schema] = { modified: schemaWasModified.at };
+    newCache.files[options.namespace][schema] = {
+      modified: schemaWasModified.at,
+    };
     schema = JSON.parse(fs.readFileSync(schema).toString());
   }
 
-  const gqlFolder = ".";
-  const gqlBase: string[] = ["."];
-  const gql_filepaths = getFilesRecursively(gqlFolder);
+  const gql_filepaths = getFilesRecursively(options.queries);
 
   const fileSources = [];
   for (const file of gql_filepaths) {
@@ -305,16 +315,15 @@ async function run(schema: string, options: Options) {
       const src = fs.readFileSync(file).toString();
       fileSources.push({ src, path: file });
     }
-    newCache.files[file] = { modified: modified.at };
+    newCache.files[options.namespace][file] = { modified: modified.at };
   }
-
   if (fileSources.length > 0 || schemaWasModified.was || options.force) {
     run_generator(schema_generator.Elm.Generate, {
       namespace: options.namespace,
       // @ts-ignore
       gql: fileSources,
       header: options.header,
-      elmBase: gqlBase,
+      gqlDir: options.queries.split(path.sep),
       elmBaseSchema: options.output.split(path.sep),
       schema: schema,
       generatePlatform: schemaWasModified.was || options.force,
@@ -375,6 +384,7 @@ type Options = {
   namespace: string;
   header: string[];
   force: boolean;
+  queries: string;
   existingEnumDefinitions: string | null;
   init: boolean;
 };
@@ -413,12 +423,17 @@ program
     "Change the namespace for the generated code.",
     "Api"
   )
-  .option("--force", "Skip the cache.")
+  .option("--force", "Skip the cache.", false)
   .option(
     "--header <header>",
     "The header to include in the introspection query.",
     collect,
     []
+  )
+  .option(
+    "--queries <dir>",
+    "The directory to scan for GraphQL queries and mutations.",
+    "src"
   )
   .option(
     "--output <dir>",
@@ -449,12 +464,17 @@ program
     "Change the namespace for the generated code.",
     "Api"
   )
-  .option("--force", "Skip the cache.")
+  .option("--force", "Skip the cache.", false)
   .option(
     "-h, --header <header>",
     "The header to include in the introspection query.",
     collect,
     []
+  )
+  .option(
+    "--queries <dir>",
+    "The directory to scan for GraphQL queries and mutations.",
+    "src"
   )
   .option(
     "--output <dir>",
