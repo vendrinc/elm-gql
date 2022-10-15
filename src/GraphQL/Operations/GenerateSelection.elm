@@ -32,7 +32,7 @@ generate :
     , document : Can.Document
 
     -- all the dirs between CWD and the GQL file
-    , path : List String
+    , path : String
 
     -- all the directories between the Elm source folder and the GQL file
     , gqlDir : List String
@@ -99,13 +99,22 @@ toArgument varDef =
     }
 
 
+getOpName : Can.Definition -> String
+getOpName (Can.Operation op) =
+    Maybe.withDefault (opTypeName op.operationType)
+        (Maybe.map
+            Can.nameToString
+            op.name
+        )
+
+
 generateDefinition :
     { namespace : Namespace
     , schema : GraphQL.Schema.Schema
     , document : Can.Document
 
     -- all the dirs between CWD and the GQL file
-    , path : List String
+    , path : String
 
     -- all the directories between CWD and the Elm root
     , gqlDir : List String
@@ -115,11 +124,7 @@ generateDefinition :
 generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation op) as def) =
     let
         opName =
-            Maybe.withDefault (opTypeName op.operationType)
-                (Maybe.map
-                    Can.nameToString
-                    op.name
-                )
+            getOpName def
 
         arguments =
             List.map toArgument op.variableDefinitions
@@ -127,6 +132,11 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
         -- The path between elm root and the gql file
         pathFromElmRootToGqlFile =
             path
+                |> String.split "/"
+                |> List.map
+                    (String.replace ".gql" ""
+                        >> String.replace ".graphql" ""
+                    )
                 |> removePrefix gqlDir
                 |> List.map Utils.String.formatTypename
 
@@ -137,8 +147,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
 
                 _ ->
                     List.concat
-                        [ [ Elm.comment """  Inputs """
-                          , Generate.Input.Encode.toRecordInput namespace
+                        [ [ Generate.Input.Encode.toRecordInput namespace
                                 schema
                                 arguments
                           ]
@@ -153,8 +162,8 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
         query =
             case op.variableDefinitions of
                 [] ->
-                    [ Elm.declaration (opValueName op.operationType)
-                        (Engine.bakeToSelection
+                    Elm.declaration (opValueName op.operationType)
+                        (Engine.call_.bakeToSelection
                             (case Can.operationLabel def of
                                 Nothing ->
                                     Elm.nothing
@@ -162,12 +171,17 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                                 Just label ->
                                     Elm.just (Elm.string label)
                             )
-                            (\version ->
-                                Elm.tuple
-                                    (Elm.list [])
-                                    (Can.toRendererExpression version def)
+                            (Elm.fn
+                                ( "version_", Nothing )
+                                (\version ->
+                                    Elm.tuple
+                                        (Elm.list [])
+                                        (Elm.apply (Elm.val "toPayload_")
+                                            [ version ]
+                                        )
+                                )
                             )
-                            (\version -> generateDecoder version namespace def)
+                            (Elm.val "decoder_")
                             |> Elm.withType
                                 (Type.namedWith [ namespace.namespace ]
                                     (opTypeName op.operationType)
@@ -175,10 +189,9 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                                 )
                         )
                         |> Elm.exposeWith { exposeConstructor = True, group = Just "query" }
-                    ]
 
                 _ ->
-                    [ Elm.fn
+                    Elm.fn
                         ( "args"
                         , Just (Type.named [] "Input")
                         )
@@ -192,7 +205,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                                         args
                                         |> Engine.inputObjectToFieldList
                             in
-                            Engine.bakeToSelection
+                            Engine.call_.bakeToSelection
                                 (case Can.operationLabel def of
                                     Nothing ->
                                         Elm.nothing
@@ -200,14 +213,17 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                                     Just label ->
                                         Elm.just (Elm.string label)
                                 )
-                                (\version ->
-                                    Elm.tuple
-                                        vars
-                                        (Can.toRendererExpression version def)
+                                (Elm.fn
+                                    ( "version_", Nothing )
+                                    (\version ->
+                                        Elm.tuple
+                                            vars
+                                            (Elm.apply (Elm.val "toPayload_")
+                                                [ version ]
+                                            )
+                                    )
                                 )
-                                (\version ->
-                                    generateDecoder version namespace def
-                                )
+                                (Elm.val "decoder_")
                                 |> Elm.withType
                                     (Type.namedWith [ namespace.namespace ]
                                         (opTypeName op.operationType)
@@ -216,7 +232,29 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                         )
                         |> Elm.declaration (opValueName op.operationType)
                         |> Elm.exposeWith { exposeConstructor = True, group = Just "query" }
-                    ]
+
+        decodersAndStuff =
+            [ Elm.declaration "decoder_"
+                (Elm.fn
+                    ( "version_", Nothing )
+                    (\version ->
+                        generateDecoder version namespace def
+                    )
+                    |> Elm.withType
+                        (Type.function
+                            [ Type.int
+                            ]
+                            (Decode.annotation_.decoder (Type.named [] opName))
+                        )
+                )
+            , Elm.declaration "toPayload_"
+                (Elm.fn
+                    ( "version_", Nothing )
+                    (\version ->
+                        Can.toRendererExpression version def
+                    )
+                )
+            ]
 
         frags =
             List.map
@@ -238,7 +276,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                     []
 
                 fragTypes ->
-                    Elm.comment "Fragments" :: fragTypes
+                    Elm.comment " Fragments " :: fragTypes
 
         -- auxHelpers are record alises that aren't *essential* to the return type,
         -- but are useful in some cases
@@ -246,7 +284,6 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
             aliasedTypes namespace def
 
         primaryResult =
-            -- if we no longer want aliased versions, there's also one without aliases
             Elm.comment """ Return data """
                 :: generatePrimaryResultTypeAliased namespace def
     in
@@ -254,9 +291,9 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
         { aliases = []
         , docs =
             \docs ->
-                [ """This file is generated from a `.gql` file, likely in a nearby folder.
+                [ "This file is generated from " ++ path ++ " using `elm-gql`" ++ """
 
-Please avoid modifying directly :)
+Please avoid modifying directly.
 
 This file can be regenerated by running `elm-gql`
 
@@ -264,11 +301,12 @@ This file can be regenerated by running `elm-gql`
                 ]
         }
         (input
-            ++ primaryResult
+            ++ query
+            :: primaryResult
             ++ auxHelpers
             ++ fragmentTypes
-            ++ query
             ++ fragmentDecoders
+            ++ decodersAndStuff
         )
         |> modifyFilePath (gqlDir ++ pathFromElmRootToGqlFile ++ [ Utils.String.formatTypename opName ])
 
@@ -350,12 +388,7 @@ generatePrimaryResultType namespace def =
                         |> Type.record
             in
             [ Elm.alias
-                (Maybe.withDefault "Query"
-                    (Maybe.map
-                        Can.nameToString
-                        op.name
-                    )
-                )
+                (getOpName def)
                 record
                 |> Elm.exposeWith { exposeConstructor = True, group = Just "necessary" }
             ]
@@ -374,12 +407,7 @@ generatePrimaryResultTypeAliased namespace def =
                         |> Type.record
             in
             [ Elm.alias
-                (Maybe.withDefault "Query"
-                    (Maybe.map
-                        Can.nameToString
-                        op.name
-                    )
-                )
+                (getOpName def)
                 record
                 |> Elm.exposeWith
                     { exposeConstructor = True
@@ -895,14 +923,10 @@ schemaTypeToPrefab namespace schemaType =
 
 {-| -}
 generateDecoder : Elm.Expression -> Namespace -> Can.Definition -> Elm.Expression
-generateDecoder version namespace (Can.Operation op) =
+generateDecoder version namespace ((Can.Operation op) as def) =
     let
         opName =
-            Maybe.withDefault "Query"
-                (Maybe.map
-                    Can.nameToString
-                    op.name
-                )
+            getOpName def
     in
     Decode.succeed
         (Elm.value

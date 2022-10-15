@@ -20,7 +20,7 @@ moduleName_ =
     { namespace : Namespace
     , schema : GraphQL.Schema.Schema
     , document : Can.Document
-    , path : List String
+    , path : String
     , gqlDir : List String
     }
     -> List Elm.File
@@ -29,7 +29,7 @@ generate :
     { namespace : Elm.Expression
     , schema : Elm.Expression
     , document : Elm.Expression
-    , path : List String
+    , path : String
     , gqlDir : List String
     }
     -> Elm.Expression
@@ -52,7 +52,7 @@ generate generateArg =
                             , ( "document"
                               , Type.namedWith [ "Can" ] "Document" []
                               )
-                            , ( "path", Type.list Type.string )
+                            , ( "path", Type.string )
                             , ( "gqlDir", Type.list Type.string )
                             ]
                         ]
@@ -64,9 +64,7 @@ generate generateArg =
             [ Tuple.pair "namespace" generateArg.namespace
             , Tuple.pair "schema" generateArg.schema
             , Tuple.pair "document" generateArg.document
-            , Tuple.pair
-                "path"
-                (Elm.list (List.map Elm.string generateArg.path))
+            , Tuple.pair "path" (Elm.string generateArg.path)
             , Tuple.pair
                 "gqlDir"
                 (Elm.list (List.map Elm.string generateArg.gqlDir))
@@ -99,7 +97,7 @@ call_ =
                                     , ( "document"
                                       , Type.namedWith [ "Can" ] "Document" []
                                       )
-                                    , ( "path", Type.list Type.string )
+                                    , ( "path", Type.string )
                                     , ( "gqlDir", Type.list Type.string )
                                     ]
                                 ]
@@ -131,7 +129,7 @@ values_ =
                             , ( "document"
                               , Type.namedWith [ "Can" ] "Document" []
                               )
-                            , ( "path", Type.list Type.string )
+                            , ( "path", Type.string )
                             , ( "gqlDir", Type.list Type.string )
                             ]
                         ]

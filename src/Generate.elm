@@ -451,11 +451,6 @@ parseAndValidateQuery namespace schema flags gql =
                         , document = canAST
                         , path =
                             gql.path
-                                |> String.split "/"
-                                |> List.map
-                                    (String.replace ".gql" ""
-                                        >> String.replace ".graphql" ""
-                                    )
                         , gqlDir = flags.gqlDir
                         }
                         |> Ok
