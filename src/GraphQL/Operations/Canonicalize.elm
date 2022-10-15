@@ -1,4 +1,4 @@
-module GraphQL.Operations.Canonicalize exposing (canonicalize, cyan, errorToString)
+module GraphQL.Operations.Canonicalize exposing (canonicalize, cyan, doTypesMatch, errorToString)
 
 {-| -}
 
@@ -897,10 +897,12 @@ opTypeName op =
 
 The Schema.Type is what is in the schema.
 
+    variableDefinition is the AST representation of the variable declaration at the top.
+
 -}
 doTypesMatch : GraphQL.Schema.Type -> AST.Type -> Bool
-doTypesMatch schemaType astType =
-    case astType of
+doTypesMatch schemaType variableDefinition =
+    case variableDefinition of
         AST.Type_ astName ->
             case schemaType of
                 GraphQL.Schema.Scalar schemaName ->
@@ -927,25 +929,29 @@ doTypesMatch schemaType astType =
                     AST.nameToString astName
                         == schemaName
 
-                GraphQL.Schema.List_ inner ->
+                GraphQL.Schema.List_ innerSchema ->
                     False
 
                 GraphQL.Schema.Nullable innerSchema ->
                     -- the query can mark something as required even if it's optional in the schema
-                    doTypesMatch innerSchema astType
+                    doTypesMatch innerSchema variableDefinition
 
         AST.Nullable innerAST ->
             case schemaType of
                 GraphQL.Schema.Nullable innerSchema ->
                     doTypesMatch innerSchema innerAST
 
-                _ ->
+                otherwise ->
                     False
 
         AST.List_ innerAST ->
             case schemaType of
                 GraphQL.Schema.List_ innerSchema ->
                     doTypesMatch innerSchema innerAST
+
+                GraphQL.Schema.Nullable innerSchema ->
+                    -- the query can mark something as required even if it's optional in the schema
+                    doTypesMatch innerSchema variableDefinition
 
                 _ ->
                     False

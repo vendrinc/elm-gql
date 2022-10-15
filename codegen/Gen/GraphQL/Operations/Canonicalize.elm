@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Canonicalize exposing (call_, canonicalize, cyan, errorToString, moduleName_, values_)
+module Gen.GraphQL.Operations.Canonicalize exposing (call_, canonicalize, cyan, doTypesMatch, errorToString, moduleName_, values_)
 
 {-| 
-@docs values_, call_, cyan, errorToString, canonicalize, moduleName_
+@docs values_, call_, cyan, errorToString, canonicalize, doTypesMatch, moduleName_
 -}
 
 
@@ -13,6 +13,35 @@ import Elm.Annotation as Type
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "Canonicalize" ]
+
+
+{-| {-| The AST.Type is the type declared at the top of the document.
+
+The Schema.Type is what is in the schema.
+
+    variableDefinition is the AST representation of the variable declaration at the top.
+
+-}
+
+doTypesMatch: GraphQL.Schema.Type -> AST.Type -> Bool
+-}
+doTypesMatch : Elm.Expression -> Elm.Expression -> Elm.Expression
+doTypesMatch doTypesMatchArg doTypesMatchArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize" ]
+            , name = "doTypesMatch"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "GraphQL", "Schema" ] "Type" []
+                        , Type.namedWith [ "AST" ] "Type" []
+                        ]
+                        Type.bool
+                    )
+            }
+        )
+        [ doTypesMatchArg, doTypesMatchArg0 ]
 
 
 {-| canonicalize: GraphQL.Schema.Schema -> AST.Document -> Result (List Error) Can.Document -}
@@ -70,12 +99,33 @@ cyan cyanArg =
 
 
 call_ :
-    { canonicalize : Elm.Expression -> Elm.Expression -> Elm.Expression
+    { doTypesMatch : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , canonicalize : Elm.Expression -> Elm.Expression -> Elm.Expression
     , errorToString : Elm.Expression -> Elm.Expression
     , cyan : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { canonicalize =
+    { doTypesMatch =
+        \doTypesMatchArg doTypesMatchArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "Canonicalize" ]
+                    , name = "doTypesMatch"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith
+                                    [ "GraphQL", "Schema" ]
+                                    "Type"
+                                    []
+                                , Type.namedWith [ "AST" ] "Type" []
+                                ]
+                                Type.bool
+                            )
+                    }
+                )
+                [ doTypesMatchArg, doTypesMatchArg0 ]
+    , canonicalize =
         \canonicalizeArg canonicalizeArg0 ->
             Elm.apply
                 (Elm.value
@@ -131,12 +181,26 @@ call_ =
 
 
 values_ :
-    { canonicalize : Elm.Expression
+    { doTypesMatch : Elm.Expression
+    , canonicalize : Elm.Expression
     , errorToString : Elm.Expression
     , cyan : Elm.Expression
     }
 values_ =
-    { canonicalize =
+    { doTypesMatch =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize" ]
+            , name = "doTypesMatch"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "GraphQL", "Schema" ] "Type" []
+                        , Type.namedWith [ "AST" ] "Type" []
+                        ]
+                        Type.bool
+                    )
+            }
+    , canonicalize =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "Canonicalize" ]
             , name = "canonicalize"
