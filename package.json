@@ -14,7 +14,7 @@
     "elm-gql": "node ./bin/elm-gql",
     "elm-gql:test": "node ./bin/elm-gql --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
     "elm-gql:test-json-schema-file": "node ./bin/elm-gql --namespace=Api2 --schema=schema.json --gql=gql-ops --force",
-    "elm-gql:run": "node ./bin/elm-gql schema.json --force",
+    "elm-gql:run": "node ./bin/elm-gql run schema.json --force --queries queries",
     "elm-gql:init": "node ./bin/elm-gql init schema.json",
     "test": "elm-test"
   },
