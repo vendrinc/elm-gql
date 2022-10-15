@@ -1210,6 +1210,11 @@ validateInput refs schemaType fieldName astValue =
                         Just inputObject ->
                             validateObject refs fieldName keyValues inputObject
 
+                GraphQL.Schema.List_ inner ->
+                    -- A single literal can be coerced into a list
+                    -- https://spec.graphql.org/June2018/#sec-Type-System.List
+                    validateInput refs inner fieldName astValue
+
                 _ ->
                     Mismatch
 
@@ -1230,6 +1235,11 @@ validateInput refs schemaType fieldName astValue =
                 GraphQL.Schema.Nullable inner ->
                     validateInput refs inner fieldName astValue
 
+                GraphQL.Schema.List_ inner ->
+                    -- A single literal can be coerced into a list
+                    -- https://spec.graphql.org/June2018/#sec-Type-System.List
+                    validateInput refs inner fieldName astValue
+
                 _ ->
                     Mismatch
 
@@ -1244,6 +1254,11 @@ validateInput refs schemaType fieldName astValue =
                 GraphQL.Schema.Nullable inner ->
                     validateInput refs inner fieldName astValue
 
+                GraphQL.Schema.List_ inner ->
+                    -- A single literal can be coerced into a list
+                    -- https://spec.graphql.org/June2018/#sec-Type-System.List
+                    validateInput refs inner fieldName astValue
+
                 _ ->
                     Mismatch
 
@@ -1255,6 +1270,11 @@ validateInput refs schemaType fieldName astValue =
                 GraphQL.Schema.Nullable inner ->
                     validateInput refs inner fieldName astValue
 
+                GraphQL.Schema.List_ inner ->
+                    -- A single literal can be coerced into a list
+                    -- https://spec.graphql.org/June2018/#sec-Type-System.List
+                    validateInput refs inner fieldName astValue
+
                 _ ->
                     Mismatch
 
@@ -1264,6 +1284,11 @@ validateInput refs schemaType fieldName astValue =
                     Valid []
 
                 GraphQL.Schema.Nullable inner ->
+                    validateInput refs inner fieldName astValue
+
+                GraphQL.Schema.List_ inner ->
+                    -- A single literal can be coerced into a list
+                    -- https://spec.graphql.org/June2018/#sec-Type-System.List
                     validateInput refs inner fieldName astValue
 
                 _ ->
@@ -1283,6 +1308,11 @@ validateInput refs schemaType fieldName astValue =
                     Valid []
 
                 GraphQL.Schema.Nullable inner ->
+                    validateInput refs inner fieldName astValue
+
+                GraphQL.Schema.List_ inner ->
+                    -- A single literal can be coerced into a list
+                    -- https://spec.graphql.org/June2018/#sec-Type-System.List
                     validateInput refs inner fieldName astValue
 
                 _ ->
