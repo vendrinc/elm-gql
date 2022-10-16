@@ -47,7 +47,7 @@ generateFiles namespace graphQLSchema =
                                             }
                                     )
                                 |> Elm.list
-                                |> Elm.declaration "list"
+                                |> Elm.declaration "all"
 
                         enumDecoder =
                             Elm.declaration "decoder"
