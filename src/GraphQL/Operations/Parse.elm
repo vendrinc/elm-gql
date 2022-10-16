@@ -515,7 +515,8 @@ definition =
 loopDefinitions defs =
     ifProgress List.reverse <|
         Parser.oneOf
-            [ Parser.map (\d -> d :: defs) definition
+            [ Parser.map (\_ -> defs) comment
+            , Parser.map (\d -> d :: defs) definition
             , Parser.map (\_ -> defs) ws
             ]
 
