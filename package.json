@@ -1,6 +1,6 @@
 {
   "name": "elm-gql",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Write GraphQL, get nice Elm code!",
   "main": "./dist/index.js",
   "bin": {
@@ -12,8 +12,6 @@
     "build:elm:opt": "elm-codegen install; elm-optimize-level-2 src/Generate.elm --output=./dist/generators/schema.js",
     "prepublishOnly": "npm run build",
     "elm-gql": "node ./bin/elm-gql",
-    "elm-gql:test": "node ./bin/elm-gql --namespace=Api2 --schema=https://api.blissfully.com/prod/graphql --gql=gql-ops",
-    "elm-gql:test-json-schema-file": "node ./bin/elm-gql --namespace=Api2 --schema=schema.json --gql=gql-ops --force",
     "elm-gql:run": "node ./bin/elm-gql run schema.json --force --queries queries",
     "elm-gql:init": "node ./bin/elm-gql init schema.json",
     "test": "elm-test"
