@@ -71,15 +71,17 @@ async function run_generator(generator: any, flags: any) {
 
       if (flags.init) {
         initGreeting(files_written_count, flags);
+      } else if (flags.force) {
+        forceMessage(files_written_count, files_skipped, flags);
       } else {
         const lines = [];
         if (files_written_count > 0) {
           let modifiedFileNames = "";
 
-          if (flags.init) {
-            modifiedFileNames += "";
-          } else if (flags.generatePlatform) {
-            modifiedFileNames = `The ${chalk.cyan("GQL schema")} has changed, `;
+          if (flags.generatePlatform) {
+            modifiedFileNames = `The ${chalk.cyan(
+              flags.namespace + " schema"
+            )} has changed, `;
           } else if (flags.gql.length == 1) {
             modifiedFileNames = `${chalk.cyan(
               flags.gql[0].path
@@ -195,11 +197,15 @@ function writeIfChanged(filepath: string, content: string): boolean {
   }
 }
 
-const wasModified = (cache: Cache, file: string) => {
+const wasModified = (namespace: string, cache: Cache, file: string) => {
   const stat = fs.statSync(file);
-  if (file in cache.files) {
-    if (+cache.files[file].modified == +stat.mtime) {
-      return { at: stat.mtime, was: false };
+  if (namespace in cache.files) {
+    if (file in cache.files[namespace]) {
+      if (+cache.files[namespace][file].modified == +stat.mtime) {
+        return { at: stat.mtime, was: false };
+      } else {
+        return { at: stat.mtime, was: true };
+      }
     } else {
       return { at: stat.mtime, was: true };
     }
@@ -227,10 +233,6 @@ const readCache = (namespace: string, force: boolean) => {
   } catch {}
 
   return cache;
-};
-
-const isDev = () => {
-  return true;
 };
 
 const clearDir = (dir: string) => {
@@ -291,6 +293,46 @@ function initGreeting(filesGenerated: number, flags: any) {
   console.log(format_block(lines));
 }
 
+function forceMessage(
+  filesGenerated: number,
+  files_skipped: number,
+  flags: any
+) {
+  const lines = [];
+  lines.push(
+    `${
+      chalk.cyan("elm-gql") + chalk.yellow(" --force")
+    } was used, all files are being regenerated.`
+  );
+  lines.push("");
+
+  lines.push(
+    `${chalk.yellow(filesGenerated + files_skipped)} files in ${chalk.cyan(
+      flags.elmBaseSchema.join("/") + "/"
+    )} were recreated`
+  );
+
+  if (flags.gql.length == 1) {
+    lines.push(
+      `${chalk.yellow(flags.gql.length)} GQL file was found and processed.`
+    );
+  } else if (flags.gql.length > 0) {
+    lines.push(
+      `${chalk.yellow(flags.gql.length)} GQL files were found and processed.`
+    );
+  }
+
+  lines.push("");
+  lines.push(
+    `If you find yourself using ${chalk.yellow(
+      "--force"
+    )} all the time, check to make sure it's actaully needed.`
+  );
+  lines.push(`Running without it will be much faster!`);
+
+  console.log(format_block(lines));
+}
+
 async function run(schema: string, options: Options) {
   let newCache = emptyCache(options.namespace);
 
@@ -298,8 +340,7 @@ async function run(schema: string, options: Options) {
 
   let schemaWasModified = { at: new Date(), was: false };
   if (!schema.startsWith("http") && schema.endsWith("json")) {
-    schemaWasModified = wasModified(cache, schema);
-
+    schemaWasModified = wasModified(options.namespace, cache, schema);
     newCache.files[options.namespace][schema] = {
       modified: schemaWasModified.at,
     };
@@ -310,8 +351,8 @@ async function run(schema: string, options: Options) {
 
   const fileSources = [];
   for (const file of gql_filepaths) {
-    const modified = wasModified(cache, file);
-    if (modified.was) {
+    const modified = wasModified(options.namespace, cache, file);
+    if (modified.was || options.force) {
       const src = fs.readFileSync(file).toString();
       fileSources.push({ src, path: file });
     }
@@ -327,6 +368,7 @@ async function run(schema: string, options: Options) {
       elmBaseSchema: options.output.split(path.sep),
       schema: schema,
       generatePlatform: schemaWasModified.was || options.force,
+      force: options.force,
       init: options.init,
       existingEnumDefinitions: options.existingEnumDefinitions,
     });
@@ -338,7 +380,7 @@ async function run(schema: string, options: Options) {
     );
   }
 
-  if (cache.engineVersion != newCache.engineVersion || isDev()) {
+  if (cache.engineVersion != newCache.engineVersion) {
     // Copy gql engine to target dir
     fs.mkdirSync(path.join(options.output, "GraphQL"), {
       recursive: true,
