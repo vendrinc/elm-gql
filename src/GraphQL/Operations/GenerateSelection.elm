@@ -1373,24 +1373,39 @@ generateFragmentTypes namespace frag =
                         }
                         interface.variants
 
+                interfaceRecord =
+                    List.foldl (aliasedFieldRecord namespace)
+                        (if selectingForVariants then
+                            [ ( "specifics_"
+                              , Type.named [] (name ++ "_Specifics")
+                              )
+                            ]
+
+                         else
+                            []
+                        )
+                        interface.selection
+                        |> Type.record
+
                 withSpecificType existingList =
                     if selectingForVariants then
                         let
                             ghostVariants =
                                 List.map (Elm.variant << unionVariantName) interface.remainingTags
                         in
-                        (Elm.customType
-                            (name ++ "_Specifics")
-                            (final.variants ++ ghostVariants)
-                            |> Elm.exposeWith
-                                { exposeConstructor = True
-                                , group = Just "unions"
-                                }
-                        )
+                        Elm.alias name interfaceRecord
+                            :: (Elm.customType
+                                    (name ++ "_Specifics")
+                                    (final.variants ++ ghostVariants)
+                                    |> Elm.exposeWith
+                                        { exposeConstructor = True
+                                        , group = Just "unions"
+                                        }
+                               )
                             :: existingList
 
                     else
-                        existingList
+                        Elm.alias name interfaceRecord :: existingList
             in
             withSpecificType
                 (final.declarations
