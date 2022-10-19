@@ -4,12 +4,15 @@ import String
 
 
 formatTypename : String -> String
-formatTypename name =
+formatTypename introName =
     let
+        ( leadingUnderscores, name ) =
+            getLeadingUnderscores introName
+
         first =
             String.left 1 name
     in
-    String.toUpper first ++ String.dropLeft 1 name
+    String.toUpper first ++ String.dropLeft 1 name ++ leadingUnderscores
 
 
 {-| Converts a string from the gql to a string format that is amenable to Elm's typesystem.
@@ -27,8 +30,11 @@ Por ejemplo:
 
 -}
 formatScalar : String -> String
-formatScalar name =
+formatScalar introName =
     let
+        ( leadingUnderscores, name ) =
+            getLeadingUnderscores introName
+
         first =
             String.left 1 name
 
@@ -42,14 +48,17 @@ formatScalar name =
                 remaining
                 |> Tuple.second
     in
-    String.toUpper first ++ body
+    String.toUpper first ++ body ++ leadingUnderscores
 
 
 {-| Same logic as above, but the first letter is lowercase
 -}
 formatValue : String -> String
-formatValue name =
+formatValue introName =
     let
+        ( leadingUnderscores, name ) =
+            getLeadingUnderscores introName
+
         first =
             String.left 1 name
 
@@ -65,7 +74,27 @@ formatValue name =
     in
     String.toLower first
         ++ body
+        ++ leadingUnderscores
         |> sanitize
+
+
+getLeadingUnderscores : String -> ( String, String )
+getLeadingUnderscores string =
+    getLeadingUnderscoresHelper "" string
+
+
+getLeadingUnderscoresHelper : String -> String -> ( String, String )
+getLeadingUnderscoresHelper leading string =
+    case String.uncons string of
+        Nothing ->
+            ( leading, string )
+
+        Just ( '_', tail ) ->
+            getLeadingUnderscoresHelper (String.cons '_' leading)
+                tail
+
+        Just _ ->
+            ( "", string )
 
 
 elmify : Char -> ( Bool, String ) -> ( Bool, String )
