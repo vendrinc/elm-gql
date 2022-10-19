@@ -1172,7 +1172,7 @@ fieldWith:
     InputObject args
     -> String
     -> String
-    -> Decode.Decoder data
+    -> Json.Decode.Decoder data
     -> Selection source data
 -}
 fieldWith :
@@ -1189,7 +1189,7 @@ fieldWith fieldWithArg fieldWithArg0 fieldWithArg1 fieldWithArg2 =
                         , Type.string
                         , Type.string
                         , Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "data" ]
                         ]
@@ -1210,7 +1210,7 @@ fieldWith fieldWithArg fieldWithArg0 fieldWithArg1 fieldWithArg2 =
 
 {-| {-| -}
 
-field: String -> String -> Decode.Decoder data -> Selection source data
+field: String -> String -> Json.Decode.Decoder data -> Selection source data
 -}
 field : String -> String -> Elm.Expression -> Elm.Expression
 field fieldArg fieldArg0 fieldArg1 =
@@ -1224,7 +1224,7 @@ field fieldArg fieldArg0 fieldArg1 =
                         [ Type.string
                         , Type.string
                         , Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "data" ]
                         ]
@@ -1260,7 +1260,7 @@ Note, this is rarely needed! So far, only when a query or mutation returns a sca
 
 -}
 
-decode: Decode.Decoder data -> Selection source data
+decode: Json.Decode.Decoder data -> Selection source data
 -}
 decode : Elm.Expression -> Elm.Expression
 decode decodeArg =
@@ -1272,7 +1272,7 @@ decode decodeArg =
                 Just
                     (Type.function
                         [ Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "data" ]
                         ]
@@ -1416,7 +1416,7 @@ nullable nullableArg =
 
 {-| {-| -}
 
-enum: List ( String, item ) -> Decode.Decoder item
+enum: List ( String, item ) -> Json.Decode.Decoder item
 -}
 enum : List Elm.Expression -> Elm.Expression
 enum enumArg =
@@ -1429,7 +1429,7 @@ enum enumArg =
                     (Type.function
                         [ Type.list (Type.tuple Type.string (Type.var "item")) ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "item" ]
                         )
@@ -1441,7 +1441,7 @@ enum enumArg =
 
 {-| {-| -}
 
-maybeEnum: List ( String, item ) -> Decode.Decoder (Maybe item)
+maybeEnum: List ( String, item ) -> Json.Decode.Decoder (Maybe item)
 -}
 maybeEnum : List Elm.Expression -> Elm.Expression
 maybeEnum maybeEnumArg =
@@ -1454,7 +1454,7 @@ maybeEnum maybeEnumArg =
                     (Type.function
                         [ Type.list (Type.tuple Type.string (Type.var "item")) ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.namedWith [] "Maybe" [ Type.var "item" ] ]
                         )
@@ -2841,7 +2841,7 @@ call_ =
                                 , Type.string
                                 , Type.string
                                 , Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.var "data" ]
                                 ]
@@ -2866,7 +2866,7 @@ call_ =
                                 [ Type.string
                                 , Type.string
                                 , Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.var "data" ]
                                 ]
@@ -2889,7 +2889,7 @@ call_ =
                         Just
                             (Type.function
                                 [ Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.var "data" ]
                                 ]
@@ -3020,7 +3020,7 @@ call_ =
                                     (Type.tuple Type.string (Type.var "item"))
                                 ]
                                 (Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.var "item" ]
                                 )
@@ -3041,7 +3041,7 @@ call_ =
                                     (Type.tuple Type.string (Type.var "item"))
                                 ]
                                 (Type.namedWith
-                                    [ "Decode" ]
+                                    [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.namedWith
                                         []
@@ -3875,7 +3875,7 @@ values_ =
                         , Type.string
                         , Type.string
                         , Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "data" ]
                         ]
@@ -3896,7 +3896,7 @@ values_ =
                         [ Type.string
                         , Type.string
                         , Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "data" ]
                         ]
@@ -3927,7 +3927,7 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "data" ]
                         ]
@@ -4028,7 +4028,7 @@ values_ =
                     (Type.function
                         [ Type.list (Type.tuple Type.string (Type.var "item")) ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.var "item" ]
                         )
@@ -4043,7 +4043,7 @@ values_ =
                     (Type.function
                         [ Type.list (Type.tuple Type.string (Type.var "item")) ]
                         (Type.namedWith
-                            [ "Decode" ]
+                            [ "Json", "Decode" ]
                             "Decoder"
                             [ Type.namedWith [] "Maybe" [ Type.var "item" ] ]
                         )

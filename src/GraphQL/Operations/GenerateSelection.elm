@@ -108,6 +108,11 @@ getOpName (Can.Operation op) =
         )
 
 
+responseName : String
+responseName =
+    "Response"
+
+
 generateDefinition :
     { namespace : Namespace
     , schema : GraphQL.Schema.Schema
@@ -185,7 +190,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                             |> Elm.withType
                                 (Type.namedWith [ namespace.namespace ]
                                     (opTypeName op.operationType)
-                                    [ Type.named [] opName ]
+                                    [ Type.named [] responseName ]
                                 )
                         )
                         |> Elm.exposeWith { exposeConstructor = True, group = Just "query" }
@@ -227,7 +232,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                                 |> Elm.withType
                                     (Type.namedWith [ namespace.namespace ]
                                         (opTypeName op.operationType)
-                                        [ Type.named [] opName ]
+                                        [ Type.named [] responseName ]
                                     )
                         )
                         |> Elm.declaration (opValueName op.operationType)
@@ -407,7 +412,7 @@ generatePrimaryResultTypeAliased namespace def =
                         |> Type.record
             in
             [ Elm.alias
-                (getOpName def)
+                responseName
                 record
                 |> Elm.exposeWith
                     { exposeConstructor = True
@@ -924,14 +929,10 @@ schemaTypeToPrefab namespace schemaType =
 {-| -}
 generateDecoder : Elm.Expression -> Namespace -> Can.Definition -> Elm.Expression
 generateDecoder version namespace ((Can.Operation op) as def) =
-    let
-        opName =
-            getOpName def
-    in
     Decode.succeed
         (Elm.value
             { importFrom = []
-            , name = opName
+            , name = responseName
             , annotation = Nothing
             }
         )
@@ -1268,10 +1269,10 @@ decodeScalarType namespace type_ =
                         |> Elm.get "decoder"
 
         GraphQL.Schema.Nullable inner ->
-            Decode.nullable (decodeScalarType inner)
+            Decode.nullable (decodeScalarType namespace inner)
 
         GraphQL.Schema.List_ inner ->
-            Decode.list (decodeScalarType inner)
+            Decode.list (decodeScalarType namespace inner)
 
         _ ->
             Decode.succeed (Elm.string "DECODE UNKNOWN")
