@@ -97,9 +97,9 @@ batch selections =
                         in
                         ( newCtxt
                         , cursorFieldsDecoder
-                            |> Decode.andThen
+                            |> Json.Decode.andThen
                                 (\existingList ->
-                                    Decode.map
+                                    Json.Decode.map
                                         (\item ->
                                             item :: existingList
                                         )
@@ -107,7 +107,7 @@ batch selections =
                                 )
                         )
                     )
-                    ( context, Decode.succeed [] )
+                    ( context, Json.Decode.succeed [] )
                     selections
             )
 
@@ -124,9 +124,9 @@ recover default wrapValue (Selection (Details opName toQuery toDecoder)) =
                         toDecoder context
                 in
                 ( newContext
-                , Decode.oneOf
-                    [ Decode.map wrapValue decoder
-                    , Decode.succeed default
+                , Json.Decode.oneOf
+                    [ Json.Decode.map wrapValue decoder
+                    , Json.Decode.succeed default
                     ]
                 )
             )
@@ -178,14 +178,14 @@ union options =
                                         toFragDecoder currentContext
 
                                     fragDecoderWithTypename =
-                                        Decode.field "__typename" Decode.string
-                                            |> Decode.andThen
+                                        Json.Decode.field "__typename" Json.Decode.string
+                                            |> Json.Decode.andThen
                                                 (\typename ->
                                                     if typename == name then
                                                         fragDecoder
 
                                                     else
-                                                        Decode.fail "Unknown union variant"
+                                                        Json.Decode.fail "Unknown union variant"
                                                 )
                                 in
                                 ( fragDecoderWithTypename :: frags
@@ -196,37 +196,37 @@ union options =
                             options
                 in
                 ( fragmentContext
-                , Decode.oneOf fragmentDecoders
+                , Json.Decode.oneOf fragmentDecoders
                 )
             )
 
 
 {-| -}
-maybeEnum : List ( String, item ) -> Decode.Decoder (Maybe item)
+maybeEnum : List ( String, item ) -> Json.Decode.Decoder (Maybe item)
 maybeEnum options =
-    Decode.oneOf
-        [ Decode.map Just (enum options)
-        , Decode.succeed Nothing
+    Json.Decode.oneOf
+        [ Json.Decode.map Just (enum options)
+        , Json.Decode.succeed Nothing
         ]
 
 
 {-| -}
-enum : List ( String, item ) -> Decode.Decoder item
+enum : List ( String, item ) -> Json.Decode.Decoder item
 enum options =
-    Decode.string
-        |> Decode.andThen
+    Json.Decode.string
+        |> Json.Decode.andThen
             (findFirstMatch options)
 
 
-findFirstMatch : List ( String, item ) -> String -> Decode.Decoder item
+findFirstMatch : List ( String, item ) -> String -> Json.Decode.Decoder item
 findFirstMatch options str =
     case options of
         [] ->
-            Decode.fail ("Unexpected enum value: " ++ str)
+            Json.Decode.fail ("Unexpected enum value: " ++ str)
 
         ( name, value ) :: remaining ->
             if name == str then
-                Decode.succeed value
+                Json.Decode.succeed value
 
             else
                 findFirstMatch remaining str
@@ -246,9 +246,9 @@ nullable (Selection (Details opName toFieldsGql toFieldsDecoder)) =
                         toFieldsDecoder context
                 in
                 ( fieldContext
-                , Decode.oneOf
-                    [ Decode.map Just fieldsDecoder
-                    , Decode.succeed Nothing
+                , Json.Decode.oneOf
+                    [ Json.Decode.map Just fieldsDecoder
+                    , Json.Decode.succeed Nothing
                     ]
                 )
             )
@@ -268,7 +268,7 @@ list (Selection (Details opName toFieldsGql toFieldsDecoder)) =
                         toFieldsDecoder context
                 in
                 ( fieldContext
-                , Decode.list fieldsDecoder
+                , Json.Decode.list fieldsDecoder
                 )
             )
 
@@ -314,7 +314,7 @@ objectWith inputObj name (Selection (Details opName toFieldsGql toFieldsDecoder)
                         Maybe.withDefault name new.aliasString
                 in
                 ( new.context
-                , Decode.field aliasedName fieldsDecoder
+                , Json.Decode.field aliasedName fieldsDecoder
                 )
             )
 
@@ -324,7 +324,7 @@ objectWith inputObj name (Selection (Details opName toFieldsGql toFieldsDecoder)
 Note, this is rarely needed! So far, only when a query or mutation returns a scalar directly without selecting any fields.
 
 -}
-decode : Decode.Decoder data -> Selection source data
+decode : Json.Decode.Decoder data -> Selection source data
 decode decoder =
     Selection <|
         Details Nothing
@@ -353,19 +353,19 @@ selectTypeNameButSkip =
             )
             (\context ->
                 ( context
-                , Decode.succeed ()
+                , Json.Decode.succeed ()
                 )
             )
 
 
 {-| -}
-field : String -> String -> Decode.Decoder data -> Selection source data
+field : String -> String -> Json.Decode.Decoder data -> Selection source data
 field name gqlTypeName decoder =
     fieldWith (inputObject gqlTypeName) name gqlTypeName decoder
 
 
 {-| -}
-fieldWith : InputObject args -> String -> String -> Decode.Decoder data -> Selection source data
+fieldWith : InputObject args -> String -> String -> Json.Decode.Decoder data -> Selection source data
 fieldWith args name gqlType decoder =
     Selection <|
         Details Nothing
@@ -388,7 +388,7 @@ fieldWith args name gqlType decoder =
                         Maybe.withDefault name new.aliasString
                 in
                 ( new.context
-                , Decode.field aliasedName decoder
+                , Json.Decode.field aliasedName decoder
                 )
             )
 
@@ -555,7 +555,7 @@ type Details selected
         -- How to make the gql query
         (Context -> ( Context, List Field ))
         -- How to decode the data coming back
-        (Context -> ( Context, Decode.Decoder selected ))
+        (Context -> ( Context, Json.Decode.Decoder selected ))
 
 
 type Field
