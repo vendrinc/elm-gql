@@ -1023,7 +1023,7 @@ decodeSelection namespace version field index =
                     objSelection
 
         Can.FieldScalar type_ ->
-            decodeScalarType type_
+            decodeScalarType namespace type_
 
         Can.FieldEnum enum ->
             Elm.value
@@ -1240,8 +1240,8 @@ unionPattern namespace version index var =
     )
 
 
-decodeScalarType : GraphQL.Schema.Type -> Elm.Expression
-decodeScalarType type_ =
+decodeScalarType : Namespace -> GraphQL.Schema.Type -> Elm.Expression
+decodeScalarType namespace type_ =
     case type_ of
         GraphQL.Schema.Scalar scalarName ->
             case String.toLower scalarName of
@@ -1260,7 +1260,7 @@ decodeScalarType type_ =
                 scal ->
                     Elm.value
                         { importFrom =
-                            [ "Scalar" ]
+                            [ namespace.namespace ]
                         , name = Utils.String.formatValue scalarName
                         , annotation =
                             Nothing

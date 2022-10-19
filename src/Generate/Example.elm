@@ -403,7 +403,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
             requiredArgsExampleHelper namespace schema called newType (GraphQL.Schema.InList wrapped)
 
         GraphQL.Schema.Scalar scalarName ->
-            scalarExample scalarName
+            scalarExample namespace scalarName
                 |> Generate.Input.wrapExpression wrapped
                 |> Just
 
@@ -488,8 +488,8 @@ enumExample namespace schema enumName =
                         (Utils.String.formatTypename top.name)
 
 
-scalarExample : String -> Elm.Expression
-scalarExample scalarName =
+scalarExample : Namespace -> String -> Elm.Expression
+scalarExample namespace scalarName =
     case String.toLower scalarName of
         "int" ->
             Elm.int 10
@@ -514,19 +514,19 @@ scalarExample scalarName =
 
         "presence" ->
             valueFrom
-                [ "Scalar" ]
+                [ namespace.namespace ]
                 "Present"
 
         "url" ->
             valueFrom
-                [ "Scalar" ]
+                [ namespace.namespace ]
                 "fakeUrl"
 
         _ ->
             -- Elm.value (Utils.String.formatValue scalarName)
             Elm.apply
                 (valueFrom
-                    [ "Scalar" ]
+                    [ namespace.namespace ]
                     (Utils.String.formatScalar scalarName)
                 )
                 [ Elm.string "placeholder"

@@ -88,7 +88,6 @@ gqlTypeToElmTypeAnnotation namespace gqlType maybeAppliedToTypes =
                 _ ->
                     Elm.Annotation.namedWith
                         [ namespace.namespace
-                        , "Scalar"
                         ]
                         (Utils.String.formatScalar scalarName)
                         appliedToTypes
@@ -147,7 +146,6 @@ localAnnotation namespace gqlType maybeAppliedToTypes =
                 _ ->
                     Elm.Annotation.namedWith
                         [ namespace.namespace
-                        , "Scalar"
                         ]
                         (Utils.String.formatScalar scalarName)
                         appliedToTypes
