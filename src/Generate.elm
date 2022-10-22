@@ -432,12 +432,17 @@ parseAndValidateQuery namespace schema flags gql =
                 }
 
         Ok query ->
-            case Canonicalize.canonicalize schema query of
+            case
+                Canonicalize.canonicalize schema
+                    { path =
+                        gql.path
+                    , gqlDir = flags.gqlDir
+                    }
+                    query
+            of
                 Err errors ->
                     Err
                         { title = formatTitle "ELM GQL" gql.path
-
-                        -- , file = Just gql.path
                         , description =
                             List.map Canonicalize.errorToString errors
                                 |> String.join (Canonicalize.cyan "\n-------------------\n\n")

@@ -823,6 +823,7 @@ annotation_ =
             []
             (Type.record
                 [ ( "name", Type.namedWith [] "Name" [] )
+                , ( "importFrom", Type.list Type.string )
                 , ( "typeCondition", Type.namedWith [] "Name" [] )
                 , ( "usedVariables"
                   , Type.list
@@ -858,7 +859,14 @@ annotation_ =
                 , ( "name", Type.namedWith [] "Name" [] )
                 , ( "globalAlias", Type.namedWith [] "Name" [] )
                 , ( "selectsOnlyFragment"
-                  , Type.namedWith [] "Maybe" [ Type.string ]
+                  , Type.namedWith
+                        []
+                        "Maybe"
+                        [ Type.record
+                            [ ( "importFrom", Type.list Type.string )
+                            , ( "name", Type.string )
+                            ]
+                        ]
                   )
                 , ( "arguments", Type.list (Type.namedWith [] "Argument" []) )
                 , ( "directives", Type.list (Type.namedWith [] "Directive" []) )
@@ -1007,6 +1015,7 @@ make_ :
         -> Elm.Expression
     , fragment :
         { name : Elm.Expression
+        , importFrom : Elm.Expression
         , typeCondition : Elm.Expression
         , usedVariables : Elm.Expression
         , fragmentsUsed : Elm.Expression
@@ -1238,6 +1247,7 @@ make_ =
                     []
                     (Type.record
                         [ ( "name", Type.namedWith [] "Name" [] )
+                        , ( "importFrom", Type.list Type.string )
                         , ( "typeCondition", Type.namedWith [] "Name" [] )
                         , ( "usedVariables"
                           , Type.list
@@ -1264,6 +1274,7 @@ make_ =
                 )
                 (Elm.record
                     [ Tuple.pair "name" fragment_args.name
+                    , Tuple.pair "importFrom" fragment_args.importFrom
                     , Tuple.pair "typeCondition" fragment_args.typeCondition
                     , Tuple.pair "usedVariables" fragment_args.usedVariables
                     , Tuple.pair "fragmentsUsed" fragment_args.fragmentsUsed
@@ -1308,7 +1319,14 @@ make_ =
                         , ( "name", Type.namedWith [] "Name" [] )
                         , ( "globalAlias", Type.namedWith [] "Name" [] )
                         , ( "selectsOnlyFragment"
-                          , Type.namedWith [] "Maybe" [ Type.string ]
+                          , Type.namedWith
+                                []
+                                "Maybe"
+                                [ Type.record
+                                    [ ( "importFrom", Type.list Type.string )
+                                    , ( "name", Type.string )
+                                    ]
+                                ]
                           )
                         , ( "arguments"
                           , Type.list (Type.namedWith [] "Argument" [])

@@ -90,7 +90,11 @@ type alias FieldDetails =
     { alias_ : Maybe Name
     , name : Name
     , globalAlias : Name
-    , selectsOnlyFragment : Maybe String
+    , selectsOnlyFragment :
+        Maybe
+            { importFrom : List String
+            , name : String
+            }
     , arguments : List Argument
     , directives : List Directive
     , wrapper : GraphQL.Schema.Wrapped
@@ -106,6 +110,7 @@ type alias FragmentDetails =
 
 type alias Fragment =
     { name : Name
+    , importFrom : List String
     , typeCondition : Name
     , usedVariables : List ( String, GraphQL.Schema.Type )
     , fragmentsUsed :

@@ -44,9 +44,15 @@ doTypesMatch doTypesMatchArg doTypesMatchArg0 =
         [ doTypesMatchArg, doTypesMatchArg0 ]
 
 
-{-| canonicalize: GraphQL.Schema.Schema -> AST.Document -> Result (List Error) Can.Document -}
-canonicalize : Elm.Expression -> Elm.Expression -> Elm.Expression
-canonicalize canonicalizeArg canonicalizeArg0 =
+{-| canonicalize: 
+    GraphQL.Schema.Schema
+    -> Paths
+    -> AST.Document
+    -> Result (List Error) Can.Document
+-}
+canonicalize :
+    Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+canonicalize canonicalizeArg canonicalizeArg0 canonicalizeArg1 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Operations", "Canonicalize" ]
@@ -55,6 +61,7 @@ canonicalize canonicalizeArg canonicalizeArg0 =
                 Just
                     (Type.function
                         [ Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
+                        , Type.namedWith [] "Paths" []
                         , Type.namedWith [ "AST" ] "Document" []
                         ]
                         (Type.namedWith
@@ -67,7 +74,7 @@ canonicalize canonicalizeArg canonicalizeArg0 =
                     )
             }
         )
-        [ canonicalizeArg, canonicalizeArg0 ]
+        [ canonicalizeArg, canonicalizeArg0, canonicalizeArg1 ]
 
 
 {-| errorToString: Error -> String -}
@@ -100,7 +107,8 @@ cyan cyanArg =
 
 call_ :
     { doTypesMatch : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , canonicalize : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , canonicalize :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , errorToString : Elm.Expression -> Elm.Expression
     , cyan : Elm.Expression -> Elm.Expression
     }
@@ -126,7 +134,7 @@ call_ =
                 )
                 [ doTypesMatchArg, doTypesMatchArg0 ]
     , canonicalize =
-        \canonicalizeArg canonicalizeArg0 ->
+        \canonicalizeArg canonicalizeArg0 canonicalizeArg1 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Operations", "Canonicalize" ]
@@ -138,6 +146,7 @@ call_ =
                                     [ "GraphQL", "Schema" ]
                                     "Schema"
                                     []
+                                , Type.namedWith [] "Paths" []
                                 , Type.namedWith [ "AST" ] "Document" []
                                 ]
                                 (Type.namedWith
@@ -150,7 +159,7 @@ call_ =
                             )
                     }
                 )
-                [ canonicalizeArg, canonicalizeArg0 ]
+                [ canonicalizeArg, canonicalizeArg0, canonicalizeArg1 ]
     , errorToString =
         \errorToStringArg ->
             Elm.apply
@@ -208,6 +217,7 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
+                        , Type.namedWith [] "Paths" []
                         , Type.namedWith [ "AST" ] "Document" []
                         ]
                         (Type.namedWith

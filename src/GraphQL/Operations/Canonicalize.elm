@@ -3,11 +3,13 @@ module GraphQL.Operations.Canonicalize exposing (canonicalize, cyan, doTypesMatc
 {-| -}
 
 import Dict exposing (Dict)
+import Generate.Path
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize.Cache as Cache
 import GraphQL.Operations.Canonicalize.UsedNames as UsedNames
 import GraphQL.Schema
+import Utils.String
 
 
 type Error
@@ -568,6 +570,7 @@ type CanResult success
 type alias References =
     { schema : GraphQL.Schema.Schema
     , fragments : Dict String Can.Fragment
+    , paths : Paths
     }
 
 
@@ -586,8 +589,14 @@ emptySuccess =
     CanSuccess Cache.empty []
 
 
-canonicalize : GraphQL.Schema.Schema -> AST.Document -> Result (List Error) Can.Document
-canonicalize schema doc =
+type alias Paths =
+    { path : String
+    , gqlDir : List String
+    }
+
+
+canonicalize : GraphQL.Schema.Schema -> Paths -> AST.Document -> Result (List Error) Can.Document
+canonicalize schema paths doc =
     let
         fragmentResult =
             List.foldl
@@ -608,7 +617,7 @@ canonicalize schema doc =
 
                 ( fragUsedNames, canonicalizedFragments ) =
                     List.foldl
-                        (canonicalizeFragment schema)
+                        (canonicalizeFragment schema paths)
                         ( usedNames, CanSuccess Cache.empty Dict.empty )
                         (List.sortBy AST.fragmentCount
                             (Dict.values fragments)
@@ -623,6 +632,7 @@ canonicalize schema doc =
                                     { schema = schema
                                     , fragments =
                                         canonicalFrags
+                                    , paths = paths
                                     }
                                     fragUsedNames
                                 )
@@ -1384,11 +1394,32 @@ getFragmentOverrideName selectedFields name =
             name
 
 
-selectsSingleFragment : List AST.Selection -> Maybe String
-selectsSingleFragment fields =
+selectsSingleFragment :
+    References
+    -> List AST.Selection
+    ->
+        Maybe
+            { importFrom : List String
+            , name : String
+            }
+selectsSingleFragment refs fields =
     case fields of
         [ AST.FragmentSpreadSelection fragment ] ->
-            Just (AST.nameToString fragment.name)
+            let
+                fragName =
+                    Utils.String.formatTypename (AST.nameToString fragment.name)
+
+                paths =
+                    Generate.Path.fragment
+                        { name = fragName
+                        , path = refs.paths.path
+                        , gqlDir = refs.paths.gqlDir
+                        }
+            in
+            Just
+                { importFrom = paths.modulePath
+                , name = fragName
+                }
 
         _ ->
             Nothing
@@ -1404,29 +1435,33 @@ getGlobalNameWithFragmentAlias :
         , used : UsedNames.UsedNames
         }
 getGlobalNameWithFragmentAlias selection name usedNames =
-    case selectsSingleFragment selection of
-        Nothing ->
-            UsedNames.getGlobalName name
-                usedNames
-
-        Just fragName ->
-            { globalName = fragName
-            , used = usedNames
-            }
+    UsedNames.getGlobalName name
+        usedNames
 
 
 canonicalizeFragment :
     GraphQL.Schema.Schema
+    -> Paths
     -> AST.FragmentDetails
     -> ( UsedNames.UsedNames, CanResult (Dict String Can.Fragment) )
     -> ( UsedNames.UsedNames, CanResult (Dict String Can.Fragment) )
-canonicalizeFragment schema frag ( usedNames, currentResult ) =
+canonicalizeFragment schema paths frag ( usedNames, currentResult ) =
     case currentResult of
         CanError errMsg ->
             ( usedNames, CanError errMsg )
 
         CanSuccess cache existingFrags ->
             let
+                fragName =
+                    AST.nameToString frag.name
+
+                fragPaths =
+                    Generate.Path.fragment
+                        { name = fragName
+                        , path = paths.path
+                        , gqlDir = paths.gqlDir
+                        }
+
                 typeCondition =
                     AST.nameToString frag.typeCondition
             in
@@ -1438,6 +1473,7 @@ canonicalizeFragment schema frag ( usedNames, currentResult ) =
                                 (canonicalizeField
                                     { schema = schema
                                     , fragments = existingFrags
+                                    , paths = paths
                                     }
                                     obj
                                 )
@@ -1456,8 +1492,9 @@ canonicalizeFragment schema frag ( usedNames, currentResult ) =
                         CanSuccess fragmentSpecificCache selection ->
                             CanSuccess fragmentSpecificCache
                                 (existingFrags
-                                    |> Dict.insert (AST.nameToString frag.name)
+                                    |> Dict.insert fragName
                                         { name = convertName frag.name
+                                        , importFrom = fragPaths.modulePath
                                         , typeCondition = convertName frag.typeCondition
                                         , usedVariables = fragmentSpecificCache.varTypes
                                         , fragmentsUsed =
@@ -1484,6 +1521,7 @@ canonicalizeFragment schema frag ( usedNames, currentResult ) =
                                     canonicalizeVariantSelection
                                         { schema = schema
                                         , fragments = existingFrags
+                                        , paths = paths
                                         }
                                         (usedNames
                                             |> UsedNames.addLevel
@@ -1505,6 +1543,7 @@ canonicalizeFragment schema frag ( usedNames, currentResult ) =
                                         (existingFrags
                                             |> Dict.insert (AST.nameToString frag.name)
                                                 { name = convertName frag.name
+                                                , importFrom = fragPaths.modulePath
                                                 , typeCondition = convertName frag.typeCondition
                                                 , usedVariables = fragmentSpecificCache.varTypes
                                                 , fragmentsUsed = List.map (.fragment >> .name) fragmentSpecificCache.fragmentsUsed
@@ -1529,6 +1568,7 @@ canonicalizeFragment schema frag ( usedNames, currentResult ) =
                                             canonicalizeVariantSelection
                                                 { schema = schema
                                                 , fragments = existingFrags
+                                                , paths = paths
                                                 }
                                                 (usedNames
                                                     |> UsedNames.addLevel
@@ -1550,6 +1590,7 @@ canonicalizeFragment schema frag ( usedNames, currentResult ) =
                                                 (existingFrags
                                                     |> Dict.insert (AST.nameToString frag.name)
                                                         { name = convertName frag.name
+                                                        , importFrom = fragPaths.modulePath
                                                         , typeCondition = convertName frag.typeCondition
                                                         , usedVariables = fragmentSpecificCache.varTypes
                                                         , fragmentsUsed =
@@ -2041,7 +2082,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                                 , name = convertName field.name
                                                 , globalAlias =
                                                     Can.Name global.globalName
-                                                , selectsOnlyFragment = selectsSingleFragment field.selection
+                                                , selectsOnlyFragment = selectsSingleFragment refs field.selection
                                                 , arguments = field.arguments
                                                 , directives = List.map convertDirective field.directives
                                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
@@ -2097,7 +2138,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                         , name = convertName field.name
                                         , globalAlias =
                                             Can.Name global.globalName
-                                        , selectsOnlyFragment = selectsSingleFragment field.selection
+                                        , selectsOnlyFragment = selectsSingleFragment refs field.selection
                                         , arguments = field.arguments
                                         , directives = List.map convertDirective field.directives
                                         , wrapper = GraphQL.Schema.getWrap schemaField.type_
@@ -2215,7 +2256,7 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                                 { alias_ = Maybe.map convertName field.alias_
                                 , name = convertName field.name
                                 , globalAlias = Can.Name global.globalName
-                                , selectsOnlyFragment = selectsSingleFragment field.selection
+                                , selectsOnlyFragment = selectsSingleFragment refs field.selection
                                 , arguments = field.arguments
                                 , directives = List.map convertDirective field.directives
                                 , wrapper = GraphQL.Schema.getWrap schemaField.type_
