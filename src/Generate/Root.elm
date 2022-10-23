@@ -80,6 +80,11 @@ generate namespace schema =
                 { exposeConstructor = True
                 , group = Just groups.mutations
                 }
+         , Elm.alias "Selection"
+            (Engine.annotation_.selection
+                (Type.var "source")
+                (Type.var "data")
+            )
          , Elm.declaration "query"
             (Elm.fn2
                 ( "sel", Just (Type.namedWith [] "Query" [ Type.var "data" ]) )
