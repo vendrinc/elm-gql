@@ -186,7 +186,7 @@ generateScalarCodec ( rawname, details ) =
     else
         let
             typename =
-                Utils.String.formatTypename rawname
+                Utils.String.formatScalar rawname
 
             name =
                 Utils.String.formatValue
