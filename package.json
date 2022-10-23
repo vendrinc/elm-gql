@@ -1,6 +1,6 @@
 {
   "name": "elm-gql",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Write GraphQL, get nice Elm code!",
   "main": "./dist/index.js",
   "bin": {
@@ -12,8 +12,9 @@
     "build:elm:opt": "elm-codegen install; elm-optimize-level-2 src/Generate.elm --output=./dist/generators/schema.js",
     "prepublishOnly": "npm run build",
     "elm-gql": "node ./bin/elm-gql",
-    "elm-gql:run": "node ./bin/elm-gql run schema.json --force --queries queries",
-    "elm-gql:init": "node ./bin/elm-gql init schema.json --force",
+    "elm-gql:run": "cd sandbox ; node ../bin/elm-gql run ../schema.json --force --queries queries",
+    "elm-gql:init": "cd sandbox ; node ../bin/elm-gql init ../schema.json --force --queries queries",
+    "sandbox": "cd sandbox ; elm make src/Main.elm",
     "test": "elm-test"
   },
   "files": [
