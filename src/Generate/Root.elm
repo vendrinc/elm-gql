@@ -19,6 +19,7 @@ import Utils.String
 groups =
     { mutations = "Mutations"
     , queries = "Queries"
+    , optional = "Optional Inputs"
     , maps = "Batching and Mapping"
     }
 
@@ -40,8 +41,11 @@ groupOrder group =
             else if name == groups.mutations then
                 2
 
-            else
+            else if name == groups.optional then
                 3
+
+            else
+                4
 
 
 generate : Namespace -> GraphQL.Schema.Schema -> Elm.File
@@ -131,6 +135,37 @@ generate namespace schema =
             |> Elm.exposeWith
                 { exposeConstructor = True
                 , group = Just groups.mutations
+                }
+         , Elm.declaration "null"
+            Engine.make_.null
+            |> Elm.exposeWith
+                { exposeConstructor = True
+                , group = Just groups.optional
+                }
+         , Elm.declaration "absent"
+            Engine.make_.absent
+            |> Elm.exposeWith
+                { exposeConstructor = True
+                , group = Just groups.optional
+                }
+         , Elm.declaration "present"
+            (Elm.fn ( "input", Just (Type.var "input") ) Engine.make_.present
+                |> Elm.withType
+                    (Type.function [ Type.var "input" ]
+                        (Type.namedWith [] "Option" [ Type.var "input" ])
+                    )
+            )
+            |> Elm.exposeWith
+                { exposeConstructor = True
+                , group = Just groups.optional
+                }
+         , Elm.alias "Option"
+            (Engine.annotation_.option
+                (Type.var "input")
+            )
+            |> Elm.exposeWith
+                { exposeConstructor = False
+                , group = Just groups.optional
                 }
          , Elm.declaration "batch"
             Engine.values_.batch

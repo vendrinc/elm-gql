@@ -362,6 +362,32 @@ toInputRecordAlias :
     -> List GraphQL.Schema.Argument
     -> Elm.Declaration
 toInputRecordAlias namespace schema name varDefs =
+    let
+        isOptionalVar var =
+            case var.type_ of
+                GraphQL.Schema.Nullable inner ->
+                    True
+
+                _ ->
+                    False
+
+        docs =
+            if List.any isOptionalVar varDefs then
+                """ This input has optional args, which are wrapped in `""" ++ namespace.namespace ++ """.Option`.
+
+First up, if it makes sense, you can make this argument required in your graphql query 
+by adding ! to that variable definition at the top of the query.  This will make it easier to handle in Elm.
+
+If the field is truly optional, here's how to wrap it.
+
+    - """ ++ namespace.namespace ++ ".present myValue" ++ """ -- this field should be myValue
+    - """ ++ namespace.namespace ++ ".absent" ++ """ -- do not include this field at all in the GraphQL
+    - """ ++ namespace.namespace ++ ".null" ++ """ -- include this field as a null value.  Not as common as .absent.
+"""
+
+            else
+                """"""
+    in
     Elm.alias name
         (Type.record
             (List.map
@@ -373,12 +399,15 @@ toInputRecordAlias namespace schema name varDefs =
                     case var.type_ of
                         GraphQL.Schema.Nullable inner ->
                             ( fieldName
-                            , Engine.annotation_.option
-                                (toElmType namespace
+                            , --Engine.annotation_.option
+                              Type.namedWith
+                                [ namespace.namespace ]
+                                "Option"
+                                [ toElmType namespace
                                     schema
                                     inner
                                     (GraphQL.Schema.getWrap inner)
-                                )
+                                ]
                             )
 
                         _ ->
@@ -390,8 +419,11 @@ toInputRecordAlias namespace schema name varDefs =
                             )
                 )
                 varDefs
+                -- vars are reversed as provided
+                |> List.reverse
             )
         )
+        |> Elm.withDocumentation docs
         |> Elm.exposeWith { exposeConstructor = False, group = Just "Input" }
 
 
