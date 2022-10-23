@@ -17,11 +17,7 @@ moduleName_ =
     [ "GraphQL", "Engine" ]
 
 
-{-| andMap: 
-    Json.Decode.Decoder map2Unpack
-    -> Json.Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
--}
+{-| andMap: Json.Decode.Decoder a -> Json.Decode.Decoder (a -> b) -> Json.Decode.Decoder b -}
 andMap : Elm.Expression -> Elm.Expression -> Elm.Expression
 andMap andMapArg andMapArg0 =
     Elm.apply
@@ -34,31 +30,16 @@ andMap andMapArg andMapArg0 =
                         [ Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.var "map2Unpack" ]
+                            [ Type.var "a" ]
                         , Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "map2Unpack"
-                                , Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.function [ Type.var "a" ] (Type.var "b") ]
                         ]
                         (Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.var "b" ]
                         )
                     )
             }
@@ -69,8 +50,8 @@ andMap andMapArg andMapArg0 =
 {-| jsonField: 
     String
     -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (a -> b)
+    -> Json.Decode.Decoder b
 -}
 jsonField : String -> Elm.Expression -> Elm.Expression -> Elm.Expression
 jsonField jsonFieldArg jsonFieldArg0 jsonFieldArg1 =
@@ -89,27 +70,12 @@ jsonField jsonFieldArg jsonFieldArg0 jsonFieldArg1 =
                         , Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "a"
-                                , Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.function [ Type.var "a" ] (Type.var "b") ]
                         ]
                         (Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.var "b" ]
                         )
                     )
             }
@@ -166,8 +132,8 @@ versionedName versionedNameArg versionedNameArg0 =
     Int
     -> String
     -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (a -> b)
+    -> Json.Decode.Decoder b
 -}
 versionedJsonField :
     Int -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -188,27 +154,12 @@ versionedJsonField versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFie
                         , Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "a"
-                                , Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.function [ Type.var "a" ] (Type.var "b") ]
                         ]
                         (Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.var "b" ]
                         )
                     )
             }
@@ -1904,31 +1855,19 @@ call_ =
                                 [ Type.namedWith
                                     [ "Json", "Decode" ]
                                     "Decoder"
-                                    [ Type.var "map2Unpack" ]
+                                    [ Type.var "a" ]
                                 , Type.namedWith
                                     [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.function
-                                        [ Type.var "map2Unpack"
-                                        , Type.var "inner"
-                                        , Type.function
-                                            [ Type.var "inner" ]
-                                            (Type.var "inner2")
-                                        ]
-                                        (Type.var "inner2")
+                                        [ Type.var "a" ]
+                                        (Type.var "b")
                                     ]
                                 ]
                                 (Type.namedWith
                                     [ "Json", "Decode" ]
                                     "Decoder"
-                                    [ Type.function
-                                        [ Type.var "inner"
-                                        , Type.function
-                                            [ Type.var "inner" ]
-                                            (Type.var "inner2")
-                                        ]
-                                        (Type.var "inner2")
-                                    ]
+                                    [ Type.var "b" ]
                                 )
                             )
                     }
@@ -1952,26 +1891,14 @@ call_ =
                                     [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.function
-                                        [ Type.var "a"
-                                        , Type.var "inner"
-                                        , Type.function
-                                            [ Type.var "inner" ]
-                                            (Type.var "inner2")
-                                        ]
-                                        (Type.var "inner2")
+                                        [ Type.var "a" ]
+                                        (Type.var "b")
                                     ]
                                 ]
                                 (Type.namedWith
                                     [ "Json", "Decode" ]
                                     "Decoder"
-                                    [ Type.function
-                                        [ Type.var "inner"
-                                        , Type.function
-                                            [ Type.var "inner" ]
-                                            (Type.var "inner2")
-                                        ]
-                                        (Type.var "inner2")
-                                    ]
+                                    [ Type.var "b" ]
                                 )
                             )
                     }
@@ -2022,26 +1949,14 @@ call_ =
                                     [ "Json", "Decode" ]
                                     "Decoder"
                                     [ Type.function
-                                        [ Type.var "a"
-                                        , Type.var "inner"
-                                        , Type.function
-                                            [ Type.var "inner" ]
-                                            (Type.var "inner2")
-                                        ]
-                                        (Type.var "inner2")
+                                        [ Type.var "a" ]
+                                        (Type.var "b")
                                     ]
                                 ]
                                 (Type.namedWith
                                     [ "Json", "Decode" ]
                                     "Decoder"
-                                    [ Type.function
-                                        [ Type.var "inner"
-                                        , Type.function
-                                            [ Type.var "inner" ]
-                                            (Type.var "inner2")
-                                        ]
-                                        (Type.var "inner2")
-                                    ]
+                                    [ Type.var "b" ]
                                 )
                             )
                     }
@@ -3197,31 +3112,16 @@ values_ =
                         [ Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.var "map2Unpack" ]
+                            [ Type.var "a" ]
                         , Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "map2Unpack"
-                                , Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.function [ Type.var "a" ] (Type.var "b") ]
                         ]
                         (Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.var "b" ]
                         )
                     )
             }
@@ -3240,27 +3140,12 @@ values_ =
                         , Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "a"
-                                , Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.function [ Type.var "a" ] (Type.var "b") ]
                         ]
                         (Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.var "b" ]
                         )
                     )
             }
@@ -3294,27 +3179,12 @@ values_ =
                         , Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "a"
-                                , Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.function [ Type.var "a" ] (Type.var "b") ]
                         ]
                         (Type.namedWith
                             [ "Json", "Decode" ]
                             "Decoder"
-                            [ Type.function
-                                [ Type.var "inner"
-                                , Type.function
-                                    [ Type.var "inner" ]
-                                    (Type.var "inner2")
-                                ]
-                                (Type.var "inner2")
-                            ]
+                            [ Type.var "b" ]
                         )
                     )
             }
