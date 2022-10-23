@@ -70,7 +70,7 @@ async function run_generator(generator: any, flags: any) {
       }
 
       if (flags.init) {
-        initGreeting(files_written_count, flags);
+        initGreeting(files_written_count + files_skipped, flags);
       } else if (flags.force) {
         forceMessage(files_written_count, files_skipped, flags);
       } else {
@@ -235,6 +235,14 @@ const readCache = (namespace: string, force: boolean) => {
   return cache;
 };
 
+const cacheExists = (namespace: string) => {
+  try {
+    return fs.existsSync(".elm-gql-cache");
+  } catch {}
+
+  return false;
+};
+
 const clearDir = (dir: string) => {
   try {
     const files = fs.readdirSync(dir);
@@ -290,6 +298,22 @@ function initGreeting(filesGenerated: number, flags: any) {
       "https://github.com/vendrinc/elm-gql/blob/main/guide/GettingStarted.md"
     )
   );
+  console.log(format_block(lines));
+}
+
+function initOverwriteWarning() {
+  const lines = [];
+  lines.push(
+    `I tried to run ${chalk.yellow(
+      "elm-gql init"
+    )}, but it looks like elm-gql has already been init-ed.`
+  );
+  lines.push(
+    `If you're sure you want to rerun ${chalk.cyan(
+      "init"
+    )}, pass ${chalk.yellow("--force")}`
+  );
+
   console.log(format_block(lines));
 }
 
@@ -426,6 +450,11 @@ async function action(schema: string, options: Options) {
 
 async function init(schema: string, options: Options) {
   options.init = true;
+  if (!options.force && cacheExists(options.namespace)) {
+    initOverwriteWarning();
+    process.exit(1);
+  }
+
   options.force = true;
   run(schema, options);
 }
