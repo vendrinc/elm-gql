@@ -1212,18 +1212,6 @@ decodeScalarType namespace type_ =
 {- FRAGMENTS -}
 
 
-generateFragmentDecoders : Namespace -> List Can.Fragment -> List Elm.Declaration
-generateFragmentDecoders namespace fragments =
-    let
-        decoderRecord =
-            List.map (genFragDecoder namespace) fragments
-                |> Elm.record
-                |> Elm.declaration "fragments_"
-    in
-    [ decoderRecord
-    ]
-
-
 generateFragmentTypes : Namespace -> Can.Fragment -> List Elm.Declaration
 generateFragmentTypes namespace frag =
     let
@@ -1339,26 +1327,6 @@ generateFragmentTypes namespace frag =
                 )
 
 
-{-|
-
-    { name = Name
-    , typeCondition = Name
-    , directives = List Directive
-    , selection = List Selection
-    }
-
--}
-genFragDecoder : Namespace -> Can.Fragment -> ( String, Elm.Expression )
-genFragDecoder namespace frag =
-    ( Can.nameToString frag.name
-    , Elm.record
-        [ ( "decoder"
-          , generateFragmentDecoder namespace frag
-          )
-        ]
-    )
-
-
 generateFragmentDecoder : Namespace -> Can.Fragment -> Elm.Expression
 generateFragmentDecoder namespace frag =
     case frag.selection of
@@ -1373,18 +1341,11 @@ generateFragmentDecoder namespace frag =
                 )
 
         Can.FragmentUnion fragSelection ->
-            Elm.fn ( "start_", Nothing )
-                (\start ->
-                    start
-                        |> decodeSingleField (Elm.int 0)
-                            initIndex
-                            (Can.nameToString frag.name)
-                            (decodeUnion namespace
-                                (Elm.int 0)
-                                initIndex
-                                fragSelection
-                            )
-                )
+            decodeUnion namespace
+                (Elm.int 0)
+                initIndex
+                fragSelection
+                |> Elm.withType (Decode.annotation_.decoder (Type.named [] (Can.nameToString frag.name)))
 
         Can.FragmentInterface fragSelection ->
             Elm.fn ( "start_", Nothing )
