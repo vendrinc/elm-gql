@@ -1275,11 +1275,11 @@ versionedJsonField :
     Int
     -> String
     -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (a -> b)
+    -> Json.Decode.Decoder b
 versionedJsonField int name new build =
     Json.Decode.map2
-        (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
+        (\a fn -> fn a)
         (Json.Decode.field (versionedName int name) new)
         build
 
@@ -1320,21 +1320,21 @@ versionedAlias i name =
 jsonField :
     String
     -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    -> Json.Decode.Decoder (a -> b)
+    -> Json.Decode.Decoder b
 jsonField name new build =
     Json.Decode.map2
-        (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
+        (\a fn -> fn a)
         (Json.Decode.field name new)
         build
 
 
 andMap :
-    Json.Decode.Decoder map2Unpack
-    -> Json.Decode.Decoder (map2Unpack -> inner -> (inner -> inner2) -> inner2)
-    -> Json.Decode.Decoder (inner -> (inner -> inner2) -> inner2)
+    Json.Decode.Decoder a
+    -> Json.Decode.Decoder (a -> b)
+    -> Json.Decode.Decoder b
 andMap new build =
     Json.Decode.map2
-        (\map2Unpack -> \unpack -> \inner inner2 -> inner2 inner)
+        (\a fn -> fn a)
         new
         build
