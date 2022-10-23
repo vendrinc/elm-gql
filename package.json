@@ -13,7 +13,7 @@
     "prepublishOnly": "npm run build",
     "elm-gql": "node ./bin/elm-gql",
     "elm-gql:run": "node ./bin/elm-gql run schema.json --force --queries queries",
-    "elm-gql:init": "node ./bin/elm-gql init schema.json",
+    "elm-gql:init": "node ./bin/elm-gql init schema.json --force",
     "test": "elm-test"
   },
   "files": [
