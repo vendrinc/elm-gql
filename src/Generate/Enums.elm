@@ -53,30 +53,24 @@ generateFiles namespace graphQLSchema =
                             Elm.declaration "decoder"
                                 (Decode.string
                                     |> Decode.andThen
-                                        (\_ ->
-                                            Elm.fn
-                                                ( "string"
-                                                , Just Elm.Annotation.string
-                                                )
-                                                (\str ->
-                                                    Elm.Case.string str
-                                                        { cases =
-                                                            constructors
-                                                                |> List.map
-                                                                    (\( name, _ ) ->
-                                                                        ( name
-                                                                        , Decode.succeed
-                                                                            (Elm.value
-                                                                                { importFrom = []
-                                                                                , name = name
-                                                                                , annotation = Just (Elm.Annotation.named [] enumDefinition.name)
-                                                                                }
-                                                                            )
-                                                                        )
+                                        (\str ->
+                                            Elm.Case.string str
+                                                { cases =
+                                                    constructors
+                                                        |> List.map
+                                                            (\( name, _ ) ->
+                                                                ( name
+                                                                , Decode.succeed
+                                                                    (Elm.value
+                                                                        { importFrom = []
+                                                                        , name = name
+                                                                        , annotation = Just (Elm.Annotation.named [] enumDefinition.name)
+                                                                        }
                                                                     )
-                                                        , otherwise = Decode.fail "Invalid type"
-                                                        }
-                                                )
+                                                                )
+                                                            )
+                                                , otherwise = Decode.fail "Invalid type"
+                                                }
                                         )
                                     |> Elm.withType
                                         (Decode.annotation_.decoder
