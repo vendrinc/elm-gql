@@ -613,7 +613,11 @@ canonicalize schema paths doc =
         Ok fragments ->
             let
                 usedNames =
-                    UsedNames.empty
+                    UsedNames.init
+                        -- These are names that we know will be in the generated code
+                        [ "Input"
+                        , "Response"
+                        ]
 
                 ( fragUsedNames, canonicalizedFragments ) =
                     List.foldl

@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Canonicalize.UsedNames exposing (addLevel, annotation_, call_, dropLevel, empty, getGlobalName, levelFromField, moduleName_, resetSiblings, saveSibling, siblingCollision, values_)
+module Gen.GraphQL.Operations.Canonicalize.UsedNames exposing (addLevel, annotation_, call_, dropLevel, getGlobalName, init, levelFromField, moduleName_, resetSiblings, saveSibling, siblingCollision, values_)
 
 {-| 
-@docs values_, call_, annotation_, empty, saveSibling, siblingCollision, getGlobalName, levelFromField, addLevel, dropLevel, resetSiblings, moduleName_
+@docs values_, call_, annotation_, init, saveSibling, siblingCollision, getGlobalName, levelFromField, addLevel, dropLevel, resetSiblings, moduleName_
 -}
 
 
@@ -211,14 +211,23 @@ saveSibling saveSiblingArg saveSiblingArg0 =
         [ Elm.string saveSiblingArg, saveSiblingArg0 ]
 
 
-{-| empty: UsedNames -}
-empty : Elm.Expression
-empty =
-    Elm.value
-        { importFrom = [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
-        , name = "empty"
-        , annotation = Just (Type.namedWith [] "UsedNames" [])
-        }
+{-| init: List String -> UsedNames -}
+init : List String -> Elm.Expression
+init initArg =
+    Elm.apply
+        (Elm.value
+            { importFrom =
+                [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
+            , name = "init"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.list Type.string ]
+                        (Type.namedWith [] "UsedNames" [])
+                    )
+            }
+        )
+        [ Elm.list (List.map Elm.string initArg) ]
 
 
 annotation_ : { usedNames : Type.Annotation }
@@ -239,6 +248,7 @@ call_ :
     , getGlobalName : Elm.Expression -> Elm.Expression -> Elm.Expression
     , siblingCollision : Elm.Expression -> Elm.Expression -> Elm.Expression
     , saveSibling : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , init : Elm.Expression -> Elm.Expression
     }
 call_ =
     { resetSiblings =
@@ -389,6 +399,22 @@ call_ =
                     }
                 )
                 [ saveSiblingArg, saveSiblingArg0 ]
+    , init =
+        \initArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
+                    , name = "init"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.list Type.string ]
+                                (Type.namedWith [] "UsedNames" [])
+                            )
+                    }
+                )
+                [ initArg ]
     }
 
 
@@ -400,7 +426,7 @@ values_ :
     , getGlobalName : Elm.Expression
     , siblingCollision : Elm.Expression
     , saveSibling : Elm.Expression
-    , empty : Elm.Expression
+    , init : Elm.Expression
     }
 values_ =
     { resetSiblings =
@@ -512,12 +538,17 @@ values_ =
                         (Type.namedWith [] "UsedNames" [])
                     )
             }
-    , empty =
+    , init =
         Elm.value
             { importFrom =
                 [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
-            , name = "empty"
-            , annotation = Just (Type.namedWith [] "UsedNames" [])
+            , name = "init"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.list Type.string ]
+                        (Type.namedWith [] "UsedNames" [])
+                    )
             }
     }
 
