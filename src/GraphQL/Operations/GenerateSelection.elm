@@ -295,7 +295,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                         (Type.function
                             [ Type.int
                             ]
-                            (Decode.annotation_.decoder (Type.named [] opName))
+                            (Decode.annotation_.decoder (Type.named [] responseName))
                         )
                 )
             , Elm.declaration "toPayload_"
@@ -931,58 +931,67 @@ decodeSelection namespace version field index =
                             { importFrom =
                                 fragment.importFrom
                             , name = fragment.name
-                            , annotation = Nothing
+                            , annotation =
+                                Just (Type.named fragment.importFrom fragment.name)
                             }
                         )
 
                 Nothing ->
                     Decode.succeed (Elm.val (Can.nameToString field.globalAlias))
     in
-    case field.selection of
-        Can.FieldObject objSelection ->
-            start
-                |> decodeFields namespace
-                    version
-                    (child index)
-                    objSelection
-
-        Can.FieldScalar type_ ->
-            decodeScalarType namespace type_
-
-        Can.FieldEnum enum ->
-            Elm.value
-                { importFrom =
-                    [ namespace.enums
-                    , "Enum"
-                    , Utils.String.formatTypename enum.enumName
-                    ]
-                , name = "decoder"
-                , annotation =
-                    Nothing
-                }
-
-        Can.FieldUnion union ->
-            case field.selectsOnlyFragment of
-                Just fragment ->
-                    Elm.value
-                        { importFrom =
-                            fragment.importFrom
-                        , name = "decoder"
-                        , annotation = Nothing
-                        }
-
-                Nothing ->
-                    decodeUnion namespace
+    -- NOTE: this withType thing is a workaround at the moment.  It's not even necessarily correct?
+    -- If we don't have it, then the `Apps2` query with a union fragment will go into an infinite loop when generating
+    -- The main issue seems to be with decodeUnion, but is also tricky
+    -- This means elm-codegen still has an issue with type inference.
+    -- We're not relying on type inference here, so it's not that big of a deal
+    Elm.withType (Decode.annotation_.decoder (Type.named [] (Can.nameToString field.globalAlias))) <|
+        case field.selection of
+            Can.FieldObject objSelection ->
+                start
+                    |> decodeFields namespace
                         version
                         (child index)
-                        union
+                        objSelection
 
-        Can.FieldInterface interface ->
-            start
-                |> decodeInterface namespace
-                    version
-                    (child index)
-                    interface
+            Can.FieldScalar type_ ->
+                decodeScalarType namespace type_
+
+            Can.FieldEnum enum ->
+                Elm.value
+                    { importFrom =
+                        [ namespace.enums
+                        , "Enum"
+                        , Utils.String.formatTypename enum.enumName
+                        ]
+                    , name = "decoder"
+                    , annotation =
+                        Nothing
+                    }
+
+            Can.FieldUnion union ->
+                case field.selectsOnlyFragment of
+                    Just fragment ->
+                        Elm.value
+                            { importFrom =
+                                fragment.importFrom
+                            , name = "decoder"
+                            , annotation =
+                                Nothing
+                            }
+
+                    Nothing ->
+                        decodeUnion namespace
+                            version
+                            (child index)
+                            union
+
+            -- Elm.unit
+            Can.FieldInterface interface ->
+                start
+                    |> decodeInterface namespace
+                        version
+                        (child index)
+                        interface
 
 
 decodeSingleField version index name decoder exp =
