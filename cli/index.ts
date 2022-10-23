@@ -404,21 +404,16 @@ async function run(schema: string, options: Options) {
     );
   }
 
-  if (cache.engineVersion != newCache.engineVersion) {
-    // Copy gql engine to target dir
-    fs.mkdirSync(path.join(options.output, "GraphQL"), {
-      recursive: true,
-    });
+  // Copy gql engine to target dir
+  fs.mkdirSync(path.join(options.output, "GraphQL"), {
+    recursive: true,
+  });
 
-    // Standard engine
-    writeIfChanged(
-      path.join(options.output, "GraphQL", "Engine.elm"),
-      engine()
-    );
+  // Standard engine
+  writeIfChanged(path.join(options.output, "GraphQL", "Engine.elm"), engine());
 
-    // When mocking becomes a thing again, we'll turn this on
-    // write_mock(options)
-  }
+  // When mocking becomes a thing again, we'll turn this on
+  // write_mock(options)
 
   fs.writeFileSync(".elm-gql-cache", JSON.stringify(newCache));
 }
