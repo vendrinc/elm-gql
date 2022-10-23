@@ -619,7 +619,7 @@ canonicalize schema paths doc =
                         , "Response"
                         ]
 
-                ( fragUsedNames, canonicalizedFragments ) =
+                ( _, canonicalizedFragments ) =
                     List.foldl
                         (canonicalizeFragment schema paths)
                         ( usedNames, CanSuccess Cache.empty Dict.empty )
@@ -638,7 +638,7 @@ canonicalize schema paths doc =
                                         canonicalFrags
                                     , paths = paths
                                     }
-                                    fragUsedNames
+                                    usedNames
                                 )
                                 doc.definitions
                                 emptySuccess
