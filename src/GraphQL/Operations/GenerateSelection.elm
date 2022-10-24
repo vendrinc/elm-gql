@@ -552,7 +552,6 @@ toAliasedFields namespace additionalFields selection =
     List.foldl (aliasedFieldRecord namespace)
         additionalFields
         selection
-        |> List.reverse
         |> Type.record
 
 
