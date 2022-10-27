@@ -867,10 +867,11 @@ child (Index top total) =
 
 decodeFields : Namespace -> Elm.Expression -> Index -> List Can.Field -> Elm.Expression -> Elm.Expression
 decodeFields namespace version index fields exp =
-    List.foldl
-        (decodeFieldHelper namespace version)
-        ( index, exp )
-        fields
+    fields
+        |> List.reverse
+        |> List.foldl
+            (decodeFieldHelper namespace version)
+            ( index, exp )
         |> Tuple.second
 
 
@@ -1008,7 +1009,6 @@ decodeInterface namespace version index interface start =
     let
         selection =
             List.filter (not << Can.isTypeNameSelection) interface.selection
-                |> List.reverse
     in
     case interface.variants of
         [] ->
