@@ -672,7 +672,17 @@ inputObjectToFieldList (InputObject _ fields) =
 {-| -}
 encodeInputObjectAsJson : InputObject value -> Json.Decode.Value
 encodeInputObjectAsJson (InputObject _ fields) =
-    Json.Encode.object (List.map (\( fieldName, details ) -> ( fieldName, details.value )) fields)
+    fields
+        |> List.filterMap
+            (\( varName, var ) ->
+                case var.value of
+                    Nothing ->
+                        Nothing
+
+                    Just value ->
+                        Just ( varName, value )
+            )
+        |> Json.Encode.object
 
 
 {-| -}
