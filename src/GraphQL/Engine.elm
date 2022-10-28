@@ -4,7 +4,7 @@ module GraphQL.Engine exposing
     , enum, maybeEnum
     , field, fieldWith
     , union
-    , Selection, select, with, map, map2, recover
+    , Selection, select, with, map, map2, recover, withName
     , arg, argList, Optional, optional
     , Query, query, Mutation, mutation, Error(..)
     , queryString
@@ -30,7 +30,7 @@ module GraphQL.Engine exposing
 
 @docs union
 
-@docs Selection, select, with, map, map2, recover
+@docs Selection, select, with, map, map2, recover, withName
 
 @docs arg, argList, Optional, optional
 
@@ -511,7 +511,7 @@ type alias Context =
 
 type alias VariableDetails =
     { gqlTypeName : String
-    , value : Json.Encode.Value
+    , value : Maybe Json.Encode.Value
     }
 
 
@@ -541,6 +541,11 @@ empty =
     , version = 0
     , variables = Dict.empty
     }
+
+
+withName : String -> Selection source data -> Selection source data
+withName name (Selection (Details _ toGql toDecoder)) =
+    Selection (Details (Just name) toGql toDecoder)
 
 
 {-| An unguarded GQL query.
@@ -605,7 +610,7 @@ addField fieldName gqlFieldType val (InputObject name inputFields) =
     InputObject name
         (( fieldName
          , { gqlTypeName = gqlFieldType
-           , value = val
+           , value = Just val
            }
          )
             :: inputFields
@@ -618,13 +623,13 @@ addOptionalField fieldName gqlFieldType optionalValue toJsonValue (InputObject n
     InputObject name
         (case optionalValue of
             Absent ->
-                inputFields
+                ( fieldName, { value = Nothing, gqlTypeName = gqlFieldType } ) :: inputFields
 
             Null ->
-                ( fieldName, { value = Json.Encode.null, gqlTypeName = gqlFieldType } ) :: inputFields
+                ( fieldName, { value = Just Json.Encode.null, gqlTypeName = gqlFieldType } ) :: inputFields
 
             Present val ->
-                ( fieldName, { value = toJsonValue val, gqlTypeName = gqlFieldType } ) :: inputFields
+                ( fieldName, { value = Just (toJsonValue val), gqlTypeName = gqlFieldType } ) :: inputFields
         )
 
 
@@ -1025,7 +1030,15 @@ body operation q =
         encodedVariables =
             variables
                 |> Dict.toList
-                |> List.map (Tuple.mapSecond .value)
+                |> List.filterMap
+                    (\( varName, var ) ->
+                        case var.value of
+                            Nothing ->
+                                Nothing
+
+                            Just value ->
+                                Just ( varName, value )
+                    )
                 |> Json.Encode.object
     in
     Http.jsonBody

@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with)
+module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with, withName)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, mapRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, withName, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, mapRequest, send, simulate, query, mutation, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
 -}
 
 
@@ -1088,6 +1088,33 @@ inputObject inputObjectArg =
         [ Elm.string inputObjectArg ]
 
 
+{-| withName: String -> Selection source data -> Selection source data -}
+withName : String -> Elm.Expression -> Elm.Expression
+withName withNameArg withNameArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "withName"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.var "source", Type.var "data" ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.var "source", Type.var "data" ]
+                        )
+                    )
+            }
+        )
+        [ Elm.string withNameArg, withNameArg0 ]
+
+
 {-| {-| -}
 
 unsafe: Selection source selected -> Selection unsafe selected
@@ -1820,6 +1847,7 @@ call_ :
         -> Elm.Expression
         -> Elm.Expression
     , inputObject : Elm.Expression -> Elm.Expression
+    , withName : Elm.Expression -> Elm.Expression -> Elm.Expression
     , unsafe : Elm.Expression -> Elm.Expression
     , fieldWith :
         Elm.Expression
@@ -2717,6 +2745,30 @@ call_ =
                     }
                 )
                 [ inputObjectArg ]
+    , withName =
+        \withNameArg withNameArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "withName"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.var "source", Type.var "data" ]
+                                ]
+                                (Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.var "source", Type.var "data" ]
+                                )
+                            )
+                    }
+                )
+                [ withNameArg, withNameArg0 ]
     , unsafe =
         \unsafeArg ->
             Elm.apply
@@ -3086,6 +3138,7 @@ values_ :
     , addOptionalField : Elm.Expression
     , addField : Elm.Expression
     , inputObject : Elm.Expression
+    , withName : Elm.Expression
     , unsafe : Elm.Expression
     , fieldWith : Elm.Expression
     , field : Elm.Expression
@@ -3713,6 +3766,26 @@ values_ =
                     (Type.function
                         [ Type.string ]
                         (Type.namedWith [] "InputObject" [ Type.var "value" ])
+                    )
+            }
+    , withName =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "withName"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.var "source", Type.var "data" ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.var "source", Type.var "data" ]
+                        )
                     )
             }
     , unsafe =
