@@ -1085,8 +1085,8 @@ interfacePattern namespace version index commonFields var =
                 (Elm.val tagTypeName)
                 (Decode.succeed
                     (Elm.val (Can.nameToString var.globalDetailsAlias))
+                    |> decodeFields namespace version (child index) fields
                 )
-                |> decodeFields namespace version (child index) fields
     )
 
 
