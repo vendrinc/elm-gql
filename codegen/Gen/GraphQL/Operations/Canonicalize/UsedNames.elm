@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Canonicalize.UsedNames exposing (addLevel, annotation_, call_, dropLevel, getGlobalName, init, levelFromField, moduleName_, resetSiblings, saveSibling, siblingCollision, values_)
+module Gen.GraphQL.Operations.Canonicalize.UsedNames exposing (addLevel, addLevelKeepSiblingStack, annotation_, call_, dropLevel, dropLevelNotSiblings, getGlobalName, init, levelFromField, moduleName_, saveSibling, siblingCollision, values_)
 
 {-| 
-@docs values_, call_, annotation_, init, saveSibling, siblingCollision, getGlobalName, levelFromField, addLevel, dropLevel, resetSiblings, moduleName_
+@docs values_, call_, annotation_, init, saveSibling, siblingCollision, getGlobalName, levelFromField, addLevel, addLevelKeepSiblingStack, dropLevelNotSiblings, dropLevel, moduleName_
 -}
 
 
@@ -14,30 +14,6 @@ import Tuple
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
-
-
-{-| {-| -}
-
-resetSiblings: UsedNames -> UsedNames -> UsedNames
--}
-resetSiblings : Elm.Expression -> Elm.Expression -> Elm.Expression
-resetSiblings resetSiblingsArg resetSiblingsArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom =
-                [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
-            , name = "resetSiblings"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "UsedNames" []
-                        , Type.namedWith [] "UsedNames" []
-                        ]
-                        (Type.namedWith [] "UsedNames" [])
-                    )
-            }
-        )
-        [ resetSiblingsArg, resetSiblingsArg0 ]
 
 
 {-| {-| -}
@@ -60,6 +36,67 @@ dropLevel dropLevelArg =
             }
         )
         [ dropLevelArg ]
+
+
+{-| {-| -}
+
+dropLevelNotSiblings: UsedNames -> UsedNames
+-}
+dropLevelNotSiblings : Elm.Expression -> Elm.Expression
+dropLevelNotSiblings dropLevelNotSiblingsArg =
+    Elm.apply
+        (Elm.value
+            { importFrom =
+                [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
+            , name = "dropLevelNotSiblings"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "UsedNames" [] ]
+                        (Type.namedWith [] "UsedNames" [])
+                    )
+            }
+        )
+        [ dropLevelNotSiblingsArg ]
+
+
+{-| {-|
+
+    levels should be the alias name
+
+-}
+
+addLevelKeepSiblingStack: { name : String, isAlias : Bool } -> UsedNames -> UsedNames
+-}
+addLevelKeepSiblingStack :
+    { name : String, isAlias : Bool } -> Elm.Expression -> Elm.Expression
+addLevelKeepSiblingStack addLevelKeepSiblingStackArg addLevelKeepSiblingStackArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom =
+                [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
+            , name = "addLevelKeepSiblingStack"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.record
+                            [ ( "name", Type.string )
+                            , ( "isAlias", Type.bool )
+                            ]
+                        , Type.namedWith [] "UsedNames" []
+                        ]
+                        (Type.namedWith [] "UsedNames" [])
+                    )
+            }
+        )
+        [ Elm.record
+            [ Tuple.pair "name" (Elm.string addLevelKeepSiblingStackArg.name)
+            , Tuple.pair
+                "isAlias"
+                (Elm.bool addLevelKeepSiblingStackArg.isAlias)
+            ]
+        , addLevelKeepSiblingStackArg0
+        ]
 
 
 {-| {-|
@@ -241,8 +278,10 @@ annotation_ =
 
 
 call_ :
-    { resetSiblings : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , dropLevel : Elm.Expression -> Elm.Expression
+    { dropLevel : Elm.Expression -> Elm.Expression
+    , dropLevelNotSiblings : Elm.Expression -> Elm.Expression
+    , addLevelKeepSiblingStack :
+        Elm.Expression -> Elm.Expression -> Elm.Expression
     , addLevel : Elm.Expression -> Elm.Expression -> Elm.Expression
     , levelFromField : Elm.Expression -> Elm.Expression
     , getGlobalName : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -251,25 +290,7 @@ call_ :
     , init : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { resetSiblings =
-        \resetSiblingsArg resetSiblingsArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom =
-                        [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
-                    , name = "resetSiblings"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "UsedNames" []
-                                , Type.namedWith [] "UsedNames" []
-                                ]
-                                (Type.namedWith [] "UsedNames" [])
-                            )
-                    }
-                )
-                [ resetSiblingsArg, resetSiblingsArg0 ]
-    , dropLevel =
+    { dropLevel =
         \dropLevelArg ->
             Elm.apply
                 (Elm.value
@@ -285,6 +306,43 @@ call_ =
                     }
                 )
                 [ dropLevelArg ]
+    , dropLevelNotSiblings =
+        \dropLevelNotSiblingsArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
+                    , name = "dropLevelNotSiblings"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "UsedNames" [] ]
+                                (Type.namedWith [] "UsedNames" [])
+                            )
+                    }
+                )
+                [ dropLevelNotSiblingsArg ]
+    , addLevelKeepSiblingStack =
+        \addLevelKeepSiblingStackArg addLevelKeepSiblingStackArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
+                    , name = "addLevelKeepSiblingStack"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.record
+                                    [ ( "name", Type.string )
+                                    , ( "isAlias", Type.bool )
+                                    ]
+                                , Type.namedWith [] "UsedNames" []
+                                ]
+                                (Type.namedWith [] "UsedNames" [])
+                            )
+                    }
+                )
+                [ addLevelKeepSiblingStackArg, addLevelKeepSiblingStackArg0 ]
     , addLevel =
         \addLevelArg addLevelArg0 ->
             Elm.apply
@@ -419,8 +477,9 @@ call_ =
 
 
 values_ :
-    { resetSiblings : Elm.Expression
-    , dropLevel : Elm.Expression
+    { dropLevel : Elm.Expression
+    , dropLevelNotSiblings : Elm.Expression
+    , addLevelKeepSiblingStack : Elm.Expression
     , addLevel : Elm.Expression
     , levelFromField : Elm.Expression
     , getGlobalName : Elm.Expression
@@ -429,21 +488,7 @@ values_ :
     , init : Elm.Expression
     }
 values_ =
-    { resetSiblings =
-        Elm.value
-            { importFrom =
-                [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
-            , name = "resetSiblings"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "UsedNames" []
-                        , Type.namedWith [] "UsedNames" []
-                        ]
-                        (Type.namedWith [] "UsedNames" [])
-                    )
-            }
-    , dropLevel =
+    { dropLevel =
         Elm.value
             { importFrom =
                 [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
@@ -452,6 +497,35 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith [] "UsedNames" [] ]
+                        (Type.namedWith [] "UsedNames" [])
+                    )
+            }
+    , dropLevelNotSiblings =
+        Elm.value
+            { importFrom =
+                [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
+            , name = "dropLevelNotSiblings"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "UsedNames" [] ]
+                        (Type.namedWith [] "UsedNames" [])
+                    )
+            }
+    , addLevelKeepSiblingStack =
+        Elm.value
+            { importFrom =
+                [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
+            , name = "addLevelKeepSiblingStack"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.record
+                            [ ( "name", Type.string )
+                            , ( "isAlias", Type.bool )
+                            ]
+                        , Type.namedWith [] "UsedNames" []
+                        ]
                         (Type.namedWith [] "UsedNames" [])
                     )
             }

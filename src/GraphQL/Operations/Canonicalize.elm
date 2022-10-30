@@ -1621,6 +1621,25 @@ canonicalizeFragment schema paths frag ( usedNames, currentResult ) =
                                     )
 
 
+canonicalizeVariantSelection :
+    References
+    -> UsedNames.UsedNames
+    ->
+        { description : Maybe String
+        , fields :
+            List GraphQL.Schema.Field
+        , name : String
+        }
+    -> List AST.Selection
+    -> List String
+    ->
+        ( UsedNames.UsedNames
+        , CanResult
+            { remainingTags : List { globalAlias : Can.Name, tag : Can.Name }
+            , selection : List Can.Field
+            , variants : List Can.VariantCase
+            }
+        )
 canonicalizeVariantSelection refs usedNames unionOrInterface selection variants =
     let
         selectsForTypename =
@@ -2071,7 +2090,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                             { name = union.name
                                             , description = union.description
 
-                                            -- Note, unions dont have any fields themselves, unlick interfaces
+                                            -- Note, unions dont have any fields themselves, unlike interfaces
                                             , fields = []
                                             }
                                             field.selection
@@ -2518,23 +2537,12 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                     selectionResult =
                                         List.foldl
                                             (\sel cursor ->
-                                                let
-                                                    canoned =
-                                                        canonicalizeField refs obj sel cursor
-                                                in
-                                                { canoned
-                                                    | fieldNames =
-                                                        -- the weird thing we're doing here is so that field-name-collision
-                                                        -- does not occur within a UnionCase
-                                                        -- meaning separate UnionCases can use the same names and not collide.
-                                                        UsedNames.resetSiblings cursor.fieldNames
-                                                            canoned.fieldNames
-                                                }
+                                                canonicalizeField refs obj sel cursor
                                             )
                                             { result = emptySuccess
                                             , fieldNames =
                                                 found.fieldNames
-                                                    |> UsedNames.addLevel
+                                                    |> UsedNames.addLevelKeepSiblingStack
                                                         { name = tag
                                                         , isAlias = False
                                                         }
@@ -2548,7 +2556,7 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                                 global =
                                                     UsedNames.getGlobalName tag
                                                         (selectionResult.fieldNames
-                                                            |> UsedNames.dropLevel
+                                                            |> UsedNames.dropLevelNotSiblings
                                                         )
 
                                                 globalDetailsAlias =
