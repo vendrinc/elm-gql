@@ -762,7 +762,7 @@ encodeHelper namespace schema type_ val =
                 -- we're encoding using code generated via dillonkearns/elm-graphql
                 Elm.apply
                     (Elm.fn
-                        ( "enumValue"
+                        ( "enumValue_"
                         , Just (Type.named [ namespace.enums, "Enum", enumName ] enumName)
                         )
                         (\i ->
@@ -870,7 +870,7 @@ encodeEnum namespace wrapped val enumName =
                 -- we're encoding using code generated via dillonkearns/elm-graphql
                 Elm.apply
                     (Elm.fn
-                        ( "enumValue"
+                        ( "enumValue_"
                         , Just (Type.named [ namespace.enums, "Enum", enumName ] enumName)
                         )
                         (\i ->
