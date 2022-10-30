@@ -1,7 +1,7 @@
 module GraphQL.Schema exposing
     ( getJsonValue
     , Mutation, Query, decoder, empty
-    , Kind(..), Schema, Type(..)
+    , Kind(..), Schema, Type(..), isScalar
     , mockScalar
     , Wrapped(..), getWrap, getInner
     , Argument, Field, InputObjectDetails, InterfaceDetails, Namespace, ObjectDetails, ScalarDetails, UnionDetails, Variant, kindToString, typeToElmString, typeToString
@@ -13,7 +13,7 @@ module GraphQL.Schema exposing
 
 @docs Mutation, Query, decoder, empty
 
-@docs Kind, Schema, Type
+@docs Kind, Schema, Type, isScalar
 
 @docs mockScalar
 
@@ -173,6 +173,22 @@ type Wrapped
     = UnwrappedValue
     | InList Wrapped
     | InMaybe Wrapped
+
+
+isScalar : Type -> Bool
+isScalar tipe =
+    case tipe of
+        Scalar _ ->
+            True
+
+        Nullable inner ->
+            isScalar inner
+
+        List_ inner ->
+            isScalar inner
+
+        _ ->
+            False
 
 
 getWrap : Type -> Wrapped

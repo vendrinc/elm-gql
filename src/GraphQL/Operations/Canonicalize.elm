@@ -1725,20 +1725,7 @@ canonicalizeField refs object selection found =
                 aliased =
                     AST.getAliasedName field
             in
-            if UsedNames.siblingCollision aliased found.fieldNames then
-                -- There has been a collision, abort!
-                { result =
-                    err
-                        [ error
-                            (FieldAliasRequired
-                                { fieldName = aliased
-                                }
-                            )
-                        ]
-                , fieldNames = found.fieldNames
-                }
-
-            else if fieldName == "__typename" then
+            if fieldName == "__typename" then
                 { result =
                     addToResult Cache.empty
                         (Can.Field
@@ -1775,18 +1762,42 @@ canonicalizeField refs object selection found =
                                     field
                                     found.fieldNames
                                     matched
-                        in
-                        { result =
-                            case cannedSelection of
-                                CanSuccess cache sel ->
-                                    addToResult cache sel found.result
 
-                                CanError errMsg ->
-                                    CanError errMsg
-                        , fieldNames =
-                            newNames
-                                |> UsedNames.saveSibling aliased
-                        }
+                            siblingID =
+                                { aliasedName = aliased
+                                , scalar =
+                                    if GraphQL.Schema.isScalar matched.type_ then
+                                        Just (GraphQL.Schema.typeToString matched.type_)
+
+                                    else
+                                        Nothing
+                                }
+                        in
+                        if UsedNames.siblingCollision siblingID found.fieldNames then
+                            -- There has been a collision, abort!
+                            { result =
+                                err
+                                    [ error
+                                        (FieldAliasRequired
+                                            { fieldName = aliased
+                                            }
+                                        )
+                                    ]
+                            , fieldNames = found.fieldNames
+                            }
+
+                        else
+                            { result =
+                                case cannedSelection of
+                                    CanSuccess cache sel ->
+                                        addToResult cache sel found.result
+
+                                    CanError errMsg ->
+                                        CanError errMsg
+                            , fieldNames =
+                                newNames
+                                    |> UsedNames.saveSibling siblingID
+                            }
 
                     Nothing ->
                         { result =
@@ -2258,7 +2269,15 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
             in
             case selectionResult.result of
                 CanSuccess cache canSelection ->
-                    if UsedNames.siblingCollision aliasedName global.used then
+                    let
+                        siblingID =
+                            { aliasedName = aliasedName
+
+                            -- This is an object, not a scalar
+                            , scalar = Nothing
+                            }
+                    in
+                    if UsedNames.siblingCollision siblingID global.used then
                         ( selectionResult.fieldNames
                             |> UsedNames.dropLevel
                         , err
@@ -2273,7 +2292,7 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                     else
                         ( selectionResult.fieldNames
                             |> UsedNames.dropLevel
-                            |> UsedNames.saveSibling aliasedName
+                            |> UsedNames.saveSibling siblingID
                         , CanSuccess (Cache.merge varCache cache)
                             (Can.Field
                                 { alias_ = Maybe.map convertName field.alias_

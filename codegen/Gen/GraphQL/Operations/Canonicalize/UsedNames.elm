@@ -210,8 +210,8 @@ getGlobalName getGlobalNameArg getGlobalNameArg0 =
         [ Elm.string getGlobalNameArg, getGlobalNameArg0 ]
 
 
-{-| siblingCollision: String -> UsedNames -> Bool -}
-siblingCollision : String -> Elm.Expression -> Elm.Expression
+{-| siblingCollision: Sibling -> UsedNames -> Bool -}
+siblingCollision : Elm.Expression -> Elm.Expression -> Elm.Expression
 siblingCollision siblingCollisionArg siblingCollisionArg0 =
     Elm.apply
         (Elm.value
@@ -221,16 +221,18 @@ siblingCollision siblingCollisionArg siblingCollisionArg0 =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.string, Type.namedWith [] "UsedNames" [] ]
+                        [ Type.namedWith [] "Sibling" []
+                        , Type.namedWith [] "UsedNames" []
+                        ]
                         Type.bool
                     )
             }
         )
-        [ Elm.string siblingCollisionArg, siblingCollisionArg0 ]
+        [ siblingCollisionArg, siblingCollisionArg0 ]
 
 
-{-| saveSibling: String -> UsedNames -> UsedNames -}
-saveSibling : String -> Elm.Expression -> Elm.Expression
+{-| saveSibling: Sibling -> UsedNames -> UsedNames -}
+saveSibling : Elm.Expression -> Elm.Expression -> Elm.Expression
 saveSibling saveSiblingArg saveSiblingArg0 =
     Elm.apply
         (Elm.value
@@ -240,12 +242,14 @@ saveSibling saveSiblingArg saveSiblingArg0 =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.string, Type.namedWith [] "UsedNames" [] ]
+                        [ Type.namedWith [] "Sibling" []
+                        , Type.namedWith [] "UsedNames" []
+                        ]
                         (Type.namedWith [] "UsedNames" [])
                     )
             }
         )
-        [ Elm.string saveSiblingArg, saveSiblingArg0 ]
+        [ saveSiblingArg, saveSiblingArg0 ]
 
 
 {-| init: List String -> UsedNames -}
@@ -431,7 +435,7 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.string
+                                [ Type.namedWith [] "Sibling" []
                                 , Type.namedWith [] "UsedNames" []
                                 ]
                                 Type.bool
@@ -449,7 +453,7 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.string
+                                [ Type.namedWith [] "Sibling" []
                                 , Type.namedWith [] "UsedNames" []
                                 ]
                                 (Type.namedWith [] "UsedNames" [])
@@ -596,7 +600,9 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.string, Type.namedWith [] "UsedNames" [] ]
+                        [ Type.namedWith [] "Sibling" []
+                        , Type.namedWith [] "UsedNames" []
+                        ]
                         Type.bool
                     )
             }
@@ -608,7 +614,9 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.string, Type.namedWith [] "UsedNames" [] ]
+                        [ Type.namedWith [] "Sibling" []
+                        , Type.namedWith [] "UsedNames" []
+                        ]
                         (Type.namedWith [] "UsedNames" [])
                     )
             }

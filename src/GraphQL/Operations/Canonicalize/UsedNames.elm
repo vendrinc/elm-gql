@@ -33,8 +33,8 @@ init names =
 type UsedNames
     = UsedNames
         -- sibling errors will cause a compiler error if there is a collision
-        { siblingAliases : List String
-        , siblingStack : List (List String)
+        { siblingAliases : List Sibling
+        , siblingStack : List (List Sibling)
 
         -- All parent aliased names
         -- we keep track of if something is an alias because
@@ -48,6 +48,12 @@ type UsedNames
         -- All global field aliases
         , globalNames : List String
         }
+
+
+type alias Sibling =
+    { aliasedName : String
+    , scalar : Maybe String
+    }
 
 
 builtinNames : List String
@@ -78,17 +84,30 @@ formatTypename name =
         uppercase
 
 
-saveSibling : String -> UsedNames -> UsedNames
-saveSibling name (UsedNames used) =
+saveSibling : Sibling -> UsedNames -> UsedNames
+saveSibling sibling (UsedNames used) =
     UsedNames
         { used
-            | siblingAliases = formatTypename name :: used.siblingAliases
+            | siblingAliases = sibling :: used.siblingAliases
         }
 
 
-siblingCollision : String -> UsedNames -> Bool
-siblingCollision name (UsedNames used) =
-    List.member (formatTypename name) used.siblingAliases
+siblingCollision : Sibling -> UsedNames -> Bool
+siblingCollision sib (UsedNames used) =
+    List.any
+        (\sibAlias ->
+            if sibAlias.aliasedName == sib.aliasedName then
+                case ( sibAlias.scalar, sib.scalar ) of
+                    ( Just scalarOneName, Just scalarTwoName ) ->
+                        scalarOneName /= scalarTwoName
+
+                    _ ->
+                        True
+
+            else
+                False
+        )
+        used.siblingAliases
 
 
 {-|

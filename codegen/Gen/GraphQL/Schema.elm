@@ -1,7 +1,7 @@
-module Gen.GraphQL.Schema exposing (annotation_, call_, caseOf_, decoder, empty, getInner, getJsonValue, getWrap, kindToString, make_, mockScalar, moduleName_, typeToElmString, typeToString, values_)
+module Gen.GraphQL.Schema exposing (annotation_, call_, caseOf_, decoder, empty, getInner, getJsonValue, getWrap, isScalar, kindToString, make_, mockScalar, moduleName_, typeToElmString, typeToString, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, getWrap, getInner, mockScalar, typeToElmString, typeToString, decoder, empty, getJsonValue, kindToString, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, isScalar, getWrap, getInner, mockScalar, typeToElmString, typeToString, decoder, empty, getJsonValue, kindToString, moduleName_
 -}
 
 
@@ -178,6 +178,20 @@ getWrap getWrapArg =
             }
         )
         [ getWrapArg ]
+
+
+{-| isScalar: Type -> Bool -}
+isScalar : Elm.Expression -> Elm.Expression
+isScalar isScalarArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Schema" ]
+            , name = "isScalar"
+            , annotation =
+                Just (Type.function [ Type.namedWith [] "Type" [] ] Type.bool)
+            }
+        )
+        [ isScalarArg ]
 
 
 annotation_ :
@@ -1047,6 +1061,7 @@ call_ :
     , mockScalar : Elm.Expression -> Elm.Expression
     , getInner : Elm.Expression -> Elm.Expression
     , getWrap : Elm.Expression -> Elm.Expression
+    , isScalar : Elm.Expression -> Elm.Expression
     }
 call_ =
     { kindToString =
@@ -1165,6 +1180,21 @@ call_ =
                     }
                 )
                 [ getWrapArg ]
+    , isScalar =
+        \isScalarArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Schema" ]
+                    , name = "isScalar"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Type" [] ]
+                                Type.bool
+                            )
+                    }
+                )
+                [ isScalarArg ]
     }
 
 
@@ -1178,6 +1208,7 @@ values_ :
     , mockScalar : Elm.Expression
     , getInner : Elm.Expression
     , getWrap : Elm.Expression
+    , isScalar : Elm.Expression
     }
 values_ =
     { kindToString =
@@ -1273,6 +1304,13 @@ values_ =
                         [ Type.namedWith [] "Type" [] ]
                         (Type.namedWith [] "Wrapped" [])
                     )
+            }
+    , isScalar =
+        Elm.value
+            { importFrom = [ "GraphQL", "Schema" ]
+            , name = "isScalar"
+            , annotation =
+                Just (Type.function [ Type.namedWith [] "Type" [] ] Type.bool)
             }
     }
 
