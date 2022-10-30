@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.CanonicalAST exposing (addArgValue, addExp, addLevelToCursor, addString, aliasedName, aliasedNameExp, annotation_, argToString, argValToString, brackets, call_, caseOf_, commit, deduplicateFragments, fieldToString, foldToString, getAliasedName, getWrapper, initCursor, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, operationName, removeLevelToCursor, renderArguments, renderArgumentsExp, renderField, renderFragment, renderSelection, renderVariant, selectionGroupToString, selectionToString, toRendererExpression, toString, toStringFields, typeToString, unwrap, values_, variantFragmentToString)
+module Gen.GraphQL.Operations.CanonicalAST exposing (addArgValue, addExp, addLevelToCursor, addString, aliasedName, aliasedNameExp, annotation_, argToString, argValToString, brackets, call_, caseOf_, commit, deduplicateFragments, fieldToString, foldToString, getAliasedName, getWrapper, initCursor, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, operationName, removeLevelToCursor, renderArguments, renderArgumentsExp, renderField, renderFragment, renderSelection, renderVariant, selectionGroupToString, selectionToString, toFragmentRendererExpression, toRendererExpression, toString, toStringFields, typeToString, unwrap, values_, variantFragmentToString)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, nameToString, toString, operationLabel, toStringFields, fieldToString, selectionToString, variantFragmentToString, selectionGroupToString, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toRendererExpression, deduplicateFragments, renderFragment, initCursor, addLevelToCursor, removeLevelToCursor, commit, addString, addExp, renderField, renderSelection, renderVariant, aliasedNameExp, renderArgumentsExp, addArgValue, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, nameToString, toString, operationLabel, toStringFields, fieldToString, selectionToString, variantFragmentToString, selectionGroupToString, renderArguments, argToString, argValToString, aliasedName, foldToString, operationName, brackets, getWrapper, typeToString, unwrap, toRendererExpression, toFragmentRendererExpression, deduplicateFragments, renderFragment, initCursor, addLevelToCursor, removeLevelToCursor, commit, addString, addExp, renderField, renderSelection, renderVariant, aliasedNameExp, renderArgumentsExp, addArgValue, moduleName_
 -}
 
 
@@ -298,6 +298,27 @@ deduplicateFragments deduplicateFragmentsArg =
             }
         )
         [ Elm.list deduplicateFragmentsArg ]
+
+
+{-| toFragmentRendererExpression: Elm.Expression -> Definition -> Elm.Expression -}
+toFragmentRendererExpression :
+    Elm.Expression -> Elm.Expression -> Elm.Expression
+toFragmentRendererExpression toFragmentRendererExpressionArg toFragmentRendererExpressionArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "toFragmentRendererExpression"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "Elm" ] "Expression" []
+                        , Type.namedWith [] "Definition" []
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+        )
+        [ toFragmentRendererExpressionArg, toFragmentRendererExpressionArg0 ]
 
 
 {-| {-| We want to render a string of this, but with a `version`
@@ -1867,6 +1888,8 @@ call_ :
     , initCursor : Elm.Expression -> Elm.Expression
     , renderFragment : Elm.Expression -> Elm.Expression
     , deduplicateFragments : Elm.Expression -> Elm.Expression
+    , toFragmentRendererExpression :
+        Elm.Expression -> Elm.Expression -> Elm.Expression
     , toRendererExpression : Elm.Expression -> Elm.Expression -> Elm.Expression
     , unwrap : Elm.Expression -> Elm.Expression -> Elm.Expression
     , typeToString : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -2126,6 +2149,25 @@ call_ =
                     }
                 )
                 [ deduplicateFragmentsArg ]
+    , toFragmentRendererExpression =
+        \toFragmentRendererExpressionArg toFragmentRendererExpressionArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "toFragmentRendererExpression"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [ "Elm" ] "Expression" []
+                                , Type.namedWith [] "Definition" []
+                                ]
+                                (Type.namedWith [ "Elm" ] "Expression" [])
+                            )
+                    }
+                )
+                [ toFragmentRendererExpressionArg
+                , toFragmentRendererExpressionArg0
+                ]
     , toRendererExpression =
         \toRendererExpressionArg toRendererExpressionArg0 ->
             Elm.apply
@@ -2464,6 +2506,7 @@ values_ :
     , initCursor : Elm.Expression
     , renderFragment : Elm.Expression
     , deduplicateFragments : Elm.Expression
+    , toFragmentRendererExpression : Elm.Expression
     , toRendererExpression : Elm.Expression
     , unwrap : Elm.Expression
     , typeToString : Elm.Expression
@@ -2662,6 +2705,19 @@ values_ =
                     (Type.function
                         [ Type.list (Type.namedWith [] "Fragment" []) ]
                         (Type.list (Type.namedWith [] "Fragment" []))
+                    )
+            }
+    , toFragmentRendererExpression =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "toFragmentRendererExpression"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "Elm" ] "Expression" []
+                        , Type.namedWith [] "Definition" []
+                        ]
+                        (Type.namedWith [ "Elm" ] "Expression" [])
                     )
             }
     , toRendererExpression =

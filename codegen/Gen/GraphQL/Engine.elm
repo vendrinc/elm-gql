@@ -576,7 +576,11 @@ mapRequest mapRequestArg mapRequestArg0 =
 
 bakeToSelection: 
     Maybe String
-    -> (Int -> ( List ( String, VariableDetails ), String ))
+    -> (Int
+    -> { args : List ( String, VariableDetails )
+    , body : String
+    , fragments : String
+    })
     -> (Int -> Json.Decode.Decoder data)
     -> Selection source data
 -}
@@ -596,14 +600,21 @@ bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
                         [ Type.namedWith [] "Maybe" [ Type.string ]
                         , Type.function
                             [ Type.int ]
-                            (Type.tuple
-                                (Type.list
-                                    (Type.tuple
-                                        Type.string
-                                        (Type.namedWith [] "VariableDetails" [])
-                                    )
-                                )
-                                Type.string
+                            (Type.record
+                                [ ( "args"
+                                  , Type.list
+                                        (Type.tuple
+                                            Type.string
+                                            (Type.namedWith
+                                                []
+                                                "VariableDetails"
+                                                []
+                                            )
+                                        )
+                                  )
+                                , ( "body", Type.string )
+                                , ( "fragments", Type.string )
+                                ]
                             )
                         , Type.function
                             [ Type.int ]
@@ -2309,18 +2320,21 @@ call_ =
                                 [ Type.namedWith [] "Maybe" [ Type.string ]
                                 , Type.function
                                     [ Type.int ]
-                                    (Type.tuple
-                                        (Type.list
-                                            (Type.tuple
-                                                Type.string
-                                                (Type.namedWith
-                                                    []
-                                                    "VariableDetails"
-                                                    []
+                                    (Type.record
+                                        [ ( "args"
+                                          , Type.list
+                                                (Type.tuple
+                                                    Type.string
+                                                    (Type.namedWith
+                                                        []
+                                                        "VariableDetails"
+                                                        []
+                                                    )
                                                 )
-                                            )
-                                        )
-                                        Type.string
+                                          )
+                                        , ( "body", Type.string )
+                                        , ( "fragments", Type.string )
+                                        ]
                                     )
                                 , Type.function
                                     [ Type.int ]
@@ -3481,14 +3495,21 @@ values_ =
                         [ Type.namedWith [] "Maybe" [ Type.string ]
                         , Type.function
                             [ Type.int ]
-                            (Type.tuple
-                                (Type.list
-                                    (Type.tuple
-                                        Type.string
-                                        (Type.namedWith [] "VariableDetails" [])
-                                    )
-                                )
-                                Type.string
+                            (Type.record
+                                [ ( "args"
+                                  , Type.list
+                                        (Type.tuple
+                                            Type.string
+                                            (Type.namedWith
+                                                []
+                                                "VariableDetails"
+                                                []
+                                            )
+                                        )
+                                  )
+                                , ( "body", Type.string )
+                                , ( "fragments", Type.string )
+                                ]
                             )
                         , Type.function
                             [ Type.int ]

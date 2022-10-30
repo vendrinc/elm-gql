@@ -558,7 +558,13 @@ type Details selected
         -- Both of these take a Set String, which is how we're keeping track of
         -- what needs to be aliased
         -- How to make the gql query
-        (Context -> ( Context, List Field ))
+        (Context
+         ->
+            { context : Context
+            , fields : List Field
+            , fragments : String
+            }
+        )
         -- How to decode the data coming back
         (Context -> ( Context, Json.Decode.Decoder selected ))
 
@@ -768,7 +774,10 @@ select data =
     Selection
         (Details Nothing
             (\context ->
-                ( context, [] )
+                { context = context
+                , fields = []
+                , fragments = ""
+                }
             )
             (\context ->
                 ( context, Json.Decode.succeed data )
@@ -818,15 +827,16 @@ map2 fn (Selection (Details oneOpName oneFields oneDecoder)) (Selection (Details
             (mergeOpNames oneOpName twoOpName)
             (\aliases ->
                 let
-                    ( oneAliasesNew, oneFieldsNew ) =
+                    one =
                         oneFields aliases
 
-                    ( twoAliasesNew, twoFieldsNew ) =
+                    two =
                         twoFields oneAliasesNew
                 in
-                ( twoAliasesNew
-                , oneFieldsNew ++ twoFieldsNew
-                )
+                { context = two.context
+                , fields = one.fields ++ two.fields
+                , fragments = one.fragments ++ two.fragments
+                }
             )
             (\aliases ->
                 let
@@ -845,7 +855,14 @@ map2 fn (Selection (Details oneOpName oneFields oneDecoder)) (Selection (Details
 {-| -}
 bakeToSelection :
     Maybe String
-    -> (Int -> ( List ( String, VariableDetails ), String ))
+    ->
+        (Int
+         ->
+            { args : List ( String, VariableDetails )
+            , body : String
+            , fragments : String
+            }
+        )
     -> (Int -> Json.Decode.Decoder data)
     -> Selection source data
 bakeToSelection maybeOpName toGql toDecoder =
@@ -853,19 +870,21 @@ bakeToSelection maybeOpName toGql toDecoder =
         (Details maybeOpName
             (\context ->
                 let
-                    ( args, gql ) =
+                    gql =
                         toGql context.version
                 in
-                ( { context
-                    | version = context.version + 1
-                    , variables =
-                        args
-                            |> List.map (protectArgs context.version)
-                            |> Dict.fromList
-                            |> Dict.union context.variables
-                  }
-                , [ Baked gql ]
-                )
+                { context =
+                    { context
+                        | version = context.version + 1
+                        , variables =
+                            gql.args
+                                |> List.map (protectArgs context.version)
+                                |> Dict.fromList
+                                |> Dict.union context.variables
+                    }
+                , fields = [ Baked gql.bodygql ]
+                , fragments = gql.fragments
+                }
             )
             (\context ->
                 let
@@ -1153,16 +1172,17 @@ type Error
 queryString : String -> Selection source data -> String
 queryString operation (Selection (Details maybeOpName gql _)) =
     let
-        ( context, fields ) =
+        rendered =
             gql empty
     in
     operation
         ++ " "
         ++ Maybe.withDefault "" maybeOpName
-        ++ renderParameters context.variables
+        ++ renderParameters rendered.context.variables
         ++ "{"
-        ++ fieldsToQueryString fields ""
+        ++ fieldsToQueryString rendered.fields ""
         ++ "}"
+        ++ rendered.fragments
 
 
 renderParameters : Dict String VariableDetails -> String

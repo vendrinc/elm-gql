@@ -215,11 +215,17 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                             (Elm.fn
                                 ( "version_", Nothing )
                                 (\version ->
-                                    Elm.tuple
-                                        (Elm.list [])
-                                        (Elm.apply (Elm.val "toPayload_")
-                                            [ version ]
-                                        )
+                                    Elm.record
+                                        [ ( "args", Elm.list [] )
+                                        , ( "body"
+                                          , Elm.apply (Elm.val "toPayload_")
+                                                [ version ]
+                                          )
+                                        , ( "fragments"
+                                          , Elm.apply (Elm.val "toFragments_")
+                                                [ version ]
+                                          )
+                                        ]
                                 )
                             )
                             (Elm.val "decoder_")
@@ -257,11 +263,17 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                                 (Elm.fn
                                     ( "version_", Nothing )
                                     (\version ->
-                                        Elm.tuple
-                                            vars
-                                            (Elm.apply (Elm.val "toPayload_")
-                                                [ version ]
-                                            )
+                                        Elm.record
+                                            [ ( "args", Elm.list [] )
+                                            , ( "body"
+                                              , Elm.apply (Elm.val "toPayload_")
+                                                    [ version ]
+                                              )
+                                            , ( "fragments"
+                                              , Elm.apply (Elm.val "toFragments_")
+                                                    [ version ]
+                                              )
+                                            ]
                                     )
                                 )
                                 (Elm.val "decoder_")
@@ -293,6 +305,13 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                     ( "version_", Nothing )
                     (\version ->
                         Can.toRendererExpression version def
+                    )
+                )
+            , Elm.declaration "toFragments_"
+                (Elm.fn
+                    ( "version_", Just Type.int )
+                    (\version ->
+                        Can.toFragmentRendererExpression version def
                     )
                 )
             ]

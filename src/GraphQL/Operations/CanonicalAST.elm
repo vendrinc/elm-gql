@@ -509,26 +509,21 @@ toRendererExpression version (Operation def) =
         |> renderFields def.fields
         |> commit
         |> (\cursor ->
-                let
-                    frags =
-                        def.fragmentsUsed
-                            |> List.map .fragment
-                            |> deduplicateFragments
-                in
-                case frags of
-                    [] ->
-                        Maybe.withDefault (Elm.string "") cursor.exp
-
-                    _ ->
-                        let
-                            renderedFragments =
-                                frags
-                                    |> List.map renderFragment
-                                    |> String.join "\n"
-                        in
-                        Elm.Op.append (Maybe.withDefault (Elm.string "") cursor.exp)
-                            (Elm.string renderedFragments)
+                Maybe.withDefault (Elm.string "") cursor.exp
            )
+
+
+toFragmentRendererExpression : Elm.Expression -> Definition -> Elm.Expression
+toFragmentRendererExpression version (Operation def) =
+    let
+        renderedFragments =
+            def.fragmentsUsed
+                |> List.map .fragment
+                |> deduplicateFragments
+                |> List.map renderFragment
+                |> String.join "\n"
+    in
+    Elm.string renderedFragments
 
 
 deduplicateFragments : List Fragment -> List Fragment
@@ -642,12 +637,6 @@ commit cursor =
                         Just existing ->
                             Just
                                 (Elm.Op.append existing (Elm.string cursor.string))
-
-                -- (Gen.String.call_.append existing (Elm.string cursor.string))
-                -- (Elm.string cursor.string
-                --     |> Elm.Op.pipe
-                --         (Elm.apply Gen.String.values_.append [ existing ])
-                -- )
             }
 
 
