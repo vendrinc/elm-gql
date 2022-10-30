@@ -76,16 +76,20 @@ batch selections =
             )
             (\context ->
                 List.foldl
-                    (\(Selection (Details _ toFieldsGql _)) ( ctxt, fields ) ->
+                    (\(Selection (Details _ toFieldsGql _)) cursor ->
                         let
-                            ( newCtxt, newFields ) =
-                                toFieldsGql ctxt
+                            new =
+                                toFieldsGql cursor.context
                         in
-                        ( newCtxt
-                        , fields ++ newFields
-                        )
+                        { context = new.context
+                        , fields = cursor.fields ++ new.fields
+                        , fragments = cursor.fragments ++ new.fragments
+                        }
                     )
-                    ( context, [] )
+                    { context = context
+                    , fields = []
+                    , fragments = ""
+                    }
                     selections
             )
             (\context ->
@@ -144,29 +148,30 @@ union options =
                         List.foldl
                             (\( name, Selection (Details _ fragQuery _) ) ( frags, currentContext ) ->
                                 let
-                                    ( newContext, fields ) =
+                                    rendered =
                                         fragQuery currentContext
 
                                     nonEmptyFields =
-                                        case fields of
+                                        case rendered.fields of
                                             [] ->
                                                 -- we're already selecting typename at the root.
                                                 -- this is just so we don't have an empty set of brackets
                                                 [ Field "__typename" Nothing [] [] ]
 
-                                            _ ->
+                                            fields ->
                                                 fields
                                 in
                                 ( Fragment name nonEmptyFields :: frags
-                                , newContext
+                                , rendered.context
                                 )
                             )
                             ( [], context )
                             options
                 in
-                ( fragmentContext
-                , Field "__typename" Nothing [] [] :: fragments
-                )
+                { context = fragmentContext
+                , fields = Field "__typename" Nothing [] [] :: fragments
+                , fragments = ""
+                }
             )
             (\context ->
                 let
@@ -291,16 +296,21 @@ objectWith inputObj name (Selection (Details opName toFieldsGql toFieldsDecoder)
             opName
             (\context ->
                 let
-                    ( fieldContext, fields ) =
+                    rendered =
                         toFieldsGql { context | aliases = Dict.empty }
+
+                    fieldContext =
+                        rendered.context
 
                     new =
                         applyContext inputObj name { fieldContext | aliases = context.aliases }
                 in
-                ( new.context
-                , [ Field name new.aliasString new.args fields
-                  ]
-                )
+                { context = new.context
+                , fields =
+                    [ Field name new.aliasString new.args rendered.fields
+                    ]
+                , fragments = rendered.fragments
+                }
             )
             (\context ->
                 let
@@ -329,9 +339,10 @@ decode decoder =
     Selection <|
         Details Nothing
             (\context ->
-                ( context
-                , []
-                )
+                { context = context
+                , fields = []
+                , fragments = ""
+                }
             )
             (\context ->
                 ( context
@@ -346,10 +357,12 @@ selectTypeNameButSkip =
     Selection <|
         Details Nothing
             (\context ->
-                ( context
-                , [ Field "__typename" Nothing [] []
-                  ]
-                )
+                { context = context
+                , fields =
+                    [ Field "__typename" Nothing [] []
+                    ]
+                , fragments = ""
+                }
             )
             (\context ->
                 ( context
@@ -374,10 +387,12 @@ fieldWith args name gqlType decoder =
                     new =
                         applyContext args name context
                 in
-                ( new.context
-                , [ Field name new.aliasString new.args []
-                  ]
-                )
+                { context = new.context
+                , fields =
+                    [ Field name new.aliasString new.args []
+                    ]
+                , fragments = ""
+                }
             )
             (\context ->
                 let
@@ -831,7 +846,7 @@ map2 fn (Selection (Details oneOpName oneFields oneDecoder)) (Selection (Details
                         oneFields aliases
 
                     two =
-                        twoFields oneAliasesNew
+                        twoFields one.context
                 in
                 { context = two.context
                 , fields = one.fields ++ two.fields
@@ -882,7 +897,7 @@ bakeToSelection maybeOpName toGql toDecoder =
                                 |> Dict.fromList
                                 |> Dict.union context.variables
                     }
-                , fields = [ Baked gql.bodygql ]
+                , fields = [ Baked gql.body ]
                 , fragments = gql.fragments
                 }
             )
@@ -1106,10 +1121,10 @@ sanitizeOperationName input =
 getContext : Selection source selected -> Context
 getContext (Selection (Details maybeOpName gql _)) =
     let
-        ( context, fields ) =
+        rendered =
             gql empty
     in
-    context
+    rendered.context
 
 
 {-| -}
