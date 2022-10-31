@@ -347,9 +347,9 @@ toFragmentRendererExpression toFragmentRendererExpressionArg toFragmentRendererE
         ]
 
 
-{-| getUsedFragments: Fragment -> List String -}
-getUsedFragments : Elm.Expression -> Elm.Expression
-getUsedFragments getUsedFragmentsArg =
+{-| getUsedFragments: Document -> Fragment -> List String -}
+getUsedFragments : Elm.Expression -> Elm.Expression -> Elm.Expression
+getUsedFragments getUsedFragmentsArg getUsedFragmentsArg0 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
@@ -357,12 +357,14 @@ getUsedFragments getUsedFragmentsArg =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [] "Fragment" [] ]
+                        [ Type.namedWith [] "Document" []
+                        , Type.namedWith [] "Fragment" []
+                        ]
                         (Type.list Type.string)
                     )
             }
         )
-        [ getUsedFragmentsArg ]
+        [ getUsedFragmentsArg, getUsedFragmentsArg0 ]
 
 
 {-| {-| We want to render a string of this, but with a `version`
@@ -1935,7 +1937,7 @@ call_ :
     , deduplicateFragments : Elm.Expression -> Elm.Expression
     , toFragmentRendererExpression :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
-    , getUsedFragments : Elm.Expression -> Elm.Expression
+    , getUsedFragments : Elm.Expression -> Elm.Expression -> Elm.Expression
     , toRendererExpression : Elm.Expression -> Elm.Expression -> Elm.Expression
     , unwrap : Elm.Expression -> Elm.Expression -> Elm.Expression
     , typeToString : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -2236,7 +2238,7 @@ call_ =
                 , toFragmentRendererExpressionArg1
                 ]
     , getUsedFragments =
-        \getUsedFragmentsArg ->
+        \getUsedFragmentsArg getUsedFragmentsArg0 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
@@ -2244,12 +2246,14 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.namedWith [] "Fragment" [] ]
+                                [ Type.namedWith [] "Document" []
+                                , Type.namedWith [] "Fragment" []
+                                ]
                                 (Type.list Type.string)
                             )
                     }
                 )
-                [ getUsedFragmentsArg ]
+                [ getUsedFragmentsArg, getUsedFragmentsArg0 ]
     , toRendererExpression =
         \toRendererExpressionArg toRendererExpressionArg0 ->
             Elm.apply
@@ -2827,7 +2831,9 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [] "Fragment" [] ]
+                        [ Type.namedWith [] "Document" []
+                        , Type.namedWith [] "Fragment" []
+                        ]
                         (Type.list Type.string)
                     )
             }

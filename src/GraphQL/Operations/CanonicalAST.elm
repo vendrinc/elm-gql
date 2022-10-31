@@ -514,10 +514,18 @@ toRendererExpression version (Operation def) =
            )
 
 
-getUsedFragments : Fragment -> List String
-getUsedFragments frag =
-    (frag.name :: frag.fragmentsUsed)
-        |> List.map nameToString
+getUsedFragments : Document -> Fragment -> List String
+getUsedFragments doc frag =
+    let
+        subFragNames =
+            doc.fragments
+                |> List.filter
+                    (\subfrag ->
+                        List.member subfrag.name frag.fragmentsUsed
+                    )
+                |> List.concatMap (getUsedFragments doc)
+    in
+    nameToString frag.name :: subFragNames
 
 
 toFragmentRendererExpression : Elm.Expression -> Document -> Definition -> Elm.Expression
@@ -528,7 +536,7 @@ toFragmentRendererExpression version doc (Operation def) =
 
         fragmentNamesUsed =
             def.fragmentsUsed
-                |> List.concatMap (getUsedFragments << .fragment)
+                |> List.concatMap (getUsedFragments doc << .fragment)
                 |> Set.fromList
 
         fragmentsUsed =
