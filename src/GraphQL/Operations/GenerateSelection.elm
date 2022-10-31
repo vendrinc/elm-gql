@@ -264,7 +264,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                                     ( "version_", Nothing )
                                     (\version ->
                                         Elm.record
-                                            [ ( "args", Elm.list [] )
+                                            [ ( "args", vars )
                                             , ( "body"
                                               , Elm.apply (Elm.val "toPayload_")
                                                     [ version ]
