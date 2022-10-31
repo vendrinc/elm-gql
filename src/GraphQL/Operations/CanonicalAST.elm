@@ -11,6 +11,7 @@ import Gen.GraphQL.Schema as GenSchema
 import Gen.String
 import GraphQL.Operations.AST as AST
 import GraphQL.Schema
+import Set
 
 
 type alias Document =
@@ -513,10 +514,31 @@ toRendererExpression version (Operation def) =
            )
 
 
-toFragmentRendererExpression : Elm.Expression -> Definition -> Elm.Expression
-toFragmentRendererExpression version (Operation def) =
-    def.fragmentsUsed
-        |> List.map .fragment
+getUsedFragments : Fragment -> List String
+getUsedFragments frag =
+    (frag.name :: frag.fragmentsUsed)
+        |> List.map nameToString
+
+
+toFragmentRendererExpression : Elm.Expression -> Document -> Definition -> Elm.Expression
+toFragmentRendererExpression version doc (Operation def) =
+    let
+        allFrags =
+            doc.fragments
+
+        fragmentNamesUsed =
+            def.fragmentsUsed
+                |> List.concatMap (getUsedFragments << .fragment)
+                |> Set.fromList
+
+        fragmentsUsed =
+            allFrags
+                |> List.filter
+                    (\frag ->
+                        Set.member (nameToString frag.name) fragmentNamesUsed
+                    )
+    in
+    fragmentsUsed
         |> deduplicateFragments
         |> List.map (renderFragment version)
         |> Elm.list

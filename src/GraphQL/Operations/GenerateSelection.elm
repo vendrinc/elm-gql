@@ -311,7 +311,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                 (Elm.fn
                     ( "version_", Just Type.int )
                     (\version ->
-                        Can.toFragmentRendererExpression version def
+                        Can.toFragmentRendererExpression version document def
                     )
                 )
             ]
