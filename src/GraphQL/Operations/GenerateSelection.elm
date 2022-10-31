@@ -599,7 +599,7 @@ fieldAliasedAnnotation namespace field =
     else
         case field of
             Can.Field details ->
-                [ ( Can.getAliasedName details
+                [ ( Utils.String.formatValue (Can.getAliasedName details)
                   , selectionAliasedAnnotation namespace details
                         |> Input.wrapElmType details.wrapper
                   )
