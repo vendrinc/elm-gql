@@ -542,7 +542,7 @@ renderFragment version frag =
         selection =
             case frag.selection of
                 FragmentObject obj ->
-                    selectionGroupToString obj.selection
+                    foldToString "\n" fieldToString obj.selection
 
                 FragmentUnion union ->
                     foldToString "\n" fieldToString union.selection
@@ -555,7 +555,6 @@ renderFragment version frag =
                         ++ foldToString "\n" variantFragmentToString union.variants
 
                 FragmentInterface interface ->
-                    -- selectionGroupToString interface.selection
                     foldToString "\n" fieldToString interface.selection
                         ++ (if not (List.isEmpty interface.selection && List.isEmpty interface.variants) then
                                 "\n"
