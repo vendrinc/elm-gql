@@ -515,15 +515,12 @@ toRendererExpression version (Operation def) =
 
 toFragmentRendererExpression : Elm.Expression -> Definition -> Elm.Expression
 toFragmentRendererExpression version (Operation def) =
-    let
-        renderedFragments =
-            def.fragmentsUsed
-                |> List.map .fragment
-                |> deduplicateFragments
-                |> List.map renderFragment
-                |> String.join "\n"
-    in
-    Elm.string renderedFragments
+    def.fragmentsUsed
+        |> List.map .fragment
+        |> deduplicateFragments
+        |> List.map (renderFragment version)
+        |> Elm.list
+        |> Gen.String.call_.join (Elm.string "\n")
 
 
 deduplicateFragments : List Fragment -> List Fragment
@@ -539,8 +536,8 @@ deduplicateFragments frags =
         |> Dict.values
 
 
-renderFragment : Fragment -> String
-renderFragment frag =
+renderFragment : Elm.Expression -> Fragment -> Elm.Expression
+renderFragment version frag =
     let
         selection =
             case frag.selection of
@@ -567,12 +564,25 @@ renderFragment frag =
                                 ""
                            )
                         ++ foldToString "\n" variantFragmentToString interface.variants
+
+        name =
+            Engine.call_.versionedName version (Elm.string (nameToString frag.name))
+
+        body =
+            Elm.string
+                ((" on " ++ nameToString frag.typeCondition)
+                    ++ (" {" ++ selection ++ " }")
+                )
     in
-    ("fragment " ++ nameToString frag.name ++ " on " ++ nameToString frag.typeCondition ++ " {")
-        ++ selection
-        ++ " }"
+    Elm.Op.append
+        (Elm.Op.append
+            (Elm.string "fragment ")
+            name
+        )
+        body
 
 
+renderFields : List Field -> RenderingCursor -> RenderingCursor
 renderFields fields cursor =
     List.foldr
         (\sel ( afterFirst, c ) ->
@@ -673,7 +683,12 @@ renderField field cursor =
     case field of
         Frag frag ->
             cursor
-                |> addString ("\n..." ++ nameToString frag.fragment.name)
+                |> addString "\n..."
+                |> addExp
+                    (Engine.call_.versionedName
+                        cursor.version
+                        (Elm.string (nameToString frag.fragment.name))
+                    )
 
         Field details ->
             cursor
