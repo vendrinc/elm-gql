@@ -1,11 +1,8 @@
-> **Warning**
-> This project is not published quite yet, but will be soon!
-
 # Write GQL, get Elm
 
 GraphQL and Elm have very similar type systems in many aspects!
 
-This library is focused on allowing you to write GraphQL queries and mutations directly, and then generating nice Elm code for you to use.
+With this library you can write GraphQL queries and mutations directly and receive nice Elm code for you to use them.
 
 This saves a ton of time! And maintains that lovely typesafety you're probably used to in Elm.
 
@@ -26,11 +23,9 @@ npm install elm-gql --save-dev
 Once you have `elm-gql` installed, you'll need to get set up by requesting the GraphQL schema for the API you care about.
 
 ```sh
-# download the schema as a json file
-elm-gql inspect https://api.github.com/graphql --header "Authorization: bearer TOKEN" --output=schema.json
+# Start your project by running init
+elm-gql init https://api.github.com/graphql --header "Authorization: bearer TOKEN"
 
-# Then run elm-gql and pass it the schema
-elm-gql schema.json
 ```
 
 This will do a few things!
@@ -41,113 +36,16 @@ This will do a few things!
    - Help you construct inputs to your query
    - Allow you to reference any Enums in your GraphQL.
 
-# The Life of a Query
+When you make a change to a query or mutation, just run
 
-Let's say you write a query called `MyQuery.gql` and inside you have this GraphQL
-
-```graphQL
-query AllFilms {
-    films {
-        title
-        director
-        releaseDate
-    }
-}
+```bash
+elm-gql run ./api/Api/schema.json
 ```
 
-When you run `elm-gql`, a folder called `MyQuery` will be generated next to `MyQuery.gql`, and in that folder will be a file called `AllFiles.elm`.
+and everything will be checked and generated again.
 
-The field `films` returns a list of films, so the generated code will look roughly like this.
+## Guides
 
-```elm
-type alias AllFilms = {
-    films : List Films
-}
-
-type alias Films =
-    { title : String
-    , director : String
-    , releaseDate : String
-    }
-```
-
-If you add a graphQL alias to a field, that will inform what code is generated.
-
-```graphQL
-query AllFilms {
-    films {
-        filmTitle: title
-        director
-        releaseDate
-    }
-}
-```
-
-Will generate
-
-```elm
-type alias AllFilms = {
-    films : List Films
-}
-
-type alias Films =
-    { filmTitle : String
-    , director : String
-    , releaseDate : String
-    }
-```
-
-Though you may also note that `films` is pluralized both for the field name and the record representing a single field. That ain't great!
-
-In this case, we can use a graphQL fragment to both deduplicate our query, but also inform the naming.
-
-```graphQL
-query AllFilms {
-    films {
-        ... Film
-    }
-}
-
-fragment Film on Film {
-    filmTitle: title
-    director
-    releaseDate
-}
-```
-
-Will generate
-
-```elm
-type alias AllFilms = {
-    films : List Film
-}
-
-type alias Film =
-    { filmTitle : String
-    , director : String
-    , releaseDate : String
-    }
-```
-
-Huray! Note, this case of allowing fragments to name a generated type only applies in the case where you use exactly one fragment for a selection.
-
-# How do I reuse code?
-
-One of the ideas behind GraphQL is to only ask for the exact data that you need. I'd recommend just writing a new query/mutation for most cases! Even in the case that they're very similar, if they're not literally the exact same usecase, then it's likely they have slightly different needs and may grow in different directions.
-
-If you do need to share some bits of graphQL queries, use a graphQL fragment.
-
-# Where do I store UI stuff?
-
-One of the interesting aspects of this approach to GraphQL is around where you put other pieces of state you need to track to make your UI interactive.
-
-So first, keep a copy of the data returned by a query in your model, largely unmodified.
-
-If you need to handle additional UI state, put that at the top level of you model and reference things in the query data by ID if you need to.
-
-This turns out to be a really nice way to handle things.
-
-1. You avoid writing a _ton_ of code that is largely concerned with mapping into and out of large nested structures.
-2. It's very easy to understand where everything is.
-
-Potentially a nice way to think about this is to approach about your model as a mini relational database. Organizing things like a collection of tables can be really beneficial.
+- [The Life of a Query](https://github.com/vendrinc/elm-gql/blob/main/guide/LifeOfAQuery.md)
+- [Code Reuse and Patterns](https://github.com/vendrinc/elm-gql/blob/main/guide/CodePatterns.md)
+- [Check out the Github Example Repo](https://github.com/mdgriffith/elm-gql-github-example)
