@@ -431,12 +431,19 @@ namesDecoder : Json.Decoder Names
 namesDecoder =
     Json.succeed Names
         |> apply (Json.at [ "queryType", "name" ] Json.string)
-        |> apply (Json.at [ "mutationType", "name" ] Json.string)
+        |> apply
+            (Json.field "mutationType"
+                (Json.oneOf
+                    [ Json.map Just (Json.field "name" Json.string)
+                    , Json.null Nothing
+                    ]
+                )
+            )
 
 
 type alias Names =
     { queryName : String
-    , mutationName : String
+    , mutationName : Maybe String
     }
 
 
@@ -501,7 +508,7 @@ kinds names =
                     if name_ == names.queryName then
                         Json.map Query_Group decodeOperation |> Json.map Just
 
-                    else if name_ == names.mutationName then
+                    else if Just name_ == names.mutationName then
                         Json.map Mutation_Group decodeOperation |> Json.map Just
 
                     else
