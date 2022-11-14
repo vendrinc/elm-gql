@@ -30,7 +30,7 @@ elm-gql init https://api.github.com/graphql --header "Authorization: bearer TOKE
 
 This will do a few things!
 
-1. Any `*.gql` files in your project will be checked against the schema. You'll either get a nice error message describing what needs to be adjusted in the file, or it'll generate some Elm code for you to use to make that query/mutation in Elm.
+1. Any `*.gql` files in your project will be checked against the schema. You'll either get a nice error message describing what needs to be adjusted in the file, or it'll generate some Elm code next to the `*.gql` files for you to use to make that query/mutation in Elm.
 
 2. Generate some helper code under in a folder called `Api`. (Note, you can change this base name by passing `--namespace MyApi` to the `elm-gql` command). These files will:
    - Help you construct inputs to your query
