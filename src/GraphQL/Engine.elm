@@ -6,7 +6,7 @@ module GraphQL.Engine exposing
     , union
     , Selection, select, with, map, map2, recover, withName
     , arg, argList, Optional, optional
-    , Query, query, Mutation, mutation, Error(..)
+    , Query, query, Mutation, mutation, taskQuery, taskMutation, Error(..)
     , queryString
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeOptionalsAsJson, encodeInputObject, encodeArgument
@@ -34,7 +34,7 @@ module GraphQL.Engine exposing
 
 @docs arg, argList, Optional, optional
 
-@docs Query, query, Mutation, mutation, Error
+@docs Query, query, Mutation, mutation, taskQuery, taskMutation, Error
 
 @docs queryString
 
@@ -59,6 +59,7 @@ import Http
 import Json.Decode
 import Json.Encode
 import Set
+import Task exposing (Task)
 
 
 {-| Batch a number of selection sets together!
@@ -1050,6 +1051,46 @@ mutation sel config =
         }
 
 
+{-| -}
+taskQuery :
+    Selection Query value
+    ->
+        { headers : List Http.Header
+        , url : String
+        , timeout : Maybe Float
+        }
+    -> Task Error value
+taskQuery sel config =
+    Http.task
+        { method = "POST"
+        , headers = config.headers
+        , url = config.url
+        , body = body "query" sel
+        , resolver = resolver sel
+        , timeout = config.timeout
+        }
+
+
+{-| -}
+taskMutation :
+    Selection Mutation value
+    ->
+        { headers : List Http.Header
+        , url : String
+        , timeout : Maybe Float
+        }
+    -> Task Error value
+taskMutation sel config =
+    Http.task
+        { method = "POST"
+        , headers = config.headers
+        , url = config.url
+        , body = body "mutation" sel
+        , resolver = resolver sel
+        , timeout = config.timeout
+        }
+
+
 {-|
 
       Http.request
@@ -1134,38 +1175,51 @@ expect toMsg (Selection (Details maybeOpName gql toDecoder)) =
         ( context, decoder ) =
             toDecoder empty
     in
-    Http.expectStringResponse toMsg <|
-        \response ->
-            case response of
-                Http.BadUrl_ url ->
-                    Err (BadUrl url)
+    Http.expectStringResponse toMsg (responseToResult decoder)
 
-                Http.Timeout_ ->
-                    Err Timeout
 
-                Http.NetworkError_ ->
-                    Err NetworkError
+{-| -}
+resolver : Selection source data -> Http.Resolver Error data
+resolver (Selection (Details maybeOpName gql toDecoder)) =
+    let
+        ( context, decoder ) =
+            toDecoder empty
+    in
+    Http.stringResolver (responseToResult decoder)
 
-                Http.BadStatus_ metadata responseBody ->
+
+responseToResult : Json.Decode.Decoder data -> Http.Response String -> Result Error data
+responseToResult decoder response =
+    case response of
+        Http.BadUrl_ url ->
+            Err (BadUrl url)
+
+        Http.Timeout_ ->
+            Err Timeout
+
+        Http.NetworkError_ ->
+            Err NetworkError
+
+        Http.BadStatus_ metadata responseBody ->
+            Err
+                (BadStatus
+                    { status = metadata.statusCode
+                    , responseBody = responseBody
+                    }
+                )
+
+        Http.GoodStatus_ metadata responseBody ->
+            case Json.Decode.decodeString (Json.Decode.field "data" decoder) responseBody of
+                Ok value ->
+                    Ok value
+
+                Err err ->
                     Err
-                        (BadStatus
-                            { status = metadata.statusCode
-                            , responseBody = responseBody
+                        (BadBody
+                            { responseBody = responseBody
+                            , decodingError = Json.Decode.errorToString err
                             }
                         )
-
-                Http.GoodStatus_ metadata responseBody ->
-                    case Json.Decode.decodeString (Json.Decode.field "data" decoder) responseBody of
-                        Ok value ->
-                            Ok value
-
-                        Err err ->
-                            Err
-                                (BadBody
-                                    { responseBody = responseBody
-                                    , decodingError = Json.Decode.errorToString err
-                                    }
-                                )
 
 
 {-| -}

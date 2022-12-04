@@ -141,6 +141,58 @@ generate namespace schema =
                 { exposeConstructor = True
                 , group = Just groups.mutations
                 }
+         , Elm.declaration "taskQuery"
+            (Elm.fn2
+                ( "sel", Just (Type.namedWith [] "Query" [ Type.var "data" ]) )
+                ( "options"
+                , Just
+                    (Type.record
+                        [ ( "headers", Type.list (Type.named [ "Http" ] "Header") )
+                        , ( "url", Type.string )
+                        , ( "timeout", Type.maybe Type.float )
+                        ]
+                    )
+                )
+                (\sel options ->
+                    Engine.call_.taskQuery sel options
+                        |> Elm.withType
+                            (Type.namedWith
+                                [ "Task" ]
+                                "Task"
+                                [ Engine.annotation_.error, Type.var "data" ]
+                            )
+                )
+            )
+            |> Elm.exposeWith
+                { exposeConstructor = True
+                , group = Just groups.queries
+                }
+         , Elm.declaration "taskMutation"
+            (Elm.fn2
+                ( "sel", Just (Type.namedWith [] "Mutation" [ Type.var "data" ]) )
+                ( "options"
+                , Just
+                    (Type.record
+                        [ ( "headers", Type.list (Type.named [ "Http" ] "Header") )
+                        , ( "url", Type.string )
+                        , ( "timeout", Type.maybe Type.float )
+                        ]
+                    )
+                )
+                (\sel options ->
+                    Engine.call_.taskMutation sel options
+                        |> Elm.withType
+                            (Type.namedWith
+                                [ "Task" ]
+                                "Task"
+                                [ Engine.annotation_.error, Type.var "data" ]
+                            )
+                )
+            )
+            |> Elm.exposeWith
+                { exposeConstructor = True
+                , group = Just groups.mutations
+                }
          , Elm.declaration "null"
             Engine.make_.null
             |> Elm.exposeWith
