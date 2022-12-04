@@ -292,10 +292,10 @@ function initGreeting(filesGenerated: number, flags: any) {
   );
 
   lines.push("");
-  lines.push(`Check out the getting started guide for more details!`);
+  lines.push(`Learn more about writing a query to get started!`);
   lines.push(
     chalk.yellow(
-      "https://github.com/vendrinc/elm-gql/blob/main/guide/GettingStarted.md"
+      "https://github.com/vendrinc/elm-gql/blob/main/guide/LifeOfAQuery.md"
     )
   );
   console.log(format_block(lines));
