@@ -370,6 +370,13 @@ errorToString (Error details) =
                             deets.object == Can.nameToString frag.typeCondition
                         )
                         deets.options
+
+                fragmentsThatMatchThisName =
+                    List.filter
+                        (\frag ->
+                            deets.found == Can.nameToString frag.name
+                        )
+                        deets.options
             in
             case fragmentsThatMatchThisObject of
                 [] ->
@@ -387,21 +394,48 @@ errorToString (Error details) =
                                 ]
 
                         _ ->
+                            let
+                                preamble =
+                                    [ cyan ("..." ++ deets.found) ++ " looks a little weird to me."
+                                    , "From where it is in the query, it should select from " ++ yellow deets.object ++ "."
+                                    , "But I wasn't able to find a fragment with this name that selects from " ++ yellow deets.object ++ "."
+                                    ]
+
+                                specifics =
+                                    case fragmentsThatMatchThisName of
+                                        [] ->
+                                            [ "Here are the fragments I know about."
+                                            , block
+                                                (List.map (yellow << fragmentName)
+                                                    deets.options
+                                                )
+                                            ]
+
+                                        [ single ] ->
+                                            [ "I found this fragment, is it selecting from the wrong thing?"
+                                            , block
+                                                (List.map (yellow << fragmentName)
+                                                    fragmentsThatMatchThisName
+                                                )
+                                            ]
+
+                                        multiple ->
+                                            [ "Here are the fragments I know about."
+                                            , block
+                                                (List.map (yellow << fragmentName)
+                                                    deets.options
+                                                )
+                                            ]
+                            in
                             String.join "\n"
-                                [ "I don't recognize the fragment named " ++ cyan deets.found ++ "."
-                                , "Here are the fragments I know about."
-                                , block
-                                    (List.map (yellow << Can.nameToString << .name)
-                                        deets.options
-                                    )
-                                ]
+                                (preamble ++ specifics)
 
                 [ single ] ->
                     String.join "\n"
                         [ "I don't recognize the fragment named " ++ cyan deets.found ++ "."
                         , "Do you mean?"
                         , block
-                            (List.map (yellow << Can.nameToString << .name)
+                            (List.map (yellow << fragmentName)
                                 fragmentsThatMatchThisObject
                             )
                         ]
@@ -411,7 +445,7 @@ errorToString (Error details) =
                         [ "I don't recognize the fragment named " ++ cyan deets.found ++ "."
                         , "Do you mean one of these?"
                         , block
-                            (List.map (yellow << Can.nameToString << .name)
+                            (List.map (yellow << fragmentName)
                                 fragmentsThatMatchThisObject
                             )
                         ]
@@ -512,6 +546,11 @@ errorToString (Error details) =
                         summary.declared
                     )
                 ]
+
+
+fragmentName : Can.Fragment -> String
+fragmentName frag =
+    Can.nameToString frag.name ++ " on " ++ Can.nameToString frag.typeCondition
 
 
 renderVariable : { name : String, type_ : String } -> String
