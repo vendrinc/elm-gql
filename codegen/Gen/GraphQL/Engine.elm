@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, nullable, object, objectWith, optional, query, queryString, recover, select, selectTypeNameButSkip, send, simulate, taskMutation, taskQuery, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with, withName)
+module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, mutationTask, nullable, object, objectWith, optional, query, queryString, queryTask, recover, select, selectTypeNameButSkip, send, simulate, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with, withName)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, withName, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, mapRequest, send, simulate, query, mutation, taskQuery, taskMutation, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, withName, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, mapRequest, send, simulate, query, mutation, queryTask, mutationTask, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
 -}
 
 
@@ -256,20 +256,20 @@ queryString queryStringArg queryStringArg0 =
 
 {-| {-| -}
 
-taskMutation: 
+mutationTask: 
     Selection Mutation value
     -> { headers : List Http.Header, url : String, timeout : Maybe Float }
     -> Task Error value
 -}
-taskMutation :
+mutationTask :
     Elm.Expression
     -> { headers : List Elm.Expression, url : String, timeout : Elm.Expression }
     -> Elm.Expression
-taskMutation taskMutationArg taskMutationArg0 =
+mutationTask mutationTaskArg mutationTaskArg0 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
-            , name = "taskMutation"
+            , name = "mutationTask"
             , annotation =
                 Just
                     (Type.function
@@ -298,31 +298,31 @@ taskMutation taskMutationArg taskMutationArg0 =
                     )
             }
         )
-        [ taskMutationArg
+        [ mutationTaskArg
         , Elm.record
-            [ Tuple.pair "headers" (Elm.list taskMutationArg0.headers)
-            , Tuple.pair "url" (Elm.string taskMutationArg0.url)
-            , Tuple.pair "timeout" taskMutationArg0.timeout
+            [ Tuple.pair "headers" (Elm.list mutationTaskArg0.headers)
+            , Tuple.pair "url" (Elm.string mutationTaskArg0.url)
+            , Tuple.pair "timeout" mutationTaskArg0.timeout
             ]
         ]
 
 
 {-| {-| -}
 
-taskQuery: 
+queryTask: 
     Selection Query value
     -> { headers : List Http.Header, url : String, timeout : Maybe Float }
     -> Task Error value
 -}
-taskQuery :
+queryTask :
     Elm.Expression
     -> { headers : List Elm.Expression, url : String, timeout : Elm.Expression }
     -> Elm.Expression
-taskQuery taskQueryArg taskQueryArg0 =
+queryTask queryTaskArg queryTaskArg0 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
-            , name = "taskQuery"
+            , name = "queryTask"
             , annotation =
                 Just
                     (Type.function
@@ -349,11 +349,11 @@ taskQuery taskQueryArg taskQueryArg0 =
                     )
             }
         )
-        [ taskQueryArg
+        [ queryTaskArg
         , Elm.record
-            [ Tuple.pair "headers" (Elm.list taskQueryArg0.headers)
-            , Tuple.pair "url" (Elm.string taskQueryArg0.url)
-            , Tuple.pair "timeout" taskQueryArg0.timeout
+            [ Tuple.pair "headers" (Elm.list queryTaskArg0.headers)
+            , Tuple.pair "url" (Elm.string queryTaskArg0.url)
+            , Tuple.pair "timeout" queryTaskArg0.timeout
             ]
         ]
 
@@ -1927,8 +1927,8 @@ call_ :
     , decodeNullable : Elm.Expression -> Elm.Expression
     , maybeScalarEncode : Elm.Expression -> Elm.Expression -> Elm.Expression
     , queryString : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , taskMutation : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , taskQuery : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , mutationTask : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , queryTask : Elm.Expression -> Elm.Expression -> Elm.Expression
     , mutation : Elm.Expression -> Elm.Expression -> Elm.Expression
     , query : Elm.Expression -> Elm.Expression -> Elm.Expression
     , simulate : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -2181,12 +2181,12 @@ call_ =
                     }
                 )
                 [ queryStringArg, queryStringArg0 ]
-    , taskMutation =
-        \taskMutationArg taskMutationArg0 ->
+    , mutationTask =
+        \mutationTaskArg mutationTaskArg0 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "taskMutation"
+                    , name = "mutationTask"
                     , annotation =
                         Just
                             (Type.function
@@ -2221,13 +2221,13 @@ call_ =
                             )
                     }
                 )
-                [ taskMutationArg, taskMutationArg0 ]
-    , taskQuery =
-        \taskQueryArg taskQueryArg0 ->
+                [ mutationTaskArg, mutationTaskArg0 ]
+    , queryTask =
+        \queryTaskArg queryTaskArg0 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "taskQuery"
+                    , name = "queryTask"
                     , annotation =
                         Just
                             (Type.function
@@ -2262,7 +2262,7 @@ call_ =
                             )
                     }
                 )
-                [ taskQueryArg, taskQueryArg0 ]
+                [ queryTaskArg, queryTaskArg0 ]
     , mutation =
         \mutationArg mutationArg0 ->
             Elm.apply
@@ -3318,8 +3318,8 @@ values_ :
     , decodeNullable : Elm.Expression
     , maybeScalarEncode : Elm.Expression
     , queryString : Elm.Expression
-    , taskMutation : Elm.Expression
-    , taskQuery : Elm.Expression
+    , mutationTask : Elm.Expression
+    , queryTask : Elm.Expression
     , mutation : Elm.Expression
     , query : Elm.Expression
     , simulate : Elm.Expression
@@ -3495,10 +3495,10 @@ values_ =
                         Type.string
                     )
             }
-    , taskMutation =
+    , mutationTask =
         Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
-            , name = "taskMutation"
+            , name = "mutationTask"
             , annotation =
                 Just
                     (Type.function
@@ -3526,10 +3526,10 @@ values_ =
                         )
                     )
             }
-    , taskQuery =
+    , queryTask =
         Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
-            , name = "taskQuery"
+            , name = "queryTask"
             , annotation =
                 Just
                     (Type.function

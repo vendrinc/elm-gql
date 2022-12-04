@@ -141,7 +141,7 @@ generate namespace schema =
                 { exposeConstructor = True
                 , group = Just groups.mutations
                 }
-         , Elm.declaration "taskQuery"
+         , Elm.declaration "queryTask"
             (Elm.fn2
                 ( "sel", Just (Type.namedWith [] "Query" [ Type.var "data" ]) )
                 ( "options"
@@ -154,7 +154,7 @@ generate namespace schema =
                     )
                 )
                 (\sel options ->
-                    Engine.call_.taskQuery sel options
+                    Engine.call_.queryTask sel options
                         |> Elm.withType
                             (Type.namedWith
                                 [ "Task" ]
@@ -167,7 +167,7 @@ generate namespace schema =
                 { exposeConstructor = True
                 , group = Just groups.queries
                 }
-         , Elm.declaration "taskMutation"
+         , Elm.declaration "mutationTask"
             (Elm.fn2
                 ( "sel", Just (Type.namedWith [] "Mutation" [ Type.var "data" ]) )
                 ( "options"
@@ -180,7 +180,7 @@ generate namespace schema =
                     )
                 )
                 (\sel options ->
-                    Engine.call_.taskMutation sel options
+                    Engine.call_.mutationTask sel options
                         |> Elm.withType
                             (Type.namedWith
                                 [ "Task" ]

@@ -6,7 +6,8 @@ module GraphQL.Engine exposing
     , union
     , Selection, select, with, map, map2, recover, withName
     , arg, argList, Optional, optional
-    , Query, query, Mutation, mutation, taskQuery, taskMutation, Error(..)
+    , Query, query, queryTask
+    , Mutation, mutation, mutationTask, Error(..)
     , queryString
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeOptionalsAsJson, encodeInputObject, encodeArgument
@@ -34,7 +35,9 @@ module GraphQL.Engine exposing
 
 @docs arg, argList, Optional, optional
 
-@docs Query, query, Mutation, mutation, taskQuery, taskMutation, Error
+@docs Query, query, queryTask
+
+@docs Mutation, mutation, mutationTask, Error
 
 @docs queryString
 
@@ -1052,7 +1055,7 @@ mutation sel config =
 
 
 {-| -}
-taskQuery :
+queryTask :
     Selection Query value
     ->
         { headers : List Http.Header
@@ -1060,7 +1063,7 @@ taskQuery :
         , timeout : Maybe Float
         }
     -> Task Error value
-taskQuery sel config =
+queryTask sel config =
     Http.task
         { method = "POST"
         , headers = config.headers
@@ -1072,7 +1075,7 @@ taskQuery sel config =
 
 
 {-| -}
-taskMutation :
+mutationTask :
     Selection Mutation value
     ->
         { headers : List Http.Header
@@ -1080,7 +1083,7 @@ taskMutation :
         , timeout : Maybe Float
         }
     -> Task Error value
-taskMutation sel config =
+mutationTask sel config =
     Http.task
         { method = "POST"
         , headers = config.headers
