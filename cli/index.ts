@@ -56,6 +56,7 @@ async function run_generator(generator: any, flags: any) {
       for (const file of flags.gql) {
         const targetDir = file.path.replace(".gql", "").replace(".graphql", "");
         clearDir(targetDir);
+        clearDir(path.join(targetDir, "Fragments"));
       }
 
       let files_written_count = 0;
