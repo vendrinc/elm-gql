@@ -439,13 +439,36 @@ function write_mock(options: Options) {
   );
 }
 
+function checkNamespace(options: Options) {
+  // Namespace must match a single Elm module name
+  //(Below is a NOT check (I always miss the !)
+  if (!/^[A-Z][a-zA-Z]+$/.test(options.namespace)) {
+    const lines = [];
+    lines.push(
+      `The namespace you provided(${chalk.yellow(
+        options.namespace
+      )}) doesn't quite work unfortunately.`
+    );
+    lines.push(
+      `A namespace can only be a single capitalized word like ${chalk.cyan(
+        "Api"
+      )} or ${chalk.cyan("Gql")} and it can't contain any periods or slashes!`
+    );
+
+    console.log(format_block(lines));
+    process.exit(1);
+  }
+}
+
 async function action(schema: string, options: Options) {
   options.init = false;
+  checkNamespace(options);
   run(schema, options);
 }
 
 async function init(schema: string, options: Options) {
   options.init = true;
+  checkNamespace(options);
   if (!options.force && cacheExists(options.namespace)) {
     initOverwriteWarning();
     process.exit(1);
@@ -496,7 +519,7 @@ program
   .argument("<schema>", "The schema.")
   .option(
     "--namespace <namespace>",
-    "Change the namespace for the generated code.",
+    "Use a namespace for the generated code.  It must be a capitalized word with no periods or spaces.",
     "Api"
   )
   .option("--force", "Skip the cache.", false)
@@ -537,7 +560,7 @@ program
   .argument("<schema>", "The schema.")
   .option(
     "--namespace <namespace>",
-    "Change the namespace for the generated code.",
+    "Use a namespace for the generated code.  It must be a capitalized word with no periods or spaces.",
     "Api"
   )
   .option("--force", "Skip the cache.", false)
