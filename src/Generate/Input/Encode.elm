@@ -547,7 +547,15 @@ toOptionHelpers namespace schema input =
                                 |> Elm.withType (Type.named [] input.name)
                         )
                         |> Elm.declaration
-                            (Utils.String.formatValue field.name)
+                            (Utils.String.formatValue
+                                (case field.name of
+                                    "null" ->
+                                        "null_"
+
+                                    _ ->
+                                        field.name
+                                )
+                            )
                         |> Elm.exposeWith
                             { exposeConstructor = False
                             , group = Just docGroups.optionalFields
