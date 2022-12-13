@@ -13,12 +13,13 @@ import opsMock from "./templates/Operations/Mock.elm";
 import opsCanAST from "./templates/Operations/CanonicalAST.elm";
 import opsParse from "./templates/Operations/Parse.elm";
 import opsCanonicalize from "./templates/Operations/Canonicalize.elm";
+import packageJson from '../package.json';
 
 // We have to stub this in the allow Elm the ability to make http requests.
 // @ts-ignore
 globalThis["XMLHttpRequest"] = XMLHttpRequest.XMLHttpRequest;
 
-const version: string = "0.1.0";
+const version: string = packageJson.version;
 
 type Cache = {
   engineVersion: string;
