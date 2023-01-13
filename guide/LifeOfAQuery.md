@@ -12,7 +12,7 @@ query AllFilms {
 }
 ```
 
-When you run `elm-gql`, a folder called `MyQuery` will be generated next to `MyQuery.gql`, and in that folder will be a file called `AllFiles.elm`.
+When you run `elm-gql`, a folder called `MyQuery` will be generated next to `MyQuery.gql`, and in that folder will be a file called `AllFilms.elm`.
 
 The field `films` returns a list of films, so the generated code will look roughly like this.
 
