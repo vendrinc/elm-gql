@@ -88,6 +88,6 @@ type alias Film =
     }
 ```
 
-Huray!
+Hurray!
 
 You can use a fragment in multiple queries within a file and they will all reference the same `Fragment.{YouFragment}.elm` file and the types within.
