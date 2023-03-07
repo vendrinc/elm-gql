@@ -925,7 +925,7 @@ addArgValue val cursor =
                 |> addString "}"
 
         AST.ListValue vals ->
-            List.foldr
+            List.foldl
                 (\innerVal ( afterFirst, curs ) ->
                     ( True
                     , curs
