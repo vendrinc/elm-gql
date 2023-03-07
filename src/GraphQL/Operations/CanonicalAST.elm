@@ -836,7 +836,7 @@ renderArgumentsExp args cursor =
             cursor
 
         _ ->
-            List.foldr
+            List.foldl
                 (\arg ( afterFirst, curs ) ->
                     ( True
                     , curs
@@ -901,7 +901,7 @@ addArgValue val cursor =
                     )
 
         AST.Object keyVals ->
-            List.foldr
+            List.foldl
                 (\( key, innerVal ) ( afterFirst, curs ) ->
                     ( True
                     , curs
