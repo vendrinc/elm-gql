@@ -2,7 +2,7 @@ module GraphQL.Operations.Canonicalize.UsedNames exposing
     ( UsedNames, init
     , addLevel, addLevelKeepSiblingStack, dropLevel, dropLevelNotSiblings, getGlobalName
     , saveSibling, siblingCollision
-    , levelFromField
+    , Sibling, levelFromField
     )
 
 {-|
@@ -144,7 +144,7 @@ getGlobalName rawName (UsedNames used) =
                                     -- shouldnt happen
                                     name
 
-                                top :: remain ->
+                                top :: _ ->
                                     let
                                         unaliasedName =
                                             top.name ++ "_" ++ name
@@ -155,7 +155,7 @@ getGlobalName rawName (UsedNames used) =
                                     else
                                         unaliasedName
 
-                        topAlias :: remainingAliases ->
+                        topAlias :: _ ->
                             let
                                 aliasedName =
                                     topAlias.name ++ "_" ++ name
@@ -271,14 +271,4 @@ dropLevel (UsedNames used) =
             , siblingAliases =
                 List.head used.siblingStack
                     |> Maybe.withDefault []
-        }
-
-
-{-| -}
-resetSiblings : UsedNames -> UsedNames -> UsedNames
-resetSiblings (UsedNames to) (UsedNames used) =
-    UsedNames
-        { used
-            | siblingAliases =
-                to.siblingAliases
         }

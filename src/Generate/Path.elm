@@ -82,10 +82,10 @@ removePrefix prefix list =
         [] ->
             list
 
-        pref :: remainPref ->
+        _ :: remainPref ->
             case list of
                 [] ->
                     list
 
-                first :: remain ->
+                _ :: remain ->
                     removePrefix remainPref remain

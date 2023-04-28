@@ -1,9 +1,8 @@
-module GraphQL.Operations.GenerateSelection exposing (generate)
+module GraphQL.Operations.GenerateSelection exposing (Namespace, generate)
 
 {-| Generate elm code from an Operations.AST
 -}
 
-import Dict
 import Elm
 import Elm.Annotation as Type
 import Elm.Case
@@ -17,7 +16,6 @@ import Generate.Scalar
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
-import Set
 import Utils.String
 
 
@@ -62,18 +60,6 @@ opValueName op =
 
         Can.Mutation ->
             "mutation"
-
-
-option =
-    { annotation =
-        Engine.annotation_.option
-    , absent =
-        Engine.make_.absent
-    , null =
-        Engine.make_.null
-    , present =
-        Engine.make_.present
-    }
 
 
 toArgument : Can.VariableDefinition -> GraphQL.Schema.Argument
@@ -431,12 +417,12 @@ aliasedTypes namespace def =
 genAliasedTypes : Namespace -> Can.Field -> List Elm.Declaration
 genAliasedTypes namespace fieldOrFrag =
     case fieldOrFrag of
-        Can.Frag frag ->
+        Can.Frag _ ->
             []
 
         Can.Field field ->
             case field.selectsOnlyFragment of
-                Just fragmentSelected ->
+                Just _ ->
                     []
 
                 Nothing ->
@@ -648,7 +634,7 @@ selectionAliasedAnnotation namespace field =
 
         Nothing ->
             case field.selection of
-                Can.FieldObject obj ->
+                Can.FieldObject _ ->
                     Type.named
                         []
                         (Can.nameToString field.globalAlias)
@@ -813,19 +799,19 @@ schemaTypeToPrefab namespace schemaType =
         GraphQL.Schema.Scalar scalarName ->
             Generate.Scalar.type_ namespace scalarName
 
-        GraphQL.Schema.InputObject input ->
+        GraphQL.Schema.InputObject _ ->
             Type.unit
 
-        GraphQL.Schema.Object obj ->
+        GraphQL.Schema.Object _ ->
             Type.unit
 
-        GraphQL.Schema.Enum name ->
+        GraphQL.Schema.Enum _ ->
             Type.unit
 
-        GraphQL.Schema.Union name ->
+        GraphQL.Schema.Union _ ->
             Type.unit
 
-        GraphQL.Schema.Interface name ->
+        GraphQL.Schema.Interface _ ->
             Type.unit
 
         GraphQL.Schema.List_ inner ->
@@ -862,11 +848,6 @@ type Index
 isTopLevel : Index -> Bool
 isTopLevel (Index i tail) =
     List.isEmpty tail
-
-
-indexToString : Index -> String
-indexToString (Index top tail) =
-    String.fromInt top ++ "_" ++ String.join "_" (List.map String.fromInt tail)
 
 
 initIndex : Index
@@ -1154,9 +1135,6 @@ unionPattern namespace version index var =
 
         tagTypeName =
             Can.nameToString var.globalTagName
-
-        tagDetailsName =
-            Can.nameToString var.globalDetailsAlias
     in
     ( tag
     , case List.filter removeTypename var.selection of
@@ -1170,6 +1148,10 @@ unionPattern namespace version index var =
                 )
 
         fields ->
+            let
+                tagDetailsName =
+                    Can.nameToString var.globalDetailsAlias
+            in
             Decode.call_.map
                 (Elm.value
                     { importFrom = []
@@ -1206,7 +1188,7 @@ decodeScalarType namespace type_ =
                 "boolean" ->
                     Decode.bool
 
-                scal ->
+                _ ->
                     Elm.value
                         { importFrom =
                             [ namespace.namespace ]

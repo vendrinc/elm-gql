@@ -1,4 +1,4 @@
-module Utils.String exposing (..)
+module Utils.String exposing (formatScalar, formatTypename, formatValue)
 
 import String
 
@@ -100,7 +100,7 @@ getLeadingUnderscoresHelper leading string =
 elmify : Char -> ( Bool, String ) -> ( Bool, String )
 elmify char ( passedLower, gathered ) =
     if Char.isUpper char && passedLower then
-        ( Char.isLower char || passedLower
+        ( passedLower
         , gathered
             ++ String.fromChar char
         )

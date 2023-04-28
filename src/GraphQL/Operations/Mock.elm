@@ -5,12 +5,6 @@ import GraphQL.Schema as Schema
 import Json.Encode
 
 
-type alias Namespace =
-    { namespace : String
-    , enums : String
-    }
-
-
 type Error
     = Error
 
@@ -68,7 +62,7 @@ encodeField typename field =
                       )
                     ]
 
-                ( Nothing, otherFields ) ->
+                ( Nothing, _ ) ->
                     []
 
         Can.FieldScalar details ->
@@ -101,7 +95,7 @@ encodeField typename field =
                       )
                     ]
 
-                top :: remain ->
+                top :: _ ->
                     [ ( Can.getAliasedName field
                       , Json.Encode.string top.name
                             |> wrapEncoder details.wrapper

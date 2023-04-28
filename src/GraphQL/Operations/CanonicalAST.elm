@@ -1,13 +1,9 @@
-module GraphQL.Operations.CanonicalAST exposing (..)
+module GraphQL.Operations.CanonicalAST exposing (Argument, Definition(..), Directive, Document, Field(..), FieldDetails, FieldEnumDetails, FieldVariantDetails, Fragment, FragmentDetails, FragmentSelection(..), Name(..), OperationDetails, OperationType(..), RenderingCursor, Selection(..), Variable, VariableDefinition, VariantCase, Wrapper(..), getAliasedName, isTypeNameSelection, nameToString, operationLabel, toFragmentRendererExpression, toRendererExpression, toString)
 
-import Dict exposing (Dict)
+import Dict
 import Elm
-import Elm.Annotation as Type
 import Elm.Op
 import Gen.GraphQL.Engine as Engine
-import Gen.GraphQL.Operations.AST as GenAST
-import Gen.GraphQL.Operations.CanonicalAST as GenCan
-import Gen.GraphQL.Schema as GenSchema
 import Gen.String
 import GraphQL.Operations.AST as AST
 import GraphQL.Schema
@@ -143,22 +139,11 @@ isTypeNameSelection field =
         Field details ->
             nameToString details.name == "__typename"
 
-        Frag frag ->
+        Frag _ ->
             False
 
 
 type alias FieldVariantDetails =
-    { selection : List Field
-    , variants : List VariantCase
-    , remainingTags :
-        List
-            { tag : Name
-            , globalAlias : Name
-            }
-    }
-
-
-type alias FieldInterfaceDetails =
     { selection : List Field
     , variants : List VariantCase
     , remainingTags :
@@ -254,13 +239,6 @@ operationLabel (Operation def) =
             Just str
 
 
-{-| Only render the fields of the query, but with no outer brackets
--}
-toStringFields : Definition -> String
-toStringFields (Operation def) =
-    foldToString "\n" fieldToString def.fields
-
-
 fieldToString : Field -> String
 fieldToString field =
     case field of
@@ -291,10 +269,10 @@ selectionToString selection =
                     ++ foldToString "\n" variantFragmentToString details.variants
                 )
 
-        FieldScalar details ->
+        FieldScalar _ ->
             ""
 
-        FieldEnum details ->
+        FieldEnum _ ->
             ""
 
         FieldInterface details ->
@@ -457,10 +435,10 @@ getWrapper t wrap =
 
         AST.Nullable inner ->
             case wrap of
-                Val { required } ->
+                Val _ ->
                     getWrapper inner (Val { required = False })
 
-                InList { required } wrapper ->
+                InList _ wrapper ->
                     getWrapper inner (InList { required = False } wrapper)
 
 
@@ -731,10 +709,10 @@ renderField field cursor =
 renderSelection : Selection -> RenderingCursor -> RenderingCursor
 renderSelection selection cursor =
     case selection of
-        FieldScalar details ->
+        FieldScalar _ ->
             cursor
 
-        FieldEnum details ->
+        FieldEnum _ ->
             cursor
 
         FieldObject fields ->

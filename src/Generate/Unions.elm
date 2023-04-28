@@ -6,12 +6,6 @@ import Elm.Annotation
 import Gen.GraphQL.Engine as Engine
 import Generate.Common as Common
 import GraphQL.Schema exposing (Namespace)
-import Utils.String
-
-
-enumNameToConstructorName : String -> String
-enumNameToConstructorName =
-    Utils.String.formatValue
 
 
 generateFiles : Namespace -> GraphQL.Schema.Schema -> List Elm.File

@@ -1,4 +1,4 @@
-module Generate.Input exposing (..)
+module Generate.Input exposing (Operation(..), decodeWrapper, isOptional, operationToString, splitRequired, wrapElmType, wrapExpression)
 
 {-| Some helpers to handle inputs types.
 -}
@@ -7,7 +7,6 @@ import Elm
 import Elm.Annotation as Type
 import Gen.GraphQL.Engine as Engine
 import Gen.Json.Decode as Decode
-import GraphQL.Operations.AST as Ast
 import GraphQL.Schema exposing (Wrapped(..))
 import String
 
@@ -25,45 +24,6 @@ operationToString op =
 
         Mutation ->
             "Mutation"
-
-
-gqlType : Wrapped -> String -> String
-gqlType wrapped base =
-    case wrapped of
-        UnwrappedValue ->
-            base ++ "!"
-
-        InList inner ->
-            "[" ++ gqlType inner base ++ "]"
-
-        InMaybe inner ->
-            gqlTypeHelper inner base
-
-
-gqlTypeHelper : Wrapped -> String -> String
-gqlTypeHelper wrapped base =
-    case wrapped of
-        UnwrappedValue ->
-            base
-
-        InList inner ->
-            "[" ++ gqlTypeHelper inner base ++ "]"
-
-        InMaybe inner ->
-            gqlTypeHelper inner base
-
-
-getWrapFromAst : Ast.Type -> Wrapped
-getWrapFromAst type_ =
-    case type_ of
-        Ast.Type_ name ->
-            UnwrappedValue
-
-        Ast.List_ inner ->
-            InList (getWrapFromAst inner)
-
-        Ast.Nullable inner ->
-            InMaybe (getWrapFromAst inner)
 
 
 wrapElmType : Wrapped -> Type.Annotation -> Type.Annotation

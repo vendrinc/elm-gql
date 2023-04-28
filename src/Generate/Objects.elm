@@ -5,8 +5,6 @@ import Elm
 import Elm.Annotation as Type
 import Gen.GraphQL.Engine as Engine
 import Gen.Json.Decode as Json
-import Gen.Platform.Cmd
-import Gen.Result
 import Generate.Common as Common
 import Generate.Scalar
 import GraphQL.Schema exposing (Namespace)
@@ -286,13 +284,11 @@ generateFiles namespace graphQLSchema =
     let
         objects =
             graphQLSchema.objects
-                |> Dict.toList
-                |> List.map Tuple.second
+                |> Dict.values
 
         interfaces =
             graphQLSchema.interfaces
-                |> Dict.toList
-                |> List.map Tuple.second
+                |> Dict.values
 
         renderedObjects =
             List.concatMap (objectToModule namespace) objects
@@ -309,12 +305,6 @@ generateFiles namespace graphQLSchema =
                 |> List.map
                     (Tuple.second >> .name)
 
-        inputTypeDeclarations =
-            graphQLSchema.inputObjects
-                |> Dict.toList
-                |> List.map
-                    (Tuple.second >> .name)
-
         interfaceTypeDeclarations =
             graphQLSchema.interfaces
                 |> Dict.toList
@@ -325,18 +315,6 @@ generateFiles namespace graphQLSchema =
             phantomTypeDeclarations
                 ++ unionTypeDeclarations
                 ++ interfaceTypeDeclarations
-
-        inputHelpers =
-            List.concatMap
-                (\name ->
-                    [ Elm.alias name
-                        (Engine.annotation_.argument
-                            (Type.named [] (name ++ "_"))
-                        )
-                    , Elm.customType (name ++ "_") [ Elm.variant name ]
-                    ]
-                )
-                inputTypeDeclarations
 
         proofsAndAliases =
             List.map

@@ -3,9 +3,8 @@ module Generate.Input.Encode exposing
     , toInputObject, toOptionHelpers, toNulls
     , toOneOfHelper, toOneOfNulls
     , fullRecordToInputObject
-    , encodeEnum
     , docGroups
-    , encode, scalarType, toElmType
+    , Namespace, scalarType
     )
 
 {-|
@@ -17,8 +16,6 @@ module Generate.Input.Encode exposing
 @docs toOneOfHelper, toOneOfNulls
 
 @docs fullRecordToInputObject
-
-@docs encodeEnum
 
 @docs docGroups
 
@@ -193,11 +190,11 @@ toRecordInput :
     -> Elm.Declaration
 toRecordInput namespace schema fields =
     let
-        ( required, optional ) =
+        ( required, _ ) =
             List.partition
                 (\arg ->
                     case arg.type_ of
-                        GraphQL.Schema.Nullable innerType ->
+                        GraphQL.Schema.Nullable _ ->
                             False
 
                         _ ->
@@ -365,7 +362,7 @@ toInputRecordAlias namespace schema name varDefs =
     let
         isOptionalVar var =
             case var.type_ of
-                GraphQL.Schema.Nullable inner ->
+                GraphQL.Schema.Nullable _ ->
                     True
 
                 _ ->
@@ -451,11 +448,11 @@ toInputObject :
     -> Elm.Declaration
 toInputObject namespace schema input =
     let
-        ( required, optional ) =
+        ( required, _ ) =
             List.partition
                 (\arg ->
                     case arg.type_ of
-                        GraphQL.Schema.Nullable innerType ->
+                        GraphQL.Schema.Nullable _ ->
                             False
 
                         _ ->
@@ -717,15 +714,15 @@ toElmType namespace schema type_ wrapped =
             Type.named [ namespace.namespace, "Input" ] inputName
                 |> unwrapWith wrapped
 
-        GraphQL.Schema.Object nestedObjectName ->
+        GraphQL.Schema.Object _ ->
             -- not used as input
             Type.unit
 
-        GraphQL.Schema.Union unionName ->
+        GraphQL.Schema.Union _ ->
             -- not used as input
             Type.unit
 
-        GraphQL.Schema.Interface interfaceName ->
+        GraphQL.Schema.Interface _ ->
             -- not used as input
             Type.unit
 
@@ -791,33 +788,20 @@ encodeHelper namespace schema type_ val =
                     [ val
                     ]
 
-        GraphQL.Schema.InputObject inputName ->
+        GraphQL.Schema.InputObject _ ->
             Engine.encodeInputObjectAsJson val
 
-        GraphQL.Schema.Object nestedObjectName ->
+        GraphQL.Schema.Object _ ->
             -- not used as input
             Elm.unit
 
-        GraphQL.Schema.Union unionName ->
+        GraphQL.Schema.Union _ ->
             -- not used as input
             Elm.unit
 
-        GraphQL.Schema.Interface interfaceName ->
+        GraphQL.Schema.Interface _ ->
             -- not used as input
             Elm.unit
-
-
-wrappedToStringIndex : GraphQL.Schema.Wrapped -> String
-wrappedToStringIndex wrapped =
-    case wrapped of
-        GraphQL.Schema.UnwrappedValue ->
-            ""
-
-        GraphQL.Schema.InMaybe inner ->
-            "m" ++ wrappedToStringIndex inner
-
-        GraphQL.Schema.InList inner ->
-            "l" ++ wrappedToStringIndex inner
 
 
 scalarType : Namespace -> GraphQL.Schema.Wrapped -> String -> Type.Annotation
@@ -851,69 +835,3 @@ unwrapWith wrapped expression =
 
         GraphQL.Schema.UnwrappedValue ->
             expression
-
-
-encodeWrapped :
-    GraphQL.Schema.Wrapped
-    -> (Elm.Expression -> Elm.Expression)
-    -> Elm.Expression
-    -> Elm.Expression
-encodeWrapped wrapper encoder val =
-    case wrapper of
-        GraphQL.Schema.UnwrappedValue ->
-            encoder val
-
-        GraphQL.Schema.InMaybe inner ->
-            encodeWrapped inner (Engine.maybeScalarEncode encoder) val
-
-        GraphQL.Schema.InList inner ->
-            encodeWrapped inner (encodeList encoder) val
-
-
-encodeEnum : Namespace -> GraphQL.Schema.Wrapped -> Elm.Expression -> String -> Elm.Expression
-encodeEnum namespace wrapped val enumName =
-    encodeWrappedInverted wrapped
-        (\v ->
-            if namespace.namespace /= namespace.enums then
-                -- we're encoding using code generated via dillonkearns/elm-graphql
-                Elm.apply
-                    (Elm.fn
-                        ( "enumValue_"
-                        , Just (Type.named [ namespace.enums, "Enum", enumName ] enumName)
-                        )
-                        (\i ->
-                            Encode.call_.string
-                                (Elm.apply
-                                    (valueFrom [ namespace.enums, "Enum", enumName ] "toString")
-                                    [ i
-                                    ]
-                                )
-                        )
-                    )
-                    [ v
-                    ]
-
-            else
-                Elm.apply
-                    (valueFrom [ namespace.enums, "Enum", enumName ] "encode")
-                    [ v
-                    ]
-        )
-        val
-
-
-encodeWrappedInverted :
-    GraphQL.Schema.Wrapped
-    -> (Elm.Expression -> Elm.Expression)
-    -> Elm.Expression
-    -> Elm.Expression
-encodeWrappedInverted wrapper encoder val =
-    case wrapper of
-        GraphQL.Schema.UnwrappedValue ->
-            encoder val
-
-        GraphQL.Schema.InMaybe inner ->
-            Engine.maybeScalarEncode (encodeWrappedInverted inner encoder) val
-
-        GraphQL.Schema.InList inner ->
-            encodeList (encodeWrappedInverted inner encoder) val

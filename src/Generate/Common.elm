@@ -1,4 +1,4 @@
-module Generate.Common exposing (..)
+module Generate.Common exposing (gqlTypeToElmTypeAnnotation, localAnnotation, modules, ref, selection, selectionLocal)
 
 import Elm.Annotation
 import GraphQL.Schema exposing (Namespace)

@@ -1,20 +1,13 @@
-module Generate exposing (main)
+module Generate exposing (Input, Model, Msg, main)
 
 {-| -}
 
 import Elm
-import Elm.Annotation
 import Gen as Generate
 import Gen.GraphQL.Mock
 import Generate.Enums
-import Generate.Input as Input
 import Generate.InputObjects
-import Generate.Objects
-import Generate.Operations
-import Generate.Paged
 import Generate.Root
-import Generate.Scalar
-import Generate.Unions
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.GenerateSelection
 import GraphQL.Operations.Parse
@@ -22,7 +15,6 @@ import GraphQL.Schema exposing (Namespace)
 import Http
 import Json.Decode
 import Json.Encode
-import Utils.String
 
 
 main :
@@ -116,7 +108,7 @@ main =
                                     ]
                                 )
 
-                    SchemaReceived flagDetails (Err err) ->
+                    SchemaReceived _ (Err err) ->
                         ( model
                         , Generate.error
                             [ { title = "Error retrieving schema"
@@ -211,13 +203,6 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
             else
                 Generate.files
                     gqlFiles
-
-
-formatElmPath : String -> String
-formatElmPath str =
-    str
-        |> String.replace ".elm" ""
-        |> String.replace "/" "."
 
 
 addOutputDir : List String -> { a | path : String } -> { a | path : String }

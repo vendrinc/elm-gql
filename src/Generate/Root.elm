@@ -3,17 +3,13 @@ module Generate.Root exposing (generate)
 {-| This is the base `{Namespace}` file that has everything you need to launch queries.
 -}
 
-import Dict
 import Elm
 import Elm.Annotation as Type
 import Gen.GraphQL.Engine as Engine
-import Gen.Json.Decode as Json
 import Gen.Platform.Cmd
 import Gen.Result
-import Generate.Common as Common
 import Generate.Scalar
 import GraphQL.Schema exposing (Namespace)
-import Utils.String
 
 
 groups =
