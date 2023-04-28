@@ -1,4 +1,4 @@
-module GraphQL.Operations.Canonicalize exposing (canonicalize, cyan, doTypesMatch, errorToString)
+module GraphQL.Operations.Canonicalize exposing (Error, Paths, canonicalize, cyan, errorToString)
 
 {-| -}
 
@@ -61,7 +61,6 @@ type ErrorDetails
     = QueryUnknown String
     | EnumUnknown String
     | ObjectUnknown String
-    | InterfaceUnknown String
     | UnionUnknown String
     | UnknownArgs
         { field : String
@@ -81,10 +80,6 @@ type ErrorDetails
     | FragmentVariableIssue FragmentVariableSummary
     | FieldAliasRequired
         { fieldName : String
-        }
-    | NonExhaustiveVariants
-        { unionName : String
-        , leftOver : List String
         }
     | MissingTypename
         { tag : String
@@ -190,16 +185,6 @@ yellow str =
     color 33 39 str
 
 
-green : String -> String
-green str =
-    color 32 39 str
-
-
-red : String -> String
-red str =
-    color 31 39 str
-
-
 grey : String -> String
 grey str =
     color 90 39 str
@@ -242,13 +227,6 @@ errorToString (Error details) =
         ObjectUnknown name ->
             String.join "\n"
                 [ "I don't recognize this object:"
-                , block
-                    [ yellow name ]
-                ]
-
-        InterfaceUnknown name ->
-            String.join "\n"
-                [ "I don't recognize this interface:"
                 , block
                     [ yellow name ]
                 ]
@@ -317,14 +295,6 @@ errorToString (Error details) =
                 , block
                     [ yellow deets.fieldName ]
                 , "Add an alias to one of them so there's no confusion!"
-                ]
-
-        NonExhaustiveVariants deets ->
-            String.join "\n"
-                [ "There are still some variants that have not been covered for " ++ cyan deets.unionName
-                , block
-                    (List.map yellow deets.leftOver)
-                , "Add them to your query so that we know what data to select if they show up!"
                 ]
 
         MissingTypename deets ->
@@ -411,7 +381,7 @@ errorToString (Error details) =
                                                 )
                                             ]
 
-                                        [ single ] ->
+                                        [ _ ] ->
                                             [ "I found this fragment, is it selecting from the wrong thing?"
                                             , block
                                                 (List.map (yellow << fragmentName)
@@ -419,7 +389,7 @@ errorToString (Error details) =
                                                 )
                                             ]
 
-                                        multiple ->
+                                        _ ->
                                             [ "Here are the fragments I know about."
                                             , block
                                                 (List.map (yellow << fragmentName)
@@ -430,7 +400,7 @@ errorToString (Error details) =
                             String.join "\n"
                                 (preamble ++ specifics)
 
-                [ single ] ->
+                [ _ ] ->
                     String.join "\n"
                         [ "I don't recognize the fragment named " ++ cyan deets.found ++ "."
                         , "Do you mean?"
@@ -667,7 +637,7 @@ canonicalize schema paths doc =
                         )
             in
             case canonicalizedFragments of
-                CanSuccess fragmentCacne canonicalFrags ->
+                CanSuccess _ canonicalFrags ->
                     let
                         canonicalizedDefinitions =
                             reduce
@@ -683,7 +653,7 @@ canonicalize schema paths doc =
                                 emptySuccess
                     in
                     case canonicalizedDefinitions of
-                        CanSuccess cache defs ->
+                        CanSuccess _ defs ->
                             Ok
                                 { definitions = defs
                                 , fragments = Dict.values canonicalFrags
@@ -708,7 +678,7 @@ getFragments schema def result =
 
         Ok frags ->
             case def of
-                AST.Operation op ->
+                AST.Operation _ ->
                     result
 
                 AST.Fragment frag ->
@@ -787,7 +757,7 @@ canonicalizeDefinition :
     -> Maybe (CanResult Can.Definition)
 canonicalizeDefinition refs usedNames def =
     case def of
-        AST.Fragment details ->
+        AST.Fragment _ ->
             Nothing
 
         AST.Operation details ->
@@ -856,11 +826,6 @@ canonicalizeDefinition refs usedNames def =
                                     , suggestions = []
                                     }
                                     (mergeVars cache.varTypes details.variableDefinitions)
-
-                            fragmentVariableIssues =
-                                List.filterMap
-                                    (fragmentVariableErrors details.variableDefinitions)
-                                    (List.map .fragment cache.fragmentsUsed)
                         in
                         if not (List.isEmpty variableSummary.issues) then
                             CanError
@@ -868,26 +833,33 @@ canonicalizeDefinition refs usedNames def =
                                     (VariableIssueSummary variableSummary)
                                 ]
 
-                        else if not (List.isEmpty fragmentVariableIssues) then
-                            CanError
-                                (List.map
-                                    (error << FragmentVariableIssue)
-                                    fragmentVariableIssues
-                                )
-
                         else
-                            CanSuccess cache <|
-                                Can.Operation
-                                    { operationType =
-                                        operationType
-                                    , name = globalOperationName
-                                    , variableDefinitions =
-                                        variableSummary.valid
-                                    , directives =
-                                        List.map convertDirective details.directives
-                                    , fields = fields
-                                    , fragmentsUsed = cache.fragmentsUsed
-                                    }
+                            let
+                                fragmentVariableIssues =
+                                    List.filterMap
+                                        (fragmentVariableErrors details.variableDefinitions)
+                                        (List.map .fragment cache.fragmentsUsed)
+                            in
+                            if not (List.isEmpty fragmentVariableIssues) then
+                                CanError
+                                    (List.map
+                                        (error << FragmentVariableIssue)
+                                        fragmentVariableIssues
+                                    )
+
+                            else
+                                CanSuccess cache <|
+                                    Can.Operation
+                                        { operationType =
+                                            operationType
+                                        , name = globalOperationName
+                                        , variableDefinitions =
+                                            variableSummary.valid
+                                        , directives =
+                                            List.map convertDirective details.directives
+                                        , fields = fields
+                                        , fragmentsUsed = cache.fragmentsUsed
+                                        }
 
                     CanError errorMsg ->
                         CanError errorMsg
@@ -982,7 +954,7 @@ doTypesMatch schemaType variableDefinition =
                     AST.nameToString astName
                         == schemaName
 
-                GraphQL.Schema.List_ innerSchema ->
+                GraphQL.Schema.List_ _ ->
                     False
 
                 GraphQL.Schema.Nullable innerSchema ->
@@ -994,7 +966,7 @@ doTypesMatch schemaType variableDefinition =
                 GraphQL.Schema.Nullable innerSchema ->
                     doTypesMatch innerSchema innerAST
 
-                otherwise ->
+                _ ->
                     False
 
         AST.List_ innerAST ->
@@ -1039,11 +1011,6 @@ verifyVariables item summary =
                             (AST.typeToGqlString def.type_)
                     }
 
-                suggestion =
-                    { name = AST.nameToString def.variable.name
-                    , type_ = typeString
-                    }
-
                 typesMatch =
                     doTypesMatch inOp def.type_
             in
@@ -1073,6 +1040,12 @@ verifyVariables item summary =
                         :: summary.suggestions
 
                 else
+                    let
+                        suggestion =
+                            { name = AST.nameToString def.variable.name
+                            , type_ = typeString
+                            }
+                    in
                     suggestion :: summary.suggestions
             }
 
@@ -1191,12 +1164,6 @@ canonicalizeOperation refs op used selection =
     case selection of
         AST.Field field ->
             let
-                desiredName =
-                    field.alias_
-                        |> Maybe.withDefault field.name
-                        |> convertName
-                        |> Can.nameToString
-
                 matched =
                     case op of
                         AST.Query ->
@@ -1216,7 +1183,7 @@ canonicalizeOperation refs op used selection =
                         query
                         |> Tuple.mapFirst UsedNames.dropLevel
 
-        AST.FragmentSpreadSelection frag ->
+        AST.FragmentSpreadSelection _ ->
             ( used, err [ todo "Top level Fragments aren't suported yet!" ] )
 
         AST.InlineFragmentSelection inline ->
@@ -1226,7 +1193,6 @@ canonicalizeOperation refs op used selection =
 
 type InputValidation
     = Valid (List ( String, GraphQL.Schema.Type ))
-    | InputError ErrorDetails
     | Mismatch
 
 
@@ -1271,7 +1237,7 @@ validateInput refs schemaType fieldName astValue =
                 _ ->
                     Mismatch
 
-        AST.Str str ->
+        AST.Str _ ->
             case schemaType of
                 GraphQL.Schema.Scalar "Int" ->
                     Mismatch
@@ -1296,7 +1262,7 @@ validateInput refs schemaType fieldName astValue =
                 _ ->
                     Mismatch
 
-        AST.Integer int ->
+        AST.Integer _ ->
             case schemaType of
                 GraphQL.Schema.Scalar "Int" ->
                     Valid []
@@ -1315,7 +1281,7 @@ validateInput refs schemaType fieldName astValue =
                 _ ->
                     Mismatch
 
-        AST.Decimal float ->
+        AST.Decimal _ ->
             case schemaType of
                 GraphQL.Schema.Scalar "Float" ->
                     Valid []
@@ -1331,7 +1297,7 @@ validateInput refs schemaType fieldName astValue =
                 _ ->
                     Mismatch
 
-        AST.Boolean bool ->
+        AST.Boolean _ ->
             case schemaType of
                 GraphQL.Schema.Scalar "Boolean" ->
                     Valid []
@@ -1355,7 +1321,7 @@ validateInput refs schemaType fieldName astValue =
                 _ ->
                     Mismatch
 
-        AST.Enum enumName ->
+        AST.Enum _ ->
             case schemaType of
                 GraphQL.Schema.Enum _ ->
                     Valid []
@@ -1401,12 +1367,12 @@ validateInput refs schemaType fieldName astValue =
 validateObject refs fieldName keyValues inputObject =
     List.foldl
         (\( keyName, value ) current ->
-            let
-                key =
-                    AST.nameToString keyName
-            in
             case current of
                 Valid argValues ->
+                    let
+                        key =
+                            AST.nameToString keyName
+                    in
                     case List.head (List.filter (\a -> a.name == key) inputObject.fields) of
                         Nothing ->
                             Mismatch
@@ -1424,17 +1390,6 @@ validateObject refs fieldName keyValues inputObject =
         )
         (Valid [])
         keyValues
-
-
-{-| -}
-getFragmentOverrideName : List AST.Selection -> String -> String
-getFragmentOverrideName selectedFields name =
-    case selectedFields of
-        [ AST.FragmentSpreadSelection fragment ] ->
-            AST.nameToString fragment.name
-
-        _ ->
-            name
 
 
 selectsSingleFragment :
@@ -1493,7 +1448,7 @@ canonicalizeFragment schema paths frag ( usedNames, currentResult ) =
         CanError errMsg ->
             ( usedNames, CanError errMsg )
 
-        CanSuccess cache existingFrags ->
+        CanSuccess _ existingFrags ->
             let
                 fragName =
                     AST.nameToString frag.name
@@ -1760,9 +1715,6 @@ canonicalizeField refs object selection found =
             let
                 fieldName =
                     AST.nameToString field.name
-
-                aliased =
-                    AST.getAliasedName field
             in
             if fieldName == "__typename" then
                 { result =
@@ -1796,6 +1748,9 @@ canonicalizeField refs object selection found =
                 case matchedField of
                     Just matched ->
                         let
+                            aliased =
+                                AST.getAliasedName field
+
                             ( newNames, cannedSelection ) =
                                 canonicalizeFieldType refs
                                     field
@@ -1973,12 +1928,6 @@ canonicalizeArguments refs schemaArguments arguments =
                                     vars ++ found.valid
                             }
 
-                        InputError errorDetails ->
-                            { found
-                                | errs =
-                                    error errorDetails :: found.errs
-                            }
-
                         Mismatch ->
                             { found
                                 | errs =
@@ -2042,7 +1991,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                 initialVarCache |> Cache.addVars vars
         in
         case type_ of
-            GraphQL.Schema.Scalar name ->
+            GraphQL.Schema.Scalar _ ->
                 ( usedNames
                 , success newCache
                     (Can.Field
@@ -2062,7 +2011,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                     )
                 )
 
-            GraphQL.Schema.InputObject name ->
+            GraphQL.Schema.InputObject _ ->
                 ( usedNames
                 , err [ todo "Invalid schema!  Weird InputObject" ]
                 )

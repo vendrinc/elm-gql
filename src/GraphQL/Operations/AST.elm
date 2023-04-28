@@ -1,4 +1,4 @@
-module GraphQL.Operations.AST exposing (..)
+module GraphQL.Operations.AST exposing (Argument, Definition(..), Directive, Document, FieldDetails, FragmentDetails, FragmentSpread, InlineFragment, Name(..), OperationDetails, OperationType(..), Selection(..), Type(..), Value(..), Variable, VariableDefinition, Wrapper(..), fragmentCount, getAliasedName, nameToString, typeToGqlString, valueToString)
 
 
 type alias Document =
@@ -162,14 +162,8 @@ type Type
     | Nullable Type
 
 
-brackets : String -> String
-brackets str =
-    "{" ++ str ++ "}"
-
-
 type Wrapper
-    = InList { required : Bool } Wrapper
-    | Val { required : Bool }
+    = Val { required : Bool }
 
 
 typeToGqlString : Type -> String
@@ -197,11 +191,8 @@ getWrapper t wrap =
 
         Nullable inner ->
             case wrap of
-                Val { required } ->
+                Val _ ->
                     getWrapper inner (Val { required = False })
-
-                InList { required } wrapper ->
-                    getWrapper inner (InList { required = False } wrapper)
 
 
 typeToString : Wrapper -> Type -> String
@@ -227,13 +218,6 @@ unwrap wrapper str =
             else
                 str
 
-        InList { required } inner ->
-            if required then
-                unwrap inner ("[" ++ str ++ "]!")
-
-            else
-                unwrap inner ("[" ++ str ++ "]")
-
 
 {-| Bfore canonicalizing fragments, we need to order them so that fragments with no fragments start first
 -}
@@ -248,7 +232,7 @@ fragmentCountHelper selection count =
         Field field ->
             List.foldl fragmentCountHelper count field.selection
 
-        FragmentSpreadSelection spread ->
+        FragmentSpreadSelection _ ->
             count + 1
 
         InlineFragmentSelection inline ->
