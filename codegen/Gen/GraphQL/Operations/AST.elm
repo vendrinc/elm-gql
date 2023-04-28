@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.AST exposing (annotation_, brackets, call_, caseOf_, fragmentCount, fragmentCountHelper, getAliasedName, getWrapper, make_, moduleName_, nameToString, typeToGqlString, typeToString, unwrap, valueToString, values_)
+module Gen.GraphQL.Operations.AST exposing (annotation_, call_, caseOf_, fragmentCount, getAliasedName, make_, moduleName_, nameToString, typeToGqlString, valueToString, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, getAliasedName, nameToString, valueToString, brackets, typeToGqlString, getWrapper, typeToString, unwrap, fragmentCount, fragmentCountHelper, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, getAliasedName, nameToString, valueToString, typeToGqlString, fragmentCount, moduleName_
 -}
 
 
@@ -15,24 +15,6 @@ import Tuple
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "AST" ]
-
-
-{-| fragmentCountHelper: Selection -> Int -> Int -}
-fragmentCountHelper : Elm.Expression -> Int -> Elm.Expression
-fragmentCountHelper fragmentCountHelperArg fragmentCountHelperArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "AST" ]
-            , name = "fragmentCountHelper"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Selection" [], Type.int ]
-                        Type.int
-                    )
-            }
-        )
-        [ fragmentCountHelperArg, Elm.int fragmentCountHelperArg0 ]
 
 
 {-| {-| Bfore canonicalizing fragments, we need to order them so that fragments with no fragments start first
@@ -57,75 +39,6 @@ fragmentCount fragmentCountArg =
         [ fragmentCountArg ]
 
 
-{-| unwrap: Wrapper -> String -> String -}
-unwrap : Elm.Expression -> String -> Elm.Expression
-unwrap unwrapArg unwrapArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "AST" ]
-            , name = "unwrap"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Wrapper" [], Type.string ]
-                        Type.string
-                    )
-            }
-        )
-        [ unwrapArg, Elm.string unwrapArg0 ]
-
-
-{-| typeToString: Wrapper -> Type -> String -}
-typeToString : Elm.Expression -> Elm.Expression -> Elm.Expression
-typeToString typeToStringArg typeToStringArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "AST" ]
-            , name = "typeToString"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Wrapper" []
-                        , Type.namedWith [] "Type" []
-                        ]
-                        Type.string
-                    )
-            }
-        )
-        [ typeToStringArg, typeToStringArg0 ]
-
-
-{-| {-|
-
-    Type ->
-        Required Val
-
-    Nullable Type ->
-        Val
-
--}
-
-getWrapper: Type -> Wrapper -> Wrapper
--}
-getWrapper : Elm.Expression -> Elm.Expression -> Elm.Expression
-getWrapper getWrapperArg getWrapperArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "AST" ]
-            , name = "getWrapper"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Type" []
-                        , Type.namedWith [] "Wrapper" []
-                        ]
-                        (Type.namedWith [] "Wrapper" [])
-                    )
-            }
-        )
-        [ getWrapperArg, getWrapperArg0 ]
-
-
 {-| typeToGqlString: Type -> String -}
 typeToGqlString : Elm.Expression -> Elm.Expression
 typeToGqlString typeToGqlStringArg =
@@ -138,19 +51,6 @@ typeToGqlString typeToGqlStringArg =
             }
         )
         [ typeToGqlStringArg ]
-
-
-{-| brackets: String -> String -}
-brackets : String -> Elm.Expression
-brackets bracketsArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "AST" ]
-            , name = "brackets"
-            , annotation = Just (Type.function [ Type.string ] Type.string)
-            }
-        )
-        [ Elm.string bracketsArg ]
 
 
 {-| valueToString: Value -> String -}
@@ -392,7 +292,6 @@ make_ :
         }
         -> Elm.Expression
     , document : { definitions : Elm.Expression } -> Elm.Expression
-    , inList : Elm.Expression -> Elm.Expression -> Elm.Expression
     , val : Elm.Expression -> Elm.Expression
     , type_ : Elm.Expression -> Elm.Expression
     , list_ : Elm.Expression -> Elm.Expression
@@ -657,16 +556,6 @@ make_ =
                 (Elm.record
                     [ Tuple.pair "definitions" document_args.definitions ]
                 )
-    , inList =
-        \ar0 ar1 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "AST" ]
-                    , name = "InList"
-                    , annotation = Just (Type.namedWith [] "Wrapper" [])
-                    }
-                )
-                [ ar0, ar1 ]
     , val =
         \ar0 ->
             Elm.apply
@@ -871,10 +760,7 @@ make_ =
 caseOf_ :
     { wrapper :
         Elm.Expression
-        -> { wrapperTags_0_0
-            | inList : Elm.Expression -> Elm.Expression -> Elm.Expression
-            , val : Elm.Expression -> Elm.Expression
-        }
+        -> { wrapperTags_0_0 | val : Elm.Expression -> Elm.Expression }
         -> Elm.Expression
     , type_ :
         Elm.Expression
@@ -931,12 +817,7 @@ caseOf_ =
             Elm.Case.custom
                 wrapperExpression
                 (Type.namedWith [ "GraphQL", "Operations", "AST" ] "Wrapper" [])
-                [ Elm.Case.branch2
-                    "InList"
-                    ( "one", Type.record [ ( "required", Type.bool ) ] )
-                    ( "wrapper", Type.namedWith [] "Wrapper" [] )
-                    wrapperTags.inList
-                , Elm.Case.branch1
+                [ Elm.Case.branch1
                     "Val"
                     ( "one", Type.record [ ( "required", Type.bool ) ] )
                     wrapperTags.val
@@ -1074,34 +955,14 @@ caseOf_ =
 
 
 call_ :
-    { fragmentCountHelper : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , fragmentCount : Elm.Expression -> Elm.Expression
-    , unwrap : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , typeToString : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , getWrapper : Elm.Expression -> Elm.Expression -> Elm.Expression
+    { fragmentCount : Elm.Expression -> Elm.Expression
     , typeToGqlString : Elm.Expression -> Elm.Expression
-    , brackets : Elm.Expression -> Elm.Expression
     , valueToString : Elm.Expression -> Elm.Expression
     , nameToString : Elm.Expression -> Elm.Expression
     , getAliasedName : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { fragmentCountHelper =
-        \fragmentCountHelperArg fragmentCountHelperArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "AST" ]
-                    , name = "fragmentCountHelper"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Selection" [], Type.int ]
-                                Type.int
-                            )
-                    }
-                )
-                [ fragmentCountHelperArg, fragmentCountHelperArg0 ]
-    , fragmentCount =
+    { fragmentCount =
         \fragmentCountArg ->
             Elm.apply
                 (Elm.value
@@ -1116,55 +977,6 @@ call_ =
                     }
                 )
                 [ fragmentCountArg ]
-    , unwrap =
-        \unwrapArg unwrapArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "AST" ]
-                    , name = "unwrap"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Wrapper" [], Type.string ]
-                                Type.string
-                            )
-                    }
-                )
-                [ unwrapArg, unwrapArg0 ]
-    , typeToString =
-        \typeToStringArg typeToStringArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "AST" ]
-                    , name = "typeToString"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Wrapper" []
-                                , Type.namedWith [] "Type" []
-                                ]
-                                Type.string
-                            )
-                    }
-                )
-                [ typeToStringArg, typeToStringArg0 ]
-    , getWrapper =
-        \getWrapperArg getWrapperArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "AST" ]
-                    , name = "getWrapper"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Type" []
-                                , Type.namedWith [] "Wrapper" []
-                                ]
-                                (Type.namedWith [] "Wrapper" [])
-                            )
-                    }
-                )
-                [ getWrapperArg, getWrapperArg0 ]
     , typeToGqlString =
         \typeToGqlStringArg ->
             Elm.apply
@@ -1180,17 +992,6 @@ call_ =
                     }
                 )
                 [ typeToGqlStringArg ]
-    , brackets =
-        \bracketsArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "AST" ]
-                    , name = "brackets"
-                    , annotation =
-                        Just (Type.function [ Type.string ] Type.string)
-                    }
-                )
-                [ bracketsArg ]
     , valueToString =
         \valueToStringArg ->
             Elm.apply
@@ -1240,30 +1041,14 @@ call_ =
 
 
 values_ :
-    { fragmentCountHelper : Elm.Expression
-    , fragmentCount : Elm.Expression
-    , unwrap : Elm.Expression
-    , typeToString : Elm.Expression
-    , getWrapper : Elm.Expression
+    { fragmentCount : Elm.Expression
     , typeToGqlString : Elm.Expression
-    , brackets : Elm.Expression
     , valueToString : Elm.Expression
     , nameToString : Elm.Expression
     , getAliasedName : Elm.Expression
     }
 values_ =
-    { fragmentCountHelper =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "AST" ]
-            , name = "fragmentCountHelper"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Selection" [], Type.int ]
-                        Type.int
-                    )
-            }
-    , fragmentCount =
+    { fragmentCount =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "AST" ]
             , name = "fragmentCount"
@@ -1274,55 +1059,12 @@ values_ =
                         Type.int
                     )
             }
-    , unwrap =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "AST" ]
-            , name = "unwrap"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Wrapper" [], Type.string ]
-                        Type.string
-                    )
-            }
-    , typeToString =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "AST" ]
-            , name = "typeToString"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Wrapper" []
-                        , Type.namedWith [] "Type" []
-                        ]
-                        Type.string
-                    )
-            }
-    , getWrapper =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "AST" ]
-            , name = "getWrapper"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Type" []
-                        , Type.namedWith [] "Wrapper" []
-                        ]
-                        (Type.namedWith [] "Wrapper" [])
-                    )
-            }
     , typeToGqlString =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "AST" ]
             , name = "typeToGqlString"
             , annotation =
                 Just (Type.function [ Type.namedWith [] "Type" [] ] Type.string)
-            }
-    , brackets =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "AST" ]
-            , name = "brackets"
-            , annotation = Just (Type.function [ Type.string ] Type.string)
             }
     , valueToString =
         Elm.value

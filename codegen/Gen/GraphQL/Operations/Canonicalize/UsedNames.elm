@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Canonicalize.UsedNames exposing (addLevel, addLevelKeepSiblingStack, annotation_, call_, dropLevel, dropLevelNotSiblings, getGlobalName, init, levelFromField, moduleName_, saveSibling, siblingCollision, values_)
+module Gen.GraphQL.Operations.Canonicalize.UsedNames exposing (addLevel, addLevelKeepSiblingStack, annotation_, call_, dropLevel, dropLevelNotSiblings, getGlobalName, init, levelFromField, make_, moduleName_, saveSibling, siblingCollision, values_)
 
 {-| 
-@docs values_, call_, annotation_, init, saveSibling, siblingCollision, getGlobalName, levelFromField, addLevel, addLevelKeepSiblingStack, dropLevelNotSiblings, dropLevel, moduleName_
+@docs values_, call_, make_, annotation_, init, saveSibling, siblingCollision, getGlobalName, levelFromField, addLevel, addLevelKeepSiblingStack, dropLevelNotSiblings, dropLevel, moduleName_
 -}
 
 
@@ -271,13 +271,52 @@ init initArg =
         [ Elm.list (List.map Elm.string initArg) ]
 
 
-annotation_ : { usedNames : Type.Annotation }
+annotation_ : { sibling : Type.Annotation, usedNames : Type.Annotation }
 annotation_ =
-    { usedNames =
+    { sibling =
+        Type.alias
+            moduleName_
+            "Sibling"
+            []
+            (Type.record
+                [ ( "aliasedName", Type.string )
+                , ( "scalar", Type.namedWith [] "Maybe" [ Type.string ] )
+                ]
+            )
+    , usedNames =
         Type.namedWith
             [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
             "UsedNames"
             []
+    }
+
+
+make_ :
+    { sibling :
+        { aliasedName : Elm.Expression, scalar : Elm.Expression }
+        -> Elm.Expression
+    }
+make_ =
+    { sibling =
+        \sibling_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Operations", "Canonicalize", "UsedNames" ]
+                    "Sibling"
+                    []
+                    (Type.record
+                        [ ( "aliasedName", Type.string )
+                        , ( "scalar"
+                          , Type.namedWith [] "Maybe" [ Type.string ]
+                          )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "aliasedName" sibling_args.aliasedName
+                    , Tuple.pair "scalar" sibling_args.scalar
+                    ]
+                )
     }
 
 

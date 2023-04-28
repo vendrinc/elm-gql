@@ -1,7 +1,7 @@
-module Gen.Utils.String exposing (call_, elmify, formatScalar, formatTypename, formatValue, getLeadingUnderscores, getLeadingUnderscoresHelper, moduleName_, sanitize, values_)
+module Gen.Utils.String exposing (call_, formatScalar, formatTypename, formatValue, moduleName_, values_)
 
 {-| 
-@docs values_, call_, formatTypename, formatScalar, formatValue, getLeadingUnderscores, getLeadingUnderscoresHelper, elmify, sanitize, moduleName_
+@docs values_, call_, formatTypename, formatScalar, formatValue, moduleName_
 -}
 
 
@@ -13,79 +13,6 @@ import Elm.Annotation as Type
 moduleName_ : List String
 moduleName_ =
     [ "Utils", "String" ]
-
-
-{-| {-| Note, this should be done in elm-prefab directly!
--}
-
-sanitize: String -> String
--}
-sanitize : String -> Elm.Expression
-sanitize sanitizeArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Utils", "String" ]
-            , name = "sanitize"
-            , annotation = Just (Type.function [ Type.string ] Type.string)
-            }
-        )
-        [ Elm.string sanitizeArg ]
-
-
-{-| elmify: Char.Char -> ( Bool, String ) -> ( Bool, String ) -}
-elmify : Char.Char -> Elm.Expression -> Elm.Expression
-elmify elmifyArg elmifyArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Utils", "String" ]
-            , name = "elmify"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.char, Type.tuple Type.bool Type.string ]
-                        (Type.tuple Type.bool Type.string)
-                    )
-            }
-        )
-        [ Elm.char elmifyArg, elmifyArg0 ]
-
-
-{-| getLeadingUnderscoresHelper: String -> String -> ( String, String ) -}
-getLeadingUnderscoresHelper : String -> String -> Elm.Expression
-getLeadingUnderscoresHelper getLeadingUnderscoresHelperArg getLeadingUnderscoresHelperArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Utils", "String" ]
-            , name = "getLeadingUnderscoresHelper"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string, Type.string ]
-                        (Type.tuple Type.string Type.string)
-                    )
-            }
-        )
-        [ Elm.string getLeadingUnderscoresHelperArg
-        , Elm.string getLeadingUnderscoresHelperArg0
-        ]
-
-
-{-| getLeadingUnderscores: String -> ( String, String ) -}
-getLeadingUnderscores : String -> Elm.Expression
-getLeadingUnderscores getLeadingUnderscoresArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Utils", "String" ]
-            , name = "getLeadingUnderscores"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string ]
-                        (Type.tuple Type.string Type.string)
-                    )
-            }
-        )
-        [ Elm.string getLeadingUnderscoresArg ]
 
 
 {-| {-| Same logic as above, but the first letter is lowercase
@@ -148,75 +75,12 @@ formatTypename formatTypenameArg =
 
 
 call_ :
-    { sanitize : Elm.Expression -> Elm.Expression
-    , elmify : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , getLeadingUnderscoresHelper :
-        Elm.Expression -> Elm.Expression -> Elm.Expression
-    , getLeadingUnderscores : Elm.Expression -> Elm.Expression
-    , formatValue : Elm.Expression -> Elm.Expression
+    { formatValue : Elm.Expression -> Elm.Expression
     , formatScalar : Elm.Expression -> Elm.Expression
     , formatTypename : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { sanitize =
-        \sanitizeArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Utils", "String" ]
-                    , name = "sanitize"
-                    , annotation =
-                        Just (Type.function [ Type.string ] Type.string)
-                    }
-                )
-                [ sanitizeArg ]
-    , elmify =
-        \elmifyArg elmifyArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Utils", "String" ]
-                    , name = "elmify"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.char, Type.tuple Type.bool Type.string ]
-                                (Type.tuple Type.bool Type.string)
-                            )
-                    }
-                )
-                [ elmifyArg, elmifyArg0 ]
-    , getLeadingUnderscoresHelper =
-        \getLeadingUnderscoresHelperArg getLeadingUnderscoresHelperArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Utils", "String" ]
-                    , name = "getLeadingUnderscoresHelper"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.string, Type.string ]
-                                (Type.tuple Type.string Type.string)
-                            )
-                    }
-                )
-                [ getLeadingUnderscoresHelperArg
-                , getLeadingUnderscoresHelperArg0
-                ]
-    , getLeadingUnderscores =
-        \getLeadingUnderscoresArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Utils", "String" ]
-                    , name = "getLeadingUnderscores"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.string ]
-                                (Type.tuple Type.string Type.string)
-                            )
-                    }
-                )
-                [ getLeadingUnderscoresArg ]
-    , formatValue =
+    { formatValue =
         \formatValueArg ->
             Elm.apply
                 (Elm.value
@@ -253,55 +117,12 @@ call_ =
 
 
 values_ :
-    { sanitize : Elm.Expression
-    , elmify : Elm.Expression
-    , getLeadingUnderscoresHelper : Elm.Expression
-    , getLeadingUnderscores : Elm.Expression
-    , formatValue : Elm.Expression
+    { formatValue : Elm.Expression
     , formatScalar : Elm.Expression
     , formatTypename : Elm.Expression
     }
 values_ =
-    { sanitize =
-        Elm.value
-            { importFrom = [ "Utils", "String" ]
-            , name = "sanitize"
-            , annotation = Just (Type.function [ Type.string ] Type.string)
-            }
-    , elmify =
-        Elm.value
-            { importFrom = [ "Utils", "String" ]
-            , name = "elmify"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.char, Type.tuple Type.bool Type.string ]
-                        (Type.tuple Type.bool Type.string)
-                    )
-            }
-    , getLeadingUnderscoresHelper =
-        Elm.value
-            { importFrom = [ "Utils", "String" ]
-            , name = "getLeadingUnderscoresHelper"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string, Type.string ]
-                        (Type.tuple Type.string Type.string)
-                    )
-            }
-    , getLeadingUnderscores =
-        Elm.value
-            { importFrom = [ "Utils", "String" ]
-            , name = "getLeadingUnderscores"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string ]
-                        (Type.tuple Type.string Type.string)
-                    )
-            }
-    , formatValue =
+    { formatValue =
         Elm.value
             { importFrom = [ "Utils", "String" ]
             , name = "formatValue"

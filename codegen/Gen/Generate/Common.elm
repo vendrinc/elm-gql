@@ -1,7 +1,7 @@
-module Gen.Generate.Common exposing (call_, gqlTypeToElmTypeAnnotation, local, localAnnotation, moduleName_, ref, selection, selectionLocal, values_)
+module Gen.Generate.Common exposing (call_, gqlTypeToElmTypeAnnotation, localAnnotation, moduleName_, ref, selection, selectionLocal, values_)
 
 {-| 
-@docs values_, call_, selection, selectionLocal, ref, local, gqlTypeToElmTypeAnnotation, localAnnotation, moduleName_
+@docs values_, call_, selection, selectionLocal, ref, gqlTypeToElmTypeAnnotation, localAnnotation, moduleName_
 -}
 
 
@@ -90,24 +90,6 @@ gqlTypeToElmTypeAnnotation gqlTypeToElmTypeAnnotationArg gqlTypeToElmTypeAnnotat
         ]
 
 
-{-| local: Namespace -> String -> Elm.Annotation.Annotation -}
-local : Elm.Expression -> String -> Elm.Expression
-local localArg localArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Generate", "Common" ]
-            , name = "local"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Namespace" [], Type.string ]
-                        (Type.namedWith [ "Elm", "Annotation" ] "Annotation" [])
-                    )
-            }
-        )
-        [ localArg, Elm.string localArg0 ]
-
-
 {-| ref: Namespace -> String -> Elm.Annotation.Annotation -}
 ref : Elm.Expression -> String -> Elm.Expression
 ref refArg refArg0 =
@@ -176,7 +158,6 @@ call_ :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , gqlTypeToElmTypeAnnotation :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
-    , local : Elm.Expression -> Elm.Expression -> Elm.Expression
     , ref : Elm.Expression -> Elm.Expression -> Elm.Expression
     , selectionLocal :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -255,27 +236,6 @@ call_ =
                 , gqlTypeToElmTypeAnnotationArg0
                 , gqlTypeToElmTypeAnnotationArg1
                 ]
-    , local =
-        \localArg localArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Generate", "Common" ]
-                    , name = "local"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Namespace" []
-                                , Type.string
-                                ]
-                                (Type.namedWith
-                                    [ "Elm", "Annotation" ]
-                                    "Annotation"
-                                    []
-                                )
-                            )
-                    }
-                )
-                [ localArg, localArg0 ]
     , ref =
         \refArg refArg0 ->
             Elm.apply
@@ -353,7 +313,6 @@ call_ =
 values_ :
     { localAnnotation : Elm.Expression
     , gqlTypeToElmTypeAnnotation : Elm.Expression
-    , local : Elm.Expression
     , ref : Elm.Expression
     , selectionLocal : Elm.Expression
     , selection : Elm.Expression
@@ -402,17 +361,6 @@ values_ =
                                 )
                             ]
                         ]
-                        (Type.namedWith [ "Elm", "Annotation" ] "Annotation" [])
-                    )
-            }
-    , local =
-        Elm.value
-            { importFrom = [ "Generate", "Common" ]
-            , name = "local"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Namespace" [], Type.string ]
                         (Type.namedWith [ "Elm", "Annotation" ] "Annotation" [])
                     )
             }

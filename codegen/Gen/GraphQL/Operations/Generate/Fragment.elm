@@ -1,4 +1,4 @@
-module Gen.GraphQL.Operations.Generate exposing (call_, generate, moduleName_, values_)
+module Gen.GraphQL.Operations.Generate.Fragment exposing (call_, generate, moduleName_, values_)
 
 {-| 
 @docs values_, call_, generate, moduleName_
@@ -13,7 +13,7 @@ import Tuple
 {-| The name of this module. -}
 moduleName_ : List String
 moduleName_ =
-    [ "GraphQL", "Operations", "Generate" ]
+    [ "GraphQL", "Operations", "Generate", "Fragment" ]
 
 
 {-| generate: 
@@ -23,7 +23,8 @@ moduleName_ =
     , path : String
     , gqlDir : List String
     }
-    -> List Elm.File
+    -> Can.Fragment
+    -> Elm.File
 -}
 generate :
     { namespace : Elm.Expression
@@ -33,10 +34,11 @@ generate :
     , gqlDir : List String
     }
     -> Elm.Expression
-generate generateArg =
+    -> Elm.Expression
+generate generateArg generateArg0 =
     Elm.apply
         (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "Generate" ]
+            { importFrom = [ "GraphQL", "Operations", "Generate", "Fragment" ]
             , name = "generate"
             , annotation =
                 Just
@@ -55,8 +57,9 @@ generate generateArg =
                             , ( "path", Type.string )
                             , ( "gqlDir", Type.list Type.string )
                             ]
+                        , Type.namedWith [ "Can" ] "Fragment" []
                         ]
-                        (Type.list (Type.namedWith [ "Elm" ] "File" []))
+                        (Type.namedWith [ "Elm" ] "File" [])
                     )
             }
         )
@@ -69,16 +72,18 @@ generate generateArg =
                 "gqlDir"
                 (Elm.list (List.map Elm.string generateArg.gqlDir))
             ]
+        , generateArg0
         ]
 
 
-call_ : { generate : Elm.Expression -> Elm.Expression }
+call_ : { generate : Elm.Expression -> Elm.Expression -> Elm.Expression }
 call_ =
     { generate =
-        \generateArg ->
+        \generateArg generateArg0 ->
             Elm.apply
                 (Elm.value
-                    { importFrom = [ "GraphQL", "Operations", "Generate" ]
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Generate", "Fragment" ]
                     , name = "generate"
                     , annotation =
                         Just
@@ -99,12 +104,13 @@ call_ =
                                     , ( "path", Type.string )
                                     , ( "gqlDir", Type.list Type.string )
                                     ]
+                                , Type.namedWith [ "Can" ] "Fragment" []
                                 ]
-                                (Type.list (Type.namedWith [ "Elm" ] "File" []))
+                                (Type.namedWith [ "Elm" ] "File" [])
                             )
                     }
                 )
-                [ generateArg ]
+                [ generateArg, generateArg0 ]
     }
 
 
@@ -112,7 +118,7 @@ values_ : { generate : Elm.Expression }
 values_ =
     { generate =
         Elm.value
-            { importFrom = [ "GraphQL", "Operations", "Generate" ]
+            { importFrom = [ "GraphQL", "Operations", "Generate", "Fragment" ]
             , name = "generate"
             , annotation =
                 Just
@@ -131,8 +137,9 @@ values_ =
                             , ( "path", Type.string )
                             , ( "gqlDir", Type.list Type.string )
                             ]
+                        , Type.namedWith [ "Can" ] "Fragment" []
                         ]
-                        (Type.list (Type.namedWith [ "Elm" ] "File" []))
+                        (Type.namedWith [ "Elm" ] "File" [])
                     )
             }
     }

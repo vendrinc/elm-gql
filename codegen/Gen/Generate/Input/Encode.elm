@@ -1,7 +1,7 @@
-module Gen.Generate.Input.Encode exposing (call_, encode, encodeEnum, fullRecordToInputObject, moduleName_, scalarType, toElmType, toInputObject, toInputRecordAlias, toNulls, toOneOfHelper, toOneOfNulls, toOptionHelpers, toRecordInput, toRecordNulls, toRecordOptionals, values_)
+module Gen.Generate.Input.Encode exposing (annotation_, call_, fullRecordToInputObject, make_, moduleName_, scalarType, toInputObject, toInputRecordAlias, toNulls, toOneOfHelper, toOneOfNulls, toOptionHelpers, toRecordInput, toRecordNulls, toRecordOptionals, values_)
 
 {-| 
-@docs values_, call_, fullRecordToInputObject, toRecordInput, toRecordOptionals, toRecordNulls, toInputRecordAlias, toInputObject, toOptionHelpers, toOneOfHelper, toOneOfNulls, toNulls, toElmType, encode, scalarType, encodeEnum, moduleName_
+@docs values_, call_, make_, annotation_, fullRecordToInputObject, toRecordInput, toRecordOptionals, toRecordNulls, toInputRecordAlias, toInputObject, toOptionHelpers, toOneOfHelper, toOneOfNulls, toNulls, scalarType, moduleName_
 -}
 
 
@@ -14,43 +14,6 @@ import Tuple
 moduleName_ : List String
 moduleName_ =
     [ "Generate", "Input", "Encode" ]
-
-
-{-| encodeEnum: 
-    Namespace
-    -> GraphQL.Schema.Wrapped
-    -> Elm.Expression
-    -> String
-    -> Elm.Expression
--}
-encodeEnum :
-    Elm.Expression
-    -> Elm.Expression
-    -> Elm.Expression
-    -> String
-    -> Elm.Expression
-encodeEnum encodeEnumArg encodeEnumArg0 encodeEnumArg1 encodeEnumArg2 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Generate", "Input", "Encode" ]
-            , name = "encodeEnum"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Namespace" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
-                        , Type.namedWith [ "Elm" ] "Expression" []
-                        , Type.string
-                        ]
-                        (Type.namedWith [ "Elm" ] "Expression" [])
-                    )
-            }
-        )
-        [ encodeEnumArg
-        , encodeEnumArg0
-        , encodeEnumArg1
-        , Elm.string encodeEnumArg2
-        ]
 
 
 {-| scalarType: Namespace -> GraphQL.Schema.Wrapped -> String -> Type.Annotation -}
@@ -72,76 +35,6 @@ scalarType scalarTypeArg scalarTypeArg0 scalarTypeArg1 =
             }
         )
         [ scalarTypeArg, scalarTypeArg0, Elm.string scalarTypeArg1 ]
-
-
-{-| {-| -}
-
-encode: 
-    Namespace
-    -> GraphQL.Schema.Schema
-    -> GraphQL.Schema.Type
-    -> Elm.Expression
-    -> Elm.Expression
--}
-encode :
-    Elm.Expression
-    -> Elm.Expression
-    -> Elm.Expression
-    -> Elm.Expression
-    -> Elm.Expression
-encode encodeArg encodeArg0 encodeArg1 encodeArg2 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Generate", "Input", "Encode" ]
-            , name = "encode"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Namespace" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Type" []
-                        , Type.namedWith [ "Elm" ] "Expression" []
-                        ]
-                        (Type.namedWith [ "Elm" ] "Expression" [])
-                    )
-            }
-        )
-        [ encodeArg, encodeArg0, encodeArg1, encodeArg2 ]
-
-
-{-| {-| -}
-
-toElmType: 
-    Namespace
-    -> GraphQL.Schema.Schema
-    -> GraphQL.Schema.Type
-    -> GraphQL.Schema.Wrapped
-    -> Type.Annotation
--}
-toElmType :
-    Elm.Expression
-    -> Elm.Expression
-    -> Elm.Expression
-    -> Elm.Expression
-    -> Elm.Expression
-toElmType toElmTypeArg toElmTypeArg0 toElmTypeArg1 toElmTypeArg2 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Generate", "Input", "Encode" ]
-            , name = "toElmType"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Namespace" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Type" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
-                        ]
-                        (Type.namedWith [ "Type" ] "Annotation" [])
-                    )
-            }
-        )
-        [ toElmTypeArg, toElmTypeArg0, toElmTypeArg1, toElmTypeArg2 ]
 
 
 {-| toNulls: String -> List GraphQL.Schema.Field -> List Elm.Declaration -}
@@ -617,27 +510,48 @@ fullRecordToInputObject fullRecordToInputObjectArg fullRecordToInputObjectArg0 f
         ]
 
 
+annotation_ : { namespace : Type.Annotation }
+annotation_ =
+    { namespace =
+        Type.alias
+            moduleName_
+            "Namespace"
+            []
+            (Type.record
+                [ ( "namespace", Type.string ), ( "enums", Type.string ) ]
+            )
+    }
+
+
+make_ :
+    { namespace :
+        { namespace : Elm.Expression, enums : Elm.Expression } -> Elm.Expression
+    }
+make_ =
+    { namespace =
+        \namespace_args ->
+            Elm.withType
+                (Type.alias
+                    [ "Generate", "Input", "Encode" ]
+                    "Namespace"
+                    []
+                    (Type.record
+                        [ ( "namespace", Type.string )
+                        , ( "enums", Type.string )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "namespace" namespace_args.namespace
+                    , Tuple.pair "enums" namespace_args.enums
+                    ]
+                )
+    }
+
+
 call_ :
-    { encodeEnum :
-        Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-    , scalarType :
+    { scalarType :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
-    , encode :
-        Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-    , toElmType :
-        Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
     , toNulls : Elm.Expression -> Elm.Expression -> Elm.Expression
     , toOneOfNulls : Elm.Expression -> Elm.Expression -> Elm.Expression
     , toOneOfHelper :
@@ -665,33 +579,7 @@ call_ :
         -> Elm.Expression
     }
 call_ =
-    { encodeEnum =
-        \encodeEnumArg encodeEnumArg0 encodeEnumArg1 encodeEnumArg2 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Generate", "Input", "Encode" ]
-                    , name = "encodeEnum"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Namespace" []
-                                , Type.namedWith
-                                    [ "GraphQL", "Schema" ]
-                                    "Wrapped"
-                                    []
-                                , Type.namedWith [ "Elm" ] "Expression" []
-                                , Type.string
-                                ]
-                                (Type.namedWith [ "Elm" ] "Expression" [])
-                            )
-                    }
-                )
-                [ encodeEnumArg
-                , encodeEnumArg0
-                , encodeEnumArg1
-                , encodeEnumArg2
-                ]
-    , scalarType =
+    { scalarType =
         \scalarTypeArg scalarTypeArg0 scalarTypeArg1 ->
             Elm.apply
                 (Elm.value
@@ -712,59 +600,6 @@ call_ =
                     }
                 )
                 [ scalarTypeArg, scalarTypeArg0, scalarTypeArg1 ]
-    , encode =
-        \encodeArg encodeArg0 encodeArg1 encodeArg2 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Generate", "Input", "Encode" ]
-                    , name = "encode"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Namespace" []
-                                , Type.namedWith
-                                    [ "GraphQL", "Schema" ]
-                                    "Schema"
-                                    []
-                                , Type.namedWith
-                                    [ "GraphQL", "Schema" ]
-                                    "Type"
-                                    []
-                                , Type.namedWith [ "Elm" ] "Expression" []
-                                ]
-                                (Type.namedWith [ "Elm" ] "Expression" [])
-                            )
-                    }
-                )
-                [ encodeArg, encodeArg0, encodeArg1, encodeArg2 ]
-    , toElmType =
-        \toElmTypeArg toElmTypeArg0 toElmTypeArg1 toElmTypeArg2 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Generate", "Input", "Encode" ]
-                    , name = "toElmType"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Namespace" []
-                                , Type.namedWith
-                                    [ "GraphQL", "Schema" ]
-                                    "Schema"
-                                    []
-                                , Type.namedWith
-                                    [ "GraphQL", "Schema" ]
-                                    "Type"
-                                    []
-                                , Type.namedWith
-                                    [ "GraphQL", "Schema" ]
-                                    "Wrapped"
-                                    []
-                                ]
-                                (Type.namedWith [ "Type" ] "Annotation" [])
-                            )
-                    }
-                )
-                [ toElmTypeArg, toElmTypeArg0, toElmTypeArg1, toElmTypeArg2 ]
     , toNulls =
         \toNullsArg toNullsArg0 ->
             Elm.apply
@@ -1077,10 +912,7 @@ call_ =
 
 
 values_ :
-    { encodeEnum : Elm.Expression
-    , scalarType : Elm.Expression
-    , encode : Elm.Expression
-    , toElmType : Elm.Expression
+    { scalarType : Elm.Expression
     , toNulls : Elm.Expression
     , toOneOfNulls : Elm.Expression
     , toOneOfHelper : Elm.Expression
@@ -1093,22 +925,7 @@ values_ :
     , fullRecordToInputObject : Elm.Expression
     }
 values_ =
-    { encodeEnum =
-        Elm.value
-            { importFrom = [ "Generate", "Input", "Encode" ]
-            , name = "encodeEnum"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Namespace" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
-                        , Type.namedWith [ "Elm" ] "Expression" []
-                        , Type.string
-                        ]
-                        (Type.namedWith [ "Elm" ] "Expression" [])
-                    )
-            }
-    , scalarType =
+    { scalarType =
         Elm.value
             { importFrom = [ "Generate", "Input", "Encode" ]
             , name = "scalarType"
@@ -1118,36 +935,6 @@ values_ =
                         [ Type.namedWith [] "Namespace" []
                         , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
                         , Type.string
-                        ]
-                        (Type.namedWith [ "Type" ] "Annotation" [])
-                    )
-            }
-    , encode =
-        Elm.value
-            { importFrom = [ "Generate", "Input", "Encode" ]
-            , name = "encode"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Namespace" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Type" []
-                        , Type.namedWith [ "Elm" ] "Expression" []
-                        ]
-                        (Type.namedWith [ "Elm" ] "Expression" [])
-                    )
-            }
-    , toElmType =
-        Elm.value
-            { importFrom = [ "Generate", "Input", "Encode" ]
-            , name = "toElmType"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Namespace" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Type" []
-                        , Type.namedWith [ "GraphQL", "Schema" ] "Wrapped" []
                         ]
                         (Type.namedWith [ "Type" ] "Annotation" [])
                     )

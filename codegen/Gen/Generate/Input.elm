@@ -1,7 +1,7 @@
-module Gen.Generate.Input exposing (annotation_, call_, caseOf_, decodeWrapper, getWrapFromAst, gqlType, gqlTypeHelper, isOptional, make_, moduleName_, operationToString, splitRequired, values_, wrapElmType, wrapExpression)
+module Gen.Generate.Input exposing (annotation_, call_, caseOf_, decodeWrapper, isOptional, make_, moduleName_, operationToString, splitRequired, values_, wrapElmType, wrapExpression)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, operationToString, gqlType, gqlTypeHelper, getWrapFromAst, wrapElmType, wrapExpression, splitRequired, isOptional, decodeWrapper, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, operationToString, wrapElmType, wrapExpression, splitRequired, isOptional, decodeWrapper, moduleName_
 -}
 
 
@@ -165,60 +165,6 @@ wrapElmType wrapElmTypeArg wrapElmTypeArg0 =
         [ wrapElmTypeArg, wrapElmTypeArg0 ]
 
 
-{-| getWrapFromAst: Ast.Type -> Wrapped -}
-getWrapFromAst : Elm.Expression -> Elm.Expression
-getWrapFromAst getWrapFromAstArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Generate", "Input" ]
-            , name = "getWrapFromAst"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [ "Ast" ] "Type" [] ]
-                        (Type.namedWith [] "Wrapped" [])
-                    )
-            }
-        )
-        [ getWrapFromAstArg ]
-
-
-{-| gqlTypeHelper: Wrapped -> String -> String -}
-gqlTypeHelper : Elm.Expression -> String -> Elm.Expression
-gqlTypeHelper gqlTypeHelperArg gqlTypeHelperArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Generate", "Input" ]
-            , name = "gqlTypeHelper"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Wrapped" [], Type.string ]
-                        Type.string
-                    )
-            }
-        )
-        [ gqlTypeHelperArg, Elm.string gqlTypeHelperArg0 ]
-
-
-{-| gqlType: Wrapped -> String -> String -}
-gqlType : Elm.Expression -> String -> Elm.Expression
-gqlType gqlTypeArg gqlTypeArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Generate", "Input" ]
-            , name = "gqlType"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Wrapped" [], Type.string ]
-                        Type.string
-                    )
-            }
-        )
-        [ gqlTypeArg, Elm.string gqlTypeArg0 ]
-
-
 {-| operationToString: Operation -> String -}
 operationToString : Elm.Expression -> Elm.Expression
 operationToString operationToStringArg =
@@ -286,9 +232,6 @@ call_ :
     , splitRequired : Elm.Expression -> Elm.Expression
     , wrapExpression : Elm.Expression -> Elm.Expression -> Elm.Expression
     , wrapElmType : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , getWrapFromAst : Elm.Expression -> Elm.Expression
-    , gqlTypeHelper : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , gqlType : Elm.Expression -> Elm.Expression -> Elm.Expression
     , operationToString : Elm.Expression -> Elm.Expression
     }
 call_ =
@@ -418,51 +361,6 @@ call_ =
                     }
                 )
                 [ wrapElmTypeArg, wrapElmTypeArg0 ]
-    , getWrapFromAst =
-        \getWrapFromAstArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Generate", "Input" ]
-                    , name = "getWrapFromAst"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [ "Ast" ] "Type" [] ]
-                                (Type.namedWith [] "Wrapped" [])
-                            )
-                    }
-                )
-                [ getWrapFromAstArg ]
-    , gqlTypeHelper =
-        \gqlTypeHelperArg gqlTypeHelperArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Generate", "Input" ]
-                    , name = "gqlTypeHelper"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Wrapped" [], Type.string ]
-                                Type.string
-                            )
-                    }
-                )
-                [ gqlTypeHelperArg, gqlTypeHelperArg0 ]
-    , gqlType =
-        \gqlTypeArg gqlTypeArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Generate", "Input" ]
-                    , name = "gqlType"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Wrapped" [], Type.string ]
-                                Type.string
-                            )
-                    }
-                )
-                [ gqlTypeArg, gqlTypeArg0 ]
     , operationToString =
         \operationToStringArg ->
             Elm.apply
@@ -487,9 +385,6 @@ values_ :
     , splitRequired : Elm.Expression
     , wrapExpression : Elm.Expression
     , wrapElmType : Elm.Expression
-    , getWrapFromAst : Elm.Expression
-    , gqlTypeHelper : Elm.Expression
-    , gqlType : Elm.Expression
     , operationToString : Elm.Expression
     }
 values_ =
@@ -594,39 +489,6 @@ values_ =
                         , Type.namedWith [ "Type" ] "Annotation" []
                         ]
                         (Type.namedWith [ "Type" ] "Annotation" [])
-                    )
-            }
-    , getWrapFromAst =
-        Elm.value
-            { importFrom = [ "Generate", "Input" ]
-            , name = "getWrapFromAst"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [ "Ast" ] "Type" [] ]
-                        (Type.namedWith [] "Wrapped" [])
-                    )
-            }
-    , gqlTypeHelper =
-        Elm.value
-            { importFrom = [ "Generate", "Input" ]
-            , name = "gqlTypeHelper"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Wrapped" [], Type.string ]
-                        Type.string
-                    )
-            }
-    , gqlType =
-        Elm.value
-            { importFrom = [ "Generate", "Input" ]
-            , name = "gqlType"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Wrapped" [], Type.string ]
-                        Type.string
                     )
             }
     , operationToString =
