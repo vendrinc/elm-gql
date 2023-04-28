@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, mutationTask, nullable, object, objectWith, optional, query, queryString, queryTask, recover, select, selectTypeNameButSkip, send, simulate, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with, withName)
+module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, arg, argList, bakeToSelection, batch, call_, caseOf_, decode, decodeNullable, encodeArgument, encodeInputObject, encodeInputObjectAsJson, encodeOptionals, encodeOptionalsAsJson, enum, field, fieldWith, inputObject, inputObjectToFieldList, jsonField, list, make_, map, map2, mapRequest, maybeEnum, maybeScalarEncode, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, nullable, object, objectWith, optional, query, queryRisky, queryRiskyTask, queryString, queryTask, recover, select, selectTypeNameButSkip, send, simulate, union, unsafe, values_, versionedAlias, versionedJsonField, versionedName, with, withName)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, withName, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, mapRequest, send, simulate, query, mutation, queryTask, mutationTask, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, batch, recover, union, maybeEnum, enum, nullable, list, object, objectWith, decode, selectTypeNameButSkip, field, fieldWith, unsafe, withName, inputObject, addField, addOptionalField, arg, argList, inputObjectToFieldList, encodeInputObjectAsJson, encodeInputObject, encodeArgument, encodeOptionals, encodeOptionalsAsJson, optional, select, with, map, map2, bakeToSelection, mapRequest, send, simulate, query, mutation, queryTask, mutationTask, queryRisky, mutationRisky, queryRiskyTask, mutationRiskyTask, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, jsonField, andMap, moduleName_
 -}
 
 
@@ -252,6 +252,246 @@ queryString queryStringArg queryStringArg0 =
             }
         )
         [ Elm.string queryStringArg, queryStringArg0 ]
+
+
+{-| {-| -}
+
+mutationRiskyTask: 
+    Selection Mutation value
+    -> { headers : List Http.Header, url : String, timeout : Maybe Float }
+    -> Task Error value
+-}
+mutationRiskyTask :
+    Elm.Expression
+    -> { headers : List Elm.Expression, url : String, timeout : Elm.Expression }
+    -> Elm.Expression
+mutationRiskyTask mutationRiskyTaskArg mutationRiskyTaskArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "mutationRiskyTask"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Mutation" []
+                            , Type.var "value"
+                            ]
+                        , Type.record
+                            [ ( "headers"
+                              , Type.list
+                                    (Type.namedWith [ "Http" ] "Header" [])
+                              )
+                            , ( "url", Type.string )
+                            , ( "timeout"
+                              , Type.namedWith [] "Maybe" [ Type.float ]
+                              )
+                            ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Task"
+                            [ Type.namedWith [] "Error" [], Type.var "value" ]
+                        )
+                    )
+            }
+        )
+        [ mutationRiskyTaskArg
+        , Elm.record
+            [ Tuple.pair "headers" (Elm.list mutationRiskyTaskArg0.headers)
+            , Tuple.pair "url" (Elm.string mutationRiskyTaskArg0.url)
+            , Tuple.pair "timeout" mutationRiskyTaskArg0.timeout
+            ]
+        ]
+
+
+{-| {-| -}
+
+queryRiskyTask: 
+    Selection Query value
+    -> { headers : List Http.Header, url : String, timeout : Maybe Float }
+    -> Task Error value
+-}
+queryRiskyTask :
+    Elm.Expression
+    -> { headers : List Elm.Expression, url : String, timeout : Elm.Expression }
+    -> Elm.Expression
+queryRiskyTask queryRiskyTaskArg queryRiskyTaskArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "queryRiskyTask"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Query" [], Type.var "value" ]
+                        , Type.record
+                            [ ( "headers"
+                              , Type.list
+                                    (Type.namedWith [ "Http" ] "Header" [])
+                              )
+                            , ( "url", Type.string )
+                            , ( "timeout"
+                              , Type.namedWith [] "Maybe" [ Type.float ]
+                              )
+                            ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Task"
+                            [ Type.namedWith [] "Error" [], Type.var "value" ]
+                        )
+                    )
+            }
+        )
+        [ queryRiskyTaskArg
+        , Elm.record
+            [ Tuple.pair "headers" (Elm.list queryRiskyTaskArg0.headers)
+            , Tuple.pair "url" (Elm.string queryRiskyTaskArg0.url)
+            , Tuple.pair "timeout" queryRiskyTaskArg0.timeout
+            ]
+        ]
+
+
+{-| {-| -}
+
+mutationRisky: 
+    Selection Mutation msg
+    -> { headers : List Http.Header
+    , url : String
+    , timeout : Maybe Float
+    , tracker : Maybe String
+    }
+    -> Cmd (Result Error msg)
+-}
+mutationRisky :
+    Elm.Expression
+    -> { headers : List Elm.Expression
+    , url : String
+    , timeout : Elm.Expression
+    , tracker : Elm.Expression
+    }
+    -> Elm.Expression
+mutationRisky mutationRiskyArg mutationRiskyArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "mutationRisky"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Mutation" [], Type.var "msg" ]
+                        , Type.record
+                            [ ( "headers"
+                              , Type.list
+                                    (Type.namedWith [ "Http" ] "Header" [])
+                              )
+                            , ( "url", Type.string )
+                            , ( "timeout"
+                              , Type.namedWith [] "Maybe" [ Type.float ]
+                              )
+                            , ( "tracker"
+                              , Type.namedWith [] "Maybe" [ Type.string ]
+                              )
+                            ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Cmd"
+                            [ Type.namedWith
+                                []
+                                "Result"
+                                [ Type.namedWith [] "Error" [], Type.var "msg" ]
+                            ]
+                        )
+                    )
+            }
+        )
+        [ mutationRiskyArg
+        , Elm.record
+            [ Tuple.pair "headers" (Elm.list mutationRiskyArg0.headers)
+            , Tuple.pair "url" (Elm.string mutationRiskyArg0.url)
+            , Tuple.pair "timeout" mutationRiskyArg0.timeout
+            , Tuple.pair "tracker" mutationRiskyArg0.tracker
+            ]
+        ]
+
+
+{-| {-| -}
+
+queryRisky: 
+    Selection Query value
+    -> { headers : List Http.Header
+    , url : String
+    , timeout : Maybe Float
+    , tracker : Maybe String
+    }
+    -> Cmd (Result Error value)
+-}
+queryRisky :
+    Elm.Expression
+    -> { headers : List Elm.Expression
+    , url : String
+    , timeout : Elm.Expression
+    , tracker : Elm.Expression
+    }
+    -> Elm.Expression
+queryRisky queryRiskyArg queryRiskyArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "queryRisky"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Query" [], Type.var "value" ]
+                        , Type.record
+                            [ ( "headers"
+                              , Type.list
+                                    (Type.namedWith [ "Http" ] "Header" [])
+                              )
+                            , ( "url", Type.string )
+                            , ( "timeout"
+                              , Type.namedWith [] "Maybe" [ Type.float ]
+                              )
+                            , ( "tracker"
+                              , Type.namedWith [] "Maybe" [ Type.string ]
+                              )
+                            ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Cmd"
+                            [ Type.namedWith
+                                []
+                                "Result"
+                                [ Type.namedWith [] "Error" []
+                                , Type.var "value"
+                                ]
+                            ]
+                        )
+                    )
+            }
+        )
+        [ queryRiskyArg
+        , Elm.record
+            [ Tuple.pair "headers" (Elm.list queryRiskyArg0.headers)
+            , Tuple.pair "url" (Elm.string queryRiskyArg0.url)
+            , Tuple.pair "timeout" queryRiskyArg0.timeout
+            , Tuple.pair "tracker" queryRiskyArg0.tracker
+            ]
+        ]
 
 
 {-| {-| -}
@@ -1927,6 +2167,10 @@ call_ :
     , decodeNullable : Elm.Expression -> Elm.Expression
     , maybeScalarEncode : Elm.Expression -> Elm.Expression -> Elm.Expression
     , queryString : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , mutationRiskyTask : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , queryRiskyTask : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , mutationRisky : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , queryRisky : Elm.Expression -> Elm.Expression -> Elm.Expression
     , mutationTask : Elm.Expression -> Elm.Expression -> Elm.Expression
     , queryTask : Elm.Expression -> Elm.Expression -> Elm.Expression
     , mutation : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -2181,6 +2425,190 @@ call_ =
                     }
                 )
                 [ queryStringArg, queryStringArg0 ]
+    , mutationRiskyTask =
+        \mutationRiskyTaskArg mutationRiskyTaskArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "mutationRiskyTask"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.namedWith [] "Mutation" []
+                                    , Type.var "value"
+                                    ]
+                                , Type.record
+                                    [ ( "headers"
+                                      , Type.list
+                                            (Type.namedWith
+                                                [ "Http" ]
+                                                "Header"
+                                                []
+                                            )
+                                      )
+                                    , ( "url", Type.string )
+                                    , ( "timeout"
+                                      , Type.namedWith [] "Maybe" [ Type.float ]
+                                      )
+                                    ]
+                                ]
+                                (Type.namedWith
+                                    []
+                                    "Task"
+                                    [ Type.namedWith [] "Error" []
+                                    , Type.var "value"
+                                    ]
+                                )
+                            )
+                    }
+                )
+                [ mutationRiskyTaskArg, mutationRiskyTaskArg0 ]
+    , queryRiskyTask =
+        \queryRiskyTaskArg queryRiskyTaskArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "queryRiskyTask"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.namedWith [] "Query" []
+                                    , Type.var "value"
+                                    ]
+                                , Type.record
+                                    [ ( "headers"
+                                      , Type.list
+                                            (Type.namedWith
+                                                [ "Http" ]
+                                                "Header"
+                                                []
+                                            )
+                                      )
+                                    , ( "url", Type.string )
+                                    , ( "timeout"
+                                      , Type.namedWith [] "Maybe" [ Type.float ]
+                                      )
+                                    ]
+                                ]
+                                (Type.namedWith
+                                    []
+                                    "Task"
+                                    [ Type.namedWith [] "Error" []
+                                    , Type.var "value"
+                                    ]
+                                )
+                            )
+                    }
+                )
+                [ queryRiskyTaskArg, queryRiskyTaskArg0 ]
+    , mutationRisky =
+        \mutationRiskyArg mutationRiskyArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "mutationRisky"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.namedWith [] "Mutation" []
+                                    , Type.var "msg"
+                                    ]
+                                , Type.record
+                                    [ ( "headers"
+                                      , Type.list
+                                            (Type.namedWith
+                                                [ "Http" ]
+                                                "Header"
+                                                []
+                                            )
+                                      )
+                                    , ( "url", Type.string )
+                                    , ( "timeout"
+                                      , Type.namedWith [] "Maybe" [ Type.float ]
+                                      )
+                                    , ( "tracker"
+                                      , Type.namedWith
+                                            []
+                                            "Maybe"
+                                            [ Type.string ]
+                                      )
+                                    ]
+                                ]
+                                (Type.namedWith
+                                    []
+                                    "Cmd"
+                                    [ Type.namedWith
+                                        []
+                                        "Result"
+                                        [ Type.namedWith [] "Error" []
+                                        , Type.var "msg"
+                                        ]
+                                    ]
+                                )
+                            )
+                    }
+                )
+                [ mutationRiskyArg, mutationRiskyArg0 ]
+    , queryRisky =
+        \queryRiskyArg queryRiskyArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "queryRisky"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.namedWith [] "Query" []
+                                    , Type.var "value"
+                                    ]
+                                , Type.record
+                                    [ ( "headers"
+                                      , Type.list
+                                            (Type.namedWith
+                                                [ "Http" ]
+                                                "Header"
+                                                []
+                                            )
+                                      )
+                                    , ( "url", Type.string )
+                                    , ( "timeout"
+                                      , Type.namedWith [] "Maybe" [ Type.float ]
+                                      )
+                                    , ( "tracker"
+                                      , Type.namedWith
+                                            []
+                                            "Maybe"
+                                            [ Type.string ]
+                                      )
+                                    ]
+                                ]
+                                (Type.namedWith
+                                    []
+                                    "Cmd"
+                                    [ Type.namedWith
+                                        []
+                                        "Result"
+                                        [ Type.namedWith [] "Error" []
+                                        , Type.var "value"
+                                        ]
+                                    ]
+                                )
+                            )
+                    }
+                )
+                [ queryRiskyArg, queryRiskyArg0 ]
     , mutationTask =
         \mutationTaskArg mutationTaskArg0 ->
             Elm.apply
@@ -3318,6 +3746,10 @@ values_ :
     , decodeNullable : Elm.Expression
     , maybeScalarEncode : Elm.Expression
     , queryString : Elm.Expression
+    , mutationRiskyTask : Elm.Expression
+    , queryRiskyTask : Elm.Expression
+    , mutationRisky : Elm.Expression
+    , queryRisky : Elm.Expression
     , mutationTask : Elm.Expression
     , queryTask : Elm.Expression
     , mutation : Elm.Expression
@@ -3493,6 +3925,140 @@ values_ =
                             [ Type.var "source", Type.var "data" ]
                         ]
                         Type.string
+                    )
+            }
+    , mutationRiskyTask =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "mutationRiskyTask"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Mutation" []
+                            , Type.var "value"
+                            ]
+                        , Type.record
+                            [ ( "headers"
+                              , Type.list
+                                    (Type.namedWith [ "Http" ] "Header" [])
+                              )
+                            , ( "url", Type.string )
+                            , ( "timeout"
+                              , Type.namedWith [] "Maybe" [ Type.float ]
+                              )
+                            ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Task"
+                            [ Type.namedWith [] "Error" [], Type.var "value" ]
+                        )
+                    )
+            }
+    , queryRiskyTask =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "queryRiskyTask"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Query" [], Type.var "value" ]
+                        , Type.record
+                            [ ( "headers"
+                              , Type.list
+                                    (Type.namedWith [ "Http" ] "Header" [])
+                              )
+                            , ( "url", Type.string )
+                            , ( "timeout"
+                              , Type.namedWith [] "Maybe" [ Type.float ]
+                              )
+                            ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Task"
+                            [ Type.namedWith [] "Error" [], Type.var "value" ]
+                        )
+                    )
+            }
+    , mutationRisky =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "mutationRisky"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Mutation" [], Type.var "msg" ]
+                        , Type.record
+                            [ ( "headers"
+                              , Type.list
+                                    (Type.namedWith [ "Http" ] "Header" [])
+                              )
+                            , ( "url", Type.string )
+                            , ( "timeout"
+                              , Type.namedWith [] "Maybe" [ Type.float ]
+                              )
+                            , ( "tracker"
+                              , Type.namedWith [] "Maybe" [ Type.string ]
+                              )
+                            ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Cmd"
+                            [ Type.namedWith
+                                []
+                                "Result"
+                                [ Type.namedWith [] "Error" [], Type.var "msg" ]
+                            ]
+                        )
+                    )
+            }
+    , queryRisky =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "queryRisky"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Query" [], Type.var "value" ]
+                        , Type.record
+                            [ ( "headers"
+                              , Type.list
+                                    (Type.namedWith [ "Http" ] "Header" [])
+                              )
+                            , ( "url", Type.string )
+                            , ( "timeout"
+                              , Type.namedWith [] "Maybe" [ Type.float ]
+                              )
+                            , ( "tracker"
+                              , Type.namedWith [] "Maybe" [ Type.string ]
+                              )
+                            ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Cmd"
+                            [ Type.namedWith
+                                []
+                                "Result"
+                                [ Type.namedWith [] "Error" []
+                                , Type.var "value"
+                                ]
+                            ]
+                        )
                     )
             }
     , mutationTask =

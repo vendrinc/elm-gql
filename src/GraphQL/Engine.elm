@@ -6,8 +6,8 @@ module GraphQL.Engine exposing
     , union
     , Selection, select, with, map, map2, recover, withName
     , arg, argList, Optional, optional
-    , Query, query, queryTask
-    , Mutation, mutation, mutationTask, Error(..)
+    , Query, query, queryRisky, queryTask, queryRiskyTask
+    , Mutation, mutation, mutationRisky, mutationTask, mutationRiskyTask, Error(..)
     , queryString
     , Argument(..), maybeScalarEncode
     , encodeOptionals, encodeOptionalsAsJson, encodeInputObject, encodeArgument
@@ -35,9 +35,9 @@ module GraphQL.Engine exposing
 
 @docs arg, argList, Optional, optional
 
-@docs Query, query, queryTask
+@docs Query, query, queryRisky, queryTask, queryRiskyTask
 
-@docs Mutation, mutation, mutationTask, Error
+@docs Mutation, mutation, mutationRisky, mutationTask, mutationRiskyTask, Error
 
 @docs queryString
 
@@ -1088,6 +1088,90 @@ mutationTask :
     -> Task Error value
 mutationTask sel config =
     Http.task
+        { method = "POST"
+        , headers = config.headers
+        , url = config.url
+        , body = body "mutation" sel
+        , resolver = resolver sel
+        , timeout = config.timeout
+        }
+
+
+{-| -}
+queryRisky :
+    Selection Query value
+    ->
+        { headers : List Http.Header
+        , url : String
+        , timeout : Maybe Float
+        , tracker : Maybe String
+        }
+    -> Cmd (Result Error value)
+queryRisky sel config =
+    Http.riskyRequest
+        { method = "POST"
+        , headers = config.headers
+        , url = config.url
+        , body = body "query" sel
+        , expect = expect identity sel
+        , timeout = config.timeout
+        , tracker = config.tracker
+        }
+
+
+{-| -}
+mutationRisky :
+    Selection Mutation msg
+    ->
+        { headers : List Http.Header
+        , url : String
+        , timeout : Maybe Float
+        , tracker : Maybe String
+        }
+    -> Cmd (Result Error msg)
+mutationRisky sel config =
+    Http.riskyRequest
+        { method = "POST"
+        , headers = config.headers
+        , url = config.url
+        , body = body "mutation" sel
+        , expect = expect identity sel
+        , timeout = config.timeout
+        , tracker = config.tracker
+        }
+
+
+{-| -}
+queryRiskyTask :
+    Selection Query value
+    ->
+        { headers : List Http.Header
+        , url : String
+        , timeout : Maybe Float
+        }
+    -> Task Error value
+queryRiskyTask sel config =
+    Http.riskyTask
+        { method = "POST"
+        , headers = config.headers
+        , url = config.url
+        , body = body "query" sel
+        , resolver = resolver sel
+        , timeout = config.timeout
+        }
+
+
+{-| -}
+mutationRiskyTask :
+    Selection Mutation value
+    ->
+        { headers : List Http.Header
+        , url : String
+        , timeout : Maybe Float
+        }
+    -> Task Error value
+mutationRiskyTask sel config =
+    Http.riskyTask
         { method = "POST"
         , headers = config.headers
         , url = config.url
