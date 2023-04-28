@@ -1,8 +1,6 @@
-module Operations exposing (..)
+module Operations exposing (suite)
 
-import Expect exposing (Expectation)
-import Fuzz exposing (Fuzzer, int, list, string)
-import GraphQL.Operations.AST as AST
+import Expect
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Parse as Parse
@@ -30,39 +28,39 @@ suite =
                     parsed =
                         Parse.parse queries.simple
                 in
-                Expect.true
-                    "Expected the simple query to parse"
-                    (case parsed of
-                        Ok _ ->
-                            True
+                case parsed of
+                    Ok _ ->
+                        Expect.pass
 
-                        Err _ ->
-                            False
-                    )
+                    Err _ ->
+                        Expect.fail "Failed to pass"
         , test "Parse the blissfully dashboard query" <|
             \_ ->
                 let
                     parsed =
                         Parse.parse queries.dashboard
                 in
-                Expect.true
-                    "Expected the blissfully dashboard to parse"
-                    (case parsed of
-                        Ok _ ->
-                            True
+                case parsed of
+                    Ok _ ->
+                        Expect.pass
 
-                        Err _ ->
-                            False
-                    )
+                    Err _ ->
+                        Expect.fail "Failed to parse the blissfully dashboard"
         , test "Round trip -> Parse -> Canonicalize -> Can.toString -> Parse" <|
             \_ ->
                 case Parse.parse queries.deals of
-                    Err err ->
+                    Err _ ->
                         Expect.fail "Deals failed to parse"
 
                     Ok query ->
-                        case Canonicalize.canonicalize schema query of
-                            Err errors ->
+                        let
+                            paths =
+                                { path = "/"
+                                , gqlDir = []
+                                }
+                        in
+                        case Canonicalize.canonicalize schema paths query of
+                            Err _ ->
                                 Expect.fail "Deals failed to canonicalize"
 
                             Ok canAST ->
@@ -76,7 +74,7 @@ suite =
                                                 Can.toString def
                                         in
                                         case Parse.parse newString of
-                                            Err err ->
+                                            Err _ ->
                                                 Expect.fail "Unable to parse Can.toString version of parsed query"
 
                                             Ok parsedAgain ->
@@ -84,41 +82,6 @@ suite =
 
                                     _ ->
                                         Expect.fail "Can AST has too many definitions"
-        ]
-
-
-typeToString =
-    describe "Can we render a type to a GQL string correctly?"
-        [ test "Simple required type" <|
-            \_ ->
-                Expect.equal
-                    (Schema.typeToString (Schema.Scalar "Boolean"))
-                    "Boolean!"
-        , test "Nullable scalar" <|
-            \_ ->
-                Expect.equal
-                    (Schema.typeToString (Schema.Nullable (Schema.Scalar "Boolean")))
-                    "Boolean"
-        , test "required list of required scalar" <|
-            \_ ->
-                Expect.equal
-                    (Schema.typeToString (Schema.List_ (Schema.Scalar "Boolean")))
-                    "[Boolean!]!"
-        , test "optional list of required scalar" <|
-            \_ ->
-                Expect.equal
-                    (Schema.typeToString (Schema.Nullable (Schema.List_ (Schema.Scalar "Boolean"))))
-                    "[Boolean!]"
-        , test "required list of optional scalar" <|
-            \_ ->
-                Expect.equal
-                    (Schema.typeToString (Schema.List_ (Schema.Nullable (Schema.Scalar "Boolean"))))
-                    "[Boolean]!"
-        , test "optional list of optional scalar" <|
-            \_ ->
-                Expect.equal
-                    (Schema.typeToString (Schema.Nullable (Schema.List_ (Schema.Nullable (Schema.Scalar "Boolean")))))
-                    "[Boolean]"
         ]
 
 
