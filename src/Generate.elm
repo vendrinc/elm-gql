@@ -163,7 +163,9 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
             }
 
         parsedGqlQueries =
-            parseGql namespace schema flagDetails flagDetails.gql []
+            List.foldl (parseGql namespace schema flagDetails)
+                (Ok [])
+                flagDetails.gql
     in
     case parsedGqlQueries of
         Err err ->
@@ -233,25 +235,21 @@ parseGql :
     Namespace
     -> GraphQL.Schema.Schema
     -> FlagDetails
-    -> List { src : String, path : String }
-    -> List Elm.File
+    -> { src : String, path : String }
     -> Result Error (List Elm.File)
-parseGql namespace schema flagDetails gql rendered =
-    case gql of
-        [] ->
-            Ok rendered
-
-        top :: remaining ->
-            case parseAndValidateQuery namespace schema flagDetails top of
+    -> Result Error (List Elm.File)
+parseGql namespace schema flagDetails gql result =
+    case result of
+        Ok files ->
+            case parseAndValidateQuery namespace schema flagDetails gql of
                 Ok parsedFiles ->
-                    parseGql namespace
-                        schema
-                        flagDetails
-                        remaining
-                        (rendered ++ parsedFiles)
+                    Ok (files ++ parsedFiles)
 
                 Err err ->
                     Err err
+
+        Err err ->
+            result
 
 
 flagsDecoder : Json.Decode.Decoder Input
@@ -434,12 +432,10 @@ parseAndValidateQuery namespace schema flags gql =
 
                 Ok canAST ->
                     GraphQL.Operations.Generate.generate
-                        { namespace =
-                            namespace
+                        { namespace = namespace
                         , schema = schema
                         , document = canAST
-                        , path =
-                            gql.path
+                        , path = gql.path
                         , gqlDir = flags.gqlDir
                         }
                         |> Ok
