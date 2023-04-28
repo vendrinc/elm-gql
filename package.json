@@ -15,7 +15,8 @@
     "elm-gql:run": "cd sandbox ; node ../bin/elm-gql run ../schema.json --force --queries queries/elm",
     "elm-gql:init": "cd sandbox ; node ../bin/elm-gql init ../schema.json --force --queries queries/elm",
     "sandbox": "cd sandbox ; elm make src/Main.elm",
-    "test": "elm-test"
+    "test": "elm-test",
+    "review": "elm-review --fix-all"
   },
   "files": [
     "dist",
@@ -34,7 +35,9 @@
   "devDependencies": {
     "elm-codegen": "^0.2.0",
     "elm-doc-preview": "^5.0.5",
+    "elm-format": "^0.8.7",
     "elm-optimize-level-2": "^0.3.4",
+    "elm-review": "^2.10.1",
     "typescript": "^4.2.4"
   },
   "dependencies": {
