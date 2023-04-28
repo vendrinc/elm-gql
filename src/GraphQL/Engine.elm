@@ -633,29 +633,32 @@ inputObject name =
 addField : String -> String -> Json.Encode.Value -> InputObject value -> InputObject value
 addField fieldName gqlFieldType val (InputObject name inputFields) =
     InputObject name
-        (( fieldName
-         , { gqlTypeName = gqlFieldType
-           , value = Just val
-           }
-         )
-            :: inputFields
+        (inputFields
+            ++ [ ( fieldName
+                 , { gqlTypeName = gqlFieldType
+                   , value = Just val
+                   }
+                 )
+               ]
         )
 
 
 {-| -}
 addOptionalField : String -> String -> Option value -> (value -> Json.Encode.Value) -> InputObject input -> InputObject input
 addOptionalField fieldName gqlFieldType optionalValue toJsonValue (InputObject name inputFields) =
-    InputObject name
-        (case optionalValue of
-            Absent ->
-                ( fieldName, { value = Nothing, gqlTypeName = gqlFieldType } ) :: inputFields
+    let
+        newField =
+            case optionalValue of
+                Absent ->
+                    ( fieldName, { value = Nothing, gqlTypeName = gqlFieldType } )
 
-            Null ->
-                ( fieldName, { value = Just Json.Encode.null, gqlTypeName = gqlFieldType } ) :: inputFields
+                Null ->
+                    ( fieldName, { value = Just Json.Encode.null, gqlTypeName = gqlFieldType } )
 
-            Present val ->
-                ( fieldName, { value = Just (toJsonValue val), gqlTypeName = gqlFieldType } ) :: inputFields
-        )
+                Present val ->
+                    ( fieldName, { value = Just (toJsonValue val), gqlTypeName = gqlFieldType } )
+    in
+    InputObject name (inputFields ++ [ newField ])
 
 
 {-| -}
