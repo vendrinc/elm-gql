@@ -26,10 +26,7 @@ multiOr conds val =
 keywords : Set String
 keywords =
     Set.fromList
-        [ "query"
-        , "subscription"
-        , "mutation"
-        , "on"
+        [ "on"
         , "fragment"
         , "true"
         , "false"
@@ -43,8 +40,6 @@ ignoreChars =
         [ '\t'
         , '\n'
         , chars.cr
-
-        -- , '\xFEFF'
         , ' '
         , ','
         ]
@@ -365,15 +360,6 @@ directivesHelper dirs =
             ]
 
 
-
--- selectionSetOpt_ : Parser (List AST.Selection)
--- selectionSetOpt_ =
---     Parser.oneOf
---         [ selectionSet
---         , Parser.succeed []
---         ]
-
-
 fragment : Parser AST.FragmentDetails
 fragment =
     succeed AST.FragmentDetails
@@ -507,8 +493,8 @@ loopDefinitions defs =
             ]
 
 
-document : Parser AST.Document
-document =
+documentParser : Parser AST.Document
+documentParser =
     Parser.succeed AST.Document
         |. ws
         |= Parser.loop []
@@ -519,7 +505,7 @@ document =
 
 parse : String -> Result (List Parser.DeadEnd) AST.Document
 parse doc =
-    Parser.run document doc
+    Parser.run documentParser doc
 
 
 ifProgress : (step -> done) -> Parser step -> Parser (Step step done)
