@@ -110,9 +110,7 @@ generateFragmentTypes namespace frag =
         Can.FragmentObject { selection } ->
             let
                 newDecls =
-                    GeneratedTypes.generateTypesForFields (GeneratedTypes.genAliasedTypes namespace)
-                        []
-                        selection
+                    GeneratedTypes.generate namespace selection
 
                 fieldResult =
                     GeneratedTypes.toAliasedFields namespace [] selection
@@ -125,9 +123,7 @@ generateFragmentTypes namespace frag =
         Can.FragmentUnion union ->
             let
                 newDecls =
-                    GeneratedTypes.generateTypesForFields (GeneratedTypes.genAliasedTypes namespace)
-                        []
-                        union.selection
+                    GeneratedTypes.generate namespace union.selection
 
                 final =
                     List.foldl
@@ -156,9 +152,7 @@ generateFragmentTypes namespace frag =
         Can.FragmentInterface interface ->
             let
                 newDecls =
-                    GeneratedTypes.generateTypesForFields (GeneratedTypes.genAliasedTypes namespace)
-                        []
-                        interface.selection
+                    GeneratedTypes.generate namespace interface.selection
 
                 selectingForVariants =
                     case interface.variants of

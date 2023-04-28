@@ -306,10 +306,7 @@ aliasedTypes : Namespace -> Can.Definition -> List Elm.Declaration
 aliasedTypes namespace def =
     case def of
         Can.Operation op ->
-            GeneratedTypes.generateTypesForFields
-                (GeneratedTypes.genAliasedTypes namespace)
-                []
-                op.fields
+            GeneratedTypes.generate namespace op.fields
 
 
 

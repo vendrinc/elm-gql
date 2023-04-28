@@ -1,6 +1,5 @@
 module GraphQL.Operations.Generate.Types exposing
-    ( genAliasedTypes
-    , generateTypesForFields
+    ( generate
     , interfaceVariants
     , toAliasedFields
     , unionVars
@@ -23,6 +22,13 @@ import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Generate.Decode as GenDecode exposing (Namespace)
 import GraphQL.Schema
 import Utils.String
+
+
+generate : Namespace -> List Can.Field -> List Elm.Declaration
+generate namespace fields =
+    generateTypesForFields (genAliasedTypes namespace)
+        []
+        fields
 
 
 generateTypesForFields fn generated fields =

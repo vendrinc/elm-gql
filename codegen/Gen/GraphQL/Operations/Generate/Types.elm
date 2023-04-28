@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Generate.Types exposing (call_, genAliasedTypes, interfaceVariants, moduleName_, toAliasedFields, unionVars, values_)
+module Gen.GraphQL.Operations.Generate.Types exposing (call_, generate, interfaceVariants, moduleName_, toAliasedFields, unionVars, values_)
 
 {-| 
-@docs values_, call_, genAliasedTypes, unionVars, interfaceVariants, toAliasedFields, moduleName_
+@docs values_, call_, generate, unionVars, interfaceVariants, toAliasedFields, moduleName_
 -}
 
 
@@ -169,24 +169,24 @@ unionVars unionVarsArg unionVarsArg0 unionVarsArg1 =
         ]
 
 
-{-| genAliasedTypes: Namespace -> Can.Field -> List Elm.Declaration -}
-genAliasedTypes : Elm.Expression -> Elm.Expression -> Elm.Expression
-genAliasedTypes genAliasedTypesArg genAliasedTypesArg0 =
+{-| generate: Namespace -> List Can.Field -> List Elm.Declaration -}
+generate : Elm.Expression -> List Elm.Expression -> Elm.Expression
+generate generateArg generateArg0 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Operations", "Generate", "Types" ]
-            , name = "genAliasedTypes"
+            , name = "generate"
             , annotation =
                 Just
                     (Type.function
                         [ Type.namedWith [] "Namespace" []
-                        , Type.namedWith [ "Can" ] "Field" []
+                        , Type.list (Type.namedWith [ "Can" ] "Field" [])
                         ]
                         (Type.list (Type.namedWith [ "Elm" ] "Declaration" []))
                     )
             }
         )
-        [ genAliasedTypesArg, genAliasedTypesArg0 ]
+        [ generateArg, Elm.list generateArg0 ]
 
 
 call_ :
@@ -196,7 +196,7 @@ call_ :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , unionVars :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
-    , genAliasedTypes : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , generate : Elm.Expression -> Elm.Expression -> Elm.Expression
     }
 call_ =
     { toAliasedFields =
@@ -338,18 +338,19 @@ call_ =
                     }
                 )
                 [ unionVarsArg, unionVarsArg0, unionVarsArg1 ]
-    , genAliasedTypes =
-        \genAliasedTypesArg genAliasedTypesArg0 ->
+    , generate =
+        \generateArg generateArg0 ->
             Elm.apply
                 (Elm.value
                     { importFrom =
                         [ "GraphQL", "Operations", "Generate", "Types" ]
-                    , name = "genAliasedTypes"
+                    , name = "generate"
                     , annotation =
                         Just
                             (Type.function
                                 [ Type.namedWith [] "Namespace" []
-                                , Type.namedWith [ "Can" ] "Field" []
+                                , Type.list
+                                    (Type.namedWith [ "Can" ] "Field" [])
                                 ]
                                 (Type.list
                                     (Type.namedWith [ "Elm" ] "Declaration" [])
@@ -357,7 +358,7 @@ call_ =
                             )
                     }
                 )
-                [ genAliasedTypesArg, genAliasedTypesArg0 ]
+                [ generateArg, generateArg0 ]
     }
 
 
@@ -365,7 +366,7 @@ values_ :
     { toAliasedFields : Elm.Expression
     , interfaceVariants : Elm.Expression
     , unionVars : Elm.Expression
-    , genAliasedTypes : Elm.Expression
+    , generate : Elm.Expression
     }
 values_ =
     { toAliasedFields =
@@ -452,15 +453,15 @@ values_ =
                         )
                     )
             }
-    , genAliasedTypes =
+    , generate =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "Generate", "Types" ]
-            , name = "genAliasedTypes"
+            , name = "generate"
             , annotation =
                 Just
                     (Type.function
                         [ Type.namedWith [] "Namespace" []
-                        , Type.namedWith [ "Can" ] "Field" []
+                        , Type.list (Type.namedWith [ "Can" ] "Field" [])
                         ]
                         (Type.list (Type.namedWith [ "Elm" ] "Declaration" []))
                     )
