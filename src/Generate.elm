@@ -9,7 +9,7 @@ import Generate.Enums
 import Generate.InputObjects
 import Generate.Root
 import GraphQL.Operations.Canonicalize as Canonicalize
-import GraphQL.Operations.GenerateSelection
+import GraphQL.Operations.Generate
 import GraphQL.Operations.Parse
 import GraphQL.Schema exposing (Namespace)
 import Http
@@ -419,8 +419,7 @@ parseAndValidateQuery namespace schema flags gql =
         Ok query ->
             case
                 Canonicalize.canonicalize schema
-                    { path =
-                        gql.path
+                    { path = gql.path
                     , gqlDir = flags.gqlDir
                     }
                     query
@@ -434,7 +433,7 @@ parseAndValidateQuery namespace schema flags gql =
                         }
 
                 Ok canAST ->
-                    GraphQL.Operations.GenerateSelection.generate
+                    GraphQL.Operations.Generate.generate
                         { namespace =
                             namespace
                         , schema = schema
