@@ -169,7 +169,10 @@ unionVars unionVarsArg unionVarsArg0 unionVarsArg1 =
         ]
 
 
-{-| generate: Namespace -> List Can.Field -> List Elm.Declaration -}
+{-| {-| -}
+
+generate: Namespace -> List Can.Field -> List Elm.Declaration
+-}
 generate : Elm.Expression -> List Elm.Expression -> Elm.Expression
 generate generateArg generateArg0 =
     Elm.apply

@@ -24,6 +24,7 @@ import GraphQL.Schema
 import Utils.String
 
 
+{-| -}
 generate : Namespace -> List Can.Field -> List Elm.Declaration
 generate namespace fields =
     generateTypesForFields (genAliasedTypes namespace)

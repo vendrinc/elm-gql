@@ -1,24 +1,42 @@
 module GraphQL.Operations.Canonicalize.Cache exposing
-    ( empty, Cache, merge
+    ( init, Cache
     , addVars, addFragment
+    , addLevel, addLevelKeepSiblingStack, getGlobalName
+    , saveSibling, siblingCollision
+    , levelFromField
     )
 
 {-|
 
-@docs empty, Cache, merge
+@docs init, Cache
 
 @docs addVars, addFragment
 
+
+## Name Usage
+
+@docs addLevel, addLevelKeepSiblingStack, getGlobalName
+
+@docs dropLevel, dropLevelNotSiblings
+
+@docs saveSibling, siblingCollision
+
+@docs levelFromField
+
 -}
 
+import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
+import GraphQL.Operations.Canonicalize.UsedNames as UsedNames
 import GraphQL.Schema
+import GraphQL.Usage
 
 
-empty : Cache
-empty =
+init : { reservedNames : List String } -> Cache
+init options =
     { varTypes = []
     , fragmentsUsed = []
+    , usedNames = UsedNames.init options.reservedNames
     }
 
 
@@ -32,6 +50,7 @@ type alias Cache =
             { fragment : Can.Fragment
             , alongsideOtherFields : Bool
             }
+    , usedNames : UsedNames.UsedNames
     }
 
 
@@ -40,6 +59,7 @@ addVars vars cache =
     { varTypes =
         vars ++ cache.varTypes
     , fragmentsUsed = cache.fragmentsUsed
+    , usedNames = cache.usedNames
     }
 
 
@@ -53,13 +73,97 @@ addFragment frag cache =
     { varTypes =
         cache.varTypes
     , fragmentsUsed = frag :: cache.fragmentsUsed
+    , usedNames = cache.usedNames
     }
 
 
-merge : Cache -> Cache -> Cache
-merge one two =
-    { varTypes =
-        one.varTypes ++ two.varTypes
-    , fragmentsUsed =
-        one.fragmentsUsed ++ two.fragmentsUsed
+
+-- merge : Cache -> Cache -> Cache
+-- merge one two =
+--     { varTypes =
+--         one.varTypes ++ two.varTypes
+--     , fragmentsUsed =
+--         one.fragmentsUsed ++ two.fragmentsUsed
+--     , usedNames = one.usedNames
+--     }
+{- Track used names -}
+
+
+onNames : (UsedNames.UsedNames -> UsedNames.UsedNames) -> Cache -> Cache
+onNames fn cache =
+    { cache
+        | usedNames = fn cache.usedNames
     }
+
+
+addLevelKeepSiblingStack :
+    { name : String
+    , isAlias : Bool
+    }
+    -> Cache
+    -> Cache
+addLevelKeepSiblingStack options =
+    onNames (UsedNames.addLevelKeepSiblingStack options)
+
+
+addLevel :
+    { name : String
+    , isAlias : Bool
+    }
+    -> Cache
+    -> Cache
+addLevel level =
+    onNames (UsedNames.addLevel level)
+
+
+dropLevel : Cache -> Cache
+dropLevel =
+    onNames UsedNames.dropLevel
+
+
+dropLevelNotSiblings : Cache -> Cache
+dropLevelNotSiblings =
+    onNames UsedNames.dropLevelNotSiblings
+
+
+getGlobalName : String -> Cache -> { globalName : String, used : Cache }
+getGlobalName rawName cache =
+    let
+        { used, globalName } =
+            UsedNames.getGlobalName rawName cache.usedNames
+    in
+    { globalName = globalName
+    , used =
+        { cache
+            | usedNames = used
+        }
+    }
+
+
+saveSibling :
+    UsedNames.Sibling
+    -> Cache
+    -> Cache
+saveSibling sibling =
+    onNames (UsedNames.saveSibling sibling)
+
+
+siblingCollision :
+    UsedNames.Sibling
+    -> Cache
+    -> Bool
+siblingCollision sibling cache =
+    UsedNames.siblingCollision sibling cache.usedNames
+
+
+levelFromField :
+    { field
+        | name : AST.Name
+        , alias_ : Maybe AST.Name
+    }
+    ->
+        { name : String
+        , isAlias : Bool
+        }
+levelFromField =
+    UsedNames.levelFromField

@@ -17,6 +17,7 @@ module GraphQL.Operations.Canonicalize.UsedNames exposing
 
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
+import GraphQL.Usage
 
 
 init : List String -> UsedNames

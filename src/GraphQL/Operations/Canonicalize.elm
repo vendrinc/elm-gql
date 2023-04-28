@@ -576,6 +576,16 @@ type CanResult success
     | CanSuccess Cache.Cache success
 
 
+mapCache : (Cache.Cache -> Cache.Cache) -> CanResult success -> CanResult success
+mapCache fn result =
+    case result of
+        CanError error ->
+            CanError error
+
+        CanSuccess cache data ->
+            CanSuccess (fn cache) data
+
+
 type alias References =
     { schema : GraphQL.Schema.Schema
     , fragments : Dict String Can.Fragment
@@ -593,9 +603,15 @@ success =
     CanSuccess
 
 
-emptySuccess : CanResult (List a)
-emptySuccess =
-    CanSuccess Cache.empty []
+ok : success -> Cache.Cache -> CanResult success
+ok data cache =
+    CanSuccess cache data
+
+
+
+-- emptySuccess : CanResult (List a)
+-- emptySuccess =
+--     CanSuccess Cache.empty []
 
 
 type alias Paths =
@@ -621,17 +637,19 @@ canonicalize schema paths doc =
 
         Ok fragments ->
             let
-                usedNames =
-                    UsedNames.init
-                        -- These are names that we know will be in the generated code
-                        [ "Input"
-                        , "Response"
-                        ]
+                startingCache =
+                    Cache.init
+                        { reservedNames =
+                            -- These are names that we know will be in the generated code
+                            [ "Input"
+                            , "Response"
+                            ]
+                        }
 
                 ( _, canonicalizedFragments ) =
                     List.foldl
                         (canonicalizeFragment schema paths)
-                        ( usedNames, CanSuccess Cache.empty Dict.empty )
+                        (CanSuccess startingCache Dict.empty)
                         (List.sortBy AST.fragmentCount
                             (Dict.values fragments)
                         )
@@ -643,14 +661,13 @@ canonicalize schema paths doc =
                             reduce
                                 (canonicalizeDefinition
                                     { schema = schema
-                                    , fragments =
-                                        canonicalFrags
+                                    , fragments = canonicalFrags
                                     , paths = paths
                                     }
                                     usedNames
                                 )
                                 doc.definitions
-                                emptySuccess
+                                (CanSuccess startingCache [])
                     in
                     case canonicalizedDefinitions of
                         CanSuccess _ defs ->
@@ -752,10 +769,10 @@ convertName (AST.Name str) =
 
 canonicalizeDefinition :
     References
-    -> UsedNames.UsedNames
+    -> Cache.Cache
     -> AST.Definition
     -> Maybe (CanResult Can.Definition)
-canonicalizeDefinition refs usedNames def =
+canonicalizeDefinition refs startCache def =
     case def of
         AST.Fragment _ ->
             Nothing
@@ -774,8 +791,8 @@ canonicalizeDefinition refs usedNames def =
                             Can.Mutation
 
                 initialNameCache =
-                    usedNames
-                        |> UsedNames.getGlobalName
+                    startCache
+                        |> Cache.getGlobalName
                             (globalOperationName
                                 |> Maybe.map Can.nameToString
                                 |> Maybe.withDefault (opTypeName operationType)
@@ -808,13 +825,11 @@ canonicalizeDefinition refs usedNames def =
                                 CanError _ ->
                                     ( used, result )
                         )
-                        ( initialNameCache.used
-                        , emptySuccess
-                        )
+                        (ok [] initialNameCache.used)
                         details.fields
             in
             Just <|
-                case Tuple.second fieldResult of
+                case fieldResult of
                     CanSuccess cache fields ->
                         let
                             variableSummary =
@@ -1157,9 +1172,9 @@ find str items =
 canonicalizeOperation :
     References
     -> AST.OperationType
-    -> UsedNames.UsedNames
+    -> Cache.Cache
     -> AST.Selection
-    -> ( UsedNames.UsedNames, CanResult Can.Field )
+    -> CanResult Can.Field
 canonicalizeOperation refs op used selection =
     case selection of
         AST.Field field ->
@@ -1181,14 +1196,14 @@ canonicalizeOperation refs op used selection =
                         field
                         used
                         query
-                        |> Tuple.mapFirst UsedNames.dropLevel
+                        |> mapCache Cache.dropLevel
 
         AST.FragmentSpreadSelection _ ->
-            ( used, err [ todo "Top level Fragments aren't suported yet!" ] )
+            err [ todo "Top level Fragments aren't suported yet!" ]
 
         AST.InlineFragmentSelection inline ->
             -- This is when we're selecting a union fragment
-            ( used, err [ error (FragmentInlineTopLevel { fragment = inline }) ] )
+            err [ error (FragmentInlineTopLevel { fragment = inline }) ]
 
 
 type InputValidation
@@ -1423,32 +1438,18 @@ selectsSingleFragment refs fields =
             Nothing
 
 
-{-| -}
-getGlobalNameWithFragmentAlias :
-    List AST.Selection
-    -> String
-    -> UsedNames.UsedNames
-    ->
-        { globalName : String
-        , used : UsedNames.UsedNames
-        }
-getGlobalNameWithFragmentAlias selection name usedNames =
-    UsedNames.getGlobalName name
-        usedNames
-
-
 canonicalizeFragment :
     GraphQL.Schema.Schema
     -> Paths
     -> AST.FragmentDetails
-    -> ( UsedNames.UsedNames, CanResult (Dict String Can.Fragment) )
-    -> ( UsedNames.UsedNames, CanResult (Dict String Can.Fragment) )
-canonicalizeFragment schema paths frag ( usedNames, currentResult ) =
+    -> CanResult (Dict String Can.Fragment)
+    -> CanResult (Dict String Can.Fragment)
+canonicalizeFragment schema paths frag currentResult =
     case currentResult of
         CanError errMsg ->
-            ( usedNames, CanError errMsg )
+            CanError errMsg
 
-        CanSuccess _ existingFrags ->
+        CanSuccess cache existingFrags ->
             let
                 fragName =
                     AST.nameToString frag.name
@@ -1475,14 +1476,13 @@ canonicalizeFragment schema paths frag ( usedNames, currentResult ) =
                                     }
                                     obj
                                 )
-                                { result = CanSuccess Cache.empty []
-                                , fieldNames =
-                                    usedNames
-                                        |> UsedNames.addLevel
-                                            { name = AST.nameToString frag.name
-                                            , isAlias = False
-                                            }
-                                }
+                                (cache
+                                    |> Cache.addLevel
+                                        { name = AST.nameToString frag.name
+                                        , isAlias = False
+                                        }
+                                    |> ok []
+                                )
                                 frag.selection
                     in
                     ( selectionResult.fieldNames
@@ -1617,7 +1617,7 @@ canonicalizeFragment schema paths frag ( usedNames, currentResult ) =
 
 canonicalizeVariantSelection :
     References
-    -> UsedNames.UsedNames
+    -> Cache.Cache
     ->
         { description : Maybe String
         , fields :
@@ -1627,14 +1627,12 @@ canonicalizeVariantSelection :
     -> List AST.Selection
     -> List String
     ->
-        ( UsedNames.UsedNames
-        , CanResult
+        CanResult
             { remainingTags : List { globalAlias : Can.Name, tag : Can.Name }
             , selection : List Can.Field
             , variants : List Can.VariantCase
             }
-        )
-canonicalizeVariantSelection refs usedNames unionOrInterface selection variants =
+canonicalizeVariantSelection refs cache unionOrInterface selection variants =
     let
         selectsForTypename =
             List.any
@@ -1658,10 +1656,10 @@ canonicalizeVariantSelection refs usedNames unionOrInterface selection variants 
                 (canonicalizeFieldWithVariants refs
                     unionOrInterface
                 )
-                { result = emptySuccess
+                { result =
+                    cache
+                        |> ok []
                 , capturedVariants = []
-                , fieldNames =
-                    usedNames
                 , variants = variants
                 , typenameAlreadySelected = selectsForTypename
                 }
@@ -1677,18 +1675,16 @@ canonicalizeVariantSelection refs usedNames unionOrInterface selection variants 
     in
     case selectionResult.result of
         CanSuccess cache canSelection ->
-            ( remainingUsedNames
-                |> UsedNames.dropLevel
-            , CanSuccess cache
+            CanSuccess cache
                 { selection = canSelection
                 , variants = selectionResult.capturedVariants
                 , remainingTags =
                     List.reverse remaining
                 }
-            )
+                |> Cache.dropLevel
 
         CanError errorMsg ->
-            ( remainingUsedNames, CanError errorMsg )
+            CanError errorMsg
 
 
 {-| -}
@@ -1701,14 +1697,8 @@ canonicalizeField :
             , fields : List GraphQL.Schema.Field
         }
     -> AST.Selection
-    ->
-        { result : CanResult (List Can.Field)
-        , fieldNames : UsedNames.UsedNames
-        }
-    ->
-        { result : CanResult (List Can.Field)
-        , fieldNames : UsedNames.UsedNames
-        }
+    -> CanResult (List Can.Field)
+    -> CanResult (List Can.Field)
 canonicalizeField refs object selection found =
     case selection of
         AST.Field field ->
@@ -1887,12 +1877,9 @@ convertDirective dir =
 canonicalizeFieldType :
     References
     -> AST.FieldDetails
-    -> UsedNames.UsedNames
+    -> Cache.Cache
     -> GraphQL.Schema.Field
-    ->
-        ( UsedNames.UsedNames
-        , CanResult Can.Field
-        )
+    -> CanResult Can.Field
 canonicalizeFieldType refs field usedNames schemaField =
     canonicalizeFieldTypeHelper refs field schemaField.type_ usedNames Cache.empty schemaField
 
@@ -1957,18 +1944,16 @@ canonicalizeFieldTypeHelper :
     References
     -> AST.FieldDetails
     -> GraphQL.Schema.Type
-    -> UsedNames.UsedNames
     -> Cache.Cache
     -> GraphQL.Schema.Field
-    -> ( UsedNames.UsedNames, CanResult Can.Field )
-canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaField =
+    -> CanResult Can.Field
+canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
     let
         argValidation =
             canonicalizeArguments refs schemaField.arguments field.arguments
     in
     if not (List.isEmpty argValidation.unknown) then
-        ( usedNames
-        , CanError
+        CanError
             [ error <|
                 UnknownArgs
                     { field = AST.nameToString field.name
@@ -1977,10 +1962,9 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                         schemaField.arguments
                     }
             ]
-        )
 
     else if not (List.isEmpty argValidation.errs) then
-        ( usedNames, CanError argValidation.errs )
+        CanError argValidation.errs
 
     else
         let
@@ -1992,8 +1976,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
         in
         case type_ of
             GraphQL.Schema.Scalar _ ->
-                ( usedNames
-                , success newCache
+                success newCache
                     (Can.Field
                         { alias_ = Maybe.map convertName field.alias_
                         , name = convertName field.name
@@ -2009,22 +1992,18 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                             Can.FieldScalar (GraphQL.Schema.getInner schemaField.type_)
                         }
                     )
-                )
 
             GraphQL.Schema.InputObject _ ->
-                ( usedNames
-                , err [ todo "Invalid schema!  Weird InputObject" ]
-                )
+                err [ todo "Invalid schema!  Weird InputObject" ]
 
             GraphQL.Schema.Object name ->
                 case Dict.get name refs.schema.objects of
                     Nothing ->
-                        ( usedNames, err [ error (ObjectUnknown name) ] )
+                        err [ error (ObjectUnknown name) ]
 
                     Just obj ->
                         canonicalizeObject refs
                             field
-                            usedNames
                             schemaField
                             newCache
                             obj
@@ -2032,11 +2011,10 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
             GraphQL.Schema.Enum name ->
                 case Dict.get name refs.schema.enums of
                     Nothing ->
-                        ( usedNames, err [ error (EnumUnknown name) ] )
+                        err [ error (EnumUnknown name) ]
 
                     Just enum ->
-                        ( usedNames
-                        , CanSuccess newCache
+                        CanSuccess newCache
                             (Can.Field
                                 { alias_ = Maybe.map convertName field.alias_
                                 , name = convertName field.name
@@ -2055,17 +2033,16 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                         }
                                 }
                             )
-                        )
 
             GraphQL.Schema.Union name ->
                 case Dict.get name refs.schema.unions of
                     Nothing ->
-                        ( usedNames, err [ error (UnionUnknown name) ] )
+                        err [ error (UnionUnknown name) ]
 
                     Just union ->
                         case extractUnionTags union.variants [] of
                             Nothing ->
-                                ( usedNames, err [ todo "Things in a union are not objects!" ] )
+                                err [ todo "Things in a union are not objects!" ]
 
                             Just variants ->
                                 let
@@ -2076,12 +2053,9 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                             |> Can.nameToString
 
                                     global =
-                                        getGlobalNameWithFragmentAlias
-                                            field.selection
-                                            aliasedName
-                                            usedNames
+                                        Cache.getGlobalName aliaedName newCache
 
-                                    ( finalUsedNames, canVarSelectionResult ) =
+                                    canVarSelectionResult =
                                         canonicalizeVariantSelection refs
                                             (global.used
                                                 |> UsedNames.addLevel (UsedNames.levelFromField field)
@@ -2095,8 +2069,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                             field.selection
                                             variants
                                 in
-                                ( finalUsedNames
-                                , case canVarSelectionResult of
+                                case canVarSelectionResult of
                                     CanSuccess cache variantSelection ->
                                         CanSuccess (Cache.merge newCache cache)
                                             (Can.Field
@@ -2115,12 +2088,11 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
 
                                     CanError errorMsg ->
                                         CanError errorMsg
-                                )
 
             GraphQL.Schema.Interface name ->
                 case Dict.get name refs.schema.interfaces of
                     Nothing ->
-                        ( usedNames, err [ error (UnionUnknown name) ] )
+                        err [ error (UnionUnknown name) ]
 
                     Just interface ->
                         let
@@ -2134,10 +2106,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                     |> Can.nameToString
 
                             global =
-                                getGlobalNameWithFragmentAlias
-                                    field.selection
-                                    aliasedName
-                                    usedNames
+                                Cache.getGlobalName aliasedName newCache
 
                             ( finalUsedNames, canVarSelectionResult ) =
                                 canonicalizeVariantSelection refs
@@ -2151,8 +2120,7 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
                                     field.selection
                                     variants
                         in
-                        ( finalUsedNames
-                        , case canVarSelectionResult of
+                        case canVarSelectionResult of
                             CanSuccess cache variantSelection ->
                                 CanSuccess (Cache.merge newCache cache)
                                     (Can.Field
@@ -2171,13 +2139,12 @@ canonicalizeFieldTypeHelper refs field type_ usedNames initialVarCache schemaFie
 
                             CanError errorMsg ->
                                 CanError errorMsg
-                        )
 
             GraphQL.Schema.List_ inner ->
-                canonicalizeFieldTypeHelper refs field inner usedNames newCache schemaField
+                canonicalizeFieldTypeHelper refs field inner newCache schemaField
 
             GraphQL.Schema.Nullable inner ->
-                canonicalizeFieldTypeHelper refs field inner usedNames newCache schemaField
+                canonicalizeFieldTypeHelper refs field inner newCache schemaField
 
 
 gatherRemaining tag ( used, gathered ) =
@@ -2196,17 +2163,15 @@ gatherRemaining tag ( used, gathered ) =
 canonicalizeObject :
     References
     -> AST.FieldDetails
-    -> UsedNames.UsedNames
     -> GraphQL.Schema.Field
     -> Cache.Cache
     -> GraphQL.Schema.ObjectDetails
-    -> ( UsedNames.UsedNames, CanResult Can.Field )
-canonicalizeObject refs field usedNames schemaField varCache obj =
+    -> CanResult Can.Field
+canonicalizeObject refs field schemaField varCache obj =
     case field.selection of
         [] ->
             -- This is an object with no selection, which isn't allowed for gql.
-            ( usedNames
-            , err
+            err
                 [ error
                     (EmptySelection
                         { field =
@@ -2230,7 +2195,6 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                         }
                     )
                 ]
-            )
 
         _ ->
             let
@@ -2241,18 +2205,15 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                         |> Can.nameToString
 
                 global =
-                    getGlobalNameWithFragmentAlias field.selection
-                        aliasedName
-                        usedNames
+                    Cache.getGlobalName aliasedName varCache
 
                 selectionResult =
                     List.foldl
                         (canonicalizeField refs obj)
-                        { result = emptySuccess
-                        , fieldNames =
-                            global.used
-                                |> UsedNames.addLevel (UsedNames.levelFromField field)
-                        }
+                        (global.used
+                            |> Cache.addLevel (Cache.levelFromField field)
+                            |> ok []
+                        )
                         field.selection
             in
             case selectionResult.result of
@@ -2265,23 +2226,21 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                             , scalar = Nothing
                             }
                     in
-                    if UsedNames.siblingCollision siblingID global.used then
-                        ( selectionResult.fieldNames
-                            |> UsedNames.dropLevel
-                        , err
+                    if Cache.siblingCollision siblingID global.used then
+                        err
                             [ error
                                 (FieldAliasRequired
                                     { fieldName = aliasedName
                                     }
                                 )
                             ]
-                        )
 
                     else
-                        ( selectionResult.fieldNames
-                            |> UsedNames.dropLevel
-                            |> UsedNames.saveSibling siblingID
-                        , CanSuccess (Cache.merge varCache cache)
+                        CanSuccess
+                            (cache
+                                |> Cache.dropLevel
+                                |> Cache.saveSibling siblingID
+                            )
                             (Can.Field
                                 { alias_ = Maybe.map convertName field.alias_
                                 , name = convertName field.name
@@ -2294,10 +2253,9 @@ canonicalizeObject refs field usedNames schemaField varCache obj =
                                     Can.FieldObject canSelection
                                 }
                             )
-                        )
 
                 CanError errorMsg ->
-                    ( global.used, CanError errorMsg )
+                    CanError errorMsg
 
 
 getInterfaceNames kind found =
@@ -2359,14 +2317,12 @@ canonicalizeFieldWithVariants :
     -> AST.Selection
     ->
         { result : CanResult (List Can.Field)
-        , fieldNames : UsedNames.UsedNames
         , variants : List String
         , capturedVariants : List Can.VariantCase
         , typenameAlreadySelected : Bool
         }
     ->
         { result : CanResult (List Can.Field)
-        , fieldNames : UsedNames.UsedNames
         , variants : List String
         , capturedVariants : List Can.VariantCase
         , typenameAlreadySelected : Bool
@@ -2567,10 +2523,7 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                                         )
 
                                                 globalDetailsAlias =
-                                                    getGlobalNameWithFragmentAlias
-                                                        inline.selection
-                                                        (global.globalName ++ "_Details")
-                                                        global.used
+                                                    Cache.getGlobalName (global.globalName ++ "_Details") global.used
                                             in
                                             { result =
                                                 found.result
