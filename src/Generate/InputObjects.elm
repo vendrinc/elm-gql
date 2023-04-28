@@ -14,8 +14,7 @@ generateFiles namespace schema =
     let
         objects =
             schema.inputObjects
-                |> Dict.toList
-                |> List.map Tuple.second
+                |> Dict.values
 
         newOptionalFiles =
             objects
@@ -134,13 +133,6 @@ areOptional field =
 
         _ ->
             False
-
-
-{-| This can be implemented if we know that a definition
--}
-hasOneOfDirective : GraphQL.Schema.InputObjectDetails -> Bool
-hasOneOfDirective input =
-    False
 
 
 oneOf :

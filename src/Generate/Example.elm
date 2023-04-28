@@ -197,32 +197,34 @@ createEmbedded namespace schema called name fields =
 
                 _ ->
                     True
-
-        hasOptionalArgs =
-            case optional of
-                [] ->
-                    False
-
-                _ ->
-                    True
     in
     if hasRequiredArgs then
         requiredArgsExample namespace schema name called fields
 
-    else if hasOptionalArgs then
-        optionalArgsExample
-            namespace
-            schema
-            called
-            name
-            -- only give a maximum of 5 examples
-            (List.take 5 optional)
-            Nothing
-            Set.empty
-            []
-
     else
-        Elm.list []
+        let
+            hasOptionalArgs =
+                case optional of
+                    [] ->
+                        False
+
+                    _ ->
+                        True
+        in
+        if hasOptionalArgs then
+            optionalArgsExample
+                namespace
+                schema
+                called
+                name
+                -- only give a maximum of 5 examples
+                (List.take 5 optional)
+                Nothing
+                Set.empty
+                []
+
+        else
+            Elm.list []
 
 
 denullable : GraphQL.Schema.Type -> GraphQL.Schema.Type
@@ -268,24 +270,11 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
 
             else
                 let
-                    optionalModule =
-                        case isTopLevel of
-                            Nothing ->
-                                [ namespace.namespace
-                                , Utils.String.formatTypename parentName
-                                ]
-
-                            Just Generate.Input.Mutation ->
-                                Generate.Common.modules.mutation namespace.namespace parentName
-
-                            Just Generate.Input.Query ->
-                                Generate.Common.modules.query namespace.namespace parentName
-
-                    unnullifiedType =
-                        denullable field.type_
-
                     maybePrep =
                         let
+                            unnullifiedType =
+                                denullable field.type_
+
                             innerRequired =
                                 requiredArgsExampleHelper
                                     namespace
@@ -299,6 +288,20 @@ optionalArgsExample namespace schema called parentName fields isTopLevel calledT
                                 Nothing
 
                             Just inner ->
+                                let
+                                    optionalModule =
+                                        case isTopLevel of
+                                            Nothing ->
+                                                [ namespace.namespace
+                                                , Utils.String.formatTypename parentName
+                                                ]
+
+                                            Just Generate.Input.Mutation ->
+                                                Generate.Common.modules.mutation namespace.namespace parentName
+
+                                            Just Generate.Input.Query ->
+                                                Generate.Common.modules.query namespace.namespace parentName
+                                in
                                 Elm.apply
                                     (valueFrom
                                         optionalModule
@@ -412,7 +415,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
                 |> Generate.Input.wrapExpression wrapped
                 |> Just
 
-        GraphQL.Schema.Object nestedObjectName ->
+        GraphQL.Schema.Object _ ->
             Nothing
 
         GraphQL.Schema.InputObject inputName ->
@@ -455,7 +458,7 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
                                     |> Generate.Input.wrapExpression wrapped
                                     |> Just
 
-                            otherwise ->
+                            _ ->
                                 createEmbedded namespace
                                     schema
                                     newCalled
@@ -464,10 +467,10 @@ requiredArgsExampleHelper namespace schema called type_ wrapped =
                                     |> Generate.Input.wrapExpression wrapped
                                     |> Just
 
-        GraphQL.Schema.Union unionName ->
+        GraphQL.Schema.Union _ ->
             Nothing
 
-        GraphQL.Schema.Interface interfaceName ->
+        GraphQL.Schema.Interface _ ->
             Nothing
 
 

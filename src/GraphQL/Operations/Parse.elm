@@ -1,4 +1,4 @@
-module GraphQL.Operations.Parse exposing (..)
+module GraphQL.Operations.Parse exposing (errorToString, parse)
 
 {-| This code was originally borrowed from <https://github.com/lukewestby/elm-graphql-parser>
 -}
@@ -6,7 +6,6 @@ module GraphQL.Operations.Parse exposing (..)
 import Char
 import GraphQL.Operations.AST as AST
 import Parser exposing (..)
-import Parser.Advanced
 import Set exposing (Set)
 
 
@@ -22,19 +21,6 @@ multiOr conds val =
         )
         False
         conds
-
-
-escapables : Set Char
-escapables =
-    Set.fromList
-        [ '\\'
-        , '/'
-        , 'b'
-        , 'f'
-        , 'n'
-        , 'r'
-        , 't'
-        ]
 
 
 keywords : Set String
@@ -609,44 +595,3 @@ problemToString p =
 
         BadRepeat ->
             "bad repeat"
-
-
-peek : (String -> String) -> Parser thing -> Parser thing
-peek log parser =
-    Parser.succeed
-        (\start val end src ->
-            let
-                highlightParsed =
-                    String.repeat (start.column - 1) " " ++ String.repeat (max 0 (end.column - start.column)) "^"
-
-                fullLine =
-                    String.slice (max 0 (start.offset - start.column)) end.offset src
-
-                _ =
-                    log
-                        -- fullLine
-                        (String.slice start.offset end.offset src)
-
-                -- _ =
-                --     Debug.log name
-                --         highlightParsed
-            in
-            val
-        )
-        |= getPosition
-        |= parser
-        |= getPosition
-        |= Parser.Advanced.getSource
-
-
-getPosition =
-    Parser.succeed
-        (\row col offset ->
-            { row = row
-            , column = col
-            , offset = offset
-            }
-        )
-        |= Parser.getRow
-        |= Parser.getCol
-        |= Parser.getOffset
