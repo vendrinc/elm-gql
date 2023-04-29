@@ -327,6 +327,7 @@ annotation_ =
                         )
                   )
                 , ( "usedNames", Type.namedWith [ "UsedNames" ] "UsedNames" [] )
+                , ( "usage", Type.namedWith [ "Usage" ] "Usages" [] )
                 ]
             )
     }
@@ -337,6 +338,7 @@ make_ :
         { varTypes : Elm.Expression
         , fragmentsUsed : Elm.Expression
         , usedNames : Elm.Expression
+        , usage : Elm.Expression
         }
         -> Elm.Expression
     }
@@ -373,6 +375,7 @@ make_ =
                         , ( "usedNames"
                           , Type.namedWith [ "UsedNames" ] "UsedNames" []
                           )
+                        , ( "usage", Type.namedWith [ "Usage" ] "Usages" [] )
                         ]
                     )
                 )
@@ -380,6 +383,7 @@ make_ =
                     [ Tuple.pair "varTypes" cache_args.varTypes
                     , Tuple.pair "fragmentsUsed" cache_args.fragmentsUsed
                     , Tuple.pair "usedNames" cache_args.usedNames
+                    , Tuple.pair "usage" cache_args.usage
                     ]
                 )
     }

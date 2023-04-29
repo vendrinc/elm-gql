@@ -24,13 +24,18 @@ module GraphQL.Operations.Canonicalize.Cache exposing
 
 @docs levelFromField
 
+
+## Tracking Usage
+
+@docs enum, field, inputObject, interface, mutation, query, scalar, union
+
 -}
 
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize.UsedNames as UsedNames
 import GraphQL.Schema
-import GraphQL.Usage
+import GraphQL.Usage as Usage
 
 
 init : { reservedNames : List String } -> Cache
@@ -38,6 +43,7 @@ init options =
     { varTypes = []
     , fragmentsUsed = []
     , usedNames = UsedNames.init options.reservedNames
+    , usage = Usage.init
     }
 
 
@@ -52,6 +58,7 @@ type alias Cache =
             , alongsideOtherFields : Bool
             }
     , usedNames : UsedNames.UsedNames
+    , usage : Usage.Usages
     }
 
 
@@ -61,6 +68,7 @@ addVars vars cache =
         vars ++ cache.varTypes
     , fragmentsUsed = cache.fragmentsUsed
     , usedNames = cache.usedNames
+    , usage = cache.usage
     }
 
 
@@ -75,18 +83,11 @@ addFragment frag cache =
         cache.varTypes
     , fragmentsUsed = frag :: cache.fragmentsUsed
     , usedNames = cache.usedNames
+    , usage = cache.usage
     }
 
 
 
--- merge : Cache -> Cache -> Cache
--- merge one two =
---     { varTypes =
---         one.varTypes ++ two.varTypes
---     , fragmentsUsed =
---         one.fragmentsUsed ++ two.fragmentsUsed
---     , usedNames = one.usedNames
---     }
 {- Track used names -}
 
 
@@ -168,3 +169,58 @@ levelFromField :
         }
 levelFromField =
     UsedNames.levelFromField
+
+
+
+{- Tracking Usage -}
+
+
+type alias FilePath =
+    String
+
+
+onUsage : (Usage.Usages -> Usage.Usages) -> Cache -> Cache
+onUsage fn cache =
+    { cache
+        | usage = fn cache.usage
+    }
+
+
+query : String -> FilePath -> Cache -> Cache
+query name file =
+    onUsage (Usage.query name file)
+
+
+mutation : String -> FilePath -> Cache -> Cache
+mutation name file =
+    onUsage (Usage.mutation name file)
+
+
+objectField : String -> String -> FilePath -> Cache -> Cache
+objectField name fieldName path =
+    onUsage (Usage.field name fieldName path)
+
+
+scalar : String -> FilePath -> Cache -> Cache
+scalar name path =
+    onUsage (Usage.scalar name path)
+
+
+enum : String -> FilePath -> Cache -> Cache
+enum name path =
+    onUsage (Usage.enum name path)
+
+
+union : String -> FilePath -> Cache -> Cache
+union name path =
+    onUsage (Usage.union name path)
+
+
+inputObject : String -> String -> FilePath -> Cache -> Cache
+inputObject name fieldName path =
+    onUsage (Usage.inputObject name fieldName path)
+
+
+interface : String -> String -> FilePath -> Cache -> Cache
+interface name fieldName path =
+    onUsage (Usage.interface name fieldName path)

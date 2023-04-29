@@ -1,13 +1,12 @@
-module Gen.GraphQL.Usage exposing (annotation_, call_, enum, field, init, input, interface, make_, moduleName_, mutation, query, scalar, union, values_)
+module Gen.GraphQL.Usage exposing (annotation_, call_, enum, field, init, inputObject, interface, moduleName_, mutation, query, scalar, union, values_)
 
 {-| 
-@docs values_, call_, make_, annotation_, init, query, mutation, field, scalar, enum, union, input, interface, moduleName_
+@docs values_, call_, annotation_, init, query, mutation, field, scalar, enum, union, inputObject, interface, moduleName_
 -}
 
 
 import Elm
 import Elm.Annotation as Type
-import Tuple
 
 
 {-| The name of this module. -}
@@ -43,13 +42,14 @@ interface interfaceArg interfaceArg0 interfaceArg1 interfaceArg2 =
         ]
 
 
-{-| input: String -> String -> FilePath -> Usages -> Usages -}
-input : String -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
-input inputArg inputArg0 inputArg1 inputArg2 =
+{-| inputObject: String -> String -> FilePath -> Usages -> Usages -}
+inputObject :
+    String -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
+inputObject inputObjectArg inputObjectArg0 inputObjectArg1 inputObjectArg2 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Usage" ]
-            , name = "input"
+            , name = "inputObject"
             , annotation =
                 Just
                     (Type.function
@@ -62,7 +62,11 @@ input inputArg inputArg0 inputArg1 inputArg2 =
                     )
             }
         )
-        [ Elm.string inputArg, Elm.string inputArg0, inputArg1, inputArg2 ]
+        [ Elm.string inputObjectArg
+        , Elm.string inputObjectArg0
+        , inputObjectArg1
+        , inputObjectArg2
+        ]
 
 
 {-| union: String -> FilePath -> Usages -> Usages -}
@@ -202,45 +206,9 @@ init =
         }
 
 
-annotation_ : { usage : Type.Annotation }
+annotation_ : { usages : Type.Annotation }
 annotation_ =
-    { usage =
-        Type.alias
-            moduleName_
-            "Usage"
-            []
-            (Type.record
-                [ ( "usedIn", Type.namedWith [] "FilePath" [] )
-                , ( "type_", Type.namedWith [] "Type" [] )
-                ]
-            )
-    }
-
-
-make_ :
-    { usage :
-        { usedIn : Elm.Expression, type_ : Elm.Expression } -> Elm.Expression
-    }
-make_ =
-    { usage =
-        \usage_args ->
-            Elm.withType
-                (Type.alias
-                    [ "GraphQL", "Usage" ]
-                    "Usage"
-                    []
-                    (Type.record
-                        [ ( "usedIn", Type.namedWith [] "FilePath" [] )
-                        , ( "type_", Type.namedWith [] "Type" [] )
-                        ]
-                    )
-                )
-                (Elm.record
-                    [ Tuple.pair "usedIn" usage_args.usedIn
-                    , Tuple.pair "type_" usage_args.type_
-                    ]
-                )
-    }
+    { usages = Type.namedWith [ "GraphQL", "Usage" ] "Usages" [] }
 
 
 call_ :
@@ -250,7 +218,7 @@ call_ :
         -> Elm.Expression
         -> Elm.Expression
         -> Elm.Expression
-    , input :
+    , inputObject :
         Elm.Expression
         -> Elm.Expression
         -> Elm.Expression
@@ -293,12 +261,12 @@ call_ =
                     }
                 )
                 [ interfaceArg, interfaceArg0, interfaceArg1, interfaceArg2 ]
-    , input =
-        \inputArg inputArg0 inputArg1 inputArg2 ->
+    , inputObject =
+        \inputObjectArg inputObjectArg0 inputObjectArg1 inputObjectArg2 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Usage" ]
-                    , name = "input"
+                    , name = "inputObject"
                     , annotation =
                         Just
                             (Type.function
@@ -311,7 +279,11 @@ call_ =
                             )
                     }
                 )
-                [ inputArg, inputArg0, inputArg1, inputArg2 ]
+                [ inputObjectArg
+                , inputObjectArg0
+                , inputObjectArg1
+                , inputObjectArg2
+                ]
     , union =
         \unionArg unionArg0 unionArg1 ->
             Elm.apply
@@ -426,7 +398,7 @@ call_ =
 
 values_ :
     { interface : Elm.Expression
-    , input : Elm.Expression
+    , inputObject : Elm.Expression
     , union : Elm.Expression
     , enum : Elm.Expression
     , scalar : Elm.Expression
@@ -451,10 +423,10 @@ values_ =
                         (Type.namedWith [] "Usages" [])
                     )
             }
-    , input =
+    , inputObject =
         Elm.value
             { importFrom = [ "GraphQL", "Usage" ]
-            , name = "input"
+            , name = "inputObject"
             , annotation =
                 Just
                     (Type.function
