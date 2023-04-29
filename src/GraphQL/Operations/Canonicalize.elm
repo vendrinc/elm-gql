@@ -580,7 +580,7 @@ canonicalizeOperation :
     -> Cache.Cache
     -> AST.Selection
     -> CanResult Can.Field
-canonicalizeOperation refs op used selection =
+canonicalizeOperation refs op cache selection =
     case selection of
         AST.Field field ->
             let
@@ -599,7 +599,15 @@ canonicalizeOperation refs op used selection =
                 Just query ->
                     canonicalizeFieldType refs
                         field
-                        used
+                        (cache
+                            |> (case op of
+                                    AST.Query ->
+                                        Cache.query (AST.nameToString field.name) refs.paths.path
+
+                                    AST.Mutation ->
+                                        Cache.mutation (AST.nameToString field.name) refs.paths.path
+                               )
+                        )
                         query
                         |> mapCache Cache.dropLevel
 
