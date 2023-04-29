@@ -9,6 +9,7 @@ import Generate.Enums
 import Generate.InputObjects
 import Generate.Root
 import GraphQL.Operations.Canonicalize as Canonicalize
+import GraphQL.Operations.Canonicalize.Error as Error
 import GraphQL.Operations.Generate
 import GraphQL.Operations.Parse
 import GraphQL.Schema exposing (Namespace)
@@ -426,8 +427,8 @@ parseAndValidateQuery namespace schema flags gql =
                     Err
                         { title = formatTitle "ELM GQL" gql.path
                         , description =
-                            List.map Canonicalize.errorToString errors
-                                |> String.join (Canonicalize.cyan "\n-------------------\n\n")
+                            List.map Error.toString errors
+                                |> String.join (Error.cyan "\n-------------------\n\n")
                         }
 
                 Ok canAST ->

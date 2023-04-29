@@ -1,4 +1,7 @@
-module GraphQL.Operations.Canonicalize exposing (Error, Paths, canonicalize, cyan, errorToString)
+module GraphQL.Operations.Canonicalize exposing
+    ( Paths
+    , canonicalize
+    )
 
 {-| -}
 
@@ -7,571 +10,13 @@ import Generate.Path
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize.Cache as Cache
+import GraphQL.Operations.Canonicalize.Error as Error
 import GraphQL.Schema
 import Utils.String
 
 
-type Error
-    = Error
-        { coords : Coords
-        , error : ErrorDetails
-        }
-
-
-todo : String -> Error
-todo msg =
-    Error
-        { coords =
-            { start = zeroPosition
-            , end = zeroPosition
-            }
-        , error = Todo msg
-        }
-
-
-error : ErrorDetails -> Error
-error deets =
-    Error
-        { coords = { start = zeroPosition, end = zeroPosition }
-        , error = deets
-        }
-
-
-zeroPosition : Position
-zeroPosition =
-    { line = 0
-    , char = 0
-    }
-
-
-type alias Coords =
-    { start : Position
-    , end : Position
-    }
-
-
-type alias Position =
-    { line : Int
-    , char : Int
-    }
-
-
-type ErrorDetails
-    = QueryUnknown String
-    | EnumUnknown String
-    | ObjectUnknown String
-    | UnionUnknown String
-    | UnknownArgs
-        { field : String
-        , unknownArgs : List String
-        , allowedArgs : List GraphQL.Schema.Argument
-        }
-    | EmptySelection
-        { field : String
-        , fieldType : String
-        , options : List { field : String, type_ : String }
-        }
-    | FieldUnknown
-        { object : String
-        , field : String
-        }
-    | VariableIssueSummary VariableSummary
-    | FragmentVariableIssue FragmentVariableSummary
-    | FieldAliasRequired
-        { fieldName : String
-        }
-    | MissingTypename
-        { tag : String
-        }
-    | EmptyUnionVariantSelection
-        { tag : String
-        }
-    | IncorrectInlineInput
-        { schema : GraphQL.Schema.Type
-        , arg : String
-        , found : AST.Value
-        }
-    | FragmentNotFound
-        { found : String
-        , object : String
-        , options :
-            List Can.Fragment
-        }
-    | FragmentTargetDoesntExist
-        { fragmentName : String
-        , typeCondition : String
-        }
-    | FragmentDuplicateFound
-        { firstName : String
-        , firstTypeCondition : String
-        , firstFieldCount : Int
-        , secondName : String
-        , secondTypeCondition : String
-        , secondFieldCount : Int
-        }
-    | FragmentSelectionNotAllowedInObjects
-        { fragment : AST.InlineFragment
-        , objectName : String
-        }
-    | FragmentInlineTopLevel
-        { fragment : AST.InlineFragment
-        }
-    | Todo String
-
-
-type alias VariableSummary =
-    { declared : List DeclaredVariable
-    , valid : List Can.VariableDefinition
-    , issues : List VarIssue
-    , suggestions : List SuggestedVariable
-    }
-
-
-type alias FragmentVariableSummary =
-    { fragmentName : String
-    , declared : List { name : String, type_ : String }
-    , used : List { name : String, type_ : String }
-    }
-
-
-type alias DeclaredVariable =
-    { name : String
-    , type_ : Maybe String
-    }
-
-
-type VarIssue
-    = Unused { name : String, possibly : List String }
-    | UnexpectedType
-        { name : String
-        , found : Maybe String
-        , expected : String
-        }
-    | Undeclared { name : String, possibly : List String }
-
-
-type alias SuggestedVariable =
-    { name : String
-    , type_ : String
-    }
-
-
-
-{- Error rendering -}
-
-
-{-| An indented block with a newline above and below
--}
-block : List String -> String
-block lines =
-    "\n    " ++ String.join "\n    " lines ++ "\n"
-
-
-
-{-
-   If more colors are wanted, this is a good reference:
-   https://github.com/chalk/chalk/blob/main/source/vendor/ansi-styles/index.js
--}
-
-
-cyan : String -> String
-cyan str =
-    color 36 39 str
-
-
-yellow : String -> String
-yellow str =
-    color 33 39 str
-
-
-grey : String -> String
-grey str =
-    color 90 39 str
-
-
-color : Int -> Int -> String -> String
-color openCode closeCode content =
-    let
-        delim code =
-            --"\\u001B[" ++ String.fromInt code ++ "m"
-            "\u{001B}[" ++ String.fromInt code ++ "m"
-    in
-    delim openCode ++ content ++ delim closeCode
-
-
-
-{- -}
-
-
-errorToString : Error -> String
-errorToString (Error details) =
-    case details.error of
-        Todo msg ->
-            "Todo: " ++ msg
-
-        EnumUnknown name ->
-            String.join "\n"
-                [ "I don't recognize this name:"
-                , block
-                    [ yellow name ]
-                ]
-
-        QueryUnknown name ->
-            String.join "\n"
-                [ "I don't recognize this query:"
-                , block
-                    [ yellow name ]
-                ]
-
-        ObjectUnknown name ->
-            String.join "\n"
-                [ "I don't recognize this object:"
-                , block
-                    [ yellow name ]
-                ]
-
-        UnionUnknown name ->
-            String.join "\n"
-                [ "I don't recognize this union:"
-                , block
-                    [ yellow name ]
-                ]
-
-        FieldUnknown field ->
-            String.join "\n"
-                [ "You're trying to access"
-                , block
-                    [ cyan (field.object ++ "." ++ field.field)
-                    ]
-                , "But I don't see a " ++ cyan field.field ++ " field on " ++ cyan field.object
-                ]
-
-        UnknownArgs deets ->
-            case deets.allowedArgs of
-                [] ->
-                    String.join "\n"
-                        [ yellow deets.field ++ " has the following arguments:"
-                        , block
-                            (List.map yellow deets.unknownArgs)
-                        , "but the GQL schema says it can't have any!"
-                        , "Maybe the arguments are on the wrong field?"
-                        ]
-
-                _ ->
-                    String.join "\n"
-                        [ yellow deets.field ++ " has these arguments, but I don't recognize them!"
-                        , block
-                            (List.map yellow deets.unknownArgs)
-                        , "Here are the arguments that this field can have:"
-                        , block
-                            (List.map
-                                (\opt ->
-                                    yellow opt.name ++ ": " ++ cyan (GraphQL.Schema.typeToString opt.type_)
-                                )
-                                deets.allowedArgs
-                            )
-                        ]
-
-        EmptySelection deets ->
-            String.join "\n"
-                [ "This field isn't selecting anything"
-                , block
-                    [ yellow deets.field ]
-                , "But it is a " ++ yellow deets.fieldType ++ ", which needs to select some fields."
-                , "You can either remove it or select some of the following fields:"
-                , block
-                    (List.map
-                        (\opt ->
-                            yellow opt.field ++ ": " ++ cyan opt.type_
-                        )
-                        deets.options
-                    )
-                ]
-
-        FieldAliasRequired deets ->
-            String.join "\n"
-                [ "I found two fields that have the same name:"
-                , block
-                    [ yellow deets.fieldName ]
-                , "Add an alias to one of them so there's no confusion!"
-                ]
-
-        MissingTypename deets ->
-            String.join "\n"
-                [ cyan deets.tag ++ " needs to select for " ++ yellow "__typename"
-                , block
-                    [ "... on " ++ deets.tag ++ " {"
-                    , yellow "    __typename"
-                    , grey "    # ... other fields"
-                    , "}"
-                    ]
-                , "If we don't have this, then we can't be totally sure what type is returned."
-                ]
-
-        EmptyUnionVariantSelection deets ->
-            String.join "\n"
-                [ cyan deets.tag ++ " needs to select at least one field."
-                , block
-                    [ "... on " ++ deets.tag ++ " {"
-                    , yellow "    __typename"
-                    , "}"
-                    ]
-                , "If you don't need any more data, just add " ++ yellow "__typename"
-                ]
-
-        IncorrectInlineInput deets ->
-            String.join "\n"
-                [ cyan deets.arg ++ " has the wrong type. I was expecting:"
-                , block
-                    [ yellow (GraphQL.Schema.typeToString deets.schema)
-                    ]
-                , "But found:"
-                , block
-                    [ yellow (AST.valueToString deets.found)
-                    ]
-                ]
-
-        FragmentNotFound deets ->
-            let
-                fragmentsThatMatchThisObject =
-                    List.filter
-                        (\frag ->
-                            deets.object == Can.nameToString frag.typeCondition
-                        )
-                        deets.options
-
-                fragmentsThatMatchThisName =
-                    List.filter
-                        (\frag ->
-                            deets.found == Can.nameToString frag.name
-                        )
-                        deets.options
-            in
-            case fragmentsThatMatchThisObject of
-                [] ->
-                    case deets.options of
-                        [] ->
-                            String.join "\n"
-                                [ "I found a usage of a fragment named " ++ cyan deets.found ++ ", but I don't see any fragments defined in this document!"
-                                , "You could add one by adding this if you want."
-                                , block
-                                    [ cyan "fragment" ++ " on " ++ yellow deets.object ++ " {"
-                                    , "    # select some fields here!"
-                                    , "}"
-                                    ]
-                                , "Check out https://graphql.org/learn/queries/#fragments to learn more!"
-                                ]
-
-                        _ ->
-                            let
-                                preamble =
-                                    [ cyan ("..." ++ deets.found) ++ " looks a little weird to me."
-                                    , "From where it is in the query, it should select from " ++ yellow deets.object ++ "."
-                                    , "But I wasn't able to find a fragment with this name that selects from " ++ yellow deets.object ++ "."
-                                    ]
-
-                                specifics =
-                                    case fragmentsThatMatchThisName of
-                                        [] ->
-                                            [ "Here are the fragments I know about."
-                                            , block
-                                                (List.map (yellow << fragmentName)
-                                                    deets.options
-                                                )
-                                            ]
-
-                                        [ _ ] ->
-                                            [ "I found this fragment, is it selecting from the wrong thing?"
-                                            , block
-                                                (List.map (yellow << fragmentName)
-                                                    fragmentsThatMatchThisName
-                                                )
-                                            ]
-
-                                        _ ->
-                                            [ "Here are the fragments I know about."
-                                            , block
-                                                (List.map (yellow << fragmentName)
-                                                    deets.options
-                                                )
-                                            ]
-                            in
-                            String.join "\n"
-                                (preamble ++ specifics)
-
-                [ _ ] ->
-                    String.join "\n"
-                        [ "I don't recognize the fragment named " ++ cyan deets.found ++ "."
-                        , "Do you mean?"
-                        , block
-                            (List.map (yellow << fragmentName)
-                                fragmentsThatMatchThisObject
-                            )
-                        ]
-
-                _ ->
-                    String.join "\n"
-                        [ "I don't recognize the fragment named " ++ cyan deets.found ++ "."
-                        , "Do you mean one of these?"
-                        , block
-                            (List.map (yellow << fragmentName)
-                                fragmentsThatMatchThisObject
-                            )
-                        ]
-
-        FragmentTargetDoesntExist deets ->
-            String.join "\n"
-                [ "I found this fragment:"
-                , block
-                    [ "fragment " ++ cyan deets.fragmentName ++ " on " ++ yellow deets.typeCondition
-                    ]
-                , "But I wasn't able to find " ++ yellow deets.typeCondition ++ " in the schema."
-                , "Is there a typo?"
-                ]
-
-        FragmentDuplicateFound deets ->
-            if deets.firstTypeCondition == deets.secondTypeCondition && deets.firstFieldCount == deets.secondFieldCount then
-                String.join "\n"
-                    [ "I found two fragments with the name " ++ yellow deets.firstName
-                    , "Maybe they're just duplicates?"
-                    , "Fragments need to have globally unique names. Can you rename one?"
-                    ]
-
-            else
-                String.join "\n"
-                    [ "I found two fragments with the name " ++ yellow deets.firstName
-                    , block
-                        [ "fragment " ++ cyan deets.firstName ++ " on " ++ yellow deets.firstTypeCondition
-                        , "fragment " ++ cyan deets.secondName ++ " on " ++ yellow deets.secondTypeCondition
-                        ]
-                    , "Fragments need to have globally unique names. Can you rename one?"
-                    ]
-
-        FragmentSelectionNotAllowedInObjects deets ->
-            String.join "\n"
-                [ "I found a fragment named " ++ yellow (AST.nameToString deets.fragment.tag)
-                , "but it is inside the object named " ++ cyan deets.objectName ++ ", which is neither an interface or a union."
-                , "Is it in the right place?"
-                ]
-
-        FragmentInlineTopLevel deets ->
-            String.join "\n"
-                [ "I found an inline fragment named " ++ yellow (AST.nameToString deets.fragment.tag) ++ " at the top level of the query."
-                , "But this sort of fragment must be inside a union or an interface."
-                , "Is it in the right place?"
-                ]
-
-        VariableIssueSummary summary ->
-            case summary.declared of
-                [] ->
-                    String.join "\n"
-                        [ "I wasn't able to find any declared variables."
-                        , "Here's what I think the variables should be:"
-                        , block
-                            (List.map
-                                renderSuggestion
-                                (List.reverse summary.suggestions)
-                            )
-                        ]
-
-                _ ->
-                    String.join "\n"
-                        [ "I found the following variables:"
-                        , block
-                            (List.map
-                                renderDeclared
-                                (List.reverse summary.declared)
-                            )
-                        , if List.length summary.issues == 1 then
-                            "But I ran into an issue:"
-
-                          else
-                            "But I ran into a few issues:"
-                        , block
-                            (List.concatMap
-                                renderIssue
-                                summary.issues
-                            )
-                        , "Here's what I think the variables should be:"
-                        , block
-                            (List.map
-                                renderSuggestion
-                                (List.reverse summary.suggestions)
-                            )
-                        ]
-
-        FragmentVariableIssue summary ->
-            String.join "\n"
-                [ "It looks like the " ++ cyan summary.fragmentName ++ " fragment uses the following variables:"
-                , block
-                    (List.map
-                        renderVariable
-                        summary.used
-                    )
-                , "But the only variables that are declared are"
-                , block
-                    (List.map
-                        renderVariable
-                        summary.declared
-                    )
-                ]
-
-
-fragmentName : Can.Fragment -> String
-fragmentName frag =
-    Can.nameToString frag.name ++ " on " ++ Can.nameToString frag.typeCondition
-
-
-renderVariable : { name : String, type_ : String } -> String
-renderVariable var =
-    yellow var.name ++ cyan ": " ++ yellow var.type_
-
-
-renderDeclared : DeclaredVariable -> String
-renderDeclared declared =
-    case declared.type_ of
-        Nothing ->
-            yellow ("$" ++ declared.name)
-
-        Just declaredType ->
-            yellow ("$" ++ declared.name) ++ grey ": " ++ cyan declaredType
-
-
-renderSuggestion : SuggestedVariable -> String
-renderSuggestion sug =
-    yellow ("$" ++ sug.name) ++ grey ": " ++ cyan sug.type_
-
-
-renderIssue : VarIssue -> List String
-renderIssue issue =
-    case issue of
-        Unused var ->
-            [ yellow ("$" ++ var.name) ++ " is unused." ]
-
-        UnexpectedType var ->
-            case var.found of
-                Nothing ->
-                    [ yellow ("$" ++ var.name) ++ " has no type declaration" ]
-
-                Just foundType ->
-                    let
-                        variableName =
-                            "$" ++ var.name
-                    in
-                    [ yellow variableName
-                        ++ " is declared as "
-                        ++ cyan foundType
-                    , String.repeat (String.length variableName - 6) " "
-                        ++ "but is expected to be "
-                        ++ cyan var.expected
-                    ]
-
-        Undeclared var ->
-            [ yellow ("$" ++ var.name) ++ " is undeclared (missing from the top)." ]
-
-
 type CanResult success
-    = CanError (List Error)
+    = CanError (List Error.Error)
     | CanSuccess Cache.Cache success
 
 
@@ -592,7 +37,7 @@ type alias References =
     }
 
 
-err : List Error -> CanResult success
+err : List Error.Error -> CanResult success
 err =
     CanError
 
@@ -607,19 +52,13 @@ ok data cache =
     CanSuccess cache data
 
 
-
--- emptySuccess : CanResult (List a)
--- emptySuccess =
---     CanSuccess Cache.empty []
-
-
 type alias Paths =
     { path : String
     , gqlDir : List String
     }
 
 
-canonicalize : GraphQL.Schema.Schema -> Paths -> AST.Document -> Result (List Error) Can.Document
+canonicalize : GraphQL.Schema.Schema -> Paths -> AST.Document -> Result (List Error.Error) Can.Document
 canonicalize schema paths doc =
     let
         fragmentResult =
@@ -632,7 +71,7 @@ canonicalize schema paths doc =
     in
     case fragmentResult of
         Err fragErrorDetails ->
-            Err (List.map error fragErrorDetails)
+            Err (List.map Error.error fragErrorDetails)
 
         Ok fragments ->
             let
@@ -684,8 +123,8 @@ canonicalize schema paths doc =
 getFragments :
     GraphQL.Schema.Schema
     -> AST.Definition
-    -> Result (List ErrorDetails) (Dict String AST.FragmentDetails)
-    -> Result (List ErrorDetails) (Dict String AST.FragmentDetails)
+    -> Result (List Error.ErrorDetails) (Dict String AST.FragmentDetails)
+    -> Result (List Error.ErrorDetails) (Dict String AST.FragmentDetails)
 getFragments schema def result =
     case result of
         Err errs ->
@@ -711,7 +150,7 @@ getFragments schema def result =
 
                         Just found ->
                             Err
-                                [ FragmentDuplicateFound
+                                [ Error.FragmentDuplicateFound
                                     { firstName = AST.nameToString frag.name
                                     , firstTypeCondition = AST.nameToString frag.typeCondition
                                     , firstFieldCount = List.length frag.selection
@@ -806,8 +245,8 @@ canonicalizeDefinition refs def result =
                             in
                             if not (List.isEmpty variableSummary.issues) then
                                 CanError
-                                    [ error
-                                        (VariableIssueSummary variableSummary)
+                                    [ Error.error
+                                        (Error.VariableIssueSummary variableSummary)
                                     ]
 
                             else
@@ -820,7 +259,7 @@ canonicalizeDefinition refs def result =
                                 if not (List.isEmpty fragmentVariableIssues) then
                                     CanError
                                         (List.map
-                                            (error << FragmentVariableIssue)
+                                            (Error.error << Error.FragmentVariableIssue)
                                             fragmentVariableIssues
                                         )
 
@@ -839,7 +278,6 @@ canonicalizeDefinition refs def result =
                                                 , fragmentsUsed = fieldCache.fragmentsUsed
                                                 }
                                     in
-                                    -- CanSuccess startCache cannedDefs
                                     CanSuccess fieldCache
                                         (new :: cannedDefs)
 
@@ -847,7 +285,7 @@ canonicalizeDefinition refs def result =
                             CanError errorMsg
 
 
-fragmentVariableErrors : List AST.VariableDefinition -> Can.Fragment -> Maybe FragmentVariableSummary
+fragmentVariableErrors : List AST.VariableDefinition -> Can.Fragment -> Maybe Error.FragmentVariableSummary
 fragmentVariableErrors varDefs frag =
     let
         varSummary =
@@ -969,8 +407,8 @@ verifyVariables :
     , definition : Maybe AST.VariableDefinition
     , inOperation : Maybe GraphQL.Schema.Type
     }
-    -> VariableSummary
-    -> VariableSummary
+    -> Error.VariableSummary
+    -> Error.VariableSummary
 verifyVariables item summary =
     case ( item.definition, item.inOperation ) of
         ( Just def, Just inOp ) ->
@@ -1003,7 +441,7 @@ verifyVariables item summary =
                     summary.issues
 
                 else
-                    UnexpectedType
+                    Error.UnexpectedType
                         { name = item.name
                         , found = Just (AST.typeToGqlString def.type_)
                         , expected = typeString
@@ -1039,7 +477,7 @@ verifyVariables item summary =
                     :: summary.declared
             , valid = summary.valid
             , issues =
-                Unused
+                Error.Unused
                     { name = item.name
                     , possibly = []
                     }
@@ -1058,7 +496,7 @@ verifyVariables item summary =
             { declared = summary.declared
             , valid = summary.valid
             , issues =
-                Undeclared
+                Error.Undeclared
                     { name = item.name
                     , possibly = []
                     }
@@ -1156,7 +594,7 @@ canonicalizeOperation refs op used selection =
             in
             case matched of
                 Nothing ->
-                    err [ error (QueryUnknown (AST.nameToString field.name)) ]
+                    err [ Error.error (Error.QueryUnknown (AST.nameToString field.name)) ]
 
                 Just query ->
                     canonicalizeFieldType refs
@@ -1166,11 +604,11 @@ canonicalizeOperation refs op used selection =
                         |> mapCache Cache.dropLevel
 
         AST.FragmentSpreadSelection _ ->
-            err [ todo "Top level Fragments aren't suported yet!" ]
+            err [ Error.todo "Top level Fragments aren't suported yet!" ]
 
         AST.InlineFragmentSelection inline ->
             -- This is when we're selecting a union fragment
-            err [ error (FragmentInlineTopLevel { fragment = inline }) ]
+            err [ Error.error (Error.FragmentInlineTopLevel { fragment = inline }) ]
 
 
 type InputValidation
@@ -1566,8 +1004,8 @@ canonicalizeFragment schema paths frag currentResult =
 
                                 Nothing ->
                                     CanError
-                                        [ error <|
-                                            FragmentTargetDoesntExist
+                                        [ Error.error <|
+                                            Error.FragmentTargetDoesntExist
                                                 { fragmentName = AST.nameToString frag.name
                                                 , typeCondition = AST.nameToString frag.typeCondition
                                                 }
@@ -1728,8 +1166,8 @@ canonicalizeField refs object selection existingFieldResult =
                                         if Cache.siblingCollision siblingID newCache then
                                             -- There has been a collision, abort!
                                             err
-                                                [ error
-                                                    (FieldAliasRequired
+                                                [ Error.error
+                                                    (Error.FieldAliasRequired
                                                         { fieldName = aliased
                                                         }
                                                     )
@@ -1745,8 +1183,8 @@ canonicalizeField refs object selection existingFieldResult =
 
                             Nothing ->
                                 err
-                                    [ error
-                                        (FieldUnknown
+                                    [ Error.error
+                                        (Error.FieldUnknown
                                             { object = object.name
                                             , field = fieldName
                                             }
@@ -1761,8 +1199,8 @@ canonicalizeField refs object selection existingFieldResult =
                     case Dict.get fragName refs.fragments of
                         Nothing ->
                             err
-                                [ error <|
-                                    FragmentNotFound
+                                [ Error.error <|
+                                    Error.FragmentNotFound
                                         { found = fragName
                                         , object = object.name
                                         , options =
@@ -1791,8 +1229,8 @@ canonicalizeField refs object selection existingFieldResult =
 
                             else
                                 err
-                                    [ error <|
-                                        FragmentNotFound
+                                    [ Error.error <|
+                                        Error.FragmentNotFound
                                             { found = fragName
                                             , object = object.name
                                             , options =
@@ -1802,8 +1240,8 @@ canonicalizeField refs object selection existingFieldResult =
 
                 AST.InlineFragmentSelection inline ->
                     err
-                        [ error
-                            (FragmentSelectionNotAllowedInObjects
+                        [ Error.error
+                            (Error.FragmentSelectionNotAllowedInObjects
                                 { fragment = inline
                                 , objectName = object.name
                                 }
@@ -1835,7 +1273,7 @@ canonicalizeArguments :
     ->
         { valid : List ( String, GraphQL.Schema.Type )
         , unknown : List String
-        , errs : List Error
+        , errs : List Error.Error
         }
 canonicalizeArguments refs schemaArguments arguments =
     List.foldl
@@ -1862,8 +1300,8 @@ canonicalizeArguments refs schemaArguments arguments =
                         Mismatch ->
                             { found
                                 | errs =
-                                    error
-                                        (IncorrectInlineInput
+                                    Error.error
+                                        (Error.IncorrectInlineInput
                                             { schema = schemaVar.type_
                                             , arg = fieldname
                                             , found = arg.value
@@ -1898,8 +1336,8 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
     in
     if not (List.isEmpty argValidation.unknown) then
         CanError
-            [ error <|
-                UnknownArgs
+            [ Error.error <|
+                Error.UnknownArgs
                     { field = AST.nameToString field.name
                     , unknownArgs = argValidation.unknown
                     , allowedArgs =
@@ -1938,12 +1376,12 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                     )
 
             GraphQL.Schema.InputObject _ ->
-                err [ todo "Invalid schema!  Weird InputObject" ]
+                err [ Error.todo "Invalid schema!  Weird InputObject" ]
 
             GraphQL.Schema.Object name ->
                 case Dict.get name refs.schema.objects of
                     Nothing ->
-                        err [ error (ObjectUnknown name) ]
+                        err [ Error.error (Error.ObjectUnknown name) ]
 
                     Just obj ->
                         canonicalizeObject refs
@@ -1955,7 +1393,7 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
             GraphQL.Schema.Enum name ->
                 case Dict.get name refs.schema.enums of
                     Nothing ->
-                        err [ error (EnumUnknown name) ]
+                        err [ Error.error (Error.EnumUnknown name) ]
 
                     Just enum ->
                         CanSuccess newCache
@@ -1981,12 +1419,12 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
             GraphQL.Schema.Union name ->
                 case Dict.get name refs.schema.unions of
                     Nothing ->
-                        err [ error (UnionUnknown name) ]
+                        err [ Error.error (Error.UnionUnknown name) ]
 
                     Just union ->
                         case extractUnionTags union.variants [] of
                             Nothing ->
-                                err [ todo "Things in a union are not objects!" ]
+                                err [ Error.todo "Things in a union are not objects!" ]
 
                             Just variants ->
                                 let
@@ -2035,7 +1473,7 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
             GraphQL.Schema.Interface name ->
                 case Dict.get name refs.schema.interfaces of
                     Nothing ->
-                        err [ error (UnionUnknown name) ]
+                        err [ Error.error (Error.UnionUnknown name) ]
 
                     Just interface ->
                         let
@@ -2115,8 +1553,8 @@ canonicalizeObject refs field schemaField varCache obj =
         [] ->
             -- This is an object with no selection, which isn't allowed for gql.
             err
-                [ error
-                    (EmptySelection
+                [ Error.error
+                    (Error.EmptySelection
                         { field =
                             case field.alias_ of
                                 Nothing ->
@@ -2171,8 +1609,8 @@ canonicalizeObject refs field schemaField varCache obj =
                     in
                     if Cache.siblingCollision siblingID global.used then
                         err
-                            [ error
-                                (FieldAliasRequired
+                            [ Error.error
+                                (Error.FieldAliasRequired
                                     { fieldName = aliasedName
                                     }
                                 )
@@ -2313,8 +1751,8 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                         Nothing ->
                             { result =
                                 err
-                                    [ error <|
-                                        FragmentNotFound
+                                    [ Error.error <|
+                                        Error.FragmentNotFound
                                             { found = fragName
                                             , object = unionOrInterface.name
                                             , options =
@@ -2353,8 +1791,8 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                             else
                                 { result =
                                     err
-                                        [ error <|
-                                            FragmentNotFound
+                                        [ Error.error <|
+                                            Error.FragmentNotFound
                                                 { found = fragName
                                                 , object = unionOrInterface.name
                                                 , options =
@@ -2370,7 +1808,7 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                     case inline.selection of
                         [] ->
                             { result =
-                                err [ error (EmptyUnionVariantSelection { tag = AST.nameToString inline.tag }) ]
+                                err [ Error.error (Error.EmptyUnionVariantSelection { tag = AST.nameToString inline.tag }) ]
                             , variants = found.variants
                             , capturedVariants = found.capturedVariants
                             , typenameAlreadySelected = found.typenameAlreadySelected
@@ -2388,7 +1826,7 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                 case Dict.get tag refs.schema.objects of
                                     Nothing ->
                                         { result =
-                                            err [ error (ObjectUnknown tag) ]
+                                            err [ Error.error (Error.ObjectUnknown tag) ]
                                         , variants = leftOvertags
                                         , capturedVariants = found.capturedVariants
                                         , typenameAlreadySelected = found.typenameAlreadySelected
@@ -2466,7 +1904,7 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
 
                                         else
                                             { result =
-                                                err [ error (MissingTypename { tag = AST.nameToString inline.tag }) ]
+                                                err [ Error.error (Error.MissingTypename { tag = AST.nameToString inline.tag }) ]
                                             , capturedVariants = found.capturedVariants
                                             , variants = found.variants
                                             , typenameAlreadySelected = found.typenameAlreadySelected
@@ -2474,7 +1912,7 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
 
                             else
                                 { result =
-                                    err [ todo (tag ++ " does not match!") ]
+                                    err [ Error.todo (tag ++ " does not match!") ]
                                 , variants = found.variants
                                 , capturedVariants = found.capturedVariants
                                 , typenameAlreadySelected = found.typenameAlreadySelected
