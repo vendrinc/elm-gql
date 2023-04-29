@@ -1,13 +1,13 @@
 module GraphQL.Usage exposing
     ( Usages, init
-    , enum, field, inputObject, interface, mutation, query, scalar, union
+    , enum, field, inputObject, mutation, query, scalar
     )
 
 {-|
 
 @docs Usages, init
 
-@docs enum, field, inputObject, interface, mutation, query, scalar, union
+@docs enum, field, inputObject, interface, mutation, query, scalar
 
 @docs toUnusedReport
 
@@ -82,19 +82,9 @@ enum name =
     used (Enum name)
 
 
-union : String -> FilePath -> Usages -> Usages
-union name =
-    used (Union { name = name })
-
-
 inputObject : String -> String -> FilePath -> Usages -> Usages
 inputObject name fieldName =
     used (InputObject { name = name, field = fieldName })
-
-
-interface : String -> String -> FilePath -> Usages -> Usages
-interface name fieldName =
-    used (Interface { name = name, field = fieldName })
 
 
 used : Type -> FilePath -> Usages -> Usages

@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Canonicalize.Cache exposing (addFragment, addLevel, addLevelKeepSiblingStack, addVars, annotation_, call_, dropLevel, dropLevelNotSiblings, getGlobalName, init, levelFromField, make_, moduleName_, saveSibling, siblingCollision, values_)
+module Gen.GraphQL.Operations.Canonicalize.Cache exposing (addFragment, addLevel, addLevelKeepSiblingStack, addVars, annotation_, call_, dropLevel, dropLevelNotSiblings, enum, field, getGlobalName, init, inputObject, levelFromField, make_, moduleName_, mutation, query, saveSibling, scalar, siblingCollision, values_)
 
 {-| 
-@docs values_, call_, make_, annotation_, init, addVars, addFragment, addLevelKeepSiblingStack, addLevel, dropLevel, dropLevelNotSiblings, getGlobalName, saveSibling, siblingCollision, levelFromField, moduleName_
+@docs values_, call_, make_, annotation_, init, addVars, addFragment, addLevelKeepSiblingStack, addLevel, dropLevel, dropLevelNotSiblings, getGlobalName, saveSibling, siblingCollision, levelFromField, query, mutation, field, scalar, enum, inputObject, moduleName_
 -}
 
 
@@ -14,6 +14,139 @@ import Tuple
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+
+
+{-| inputObject: String -> String -> FilePath -> Cache -> Cache -}
+inputObject :
+    String -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
+inputObject inputObjectArg inputObjectArg0 inputObjectArg1 inputObjectArg2 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "inputObject"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+        )
+        [ Elm.string inputObjectArg
+        , Elm.string inputObjectArg0
+        , inputObjectArg1
+        , inputObjectArg2
+        ]
+
+
+{-| enum: String -> FilePath -> Cache -> Cache -}
+enum : String -> Elm.Expression -> Elm.Expression -> Elm.Expression
+enum enumArg enumArg0 enumArg1 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "enum"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+        )
+        [ Elm.string enumArg, enumArg0, enumArg1 ]
+
+
+{-| scalar: String -> FilePath -> Cache -> Cache -}
+scalar : String -> Elm.Expression -> Elm.Expression -> Elm.Expression
+scalar scalarArg scalarArg0 scalarArg1 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "scalar"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+        )
+        [ Elm.string scalarArg, scalarArg0, scalarArg1 ]
+
+
+{-| field: String -> String -> FilePath -> Cache -> Cache -}
+field : String -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
+field fieldArg fieldArg0 fieldArg1 fieldArg2 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "field"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+        )
+        [ Elm.string fieldArg, Elm.string fieldArg0, fieldArg1, fieldArg2 ]
+
+
+{-| mutation: String -> FilePath -> Cache -> Cache -}
+mutation : String -> Elm.Expression -> Elm.Expression -> Elm.Expression
+mutation mutationArg mutationArg0 mutationArg1 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "mutation"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+        )
+        [ Elm.string mutationArg, mutationArg0, mutationArg1 ]
+
+
+{-| query: String -> FilePath -> Cache -> Cache -}
+query : String -> Elm.Expression -> Elm.Expression -> Elm.Expression
+query queryArg queryArg0 queryArg1 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "query"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+        )
+        [ Elm.string queryArg, queryArg0, queryArg1 ]
 
 
 {-| levelFromField: 
@@ -390,7 +523,27 @@ make_ =
 
 
 call_ :
-    { levelFromField : Elm.Expression -> Elm.Expression
+    { inputObject :
+        Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+    , enum :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , scalar :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , field :
+        Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+    , mutation :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , query :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , levelFromField : Elm.Expression -> Elm.Expression
     , siblingCollision : Elm.Expression -> Elm.Expression -> Elm.Expression
     , saveSibling : Elm.Expression -> Elm.Expression -> Elm.Expression
     , getGlobalName : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -404,7 +557,127 @@ call_ :
     , init : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { levelFromField =
+    { inputObject =
+        \inputObjectArg inputObjectArg0 inputObjectArg1 inputObjectArg2 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+                    , name = "inputObject"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.string
+                                , Type.namedWith [] "FilePath" []
+                                , Type.namedWith [] "Cache" []
+                                ]
+                                (Type.namedWith [] "Cache" [])
+                            )
+                    }
+                )
+                [ inputObjectArg
+                , inputObjectArg0
+                , inputObjectArg1
+                , inputObjectArg2
+                ]
+    , enum =
+        \enumArg enumArg0 enumArg1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+                    , name = "enum"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.namedWith [] "FilePath" []
+                                , Type.namedWith [] "Cache" []
+                                ]
+                                (Type.namedWith [] "Cache" [])
+                            )
+                    }
+                )
+                [ enumArg, enumArg0, enumArg1 ]
+    , scalar =
+        \scalarArg scalarArg0 scalarArg1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+                    , name = "scalar"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.namedWith [] "FilePath" []
+                                , Type.namedWith [] "Cache" []
+                                ]
+                                (Type.namedWith [] "Cache" [])
+                            )
+                    }
+                )
+                [ scalarArg, scalarArg0, scalarArg1 ]
+    , field =
+        \fieldArg fieldArg0 fieldArg1 fieldArg2 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+                    , name = "field"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.string
+                                , Type.namedWith [] "FilePath" []
+                                , Type.namedWith [] "Cache" []
+                                ]
+                                (Type.namedWith [] "Cache" [])
+                            )
+                    }
+                )
+                [ fieldArg, fieldArg0, fieldArg1, fieldArg2 ]
+    , mutation =
+        \mutationArg mutationArg0 mutationArg1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+                    , name = "mutation"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.namedWith [] "FilePath" []
+                                , Type.namedWith [] "Cache" []
+                                ]
+                                (Type.namedWith [] "Cache" [])
+                            )
+                    }
+                )
+                [ mutationArg, mutationArg0, mutationArg1 ]
+    , query =
+        \queryArg queryArg0 queryArg1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+                    , name = "query"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.namedWith [] "FilePath" []
+                                , Type.namedWith [] "Cache" []
+                                ]
+                                (Type.namedWith [] "Cache" [])
+                            )
+                    }
+                )
+                [ queryArg, queryArg0, queryArg1 ]
+    , levelFromField =
         \levelFromFieldArg ->
             Elm.apply
                 (Elm.value
@@ -639,7 +912,13 @@ call_ =
 
 
 values_ :
-    { levelFromField : Elm.Expression
+    { inputObject : Elm.Expression
+    , enum : Elm.Expression
+    , scalar : Elm.Expression
+    , field : Elm.Expression
+    , mutation : Elm.Expression
+    , query : Elm.Expression
+    , levelFromField : Elm.Expression
     , siblingCollision : Elm.Expression
     , saveSibling : Elm.Expression
     , getGlobalName : Elm.Expression
@@ -652,7 +931,93 @@ values_ :
     , init : Elm.Expression
     }
 values_ =
-    { levelFromField =
+    { inputObject =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "inputObject"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+    , enum =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "enum"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+    , scalar =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "scalar"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+    , field =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "field"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+    , mutation =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "mutation"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+    , query =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "query"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Cache" []
+                        ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+    , levelFromField =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
             , name = "levelFromField"

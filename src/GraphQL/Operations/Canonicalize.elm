@@ -1176,6 +1176,7 @@ canonicalizeField refs object selection existingFieldResult =
                                         else
                                             newCache
                                                 |> Cache.saveSibling siblingID
+                                                |> Cache.field object.name fieldName refs.paths.path
                                                 |> ok (new :: existingFields)
 
                                     CanError message ->
@@ -1357,23 +1358,25 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                 initialVarCache |> Cache.addVars vars
         in
         case type_ of
-            GraphQL.Schema.Scalar _ ->
-                success newCache
-                    (Can.Field
-                        { alias_ = Maybe.map convertName field.alias_
-                        , name = convertName field.name
-                        , selectsOnlyFragment = Nothing
-                        , globalAlias =
-                            field.alias_
-                                |> Maybe.withDefault field.name
-                                |> convertName
-                        , arguments = field.arguments
-                        , directives = List.map convertDirective field.directives
-                        , wrapper = GraphQL.Schema.getWrap schemaField.type_
-                        , selection =
-                            Can.FieldScalar (GraphQL.Schema.getInner schemaField.type_)
-                        }
-                    )
+            GraphQL.Schema.Scalar scalarName ->
+                newCache
+                    |> Cache.scalar scalarName refs.paths.path
+                    |> ok
+                        (Can.Field
+                            { alias_ = Maybe.map convertName field.alias_
+                            , name = convertName field.name
+                            , selectsOnlyFragment = Nothing
+                            , globalAlias =
+                                field.alias_
+                                    |> Maybe.withDefault field.name
+                                    |> convertName
+                            , arguments = field.arguments
+                            , directives = List.map convertDirective field.directives
+                            , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                            , selection =
+                                Can.FieldScalar (GraphQL.Schema.getInner schemaField.type_)
+                            }
+                        )
 
             GraphQL.Schema.InputObject _ ->
                 err [ Error.todo "Invalid schema!  Weird InputObject" ]
@@ -1390,31 +1393,33 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                             newCache
                             obj
 
-            GraphQL.Schema.Enum name ->
-                case Dict.get name refs.schema.enums of
+            GraphQL.Schema.Enum enumName ->
+                case Dict.get enumName refs.schema.enums of
                     Nothing ->
-                        err [ Error.error (Error.EnumUnknown name) ]
+                        err [ Error.error (Error.EnumUnknown enumName) ]
 
                     Just enum ->
-                        CanSuccess newCache
-                            (Can.Field
-                                { alias_ = Maybe.map convertName field.alias_
-                                , name = convertName field.name
-                                , globalAlias =
-                                    field.alias_
-                                        |> Maybe.withDefault field.name
-                                        |> convertName
-                                , selectsOnlyFragment = Nothing
-                                , arguments = field.arguments
-                                , directives = List.map convertDirective field.directives
-                                , wrapper = GraphQL.Schema.getWrap schemaField.type_
-                                , selection =
-                                    Can.FieldEnum
-                                        { enumName = enum.name
-                                        , values = enum.values
-                                        }
-                                }
-                            )
+                        newCache
+                            |> Cache.enum enumName refs.paths.path
+                            |> ok
+                                (Can.Field
+                                    { alias_ = Maybe.map convertName field.alias_
+                                    , name = convertName field.name
+                                    , globalAlias =
+                                        field.alias_
+                                            |> Maybe.withDefault field.name
+                                            |> convertName
+                                    , selectsOnlyFragment = Nothing
+                                    , arguments = field.arguments
+                                    , directives = List.map convertDirective field.directives
+                                    , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                    , selection =
+                                        Can.FieldEnum
+                                            { enumName = enum.name
+                                            , values = enum.values
+                                            }
+                                    }
+                                )
 
             GraphQL.Schema.Union name ->
                 case Dict.get name refs.schema.unions of
@@ -1528,6 +1533,22 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                 canonicalizeFieldTypeHelper refs field inner newCache schemaField
 
 
+gatherRemaining :
+    String
+    ->
+        ( Cache.Cache
+        , List
+            { globalAlias : Can.Name
+            , tag : Can.Name
+            }
+        )
+    ->
+        ( Cache.Cache
+        , List
+            { globalAlias : Can.Name
+            , tag : Can.Name
+            }
+        )
 gatherRemaining tag ( used, gathered ) =
     let
         global =

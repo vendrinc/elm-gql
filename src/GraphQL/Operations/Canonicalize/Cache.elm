@@ -5,6 +5,7 @@ module GraphQL.Operations.Canonicalize.Cache exposing
     , dropLevel, dropLevelNotSiblings
     , saveSibling, siblingCollision
     , levelFromField
+    , enum, field, inputObject, mutation, query, scalar
     )
 
 {-|
@@ -27,7 +28,7 @@ module GraphQL.Operations.Canonicalize.Cache exposing
 
 ## Tracking Usage
 
-@docs enum, field, inputObject, interface, mutation, query, scalar, union
+@docs enum, field, inputObject, interface, mutation, query, scalar
 
 -}
 
@@ -196,8 +197,8 @@ mutation name file =
     onUsage (Usage.mutation name file)
 
 
-objectField : String -> String -> FilePath -> Cache -> Cache
-objectField name fieldName path =
+field : String -> String -> FilePath -> Cache -> Cache
+field name fieldName path =
     onUsage (Usage.field name fieldName path)
 
 
@@ -211,16 +212,6 @@ enum name path =
     onUsage (Usage.enum name path)
 
 
-union : String -> FilePath -> Cache -> Cache
-union name path =
-    onUsage (Usage.union name path)
-
-
 inputObject : String -> String -> FilePath -> Cache -> Cache
 inputObject name fieldName path =
     onUsage (Usage.inputObject name fieldName path)
-
-
-interface : String -> String -> FilePath -> Cache -> Cache
-interface name fieldName path =
-    onUsage (Usage.interface name fieldName path)
