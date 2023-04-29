@@ -2,6 +2,7 @@ module GraphQL.Operations.Canonicalize.Cache exposing
     ( init, Cache
     , addVars, addFragment
     , addLevel, addLevelKeepSiblingStack, getGlobalName
+    , dropLevel, dropLevelNotSiblings
     , saveSibling, siblingCollision
     , levelFromField
     )

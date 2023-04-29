@@ -7,7 +7,6 @@ import Generate.Path
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize.Cache as Cache
-import GraphQL.Operations.Canonicalize.UsedNames as UsedNames
 import GraphQL.Schema
 import Utils.String
 
@@ -579,8 +578,8 @@ type CanResult success
 mapCache : (Cache.Cache -> Cache.Cache) -> CanResult success -> CanResult success
 mapCache fn result =
     case result of
-        CanError error ->
-            CanError error
+        CanError message ->
+            CanError message
 
         CanSuccess cache data ->
             CanSuccess (fn cache) data
@@ -646,7 +645,7 @@ canonicalize schema paths doc =
                             ]
                         }
 
-                ( _, canonicalizedFragments ) =
+                canonicalizedFragments =
                     List.foldl
                         (canonicalizeFragment schema paths)
                         (CanSuccess startingCache Dict.empty)
@@ -658,16 +657,15 @@ canonicalize schema paths doc =
                 CanSuccess _ canonicalFrags ->
                     let
                         canonicalizedDefinitions =
-                            reduce
+                            List.foldl
                                 (canonicalizeDefinition
                                     { schema = schema
                                     , fragments = canonicalFrags
                                     , paths = paths
                                     }
-                                    usedNames
                                 )
-                                doc.definitions
                                 (CanSuccess startingCache [])
+                                doc.definitions
                     in
                     case canonicalizedDefinitions of
                         CanSuccess _ defs ->
@@ -724,44 +722,6 @@ getFragments schema def result =
                                 ]
 
 
-reduce :
-    (item -> Maybe (CanResult result))
-    -> List item
-    -> CanResult (List result)
-    -> CanResult (List result)
-reduce isValid items res =
-    case items of
-        [] ->
-            res
-
-        top :: remain ->
-            case isValid top of
-                Nothing ->
-                    reduce isValid remain res
-
-                Just (CanSuccess cache valid) ->
-                    case res of
-                        CanSuccess existingCache existing ->
-                            reduce isValid
-                                remain
-                                (CanSuccess (Cache.merge cache existingCache) (valid :: existing))
-
-                        CanError _ ->
-                            res
-
-                Just (CanError errorMessage) ->
-                    let
-                        newResult =
-                            case res of
-                                CanSuccess _ _ ->
-                                    CanError errorMessage
-
-                                CanError existingErrors ->
-                                    CanError (errorMessage ++ existingErrors)
-                    in
-                    reduce isValid remain newResult
-
-
 convertName : AST.Name -> Can.Name
 convertName (AST.Name str) =
     Can.Name str
@@ -769,115 +729,122 @@ convertName (AST.Name str) =
 
 canonicalizeDefinition :
     References
-    -> Cache.Cache
     -> AST.Definition
-    -> Maybe (CanResult Can.Definition)
-canonicalizeDefinition refs startCache def =
-    case def of
-        AST.Fragment _ ->
-            Nothing
+    -> CanResult (List Can.Definition)
+    -> CanResult (List Can.Definition)
+canonicalizeDefinition refs def result =
+    case result of
+        CanError message ->
+            CanError message
 
-        AST.Operation details ->
-            let
-                globalOperationName =
-                    Maybe.map convertName details.name
+        CanSuccess startCache cannedDefs ->
+            case def of
+                AST.Fragment _ ->
+                    CanSuccess startCache cannedDefs
 
-                operationType =
-                    case details.operationType of
-                        AST.Query ->
-                            Can.Query
+                AST.Operation details ->
+                    let
+                        globalOperationName =
+                            Maybe.map convertName details.name
 
-                        AST.Mutation ->
-                            Can.Mutation
+                        operationType =
+                            case details.operationType of
+                                AST.Query ->
+                                    Can.Query
 
-                initialNameCache =
-                    startCache
-                        |> Cache.getGlobalName
-                            (globalOperationName
-                                |> Maybe.map Can.nameToString
-                                |> Maybe.withDefault (opTypeName operationType)
-                            )
+                                AST.Mutation ->
+                                    Can.Mutation
 
-                fieldResult =
-                    List.foldl
-                        (\field ( used, result ) ->
-                            case result of
-                                CanSuccess oldCache oldItems ->
-                                    let
-                                        ( newUsed, newResult ) =
-                                            canonicalizeOperation
-                                                refs
-                                                details.operationType
-                                                used
-                                                field
-                                    in
-                                    ( newUsed
-                                    , case newResult of
-                                        CanError errorMessage ->
-                                            CanError errorMessage
-
-                                        CanSuccess newCache validItem ->
-                                            CanSuccess
-                                                (Cache.merge oldCache newCache)
-                                                (validItem :: oldItems)
+                        initialNameCache =
+                            startCache
+                                |> Cache.getGlobalName
+                                    (globalOperationName
+                                        |> Maybe.map Can.nameToString
+                                        |> Maybe.withDefault (opTypeName operationType)
                                     )
 
-                                CanError _ ->
-                                    ( used, result )
-                        )
-                        (ok [] initialNameCache.used)
-                        details.fields
-            in
-            Just <|
-                case fieldResult of
-                    CanSuccess cache fields ->
-                        let
-                            variableSummary =
-                                List.foldl
-                                    verifyVariables
-                                    { declared = []
-                                    , valid = []
-                                    , issues = []
-                                    , suggestions = []
-                                    }
-                                    (mergeVars cache.varTypes details.variableDefinitions)
-                        in
-                        if not (List.isEmpty variableSummary.issues) then
-                            CanError
-                                [ error
-                                    (VariableIssueSummary variableSummary)
-                                ]
+                        fieldResult =
+                            List.foldl
+                                (\field fieldCanResult ->
+                                    case fieldCanResult of
+                                        CanSuccess oldCache oldItems ->
+                                            let
+                                                newResult =
+                                                    canonicalizeOperation
+                                                        refs
+                                                        details.operationType
+                                                        oldCache
+                                                        field
+                                            in
+                                            case newResult of
+                                                CanError errorMessage ->
+                                                    CanError errorMessage
 
-                        else
+                                                CanSuccess newCache validItem ->
+                                                    CanSuccess
+                                                        newCache
+                                                        (validItem :: oldItems)
+
+                                        CanError _ ->
+                                            fieldCanResult
+                                )
+                                (ok [] initialNameCache.used)
+                                details.fields
+                    in
+                    case fieldResult of
+                        CanSuccess fieldCache fields ->
                             let
-                                fragmentVariableIssues =
-                                    List.filterMap
-                                        (fragmentVariableErrors details.variableDefinitions)
-                                        (List.map .fragment cache.fragmentsUsed)
+                                variableSummary =
+                                    List.foldl
+                                        verifyVariables
+                                        { declared = []
+                                        , valid = []
+                                        , issues = []
+                                        , suggestions = []
+                                        }
+                                        (mergeVars fieldCache.varTypes details.variableDefinitions)
                             in
-                            if not (List.isEmpty fragmentVariableIssues) then
+                            if not (List.isEmpty variableSummary.issues) then
                                 CanError
-                                    (List.map
-                                        (error << FragmentVariableIssue)
-                                        fragmentVariableIssues
-                                    )
+                                    [ error
+                                        (VariableIssueSummary variableSummary)
+                                    ]
 
                             else
-                                CanSuccess cache <|
-                                    Can.Operation
-                                        { operationType =
-                                            operationType
-                                        , name = globalOperationName
-                                        , variableDefinitions =
-                                            variableSummary.valid
-                                        , directives =
-                                            List.map convertDirective details.directives
-                                        , fields = fields
-                                        , fragmentsUsed = cache.fragmentsUsed
-                                        }
+                                let
+                                    fragmentVariableIssues =
+                                        List.filterMap
+                                            (fragmentVariableErrors details.variableDefinitions)
+                                            (List.map .fragment fieldCache.fragmentsUsed)
+                                in
+                                if not (List.isEmpty fragmentVariableIssues) then
+                                    CanError
+                                        (List.map
+                                            (error << FragmentVariableIssue)
+                                            fragmentVariableIssues
+                                        )
 
-                    CanError errorMsg ->
-                        CanError errorMsg
+                                else
+                                    let
+                                        new =
+                                            Can.Operation
+                                                { operationType =
+                                                    operationType
+                                                , name = globalOperationName
+                                                , variableDefinitions =
+                                                    variableSummary.valid
+                                                , directives =
+                                                    List.map convertDirective details.directives
+                                                , fields = fields
+                                                , fragmentsUsed = fieldCache.fragmentsUsed
+                                                }
+                                    in
+                                    -- CanSuccess startCache cannedDefs
+                                    CanSuccess fieldCache
+                                        (new :: cannedDefs)
+
+                        CanError errorMsg ->
+                            CanError errorMsg
 
 
 fragmentVariableErrors : List AST.VariableDefinition -> Can.Fragment -> Maybe FragmentVariableSummary
@@ -1189,7 +1156,7 @@ canonicalizeOperation refs op used selection =
             in
             case matched of
                 Nothing ->
-                    ( used, err [ error (QueryUnknown (AST.nameToString field.name)) ] )
+                    err [ error (QueryUnknown (AST.nameToString field.name)) ]
 
                 Just query ->
                     canonicalizeFieldType refs
@@ -1485,8 +1452,7 @@ canonicalizeFragment schema paths frag currentResult =
                                 )
                                 frag.selection
                     in
-                    ( selectionResult.fieldNames
-                    , case selectionResult.result of
+                    case selectionResult of
                         CanSuccess fragmentSpecificCache selection ->
                             CanSuccess fragmentSpecificCache
                                 (existingFrags
@@ -1506,7 +1472,6 @@ canonicalizeFragment schema paths frag currentResult =
 
                         CanError errorMsg ->
                             CanError errorMsg
-                    )
 
                 Nothing ->
                     case Dict.get typeCondition schema.interfaces of
@@ -1515,14 +1480,14 @@ canonicalizeFragment schema paths frag currentResult =
                                 variants =
                                     List.foldl getInterfaceNames [] interface.implementedBy
 
-                                ( finalUsedNames, canVarSelectionResult ) =
+                                canVarSelectionResult =
                                     canonicalizeVariantSelection
                                         { schema = schema
                                         , fragments = existingFrags
                                         , paths = paths
                                         }
-                                        (usedNames
-                                            |> UsedNames.addLevel
+                                        (cache
+                                            |> Cache.addLevel
                                                 { name = AST.nameToString frag.name
                                                 , isAlias = False
                                                 }
@@ -1534,8 +1499,7 @@ canonicalizeFragment schema paths frag currentResult =
                                         frag.selection
                                         variants
                             in
-                            ( finalUsedNames
-                            , case canVarSelectionResult of
+                            case canVarSelectionResult of
                                 CanSuccess fragmentSpecificCache selection ->
                                     CanSuccess fragmentSpecificCache
                                         (existingFrags
@@ -1553,7 +1517,6 @@ canonicalizeFragment schema paths frag currentResult =
 
                                 CanError errorMsg ->
                                     CanError errorMsg
-                            )
 
                         Nothing ->
                             case Dict.get typeCondition schema.unions of
@@ -1562,14 +1525,14 @@ canonicalizeFragment schema paths frag currentResult =
                                         variants =
                                             Maybe.withDefault [] <| extractUnionTags union.variants []
 
-                                        ( finalUsedNames, canVarSelectionResult ) =
+                                        canVarSelectionResult =
                                             canonicalizeVariantSelection
                                                 { schema = schema
                                                 , fragments = existingFrags
                                                 , paths = paths
                                                 }
-                                                (usedNames
-                                                    |> UsedNames.addLevel
+                                                (cache
+                                                    |> Cache.addLevel
                                                         { name = AST.nameToString frag.name
                                                         , isAlias = False
                                                         }
@@ -1581,8 +1544,7 @@ canonicalizeFragment schema paths frag currentResult =
                                                 frag.selection
                                                 variants
                                     in
-                                    ( finalUsedNames
-                                    , case canVarSelectionResult of
+                                    case canVarSelectionResult of
                                         CanSuccess fragmentSpecificCache selection ->
                                             CanSuccess fragmentSpecificCache
                                                 (existingFrags
@@ -1601,18 +1563,15 @@ canonicalizeFragment schema paths frag currentResult =
 
                                         CanError errorMsg ->
                                             CanError errorMsg
-                                    )
 
                                 Nothing ->
-                                    ( usedNames
-                                    , CanError
+                                    CanError
                                         [ error <|
                                             FragmentTargetDoesntExist
                                                 { fragmentName = AST.nameToString frag.name
                                                 , typeCondition = AST.nameToString frag.typeCondition
                                                 }
                                         ]
-                                    )
 
 
 canonicalizeVariantSelection :
@@ -1664,24 +1623,27 @@ canonicalizeVariantSelection refs cache unionOrInterface selection variants =
                 , typenameAlreadySelected = selectsForTypename
                 }
                 selection
-
-        ( remainingUsedNames, remaining ) =
-            List.foldl
-                gatherRemaining
-                ( selectionResult.fieldNames
-                , []
-                )
-                selectionResult.variants
     in
     case selectionResult.result of
-        CanSuccess cache canSelection ->
-            CanSuccess cache
+        CanSuccess selectionCache canSelection ->
+            let
+                ( finalCache, remaining ) =
+                    List.foldl
+                        gatherRemaining
+                        ( selectionCache
+                        , []
+                        )
+                        selectionResult.variants
+            in
+            CanSuccess
+                (finalCache
+                    |> Cache.dropLevel
+                )
                 { selection = canSelection
                 , variants = selectionResult.capturedVariants
                 , remainingTags =
                     List.reverse remaining
                 }
-                |> Cache.dropLevel
 
         CanError errorMsg ->
             CanError errorMsg
@@ -1699,148 +1661,105 @@ canonicalizeField :
     -> AST.Selection
     -> CanResult (List Can.Field)
     -> CanResult (List Can.Field)
-canonicalizeField refs object selection found =
-    case selection of
-        AST.Field field ->
-            let
-                fieldName =
-                    AST.nameToString field.name
-            in
-            if fieldName == "__typename" then
-                { result =
-                    addToResult Cache.empty
-                        (Can.Field
-                            { alias_ = Maybe.map convertName field.alias_
-                            , name = convertName field.name
-                            , globalAlias =
-                                field.alias_
-                                    |> Maybe.withDefault field.name
-                                    |> convertName
-                            , selectsOnlyFragment = Nothing
-                            , arguments = []
-                            , directives = List.map convertDirective field.directives
-                            , wrapper = GraphQL.Schema.UnwrappedValue
-                            , selection =
-                                Can.FieldScalar (GraphQL.Schema.Scalar "typename")
-                            }
-                        )
-                        found.result
-                , fieldNames = found.fieldNames
-                }
+canonicalizeField refs object selection existingFieldResult =
+    case existingFieldResult of
+        CanError message ->
+            CanError message
 
-            else
-                let
-                    matchedField =
-                        object.fields
-                            |> List.filter (\fld -> fld.name == fieldName)
-                            |> List.head
-                in
-                case matchedField of
-                    Just matched ->
+        CanSuccess cache existingFields ->
+            case selection of
+                AST.Field field ->
+                    let
+                        fieldName =
+                            AST.nameToString field.name
+                    in
+                    if fieldName == "__typename" then
                         let
-                            aliased =
-                                AST.getAliasedName field
-
-                            ( newNames, cannedSelection ) =
-                                canonicalizeFieldType refs
-                                    field
-                                    found.fieldNames
-                                    matched
-
-                            siblingID =
-                                { aliasedName = aliased
-                                , scalar =
-                                    if GraphQL.Schema.isScalar matched.type_ then
-                                        Just (GraphQL.Schema.typeToString matched.type_)
-
-                                    else
-                                        Nothing
-                                }
+                            new =
+                                Can.Field
+                                    { alias_ = Maybe.map convertName field.alias_
+                                    , name = convertName field.name
+                                    , globalAlias =
+                                        field.alias_
+                                            |> Maybe.withDefault field.name
+                                            |> convertName
+                                    , selectsOnlyFragment = Nothing
+                                    , arguments = []
+                                    , directives = List.map convertDirective field.directives
+                                    , wrapper = GraphQL.Schema.UnwrappedValue
+                                    , selection =
+                                        Can.FieldScalar (GraphQL.Schema.Scalar "typename")
+                                    }
                         in
-                        if UsedNames.siblingCollision siblingID found.fieldNames then
-                            -- There has been a collision, abort!
-                            { result =
+                        cache
+                            |> ok (new :: existingFields)
+
+                    else
+                        let
+                            matchedField =
+                                object.fields
+                                    |> List.filter (\fld -> fld.name == fieldName)
+                                    |> List.head
+                        in
+                        case matchedField of
+                            Just matched ->
+                                let
+                                    aliased =
+                                        AST.getAliasedName field
+
+                                    canonicalizedNewField =
+                                        canonicalizeFieldType refs
+                                            field
+                                            cache
+                                            matched
+
+                                    siblingID =
+                                        { aliasedName = aliased
+                                        , scalar =
+                                            if GraphQL.Schema.isScalar matched.type_ then
+                                                Just (GraphQL.Schema.typeToString matched.type_)
+
+                                            else
+                                                Nothing
+                                        }
+                                in
+                                case canonicalizedNewField of
+                                    CanSuccess newCache new ->
+                                        if Cache.siblingCollision siblingID newCache then
+                                            -- There has been a collision, abort!
+                                            err
+                                                [ error
+                                                    (FieldAliasRequired
+                                                        { fieldName = aliased
+                                                        }
+                                                    )
+                                                ]
+
+                                        else
+                                            newCache
+                                                |> Cache.saveSibling siblingID
+                                                |> ok (new :: existingFields)
+
+                                    CanError message ->
+                                        CanError message
+
+                            Nothing ->
                                 err
                                     [ error
-                                        (FieldAliasRequired
-                                            { fieldName = aliased
+                                        (FieldUnknown
+                                            { object = object.name
+                                            , field = fieldName
                                             }
                                         )
                                     ]
-                            , fieldNames = found.fieldNames
-                            }
 
-                        else
-                            { result =
-                                case cannedSelection of
-                                    CanSuccess cache sel ->
-                                        addToResult cache sel found.result
-
-                                    CanError errMsg ->
-                                        CanError errMsg
-                            , fieldNames =
-                                newNames
-                                    |> UsedNames.saveSibling siblingID
-                            }
-
-                    Nothing ->
-                        { result =
-                            err
-                                [ error
-                                    (FieldUnknown
-                                        { object = object.name
-                                        , field = fieldName
-                                        }
-                                    )
-                                ]
-                        , fieldNames = found.fieldNames
-                        }
-
-        AST.FragmentSpreadSelection frag ->
-            let
-                fragName =
-                    AST.nameToString frag.name
-            in
-            case Dict.get fragName refs.fragments of
-                Nothing ->
-                    { result =
-                        err
-                            [ error <|
-                                FragmentNotFound
-                                    { found = fragName
-                                    , object = object.name
-                                    , options =
-                                        Dict.values refs.fragments
-                                    }
-                            ]
-                    , fieldNames = found.fieldNames
-                    }
-
-                Just foundFrag ->
-                    if Can.nameToString foundFrag.typeCondition == object.name then
-                        { result =
-                            found.result
-                                |> addToResult
-                                    (Cache.empty
-                                        |> Cache.addFragment
-                                            { fragment = foundFrag
-                                            , alongsideOtherFields = False
-                                            }
-                                    )
-                                    (Can.Frag
-                                        { fragment = foundFrag
-                                        , directives =
-                                            frag.directives
-                                                |> List.map
-                                                    convertDirective
-                                        }
-                                    )
-                        , fieldNames =
-                            found.fieldNames
-                        }
-
-                    else
-                        { result =
+                AST.FragmentSpreadSelection frag ->
+                    let
+                        fragName =
+                            AST.nameToString frag.name
+                    in
+                    case Dict.get fragName refs.fragments of
+                        Nothing ->
                             err
                                 [ error <|
                                     FragmentNotFound
@@ -1850,21 +1769,46 @@ canonicalizeField refs object selection found =
                                             Dict.values refs.fragments
                                         }
                                 ]
-                        , fieldNames = found.fieldNames
-                        }
 
-        AST.InlineFragmentSelection inline ->
-            { result =
-                err
-                    [ error
-                        (FragmentSelectionNotAllowedInObjects
-                            { fragment = inline
-                            , objectName = object.name
-                            }
-                        )
-                    ]
-            , fieldNames = found.fieldNames
-            }
+                        Just foundFrag ->
+                            if Can.nameToString foundFrag.typeCondition == object.name then
+                                let
+                                    new =
+                                        Can.Frag
+                                            { fragment = foundFrag
+                                            , directives =
+                                                frag.directives
+                                                    |> List.map
+                                                        convertDirective
+                                            }
+                                in
+                                cache
+                                    |> Cache.addFragment
+                                        { fragment = foundFrag
+                                        , alongsideOtherFields = False
+                                        }
+                                    |> ok (new :: existingFields)
+
+                            else
+                                err
+                                    [ error <|
+                                        FragmentNotFound
+                                            { found = fragName
+                                            , object = object.name
+                                            , options =
+                                                Dict.values refs.fragments
+                                            }
+                                    ]
+
+                AST.InlineFragmentSelection inline ->
+                    err
+                        [ error
+                            (FragmentSelectionNotAllowedInObjects
+                                { fragment = inline
+                                , objectName = object.name
+                                }
+                            )
+                        ]
 
 
 convertDirective dir =
@@ -1880,8 +1824,8 @@ canonicalizeFieldType :
     -> Cache.Cache
     -> GraphQL.Schema.Field
     -> CanResult Can.Field
-canonicalizeFieldType refs field usedNames schemaField =
-    canonicalizeFieldTypeHelper refs field schemaField.type_ usedNames Cache.empty schemaField
+canonicalizeFieldType refs field cache schemaField =
+    canonicalizeFieldTypeHelper refs field schemaField.type_ cache schemaField
 
 
 canonicalizeArguments :
@@ -2053,12 +1997,12 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                                             |> Can.nameToString
 
                                     global =
-                                        Cache.getGlobalName aliaedName newCache
+                                        Cache.getGlobalName aliasedName newCache
 
                                     canVarSelectionResult =
                                         canonicalizeVariantSelection refs
                                             (global.used
-                                                |> UsedNames.addLevel (UsedNames.levelFromField field)
+                                                |> Cache.addLevel (Cache.levelFromField field)
                                             )
                                             { name = union.name
                                             , description = union.description
@@ -2071,12 +2015,11 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                                 in
                                 case canVarSelectionResult of
                                     CanSuccess cache variantSelection ->
-                                        CanSuccess (Cache.merge newCache cache)
+                                        CanSuccess cache
                                             (Can.Field
                                                 { alias_ = Maybe.map convertName field.alias_
                                                 , name = convertName field.name
-                                                , globalAlias =
-                                                    Can.Name global.globalName
+                                                , globalAlias = Can.Name global.globalName
                                                 , selectsOnlyFragment = selectsSingleFragment refs field.selection
                                                 , arguments = field.arguments
                                                 , directives = List.map convertDirective field.directives
@@ -2108,10 +2051,10 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                             global =
                                 Cache.getGlobalName aliasedName newCache
 
-                            ( finalUsedNames, canVarSelectionResult ) =
+                            canVarSelectionResult =
                                 canonicalizeVariantSelection refs
                                     (global.used
-                                        |> UsedNames.addLevel (UsedNames.levelFromField field)
+                                        |> Cache.addLevel (Cache.levelFromField field)
                                     )
                                     { name = interface.name
                                     , description = interface.description
@@ -2122,7 +2065,7 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                         in
                         case canVarSelectionResult of
                             CanSuccess cache variantSelection ->
-                                CanSuccess (Cache.merge newCache cache)
+                                CanSuccess cache
                                     (Can.Field
                                         { alias_ = Maybe.map convertName field.alias_
                                         , name = convertName field.name
@@ -2150,7 +2093,7 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
 gatherRemaining tag ( used, gathered ) =
     let
         global =
-            UsedNames.getGlobalName tag used
+            Cache.getGlobalName tag used
     in
     ( global.used
     , { globalAlias = Can.Name global.globalName
@@ -2216,7 +2159,7 @@ canonicalizeObject refs field schemaField varCache obj =
                         )
                         field.selection
             in
-            case selectionResult.result of
+            case selectionResult of
                 CanSuccess cache canSelection ->
                     let
                         siblingID =
@@ -2288,24 +2231,6 @@ extractUnionTags vars captured =
                     Nothing
 
 
-addToResult newCache newItem result =
-    case result of
-        CanSuccess cache existing ->
-            CanSuccess (Cache.merge newCache cache) (newItem :: existing)
-
-        CanError errs ->
-            CanError errs
-
-
-addCache newCache result =
-    case result of
-        CanSuccess cache existing ->
-            CanSuccess (Cache.merge newCache cache) existing
-
-        CanError errs ->
-            CanError errs
-
-
 canonicalizeFieldWithVariants :
     References
     ->
@@ -2328,245 +2253,232 @@ canonicalizeFieldWithVariants :
         , typenameAlreadySelected : Bool
         }
 canonicalizeFieldWithVariants refs unionOrInterface selection found =
-    case selection of
-        AST.Field field ->
-            let
-                fieldName =
-                    AST.nameToString field.name
-            in
-            if fieldName == "__typename" then
-                { result =
-                    addToResult Cache.empty
-                        (Can.Field
-                            { alias_ = Maybe.map convertName field.alias_
-                            , name = convertName field.name
-                            , globalAlias =
-                                field.alias_
-                                    |> Maybe.withDefault field.name
-                                    |> convertName
-                            , selectsOnlyFragment = Nothing
-                            , arguments = []
-                            , directives = List.map convertDirective field.directives
-                            , wrapper = GraphQL.Schema.UnwrappedValue
-                            , selection =
-                                Can.FieldScalar (GraphQL.Schema.Scalar "typename")
-                            }
-                        )
-                        found.result
-                , fieldNames = found.fieldNames
-                , variants = found.variants
-                , capturedVariants = found.capturedVariants
-                , typenameAlreadySelected = True
-                }
+    case found.result of
+        CanError message ->
+            found
 
-            else
-                let
-                    canned =
-                        canonicalizeField refs
-                            unionOrInterface
-                            selection
-                            { result = found.result
-                            , fieldNames =
-                                found.fieldNames
-                            }
-                in
-                { result =
-                    canned.result
-                , fieldNames = canned.fieldNames
-                , variants = found.variants
-                , capturedVariants = found.capturedVariants
-                , typenameAlreadySelected = found.typenameAlreadySelected
-                }
-
-        AST.FragmentSpreadSelection frag ->
-            let
-                fragName =
-                    AST.nameToString frag.name
-            in
-            case Dict.get fragName refs.fragments of
-                Nothing ->
-                    { result =
-                        err
-                            [ error <|
-                                FragmentNotFound
-                                    { found = fragName
-                                    , object = unionOrInterface.name
-                                    , options =
-                                        Dict.values refs.fragments
+        CanSuccess cache existingFields ->
+            case selection of
+                AST.Field field ->
+                    let
+                        fieldName =
+                            AST.nameToString field.name
+                    in
+                    if fieldName == "__typename" then
+                        let
+                            new =
+                                Can.Field
+                                    { alias_ = Maybe.map convertName field.alias_
+                                    , name = convertName field.name
+                                    , globalAlias =
+                                        field.alias_
+                                            |> Maybe.withDefault field.name
+                                            |> convertName
+                                    , selectsOnlyFragment = Nothing
+                                    , arguments = []
+                                    , directives = List.map convertDirective field.directives
+                                    , wrapper = GraphQL.Schema.UnwrappedValue
+                                    , selection =
+                                        Can.FieldScalar (GraphQL.Schema.Scalar "typename")
                                     }
-                            ]
-                    , fieldNames = found.fieldNames
-                    , variants = found.variants
-                    , capturedVariants = found.capturedVariants
-                    , typenameAlreadySelected = found.typenameAlreadySelected
-                    }
-
-                Just foundFrag ->
-                    if Can.nameToString foundFrag.typeCondition == unionOrInterface.name then
+                        in
                         { result =
-                            found.result
-                                |> addToResult
-                                    (Cache.empty
+                            cache
+                                |> ok (new :: existingFields)
+                        , variants = found.variants
+                        , capturedVariants = found.capturedVariants
+                        , typenameAlreadySelected = True
+                        }
+
+                    else
+                        let
+                            cannedResult =
+                                canonicalizeField refs
+                                    unionOrInterface
+                                    selection
+                                    found.result
+                        in
+                        { result = cannedResult
+                        , variants = found.variants
+                        , capturedVariants = found.capturedVariants
+                        , typenameAlreadySelected = found.typenameAlreadySelected
+                        }
+
+                AST.FragmentSpreadSelection frag ->
+                    let
+                        fragName =
+                            AST.nameToString frag.name
+                    in
+                    case Dict.get fragName refs.fragments of
+                        Nothing ->
+                            { result =
+                                err
+                                    [ error <|
+                                        FragmentNotFound
+                                            { found = fragName
+                                            , object = unionOrInterface.name
+                                            , options =
+                                                Dict.values refs.fragments
+                                            }
+                                    ]
+                            , variants = found.variants
+                            , capturedVariants = found.capturedVariants
+                            , typenameAlreadySelected = found.typenameAlreadySelected
+                            }
+
+                        Just foundFrag ->
+                            if Can.nameToString foundFrag.typeCondition == unionOrInterface.name then
+                                let
+                                    new =
+                                        Can.Frag
+                                            { fragment = foundFrag
+                                            , directives =
+                                                frag.directives
+                                                    |> List.map
+                                                        convertDirective
+                                            }
+                                in
+                                { result =
+                                    cache
                                         |> Cache.addFragment
                                             { fragment = foundFrag
                                             , alongsideOtherFields = False
                                             }
-                                    )
-                                    (Can.Frag
-                                        { fragment = foundFrag
-                                        , directives =
-                                            frag.directives
-                                                |> List.map
-                                                    convertDirective
-                                        }
-                                    )
-                        , fieldNames =
-                            found.fieldNames
-                        , variants = found.variants
-                        , capturedVariants = found.capturedVariants
-                        , typenameAlreadySelected = found.typenameAlreadySelected
-                        }
-
-                    else
-                        { result =
-                            err
-                                [ error <|
-                                    FragmentNotFound
-                                        { found = fragName
-                                        , object = unionOrInterface.name
-                                        , options =
-                                            Dict.values refs.fragments
-                                        }
-                                ]
-                        , fieldNames = found.fieldNames
-                        , variants = found.variants
-                        , capturedVariants = found.capturedVariants
-                        , typenameAlreadySelected = found.typenameAlreadySelected
-                        }
-
-        AST.InlineFragmentSelection inline ->
-            case inline.selection of
-                [] ->
-                    { result =
-                        err [ error (EmptyUnionVariantSelection { tag = AST.nameToString inline.tag }) ]
-                    , fieldNames = found.fieldNames
-                    , variants = found.variants
-                    , capturedVariants = found.capturedVariants
-                    , typenameAlreadySelected = found.typenameAlreadySelected
-                    }
-
-                _ ->
-                    let
-                        tag =
-                            AST.nameToString inline.tag
-
-                        ( tagMatches, leftOvertags ) =
-                            matchTag tag found.variants ( False, [] )
-                    in
-                    if tagMatches then
-                        case Dict.get tag refs.schema.objects of
-                            Nothing ->
-                                { result =
-                                    err [ error (ObjectUnknown tag) ]
-                                , fieldNames = found.fieldNames
-                                , variants = leftOvertags
+                                        |> ok (new :: existingFields)
+                                , variants = found.variants
                                 , capturedVariants = found.capturedVariants
                                 , typenameAlreadySelected = found.typenameAlreadySelected
                                 }
 
-                            Just obj ->
-                                let
-                                    selectsForTypename =
-                                        if found.typenameAlreadySelected then
-                                            True
+                            else
+                                { result =
+                                    err
+                                        [ error <|
+                                            FragmentNotFound
+                                                { found = fragName
+                                                , object = unionOrInterface.name
+                                                , options =
+                                                    Dict.values refs.fragments
+                                                }
+                                        ]
+                                , variants = found.variants
+                                , capturedVariants = found.capturedVariants
+                                , typenameAlreadySelected = found.typenameAlreadySelected
+                                }
 
-                                        else
-                                            List.any
-                                                (\sel ->
-                                                    case sel of
-                                                        AST.Field firstField ->
-                                                            case AST.nameToString firstField.name of
-                                                                "__typename" ->
-                                                                    True
+                AST.InlineFragmentSelection inline ->
+                    case inline.selection of
+                        [] ->
+                            { result =
+                                err [ error (EmptyUnionVariantSelection { tag = AST.nameToString inline.tag }) ]
+                            , variants = found.variants
+                            , capturedVariants = found.capturedVariants
+                            , typenameAlreadySelected = found.typenameAlreadySelected
+                            }
+
+                        _ ->
+                            let
+                                tag =
+                                    AST.nameToString inline.tag
+
+                                ( tagMatches, leftOvertags ) =
+                                    matchTag tag found.variants ( False, [] )
+                            in
+                            if tagMatches then
+                                case Dict.get tag refs.schema.objects of
+                                    Nothing ->
+                                        { result =
+                                            err [ error (ObjectUnknown tag) ]
+                                        , variants = leftOvertags
+                                        , capturedVariants = found.capturedVariants
+                                        , typenameAlreadySelected = found.typenameAlreadySelected
+                                        }
+
+                                    Just obj ->
+                                        let
+                                            selectsForTypename =
+                                                if found.typenameAlreadySelected then
+                                                    True
+
+                                                else
+                                                    List.any
+                                                        (\sel ->
+                                                            case sel of
+                                                                AST.Field firstField ->
+                                                                    case AST.nameToString firstField.name of
+                                                                        "__typename" ->
+                                                                            True
+
+                                                                        _ ->
+                                                                            False
 
                                                                 _ ->
                                                                     False
-
-                                                        _ ->
-                                                            False
-                                                )
-                                                inline.selection
-
-                                    selectionResult =
-                                        List.foldl
-                                            (\sel cursor ->
-                                                canonicalizeField refs obj sel cursor
-                                            )
-                                            { result = emptySuccess
-                                            , fieldNames =
-                                                found.fieldNames
-                                                    |> UsedNames.addLevelKeepSiblingStack
-                                                        { name = tag
-                                                        , isAlias = False
-                                                        }
-                                            }
-                                            inline.selection
-                                in
-                                if selectsForTypename then
-                                    case selectionResult.result of
-                                        CanSuccess cache canSelection ->
-                                            let
-                                                global =
-                                                    UsedNames.getGlobalName tag
-                                                        (selectionResult.fieldNames
-                                                            |> UsedNames.dropLevelNotSiblings
                                                         )
+                                                        inline.selection
 
-                                                globalDetailsAlias =
-                                                    Cache.getGlobalName (global.globalName ++ "_Details") global.used
-                                            in
-                                            { result =
-                                                found.result
-                                                    |> addCache cache
-                                            , capturedVariants =
-                                                { tag = Can.Name tag
-                                                , globalTagName = Can.Name global.globalName
-                                                , globalDetailsAlias = Can.Name globalDetailsAlias.globalName
-                                                , directives = List.map convertDirective inline.directives
-                                                , selection = canSelection
-                                                }
-                                                    :: found.capturedVariants
-                                            , fieldNames = globalDetailsAlias.used
-                                            , variants = leftOvertags
-                                            , typenameAlreadySelected = found.typenameAlreadySelected
-                                            }
+                                            selectionResult =
+                                                List.foldl
+                                                    (canonicalizeField refs obj)
+                                                    (cache
+                                                        |> Cache.addLevelKeepSiblingStack
+                                                            { name = tag
+                                                            , isAlias = False
+                                                            }
+                                                        |> ok []
+                                                    )
+                                                    inline.selection
+                                        in
+                                        if selectsForTypename then
+                                            case selectionResult of
+                                                CanSuccess selectionCache canSelection ->
+                                                    let
+                                                        global =
+                                                            selectionCache
+                                                                |> Cache.dropLevelNotSiblings
+                                                                |> Cache.getGlobalName tag
 
-                                        CanError errorMsg ->
+                                                        globalDetailsAlias =
+                                                            global.used
+                                                                |> Cache.getGlobalName (global.globalName ++ "_Details")
+                                                    in
+                                                    { result =
+                                                        CanSuccess globalDetailsAlias.used existingFields
+                                                    , capturedVariants =
+                                                        { tag = Can.Name tag
+                                                        , globalTagName = Can.Name global.globalName
+                                                        , globalDetailsAlias = Can.Name globalDetailsAlias.globalName
+                                                        , directives = List.map convertDirective inline.directives
+                                                        , selection = canSelection
+                                                        }
+                                                            :: found.capturedVariants
+                                                    , variants = leftOvertags
+                                                    , typenameAlreadySelected = found.typenameAlreadySelected
+                                                    }
+
+                                                CanError errorMsg ->
+                                                    { result =
+                                                        CanError errorMsg
+                                                    , capturedVariants = found.capturedVariants
+                                                    , variants = leftOvertags
+                                                    , typenameAlreadySelected = found.typenameAlreadySelected
+                                                    }
+
+                                        else
                                             { result =
-                                                CanError errorMsg
+                                                err [ error (MissingTypename { tag = AST.nameToString inline.tag }) ]
                                             , capturedVariants = found.capturedVariants
-                                            , fieldNames = selectionResult.fieldNames
-                                            , variants = leftOvertags
+                                            , variants = found.variants
                                             , typenameAlreadySelected = found.typenameAlreadySelected
                                             }
 
-                                else
-                                    { result =
-                                        err [ error (MissingTypename { tag = AST.nameToString inline.tag }) ]
-                                    , fieldNames = found.fieldNames
-                                    , capturedVariants = found.capturedVariants
-                                    , variants = found.variants
-                                    , typenameAlreadySelected = found.typenameAlreadySelected
-                                    }
-
-                    else
-                        { result =
-                            err [ todo (tag ++ " does not match!") ]
-                        , fieldNames = found.fieldNames
-                        , variants = found.variants
-                        , capturedVariants = found.capturedVariants
-                        , typenameAlreadySelected = found.typenameAlreadySelected
-                        }
+                            else
+                                { result =
+                                    err [ todo (tag ++ " does not match!") ]
+                                , variants = found.variants
+                                , capturedVariants = found.capturedVariants
+                                , typenameAlreadySelected = found.typenameAlreadySelected
+                                }
 
 
 matchTag : String -> List String -> ( Bool, List String ) -> ( Bool, List String )

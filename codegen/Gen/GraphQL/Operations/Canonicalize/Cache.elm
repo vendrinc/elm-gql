@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Canonicalize.Cache exposing (addFragment, addLevel, addLevelKeepSiblingStack, addVars, annotation_, call_, getGlobalName, init, levelFromField, make_, moduleName_, saveSibling, siblingCollision, values_)
+module Gen.GraphQL.Operations.Canonicalize.Cache exposing (addFragment, addLevel, addLevelKeepSiblingStack, addVars, annotation_, call_, dropLevel, dropLevelNotSiblings, getGlobalName, init, levelFromField, make_, moduleName_, saveSibling, siblingCollision, values_)
 
 {-| 
-@docs values_, call_, make_, annotation_, init, addVars, addFragment, addLevelKeepSiblingStack, addLevel, getGlobalName, saveSibling, siblingCollision, levelFromField, moduleName_
+@docs values_, call_, make_, annotation_, init, addVars, addFragment, addLevelKeepSiblingStack, addLevel, dropLevel, dropLevelNotSiblings, getGlobalName, saveSibling, siblingCollision, levelFromField, moduleName_
 -}
 
 
@@ -116,6 +116,42 @@ getGlobalName getGlobalNameArg getGlobalNameArg0 =
             }
         )
         [ Elm.string getGlobalNameArg, getGlobalNameArg0 ]
+
+
+{-| dropLevelNotSiblings: Cache -> Cache -}
+dropLevelNotSiblings : Elm.Expression -> Elm.Expression
+dropLevelNotSiblings dropLevelNotSiblingsArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "dropLevelNotSiblings"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Cache" [] ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+        )
+        [ dropLevelNotSiblingsArg ]
+
+
+{-| dropLevel: Cache -> Cache -}
+dropLevel : Elm.Expression -> Elm.Expression
+dropLevel dropLevelArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "dropLevel"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Cache" [] ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+        )
+        [ dropLevelArg ]
 
 
 {-| addLevel: { name : String, isAlias : Bool } -> Cache -> Cache -}
@@ -354,6 +390,8 @@ call_ :
     , siblingCollision : Elm.Expression -> Elm.Expression -> Elm.Expression
     , saveSibling : Elm.Expression -> Elm.Expression -> Elm.Expression
     , getGlobalName : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , dropLevelNotSiblings : Elm.Expression -> Elm.Expression
+    , dropLevel : Elm.Expression -> Elm.Expression
     , addLevel : Elm.Expression -> Elm.Expression -> Elm.Expression
     , addLevelKeepSiblingStack :
         Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -451,6 +489,38 @@ call_ =
                     }
                 )
                 [ getGlobalNameArg, getGlobalNameArg0 ]
+    , dropLevelNotSiblings =
+        \dropLevelNotSiblingsArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+                    , name = "dropLevelNotSiblings"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Cache" [] ]
+                                (Type.namedWith [] "Cache" [])
+                            )
+                    }
+                )
+                [ dropLevelNotSiblingsArg ]
+    , dropLevel =
+        \dropLevelArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+                    , name = "dropLevel"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Cache" [] ]
+                                (Type.namedWith [] "Cache" [])
+                            )
+                    }
+                )
+                [ dropLevelArg ]
     , addLevel =
         \addLevelArg addLevelArg0 ->
             Elm.apply
@@ -569,6 +639,8 @@ values_ :
     , siblingCollision : Elm.Expression
     , saveSibling : Elm.Expression
     , getGlobalName : Elm.Expression
+    , dropLevelNotSiblings : Elm.Expression
+    , dropLevel : Elm.Expression
     , addLevel : Elm.Expression
     , addLevelKeepSiblingStack : Elm.Expression
     , addFragment : Elm.Expression
@@ -640,6 +712,28 @@ values_ =
                             , ( "used", Type.namedWith [] "Cache" [] )
                             ]
                         )
+                    )
+            }
+    , dropLevelNotSiblings =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "dropLevelNotSiblings"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Cache" [] ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+    , dropLevel =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "dropLevel"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Cache" [] ]
+                        (Type.namedWith [] "Cache" [])
                     )
             }
     , addLevel =
