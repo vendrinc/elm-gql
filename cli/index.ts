@@ -395,6 +395,7 @@ async function run(schema: string, options: Options) {
       generatePlatform: schemaWasModified.was || options.force,
       force: options.force,
       init: options.init,
+      reportUnused: options.reportUnused,
       existingEnumDefinitions: options.existingEnumDefinitions,
     });
   } else {
@@ -483,6 +484,7 @@ type Options = {
   namespace: string;
   header: string[];
   force: boolean;
+  reportUnused: boolean;
   queries: string;
   existingEnumDefinitions: string | null;
   init: boolean;
@@ -523,6 +525,11 @@ program
     "Api"
   )
   .option("--force", "Skip the cache.", false)
+  .option(
+    "--report-unused",
+    "Generate a file which reports all unused values in the graphql schema.",
+    false
+  )
   .option(
     "--header <header>",
     "The header to include in the introspection query.",

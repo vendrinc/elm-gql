@@ -384,6 +384,9 @@ annotation_ =
                   , Type.list (Type.namedWith [] "Definition" [])
                   )
                 , ( "fragments", Type.list (Type.namedWith [] "Fragment" []) )
+                , ( "usages"
+                  , Type.namedWith [ "GraphQL", "Usage" ] "Usages" []
+                  )
                 ]
             )
     , wrapper =
@@ -483,7 +486,10 @@ make_ :
         }
         -> Elm.Expression
     , document :
-        { definitions : Elm.Expression, fragments : Elm.Expression }
+        { definitions : Elm.Expression
+        , fragments : Elm.Expression
+        , usages : Elm.Expression
+        }
         -> Elm.Expression
     , inList : Elm.Expression -> Elm.Expression -> Elm.Expression
     , val : Elm.Expression -> Elm.Expression
@@ -871,12 +877,16 @@ make_ =
                         , ( "fragments"
                           , Type.list (Type.namedWith [] "Fragment" [])
                           )
+                        , ( "usages"
+                          , Type.namedWith [ "GraphQL", "Usage" ] "Usages" []
+                          )
                         ]
                     )
                 )
                 (Elm.record
                     [ Tuple.pair "definitions" document_args.definitions
                     , Tuple.pair "fragments" document_args.fragments
+                    , Tuple.pair "usages" document_args.usages
                     ]
                 )
     , inList =

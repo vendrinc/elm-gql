@@ -107,10 +107,11 @@ canonicalize schema paths doc =
                                 doc.definitions
                     in
                     case canonicalizedDefinitions of
-                        CanSuccess _ defs ->
+                        CanSuccess finalCache defs ->
                             Ok
                                 { definitions = defs
                                 , fragments = Dict.values canonicalFrags
+                                , usages = finalCache.usage
                                 }
 
                         CanError errorMsg ->

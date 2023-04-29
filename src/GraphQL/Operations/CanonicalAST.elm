@@ -7,12 +7,14 @@ import Gen.GraphQL.Engine as Engine
 import Gen.String
 import GraphQL.Operations.AST as AST
 import GraphQL.Schema
+import GraphQL.Usage
 import Set
 
 
 type alias Document =
     { definitions : List Definition
     , fragments : List Fragment
+    , usages : GraphQL.Usage.Usages
     }
 
 

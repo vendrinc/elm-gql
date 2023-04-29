@@ -256,7 +256,7 @@ parseGql namespace schema flagDetails gql result =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.succeed
-        (\gqlDir elmBaseSchema namespace header isInit gql schemaUrl genPlatform existingEnums ->
+        (\gqlDir elmBaseSchema namespace header isInit gql schemaUrl genPlatform reportUnused existingEnums ->
             Flags
                 { schema = schemaUrl
                 , gql = gql
@@ -266,6 +266,7 @@ flagsDecoder =
                 , namespace = namespace
                 , header = header
                 , generatePlatform = genPlatform
+                , reportUnused = reportUnused
                 , existingEnumDefinitions = existingEnums
                 }
         )
@@ -305,6 +306,7 @@ flagsDecoder =
                 ]
             )
         |> andField "generatePlatform" Json.Decode.bool
+        |> andField "reportUnused" Json.Decode.bool
         |> andField "existingEnumDefinitions"
             (Json.Decode.string
                 |> Json.Decode.maybe
@@ -351,6 +353,7 @@ type alias FlagDetails =
     -- The unparsed header for the introspection query
     , header : List String
     , generatePlatform : Bool
+    , reportUnused : Bool
     , existingEnumDefinitions : Maybe String
     }
 
