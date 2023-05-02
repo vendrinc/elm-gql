@@ -1,6 +1,8 @@
 module GraphQL.Usage exposing
     ( Usages, init
     , enum, field, inputObject, mutation, query, scalar
+    , merge
+    , toUnusedReport
     )
 
 {-|
@@ -8,6 +10,8 @@ module GraphQL.Usage exposing
 @docs Usages, init
 
 @docs enum, field, inputObject, interface, mutation, query, scalar
+
+@docs merge
 
 @docs toUnusedReport
 
@@ -99,8 +103,8 @@ merge (Usages one) (Usages two) =
 
 {-| Returns a schema of only things that are unused
 -}
-toUnusedReport : Usages -> GraphQL.Schema.Schema -> GraphQL.Schema.Schema
-toUnusedReport (Usages usages) schema =
+toUnusedReport : GraphQL.Schema.Schema -> Usages -> GraphQL.Schema.Schema
+toUnusedReport schema (Usages usages) =
     { queries = remove RemoveQuery usages schema.queries
     , mutations = remove RemoveMutation usages schema.mutations
     , objects = removeField usages schema.objects
