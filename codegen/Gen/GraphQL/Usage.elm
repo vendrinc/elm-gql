@@ -1,7 +1,7 @@
-module Gen.GraphQL.Usage exposing (annotation_, call_, enum, field, init, inputObject, moduleName_, mutation, query, scalar, values_)
+module Gen.GraphQL.Usage exposing (annotation_, call_, enum, field, init, inputObject, merge, moduleName_, mutation, query, scalar, toUnusedReport, values_)
 
 {-| 
-@docs values_, call_, annotation_, init, query, mutation, field, scalar, enum, inputObject, moduleName_
+@docs values_, call_, annotation_, init, query, mutation, field, scalar, enum, inputObject, merge, toUnusedReport, moduleName_
 -}
 
 
@@ -13,6 +13,50 @@ import Elm.Annotation as Type
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Usage" ]
+
+
+{-| {-| Returns a schema of only things that are unused
+-}
+
+toUnusedReport: GraphQL.Schema.Schema -> Usages -> GraphQL.Schema.Schema
+-}
+toUnusedReport : Elm.Expression -> Elm.Expression -> Elm.Expression
+toUnusedReport toUnusedReportArg toUnusedReportArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Usage" ]
+            , name = "toUnusedReport"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
+                        , Type.namedWith [] "Usages" []
+                        ]
+                        (Type.namedWith [ "GraphQL", "Schema" ] "Schema" [])
+                    )
+            }
+        )
+        [ toUnusedReportArg, toUnusedReportArg0 ]
+
+
+{-| merge: Usages -> Usages -> Usages -}
+merge : Elm.Expression -> Elm.Expression -> Elm.Expression
+merge mergeArg mergeArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Usage" ]
+            , name = "merge"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Usages" []
+                        , Type.namedWith [] "Usages" []
+                        ]
+                        (Type.namedWith [] "Usages" [])
+                    )
+            }
+        )
+        [ mergeArg, mergeArg0 ]
 
 
 {-| inputObject: String -> String -> FilePath -> Usages -> Usages -}
@@ -164,7 +208,9 @@ annotation_ =
 
 
 call_ :
-    { inputObject :
+    { toUnusedReport : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , merge : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , inputObject :
         Elm.Expression
         -> Elm.Expression
         -> Elm.Expression
@@ -186,7 +232,48 @@ call_ :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     }
 call_ =
-    { inputObject =
+    { toUnusedReport =
+        \toUnusedReportArg toUnusedReportArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Usage" ]
+                    , name = "toUnusedReport"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith
+                                    [ "GraphQL", "Schema" ]
+                                    "Schema"
+                                    []
+                                , Type.namedWith [] "Usages" []
+                                ]
+                                (Type.namedWith
+                                    [ "GraphQL", "Schema" ]
+                                    "Schema"
+                                    []
+                                )
+                            )
+                    }
+                )
+                [ toUnusedReportArg, toUnusedReportArg0 ]
+    , merge =
+        \mergeArg mergeArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Usage" ]
+                    , name = "merge"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Usages" []
+                                , Type.namedWith [] "Usages" []
+                                ]
+                                (Type.namedWith [] "Usages" [])
+                            )
+                    }
+                )
+                [ mergeArg, mergeArg0 ]
+    , inputObject =
         \inputObjectArg inputObjectArg0 inputObjectArg1 inputObjectArg2 ->
             Elm.apply
                 (Elm.value
@@ -304,7 +391,9 @@ call_ =
 
 
 values_ :
-    { inputObject : Elm.Expression
+    { toUnusedReport : Elm.Expression
+    , merge : Elm.Expression
+    , inputObject : Elm.Expression
     , enum : Elm.Expression
     , scalar : Elm.Expression
     , field : Elm.Expression
@@ -313,7 +402,33 @@ values_ :
     , init : Elm.Expression
     }
 values_ =
-    { inputObject =
+    { toUnusedReport =
+        Elm.value
+            { importFrom = [ "GraphQL", "Usage" ]
+            , name = "toUnusedReport"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
+                        , Type.namedWith [] "Usages" []
+                        ]
+                        (Type.namedWith [ "GraphQL", "Schema" ] "Schema" [])
+                    )
+            }
+    , merge =
+        Elm.value
+            { importFrom = [ "GraphQL", "Usage" ]
+            , name = "merge"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Usages" []
+                        , Type.namedWith [] "Usages" []
+                        ]
+                        (Type.namedWith [] "Usages" [])
+                    )
+            }
+    , inputObject =
         Elm.value
             { importFrom = [ "GraphQL", "Usage" ]
             , name = "inputObject"

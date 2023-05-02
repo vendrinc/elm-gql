@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Canonicalize.Cache exposing (addFragment, addLevel, addLevelKeepSiblingStack, addVars, annotation_, call_, dropLevel, dropLevelNotSiblings, enum, field, getGlobalName, init, inputObject, levelFromField, make_, moduleName_, mutation, query, saveSibling, scalar, siblingCollision, values_)
+module Gen.GraphQL.Operations.Canonicalize.Cache exposing (addFragment, addLevel, addLevelKeepSiblingStack, addVars, annotation_, call_, dropLevel, dropLevelNotSiblings, enum, field, finishedDefinition, getGlobalName, init, inputObject, levelFromField, make_, moduleName_, mutation, query, saveSibling, scalar, siblingCollision, values_)
 
 {-| 
-@docs values_, call_, make_, annotation_, init, addVars, addFragment, addLevelKeepSiblingStack, addLevel, dropLevel, dropLevelNotSiblings, getGlobalName, saveSibling, siblingCollision, levelFromField, query, mutation, field, scalar, enum, inputObject, moduleName_
+@docs values_, call_, make_, annotation_, init, finishedDefinition, addVars, addFragment, addLevelKeepSiblingStack, addLevel, dropLevel, dropLevelNotSiblings, getGlobalName, saveSibling, siblingCollision, levelFromField, query, mutation, field, scalar, enum, inputObject, moduleName_
 -}
 
 
@@ -409,6 +409,24 @@ addVars addVarsArg addVarsArg0 =
         [ Elm.list addVarsArg, addVarsArg0 ]
 
 
+{-| finishedDefinition: Cache -> Cache -}
+finishedDefinition : Elm.Expression -> Elm.Expression
+finishedDefinition finishedDefinitionArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "finishedDefinition"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Cache" [] ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+        )
+        [ finishedDefinitionArg ]
+
+
 {-| init: { reservedNames : List String } -> Cache -}
 init : { reservedNames : List String } -> Elm.Expression
 init initArg =
@@ -459,6 +477,9 @@ annotation_ =
                             ]
                         )
                   )
+                , ( "originalNames"
+                  , Type.namedWith [ "UsedNames" ] "UsedNames" []
+                  )
                 , ( "usedNames", Type.namedWith [ "UsedNames" ] "UsedNames" [] )
                 , ( "usage", Type.namedWith [ "Usage" ] "Usages" [] )
                 ]
@@ -470,6 +491,7 @@ make_ :
     { cache :
         { varTypes : Elm.Expression
         , fragmentsUsed : Elm.Expression
+        , originalNames : Elm.Expression
         , usedNames : Elm.Expression
         , usage : Elm.Expression
         }
@@ -505,6 +527,9 @@ make_ =
                                     ]
                                 )
                           )
+                        , ( "originalNames"
+                          , Type.namedWith [ "UsedNames" ] "UsedNames" []
+                          )
                         , ( "usedNames"
                           , Type.namedWith [ "UsedNames" ] "UsedNames" []
                           )
@@ -515,6 +540,7 @@ make_ =
                 (Elm.record
                     [ Tuple.pair "varTypes" cache_args.varTypes
                     , Tuple.pair "fragmentsUsed" cache_args.fragmentsUsed
+                    , Tuple.pair "originalNames" cache_args.originalNames
                     , Tuple.pair "usedNames" cache_args.usedNames
                     , Tuple.pair "usage" cache_args.usage
                     ]
@@ -554,6 +580,7 @@ call_ :
         Elm.Expression -> Elm.Expression -> Elm.Expression
     , addFragment : Elm.Expression -> Elm.Expression -> Elm.Expression
     , addVars : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , finishedDefinition : Elm.Expression -> Elm.Expression
     , init : Elm.Expression -> Elm.Expression
     }
 call_ =
@@ -889,6 +916,22 @@ call_ =
                     }
                 )
                 [ addVarsArg, addVarsArg0 ]
+    , finishedDefinition =
+        \finishedDefinitionArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+                    , name = "finishedDefinition"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Cache" [] ]
+                                (Type.namedWith [] "Cache" [])
+                            )
+                    }
+                )
+                [ finishedDefinitionArg ]
     , init =
         \initArg ->
             Elm.apply
@@ -928,6 +971,7 @@ values_ :
     , addLevelKeepSiblingStack : Elm.Expression
     , addFragment : Elm.Expression
     , addVars : Elm.Expression
+    , finishedDefinition : Elm.Expression
     , init : Elm.Expression
     }
 values_ =
@@ -1173,6 +1217,17 @@ values_ =
                             )
                         , Type.namedWith [] "Cache" []
                         ]
+                        (Type.namedWith [] "Cache" [])
+                    )
+            }
+    , finishedDefinition =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Cache" ]
+            , name = "finishedDefinition"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Cache" [] ]
                         (Type.namedWith [] "Cache" [])
                     )
             }

@@ -4,6 +4,7 @@ module GraphQL.Schema exposing
     , Kind(..), Schema, Type(..), isScalar
     , mockScalar
     , Wrapped(..), getWrap, getInner
+    , toString
     , Argument, Field, InputObjectDetails, InterfaceDetails, Namespace, ObjectDetails, ScalarDetails, UnionDetails, Variant, kindToString, typeToElmString, typeToString
     )
 
@@ -18,6 +19,8 @@ module GraphQL.Schema exposing
 @docs mockScalar
 
 @docs Wrapped, getWrap, getInner
+
+@docs toString
 
 -}
 
@@ -1080,4 +1083,82 @@ filterHidden decoder_ =
         [ Json.field "directives" (Json.dict Json.value)
             |> Json.andThen filterByDirectives
         , Json.map Just decoder_
+        ]
+
+
+
+{- TO STRING -}
+
+
+toString : Schema -> String
+toString schema =
+    String.join "\n\n"
+        [ (schema.queries
+            |> Dict.toList
+            |> List.sortBy Tuple.first
+            |> List.foldl
+                (\( name, type_ ) acc ->
+                    acc ++ "    " ++ name ++ "\n"
+                )
+                "query {\n"
+          )
+            ++ "}\n"
+        , (schema.mutations
+            |> Dict.toList
+            |> List.sortBy Tuple.first
+            |> List.foldl
+                (\( name, type_ ) acc ->
+                    acc ++ "    " ++ name ++ "\n"
+                )
+                "mutation {\n"
+          )
+            ++ "}\n"
+        , (schema.enums
+            |> Dict.toList
+            |> List.sortBy Tuple.first
+            |> List.foldl
+                (\( name, type_ ) acc ->
+                    acc ++ "    " ++ name ++ "\n"
+                )
+                "enum {\n"
+          )
+            ++ "}\n"
+        , schema.objects
+            |> Dict.toList
+            |> List.sortBy Tuple.first
+            |> List.foldl
+                (\( name, obj ) acc ->
+                    acc
+                        ++ name
+                        ++ "\n{\n"
+                        ++ (obj.fields
+                                |> List.sortBy .name
+                                |> List.foldl
+                                    (\field acc_ ->
+                                        acc_ ++ "    " ++ field.name ++ "\n"
+                                    )
+                                    ""
+                           )
+                        ++ "}\n\n"
+                )
+                ""
+        , schema.interfaces
+            |> Dict.toList
+            |> List.sortBy Tuple.first
+            |> List.foldl
+                (\( name, obj ) acc ->
+                    acc
+                        ++ name
+                        ++ "\n{\n"
+                        ++ (obj.fields
+                                |> List.sortBy .name
+                                |> List.foldl
+                                    (\field acc_ ->
+                                        acc_ ++ "    " ++ field.name ++ "\n"
+                                    )
+                                    ""
+                           )
+                        ++ "}\n\n"
+                )
+                ""
         ]

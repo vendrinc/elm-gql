@@ -13,6 +13,7 @@ import GraphQL.Operations.Canonicalize.Error as Error
 import GraphQL.Operations.Generate
 import GraphQL.Operations.Parse
 import GraphQL.Schema exposing (Namespace)
+import GraphQL.Usage
 import Http
 import Json.Decode
 import Json.Encode
@@ -163,49 +164,58 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
             , enums = Maybe.withDefault namespaceStr flagDetails.existingEnumDefinitions
             }
 
-        parsedGqlQueries =
+        parsedGraphQLQueriesResult =
             List.foldl (parseGql namespace schema flagDetails)
-                (Ok [])
+                (Ok { files = [], usages = GraphQL.Usage.init })
                 flagDetails.gql
     in
-    case parsedGqlQueries of
+    case parsedGraphQLQueriesResult of
         Err err ->
             Generate.error [ err ]
 
-        Ok gqlFiles ->
-            if flagDetails.generatePlatform then
-                let
-                    schemaFiles =
-                        saveSchemaAsElm namespace schemaAsJson
-                            :: saveSchemaAsJson namespace schemaAsJson
-                            :: Generate.Enums.generateFiles namespace schema
-                            ++ Generate.InputObjects.generateFiles namespace schema
-
-                    all =
-                        List.map (addOutputDir flagDetails.elmBaseSchema) schemaFiles
-                            ++ gqlFiles
-
-                    -- This is a test file with references to every file generated, useful for testing!
-                    -- testFile =
-                    --     Elm.file [ "Test" ]
-                    --         [ Elm.declaration "all"
-                    --             (Elm.string (String.join "\\n" (List.map (.path >> formatElmPath) all)))
-                    --         ]
-                in
-                Generate.files
-                    (if flagDetails.isInit then
-                        (Generate.Root.generate namespace schema
+        Ok parsedGQL ->
+            parsedGQL.files
+                |> appendIf (flagDetails.isInit && flagDetails.generatePlatform)
+                    (\_ ->
+                        [ Generate.Root.generate namespace schema
                             |> addOutputDir [ "src" ]
-                        )
-                            :: all
-
-                     else
-                        all
+                        ]
                     )
+                |> appendIf flagDetails.generatePlatform
+                    (\_ ->
+                        List.map (addOutputDir flagDetails.elmBaseSchema)
+                            (saveSchemaAsElm namespace schemaAsJson
+                                :: saveSchemaAsJson namespace schemaAsJson
+                                :: Generate.Enums.generateFiles namespace schema
+                                ++ Generate.InputObjects.generateFiles namespace schema
+                            )
+                    )
+                |> appendIf flagDetails.reportUnused
+                    (\_ ->
+                        [ parsedGQL.usages
+                            |> GraphQL.Usage.toUnusedReport schema
+                            |> GraphQL.Schema.toString
+                            |> toFile "unused.json"
+                        ]
+                    )
+                |> Generate.files
 
-            else
-                Generate.files
-                    gqlFiles
+
+toFile : String -> String -> Elm.File
+toFile path contents =
+    { path = String.join "/" [ "src" ] ++ "/" ++ path
+    , contents = contents
+    , warnings = []
+    }
+
+
+appendIf : Bool -> (() -> List a) -> List a -> List a
+appendIf condition fn list =
+    if condition then
+        list ++ fn ()
+
+    else
+        list
 
 
 addOutputDir : List String -> { a | path : String } -> { a | path : String }
@@ -237,20 +247,48 @@ parseGql :
     -> GraphQL.Schema.Schema
     -> FlagDetails
     -> { src : String, path : String }
-    -> Result Error (List Elm.File)
-    -> Result Error (List Elm.File)
+    ->
+        Result
+            Error
+            { files : List Elm.File
+            , usages : GraphQL.Usage.Usages
+            }
+    ->
+        Result
+            Error
+            { files : List Elm.File
+            , usages : GraphQL.Usage.Usages
+            }
 parseGql namespace schema flagDetails gql result =
     case result of
         Ok files ->
             case parseAndValidateQuery namespace schema flagDetails gql of
                 Ok parsedFiles ->
-                    Ok (files ++ parsedFiles)
+                    Ok (mergeResults files parsedFiles)
 
                 Err err ->
                     Err err
 
         Err err ->
             result
+
+
+mergeResults :
+    { files : List Elm.File
+    , usages : GraphQL.Usage.Usages
+    }
+    ->
+        { files : List Elm.File
+        , usages : GraphQL.Usage.Usages
+        }
+    ->
+        { files : List Elm.File
+        , usages : GraphQL.Usage.Usages
+        }
+mergeResults one two =
+    { files = one.files ++ two.files
+    , usages = GraphQL.Usage.merge one.usages two.usages
+    }
 
 
 flagsDecoder : Json.Decode.Decoder Input
@@ -408,7 +446,12 @@ parseAndValidateQuery :
     -> GraphQL.Schema.Schema
     -> FlagDetails
     -> Gql
-    -> Result Error (List Elm.File)
+    ->
+        Result
+            Error
+            { files : List Elm.File
+            , usages : GraphQL.Usage.Usages
+            }
 parseAndValidateQuery namespace schema flags gql =
     case GraphQL.Operations.Parse.parse gql.src of
         Err err ->
@@ -435,14 +478,17 @@ parseAndValidateQuery namespace schema flags gql =
                         }
 
                 Ok canAST ->
-                    GraphQL.Operations.Generate.generate
-                        { namespace = namespace
-                        , schema = schema
-                        , document = canAST
-                        , path = gql.path
-                        , gqlDir = flags.gqlDir
+                    Ok
+                        { files =
+                            GraphQL.Operations.Generate.generate
+                                { namespace = namespace
+                                , schema = schema
+                                , document = canAST
+                                , path = gql.path
+                                , gqlDir = flags.gqlDir
+                                }
+                        , usages = canAST.usages
                         }
-                        |> Ok
 
 
 formatTitle : String -> String -> String

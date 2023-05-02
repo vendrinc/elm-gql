@@ -1,7 +1,7 @@
-module Gen.GraphQL.Schema exposing (annotation_, call_, caseOf_, decoder, empty, getInner, getJsonValue, getWrap, isScalar, kindToString, make_, mockScalar, moduleName_, typeToElmString, typeToString, values_)
+module Gen.GraphQL.Schema exposing (annotation_, call_, caseOf_, decoder, empty, getInner, getJsonValue, getWrap, isScalar, kindToString, make_, mockScalar, moduleName_, toString, typeToElmString, typeToString, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isScalar, getWrap, getInner, mockScalar, typeToElmString, typeToString, decoder, empty, getJsonValue, kindToString, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, isScalar, getWrap, getInner, mockScalar, typeToElmString, typeToString, decoder, empty, getJsonValue, kindToString, toString, moduleName_
 -}
 
 
@@ -15,6 +15,22 @@ import Tuple
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Schema" ]
+
+
+{-| toString: Schema -> String -}
+toString : Elm.Expression -> Elm.Expression
+toString toStringArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Schema" ]
+            , name = "toString"
+            , annotation =
+                Just
+                    (Type.function [ Type.namedWith [] "Schema" [] ] Type.string
+                    )
+            }
+        )
+        [ toStringArg ]
 
 
 {-| kindToString: Kind -> String -}
@@ -1053,7 +1069,8 @@ caseOf_ =
 
 
 call_ :
-    { kindToString : Elm.Expression -> Elm.Expression
+    { toString : Elm.Expression -> Elm.Expression
+    , kindToString : Elm.Expression -> Elm.Expression
     , getJsonValue :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , typeToString : Elm.Expression -> Elm.Expression
@@ -1064,7 +1081,22 @@ call_ :
     , isScalar : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { kindToString =
+    { toString =
+        \toStringArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Schema" ]
+                    , name = "toString"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Schema" [] ]
+                                Type.string
+                            )
+                    }
+                )
+                [ toStringArg ]
+    , kindToString =
         \kindToStringArg ->
             Elm.apply
                 (Elm.value
@@ -1199,7 +1231,8 @@ call_ =
 
 
 values_ :
-    { kindToString : Elm.Expression
+    { toString : Elm.Expression
+    , kindToString : Elm.Expression
     , getJsonValue : Elm.Expression
     , empty : Elm.Expression
     , decoder : Elm.Expression
@@ -1211,7 +1244,16 @@ values_ :
     , isScalar : Elm.Expression
     }
 values_ =
-    { kindToString =
+    { toString =
+        Elm.value
+            { importFrom = [ "GraphQL", "Schema" ]
+            , name = "toString"
+            , annotation =
+                Just
+                    (Type.function [ Type.namedWith [] "Schema" [] ] Type.string
+                    )
+            }
+    , kindToString =
         Elm.value
             { importFrom = [ "GraphQL", "Schema" ]
             , name = "kindToString"
