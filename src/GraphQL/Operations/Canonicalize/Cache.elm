@@ -1,6 +1,7 @@
 module GraphQL.Operations.Canonicalize.Cache exposing
     ( init, Cache
     , addVars, addFragment
+    , finishedDefinition
     , addLevel, addLevelKeepSiblingStack, getGlobalName
     , dropLevel, dropLevelNotSiblings
     , saveSibling, siblingCollision
@@ -13,6 +14,8 @@ module GraphQL.Operations.Canonicalize.Cache exposing
 @docs init, Cache
 
 @docs addVars, addFragment
+
+@docs finishedDefinition
 
 
 ## Name Usage
@@ -43,6 +46,7 @@ init : { reservedNames : List String } -> Cache
 init options =
     { varTypes = []
     , fragmentsUsed = []
+    , originalNames = UsedNames.init options.reservedNames
     , usedNames = UsedNames.init options.reservedNames
     , usage = Usage.init
     }
@@ -58,8 +62,19 @@ type alias Cache =
             { fragment : Can.Fragment
             , alongsideOtherFields : Bool
             }
+    , originalNames : UsedNames.UsedNames
     , usedNames : UsedNames.UsedNames
     , usage : Usage.Usages
+    }
+
+
+finishedDefinition : Cache -> Cache
+finishedDefinition cache =
+    { varTypes = []
+    , fragmentsUsed = []
+    , originalNames = cache.originalNames
+    , usedNames = cache.originalNames
+    , usage = cache.usage
     }
 
 
@@ -67,6 +82,7 @@ addVars : List ( String, GraphQL.Schema.Type ) -> Cache -> Cache
 addVars vars cache =
     { varTypes =
         vars ++ cache.varTypes
+    , originalNames = cache.originalNames
     , fragmentsUsed = cache.fragmentsUsed
     , usedNames = cache.usedNames
     , usage = cache.usage
@@ -82,6 +98,7 @@ addFragment :
 addFragment frag cache =
     { varTypes =
         cache.varTypes
+    , originalNames = cache.originalNames
     , fragmentsUsed = frag :: cache.fragmentsUsed
     , usedNames = cache.usedNames
     , usage = cache.usage

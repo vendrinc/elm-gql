@@ -279,7 +279,7 @@ canonicalizeDefinition refs def result =
                                                 , fragmentsUsed = fieldCache.fragmentsUsed
                                                 }
                                     in
-                                    CanSuccess fieldCache
+                                    CanSuccess (Cache.finishedDefinition fieldCache)
                                         (new :: cannedDefs)
 
                         CanError errorMsg ->
@@ -1650,7 +1650,6 @@ canonicalizeObject refs field schemaField varCache obj =
                         CanSuccess
                             (cache
                                 |> Cache.dropLevel
-                                |> Cache.saveSibling siblingID
                             )
                             (Can.Field
                                 { alias_ = Maybe.map convertName field.alias_
