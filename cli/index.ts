@@ -369,10 +369,50 @@ async function run(schema: string, options: Options) {
     newCache.files[options.namespace][schema] = {
       modified: schemaWasModified.at,
     };
-    schema = JSON.parse(fs.readFileSync(schema).toString());
-  }
+    try {
+      schema = JSON.parse(fs.readFileSync(schema).toString());
+    } catch (error) {
+      console.log(
+        format_block([
+          `${chalk.cyan(
+            "elm-gql: "
+          )} I was trying to read the GraphQL Schema from the local filesystem at ${chalk.yellow(
+            schema
+          )}, but wasn't able to!
+  
+  The full path of where I looked was
+  
+      ${chalk.cyan(path.join(process.cwd(), schema))}
 
-  const gql_filepaths = getFilesRecursively(options.queries);
+  And the error I got was
+
+      ${chalk.cyan(error)}
+          
+  `,
+        ])
+      );
+      process.exit(1);
+    }
+  }
+  let gql_filepaths = [];
+  try {
+    gql_filepaths = getFilesRecursively(options.queries);
+  } catch (error) {
+    console.log(
+      format_block([
+        `${chalk.cyan("elm-gql: ")} I was trying to read the ${chalk.yellow(
+          options.queries
+        )} directory for GraphQL files, but wasn't able to!
+
+The full path of where I looked was:
+
+    ${chalk.cyan(path.join(process.cwd(), options.queries))}
+        
+`,
+      ])
+    );
+    process.exit(1);
+  }
 
   const fileSources = [];
   for (const file of gql_filepaths) {
