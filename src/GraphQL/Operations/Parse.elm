@@ -25,13 +25,7 @@ multiOr conds val =
 
 keywords : Set String
 keywords =
-    Set.fromList
-        [ "on"
-        , "fragment"
-        , "true"
-        , "false"
-        , "null"
-        ]
+    Set.empty
 
 
 ignoreChars : Set Char
