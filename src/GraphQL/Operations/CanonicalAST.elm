@@ -1,4 +1,32 @@
-module GraphQL.Operations.CanonicalAST exposing (Argument, Definition(..), Directive, Document, Field(..), FieldDetails, FieldEnumDetails, FieldVariantDetails, Fragment, FragmentDetails, FragmentSelection(..), Name(..), OperationDetails, OperationType(..), RenderingCursor, Selection(..), Variable, VariableDefinition, VariantCase, Wrapper(..), getAliasedName, isTypeNameSelection, nameToString, operationLabel, toFragmentRendererExpression, toRendererExpression, toString)
+module GraphQL.Operations.CanonicalAST exposing
+    ( Argument
+    , Definition(..)
+    , Directive
+    , Document
+    , Field(..)
+    , FieldDetails
+    , FieldEnumDetails
+    , FieldVariantDetails
+    , Fragment
+    , FragmentDetails
+    , FragmentSelection(..)
+    , Name(..)
+    , OperationDetails
+    , OperationType(..)
+    , RenderingCursor
+    , Selection(..)
+    , Variable
+    , VariableDefinition
+    , VariantCase
+    , Wrapper(..)
+    , getAliasedName
+    , isTypeNameSelection
+    , nameToString
+    , operationLabel
+    , toFragmentRendererExpression
+    , toRendererExpression
+    , toString
+    )
 
 import Dict
 import Elm

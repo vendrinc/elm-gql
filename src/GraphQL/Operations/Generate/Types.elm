@@ -1,5 +1,6 @@
 module GraphQL.Operations.Generate.Types exposing
-    ( generate
+    ( enumType
+    , generate
     , interfaceVariants
     , toAliasedFields
     , unionVars

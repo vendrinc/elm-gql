@@ -18,6 +18,7 @@ import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Generate.Decode exposing (Namespace)
 import GraphQL.Operations.Generate.Fragment
 import GraphQL.Operations.Generate.Help as Help
+import GraphQL.Operations.Generate.Mock as Mock
 import GraphQL.Operations.Generate.Types as GeneratedTypes
 import GraphQL.Schema
 import Utils.String
@@ -38,6 +39,7 @@ generate :
 generate opts =
     List.map (generateDefinition opts) opts.document.definitions
         ++ List.map (GraphQL.Operations.Generate.Fragment.generate opts) opts.document.fragments
+        ++ Mock.generate opts
 
 
 opTypeName : Can.OperationType -> String

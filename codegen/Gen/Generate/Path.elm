@@ -1,7 +1,7 @@
-module Gen.Generate.Path exposing (call_, fragment, moduleName_, operation, values_)
+module Gen.Generate.Path exposing (annotation_, call_, fragment, make_, moduleName_, operation, values_)
 
 {-| 
-@docs values_, call_, fragment, operation, moduleName_
+@docs values_, call_, make_, annotation_, fragment, operation, moduleName_
 -}
 
 
@@ -18,7 +18,11 @@ moduleName_ =
 
 {-| operation: 
     { name : String, path : String, gqlDir : List String }
-    -> { modulePath : List String, filePath : String }
+    -> { modulePath : List String
+    , mockModulePath : List String
+    , filePath : String
+    , mockModuleFilePath : String
+    }
 -}
 operation :
     { name : String, path : String, gqlDir : List String } -> Elm.Expression
@@ -38,7 +42,9 @@ operation operationArg =
                         ]
                         (Type.record
                             [ ( "modulePath", Type.list Type.string )
+                            , ( "mockModulePath", Type.list Type.string )
                             , ( "filePath", Type.string )
+                            , ( "mockModuleFilePath", Type.string )
                             ]
                         )
                     )
@@ -92,6 +98,60 @@ fragment fragmentArg =
         ]
 
 
+annotation_ : { paths : Type.Annotation }
+annotation_ =
+    { paths =
+        Type.alias
+            moduleName_
+            "Paths"
+            []
+            (Type.record
+                [ ( "modulePath", Type.list Type.string )
+                , ( "mockModulePath", Type.list Type.string )
+                , ( "filePath", Type.string )
+                , ( "mockModuleFilePath", Type.string )
+                ]
+            )
+    }
+
+
+make_ :
+    { paths :
+        { modulePath : Elm.Expression
+        , mockModulePath : Elm.Expression
+        , filePath : Elm.Expression
+        , mockModuleFilePath : Elm.Expression
+        }
+        -> Elm.Expression
+    }
+make_ =
+    { paths =
+        \paths_args ->
+            Elm.withType
+                (Type.alias
+                    [ "Generate", "Path" ]
+                    "Paths"
+                    []
+                    (Type.record
+                        [ ( "modulePath", Type.list Type.string )
+                        , ( "mockModulePath", Type.list Type.string )
+                        , ( "filePath", Type.string )
+                        , ( "mockModuleFilePath", Type.string )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "modulePath" paths_args.modulePath
+                    , Tuple.pair "mockModulePath" paths_args.mockModulePath
+                    , Tuple.pair "filePath" paths_args.filePath
+                    , Tuple.pair
+                        "mockModuleFilePath"
+                        paths_args.mockModuleFilePath
+                    ]
+                )
+    }
+
+
 call_ :
     { operation : Elm.Expression -> Elm.Expression
     , fragment : Elm.Expression -> Elm.Expression
@@ -114,7 +174,11 @@ call_ =
                                 ]
                                 (Type.record
                                     [ ( "modulePath", Type.list Type.string )
+                                    , ( "mockModulePath"
+                                      , Type.list Type.string
+                                      )
                                     , ( "filePath", Type.string )
+                                    , ( "mockModuleFilePath", Type.string )
                                     ]
                                 )
                             )
@@ -165,7 +229,9 @@ values_ =
                         ]
                         (Type.record
                             [ ( "modulePath", Type.list Type.string )
+                            , ( "mockModulePath", Type.list Type.string )
                             , ( "filePath", Type.string )
+                            , ( "mockModuleFilePath", Type.string )
                             ]
                         )
                     )

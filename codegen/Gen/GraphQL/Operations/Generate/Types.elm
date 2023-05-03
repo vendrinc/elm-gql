@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Generate.Types exposing (call_, generate, interfaceVariants, moduleName_, toAliasedFields, unionVars, values_)
+module Gen.GraphQL.Operations.Generate.Types exposing (call_, enumType, generate, interfaceVariants, moduleName_, toAliasedFields, unionVars, values_)
 
 {-| 
-@docs values_, call_, generate, unionVars, interfaceVariants, toAliasedFields, moduleName_
+@docs values_, call_, generate, unionVars, interfaceVariants, toAliasedFields, enumType, moduleName_
 -}
 
 
@@ -14,6 +14,24 @@ import Tuple
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "Generate", "Types" ]
+
+
+{-| enumType: Namespace -> String -> Type.Annotation -}
+enumType : Elm.Expression -> String -> Elm.Expression
+enumType enumTypeArg enumTypeArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Generate", "Types" ]
+            , name = "enumType"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" [], Type.string ]
+                        (Type.namedWith [ "Type" ] "Annotation" [])
+                    )
+            }
+        )
+        [ enumTypeArg, Elm.string enumTypeArg0 ]
 
 
 {-| toAliasedFields: 
@@ -193,7 +211,8 @@ generate generateArg generateArg0 =
 
 
 call_ :
-    { toAliasedFields :
+    { enumType : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , toAliasedFields :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , interfaceVariants :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -202,7 +221,25 @@ call_ :
     , generate : Elm.Expression -> Elm.Expression -> Elm.Expression
     }
 call_ =
-    { toAliasedFields =
+    { enumType =
+        \enumTypeArg enumTypeArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Generate", "Types" ]
+                    , name = "enumType"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Namespace" []
+                                , Type.string
+                                ]
+                                (Type.namedWith [ "Type" ] "Annotation" [])
+                            )
+                    }
+                )
+                [ enumTypeArg, enumTypeArg0 ]
+    , toAliasedFields =
         \toAliasedFieldsArg toAliasedFieldsArg0 toAliasedFieldsArg1 ->
             Elm.apply
                 (Elm.value
@@ -366,13 +403,25 @@ call_ =
 
 
 values_ :
-    { toAliasedFields : Elm.Expression
+    { enumType : Elm.Expression
+    , toAliasedFields : Elm.Expression
     , interfaceVariants : Elm.Expression
     , unionVars : Elm.Expression
     , generate : Elm.Expression
     }
 values_ =
-    { toAliasedFields =
+    { enumType =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Generate", "Types" ]
+            , name = "enumType"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" [], Type.string ]
+                        (Type.namedWith [ "Type" ] "Annotation" [])
+                    )
+            }
+    , toAliasedFields =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "Generate", "Types" ]
             , name = "toAliasedFields"
