@@ -17,7 +17,7 @@ fragment :
     -- all the directories between CWD and the Elm root
     , gqlDir : List String
     }
-    -> { modulePath : List String, filePath : String }
+    -> Paths
 fragment { name, path, gqlDir } =
     let
         fragName =
@@ -38,10 +38,18 @@ fragment { name, path, gqlDir } =
             gqlDir
                 ++ pathFromElmRootToGqlFile
                 ++ [ "Fragments", fragName ]
+
+        mockFilePathPieces =
+            gqlDir
+                ++ pathFromElmRootToGqlFile
+                ++ [ "Mock", "Fragments", fragName ]
     in
     { modulePath = pathFromElmRootToGqlFile ++ [ "Fragments", fragName ]
+    , mockModulePath = pathFromElmRootToGqlFile ++ [ "Mock", "Fragments", fragName ]
     , filePath =
         String.join "/" filePathPieces ++ ".elm"
+    , mockModuleFilePath =
+        String.join "/" mockFilePathPieces ++ ".elm"
     }
 
 
