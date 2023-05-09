@@ -91,6 +91,9 @@ mockScalar namespace scalar =
                 "boolean" ->
                     Elm.bool True
 
+                "string" ->
+                    Elm.string "placeholder"
+
                 _ ->
                     Elm.value
                         { importFrom =
