@@ -1,4 +1,4 @@
-module Generate.Scalar exposing (decode, encode, generate, type_)
+module Generate.Scalar exposing (encode, generate, type_)
 
 import Dict
 import Elm
@@ -89,57 +89,6 @@ encodeList fn listExpr =
     Elm.apply
         Gen.Json.Encode.values_.list
         [ Elm.functionReduced "listUnpack" fn, listExpr ]
-
-
-decode : Namespace -> String -> GraphQL.Schema.Wrapped -> Elm.Expression
-decode namespace scalarName wrapped =
-    let
-        lowered =
-            String.toLower scalarName
-
-        decoder =
-            case lowered of
-                "string" ->
-                    Gen.Json.Decode.string
-
-                "int" ->
-                    Gen.Json.Decode.int
-
-                "float" ->
-                    Gen.Json.Decode.float
-
-                "boolean" ->
-                    Gen.Json.Decode.bool
-
-                "bool" ->
-                    Gen.Json.Decode.bool
-
-                _ ->
-                    Elm.value
-                        { importFrom =
-                            [ namespace.namespace
-                            ]
-                        , name = Utils.String.formatValue scalarName
-                        , annotation = Nothing
-                        }
-                        |> Elm.get "decoder"
-    in
-    decodeWrapper wrapped decoder
-
-
-decodeWrapper : GraphQL.Schema.Wrapped -> Elm.Expression -> Elm.Expression
-decodeWrapper wrap exp =
-    case wrap of
-        GraphQL.Schema.UnwrappedValue ->
-            exp
-
-        GraphQL.Schema.InList inner ->
-            Gen.Json.Decode.list
-                (decodeWrapper inner exp)
-
-        GraphQL.Schema.InMaybe inner ->
-            Engine.decodeNullable
-                (decodeWrapper inner exp)
 
 
 

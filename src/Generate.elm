@@ -279,7 +279,7 @@ parseGql namespace schema flagDetails gql result =
                 Err err ->
                     Err err
 
-        Err err ->
+        Err _ ->
             result
 
 

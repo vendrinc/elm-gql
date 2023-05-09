@@ -42,11 +42,6 @@ err =
     CanError
 
 
-success : Cache.Cache -> success -> CanResult success
-success =
-    CanSuccess
-
-
 ok : success -> Cache.Cache -> CanResult success
 ok data cache =
     CanSuccess cache data
@@ -1153,27 +1148,28 @@ canonicalizeField refs object selection existingFieldResult =
                         case matchedField of
                             Just matched ->
                                 let
-                                    aliased =
-                                        AST.getAliasedName field
-
                                     canonicalizedNewField =
                                         canonicalizeFieldType refs
                                             field
                                             cache
                                             matched
-
-                                    siblingID =
-                                        { aliasedName = aliased
-                                        , scalar =
-                                            if GraphQL.Schema.isScalar matched.type_ then
-                                                Just (GraphQL.Schema.typeToString matched.type_)
-
-                                            else
-                                                Nothing
-                                        }
                                 in
                                 case canonicalizedNewField of
                                     CanSuccess newCache new ->
+                                        let
+                                            aliased =
+                                                AST.getAliasedName field
+
+                                            siblingID =
+                                                { aliasedName = aliased
+                                                , scalar =
+                                                    if GraphQL.Schema.isScalar matched.type_ then
+                                                        Just (GraphQL.Schema.typeToString matched.type_)
+
+                                                    else
+                                                        Nothing
+                                                }
+                                        in
                                         if Cache.siblingCollision siblingID newCache then
                                             -- There has been a collision, abort!
                                             err
@@ -1723,7 +1719,7 @@ canonicalizeFieldWithVariants :
         }
 canonicalizeFieldWithVariants refs unionOrInterface selection found =
     case found.result of
-        CanError message ->
+        CanError _ ->
             found
 
         CanSuccess cache existingFields ->
@@ -1885,20 +1881,21 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                                                                     False
                                                         )
                                                         inline.selection
-
-                                            selectionResult =
-                                                List.foldl
-                                                    (canonicalizeField refs obj)
-                                                    (cache
-                                                        |> Cache.addLevelKeepSiblingStack
-                                                            { name = tag
-                                                            , isAlias = False
-                                                            }
-                                                        |> ok []
-                                                    )
-                                                    inline.selection
                                         in
                                         if selectsForTypename then
+                                            let
+                                                selectionResult =
+                                                    List.foldl
+                                                        (canonicalizeField refs obj)
+                                                        (cache
+                                                            |> Cache.addLevelKeepSiblingStack
+                                                                { name = tag
+                                                                , isAlias = False
+                                                                }
+                                                            |> ok []
+                                                        )
+                                                        inline.selection
+                                            in
                                             case selectionResult of
                                                 CanSuccess selectionCache canSelection ->
                                                     let

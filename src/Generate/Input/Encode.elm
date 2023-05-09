@@ -1,15 +1,15 @@
 module Generate.Input.Encode exposing
-    ( toInputRecordAlias, toRecordInput, toRecordOptionals, toRecordNulls
+    ( toInputRecordAlias
     , toInputObject, toOptionHelpers, toNulls
     , toOneOfHelper, toOneOfNulls
     , fullRecordToInputObject
     , docGroups
-    , Namespace, scalarType
+    , Namespace
     )
 
 {-|
 
-@docs toInputRecordAlias, toRecordInput, toRecordOptionals, toRecordNulls
+@docs toInputRecordAlias
 
 @docs toInputObject, toOptionHelpers, toNulls
 
@@ -29,16 +29,7 @@ import Gen.Json.Encode as Encode
 import Generate.Common
 import Generate.Scalar
 import GraphQL.Schema
-import Set exposing (Set)
 import Utils.String
-
-
-reservedWords : Set String
-reservedWords =
-    Set.fromList
-        [ "input"
-        , "null"
-        ]
 
 
 type alias Namespace =
@@ -164,192 +155,6 @@ addEncodedVariablesHelper namespace schema argRecord var inputObj =
 
 
 {- INPUT RECORDS -}
-
-
-{-|
-
-    Subtly different than `inputToInputObject`
-
-    inputToInputObject will create a record instead of an opaque type.
-
-    This is used for top level inputs such as the direct arguments
-    to queries or the arguments to a query from a gql document.
-
-
-    input :
-        { url : String
-        , overrideOneProductPerDomainAssumption : Bool
-        }
-        -> CreateServiceEntityInput
-
--}
-toRecordInput :
-    Namespace
-    -> GraphQL.Schema.Schema
-    -> List GraphQL.Schema.Argument
-    -> Elm.Declaration
-toRecordInput namespace schema fields =
-    let
-        ( required, _ ) =
-            List.partition
-                (\arg ->
-                    case arg.type_ of
-                        GraphQL.Schema.Nullable _ ->
-                            False
-
-                        _ ->
-                            True
-                )
-                fields
-    in
-    case required of
-        [] ->
-            Elm.declaration "input"
-                (Elm.record
-                    (List.map
-                        (\var ->
-                            ( var.name
-                            , Engine.make_.absent
-                            )
-                        )
-                        fields
-                    )
-                    |> Elm.withType
-                        (Type.named [] "Input")
-                )
-                |> Elm.exposeWith
-                    { exposeConstructor = False
-                    , group = Just docGroups.inputStarter
-                    }
-
-        _ ->
-            Elm.fn
-                ( "args"
-                , Just <|
-                    Type.record
-                        (List.map
-                            (\req ->
-                                ( req.name
-                                , toElmType namespace schema req.type_ (GraphQL.Schema.getWrap req.type_)
-                                )
-                            )
-                            required
-                        )
-                )
-                (\reqd ->
-                    Elm.record
-                        (List.map
-                            (\var ->
-                                Tuple.pair var.name
-                                    (case var.type_ of
-                                        GraphQL.Schema.Nullable _ ->
-                                            Engine.make_.absent
-
-                                        _ ->
-                                            reqd |> Elm.get var.name
-                                    )
-                            )
-                            fields
-                        )
-                        |> Elm.withType
-                            (Type.named [] "Input")
-                )
-                |> Elm.declaration "input"
-                |> Elm.exposeWith
-                    { exposeConstructor = False
-                    , group = Just docGroups.inputStarter
-                    }
-
-
-toRecordOptionals :
-    Namespace
-    -> GraphQL.Schema.Schema
-    -> List GraphQL.Schema.Argument
-    -> List Elm.Declaration
-toRecordOptionals namespace schema varDefs =
-    List.filterMap (inputToRecordOptionalHelper namespace schema) varDefs
-
-
-inputToRecordOptionalHelper :
-    Namespace
-    -> GraphQL.Schema.Schema
-    -> GraphQL.Schema.Argument
-    -> Maybe Elm.Declaration
-inputToRecordOptionalHelper namespace schema var =
-    case var.type_ of
-        GraphQL.Schema.Nullable inner ->
-            let
-                varName =
-                    if Set.member var.name reservedWords then
-                        var.name ++ "_"
-
-                    else
-                        var.name
-
-                innerType =
-                    toElmType namespace schema inner (GraphQL.Schema.getWrap inner)
-            in
-            Just
-                (Elm.fn2
-                    ( "var"
-                    , Just innerType
-                    )
-                    ( "record"
-                    , Just (Type.named [] "Input")
-                    )
-                    (\val record ->
-                        record
-                            |> Elm.updateRecord
-                                [ ( var.name, Engine.make_.present val )
-                                ]
-                            |> Elm.withType (Type.named [] "Input")
-                    )
-                    |> Elm.declaration varName
-                    |> Elm.exposeWith { exposeConstructor = False, group = Just "inputBuilders" }
-                    |> Elm.withDocumentation ""
-                )
-
-        _ ->
-            Nothing
-
-
-toRecordNulls : List GraphQL.Schema.Argument -> List Elm.Declaration
-toRecordNulls varDefs =
-    let
-        toOptionalInput var =
-            case var.type_ of
-                GraphQL.Schema.Nullable _ ->
-                    let
-                        fieldName =
-                            var.name
-                    in
-                    Just
-                        (Tuple.pair fieldName
-                            (Elm.fn
-                                ( "record"
-                                , Just (Type.named [] "Input")
-                                )
-                                (Elm.updateRecord
-                                    [ ( fieldName, Engine.make_.null )
-                                    ]
-                                )
-                            )
-                        )
-
-                _ ->
-                    Nothing
-    in
-    case List.filterMap toOptionalInput varDefs of
-        [] ->
-            []
-
-        options ->
-            [ Elm.declaration "null"
-                (Elm.record
-                    options
-                )
-                |> Elm.exposeWith { exposeConstructor = False, group = Just "Null values" }
-            ]
 
 
 toInputRecordAlias :

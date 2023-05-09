@@ -1,4 +1,4 @@
-module Generate.Input exposing (Operation(..), decodeWrapper, isOptional, operationToString, splitRequired, wrapElmType, wrapExpression)
+module Generate.Input exposing (Operation(..), decodeWrapper, splitRequired, wrapElmType, wrapExpression)
 
 {-| Some helpers to handle inputs types.
 -}
@@ -8,22 +8,11 @@ import Elm.Annotation as Type
 import Gen.GraphQL.Engine as Engine
 import Gen.Json.Decode as Decode
 import GraphQL.Schema exposing (Wrapped(..))
-import String
 
 
 type Operation
     = Query
     | Mutation
-
-
-operationToString : Operation -> String.String
-operationToString op =
-    case op of
-        Query ->
-            "Query"
-
-        Mutation ->
-            "Mutation"
 
 
 wrapElmType : Wrapped -> Type.Annotation -> Type.Annotation
