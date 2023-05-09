@@ -8,7 +8,6 @@ module Gen.GraphQL.Operations.Canonicalize.Error exposing (annotation_, call_, c
 import Elm
 import Elm.Annotation as Type
 import Elm.Case
-import Tuple
 
 
 {-| The name of this module. -}

@@ -7,7 +7,6 @@ module Gen.GraphQL.Operations.Generate exposing (call_, generate, moduleName_, v
 
 import Elm
 import Elm.Annotation as Type
-import Tuple
 
 
 {-| The name of this module. -}

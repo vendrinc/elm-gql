@@ -7,7 +7,6 @@ module Gen.GraphQL.Operations.Generate.Types exposing (call_, enumType, generate
 
 import Elm
 import Elm.Annotation as Type
-import Tuple
 
 
 {-| The name of this module. -}

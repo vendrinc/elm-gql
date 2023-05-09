@@ -7,7 +7,6 @@ module Gen.GraphQL.Operations.Generate.Decode exposing (annotation_, call_, deco
 
 import Elm
 import Elm.Annotation as Type
-import Tuple
 
 
 {-| The name of this module. -}

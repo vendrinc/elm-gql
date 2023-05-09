@@ -7,7 +7,6 @@ module Gen.Generate exposing (annotation_, main, make_, moduleName_, values_)
 
 import Elm
 import Elm.Annotation as Type
-import Tuple
 
 
 {-| The name of this module. -}

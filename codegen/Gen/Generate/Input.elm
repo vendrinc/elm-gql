@@ -8,7 +8,6 @@ module Gen.Generate.Input exposing (annotation_, call_, caseOf_, decodeWrapper, 
 import Elm
 import Elm.Annotation as Type
 import Elm.Case
-import Tuple
 
 
 {-| The name of this module. -}

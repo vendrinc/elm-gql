@@ -8,7 +8,6 @@ module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotati
 import Elm
 import Elm.Annotation as Type
 import Elm.Case
-import Tuple
 
 
 {-| The name of this module. -}

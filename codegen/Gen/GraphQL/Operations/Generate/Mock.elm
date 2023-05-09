@@ -7,7 +7,6 @@ module Gen.GraphQL.Operations.Generate.Mock exposing (call_, generate, moduleNam
 
 import Elm
 import Elm.Annotation as Type
-import Tuple
 
 
 {-| The name of this module. -}

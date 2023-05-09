@@ -8,7 +8,7 @@
     "elm-gql": "./bin/elm-gql"
   },
   "scripts": {
-    "build": "node cli/build.js ; tsc ; yarn build:elm:opt ; cp cli/package.json dist/package.json",
+    "build": "node cli/build.js ; tsc ; yarn build:elm ; cp cli/package.json dist/package.json",
     "build:elm": "elm make src/GraphQL/Engine.elm --output=/dev/null ; elm-codegen install; elm make src/Generate.elm --output=./dist/generators/schema.js",
     "build:elm:opt": "elm make src/GraphQL/Engine.elm --output=/dev/null ; elm-codegen install; elm-optimize-level-2 src/Generate.elm --output=./dist/generators/schema.js",
     "prepublishOnly": "npm run build",
@@ -34,7 +34,7 @@
   },
   "homepage": "https://github.com/vendrinc/elm-gql#readme",
   "devDependencies": {
-    "elm-codegen": "^0.2.0",
+    "elm-codegen": "^0.3.0",
     "elm-doc-preview": "^5.0.5",
     "elm-format": "^0.8.7",
     "elm-optimize-level-2": "^0.3.4",

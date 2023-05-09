@@ -7,7 +7,6 @@ module Gen.Generate.Example exposing (call_, example, moduleName_, operation, va
 
 import Elm
 import Elm.Annotation as Type
-import Tuple
 
 
 {-| The name of this module. -}

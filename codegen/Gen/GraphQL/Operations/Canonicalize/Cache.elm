@@ -7,7 +7,6 @@ module Gen.GraphQL.Operations.Canonicalize.Cache exposing (addFragment, addLevel
 
 import Elm
 import Elm.Annotation as Type
-import Tuple
 
 
 {-| The name of this module. -}

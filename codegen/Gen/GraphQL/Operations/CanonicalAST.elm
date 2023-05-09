@@ -8,7 +8,6 @@ module Gen.GraphQL.Operations.CanonicalAST exposing (annotation_, call_, caseOf_
 import Elm
 import Elm.Annotation as Type
 import Elm.Case
-import Tuple
 
 
 {-| The name of this module. -}

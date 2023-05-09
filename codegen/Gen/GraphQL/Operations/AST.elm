@@ -8,7 +8,6 @@ module Gen.GraphQL.Operations.AST exposing (annotation_, call_, caseOf_, fragmen
 import Elm
 import Elm.Annotation as Type
 import Elm.Case
-import Tuple
 
 
 {-| The name of this module. -}

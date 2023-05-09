@@ -7,7 +7,6 @@ module Gen.Generate.Path exposing (annotation_, call_, fragment, make_, moduleNa
 
 import Elm
 import Elm.Annotation as Type
-import Tuple
 
 
 {-| The name of this module. -}
