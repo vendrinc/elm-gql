@@ -18,6 +18,8 @@ import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Generate.Decode exposing (Namespace)
 import GraphQL.Operations.Generate.Fragment
 import GraphQL.Operations.Generate.Help as Help
+import GraphQL.Operations.Generate.Mock.Fragment as MockFragment
+import GraphQL.Operations.Generate.Mock.Value as Mock
 import GraphQL.Operations.Generate.Types as GeneratedTypes
 import GraphQL.Schema
 import Utils.String
@@ -37,10 +39,7 @@ generate :
     -> List Elm.File
 generate opts =
     List.map (generateDefinition opts) opts.document.definitions
-
-
-
--- ++ List.map (GraphQL.Operations.Generate.Fragment.generate opts) opts.document.fragments
+        ++ List.map (MockFragment.generate opts) opts.document.fragments
 
 
 opTypeName : Can.OperationType -> String
@@ -104,10 +103,7 @@ Please avoid modifying directly.
 """ ++ Help.renderStandardComment docs
                 ]
         }
-        (List.concat
-            [ mockPrimaryResult paths namespace def
-            ]
-        )
+        (mockPrimaryResult paths namespace def)
         |> Help.replaceFilePath paths.mockModuleFilePath
 
 
@@ -132,40 +128,11 @@ mockPrimaryResult paths namespace def =
                                         []
 
                                     else
-                                        case field of
-                                            Can.Field details ->
-                                                [ ( Utils.String.formatValue (Can.getAliasedName details)
-                                                  , mockValue namespace details
-                                                        |> Input.wrapExpression details.wrapper
-                                                  )
-                                                ]
-
-                                            Can.Frag frag ->
-                                                -- case frag.fragment.selection of
-                                                --     Can.FragmentObject { selection } ->
-                                                --         List.concatMap
-                                                --             (fieldAliasedAnnotation namespace)
-                                                --             selection
-                                                --     Can.FragmentUnion union ->
-                                                --         List.concatMap
-                                                --             (fieldAliasedAnnotation namespace)
-                                                --             union.selection
-                                                --     Can.FragmentInterface interface ->
-                                                --         if not (List.isEmpty interface.variants) || not (List.isEmpty interface.remainingTags) then
-                                                --             let
-                                                --                 name =
-                                                --                     Can.nameToString frag.fragment.name
-                                                --             in
-                                                --             List.concatMap
-                                                --                 (fieldAliasedAnnotation namespace)
-                                                --                 interface.selection
-                                                --                 ++ [ ( name, Type.named [] (name ++ "_Specifics") )
-                                                --                 ]
-                                                --         else
-                                                --             List.concatMap
-                                                --                 (fieldAliasedAnnotation namespace)
-                                                --                 interface.selection
-                                                []
+                                        [ ( Can.getFieldName field
+                                                |> Utils.String.formatValue
+                                          , Mock.field namespace field
+                                          )
+                                        ]
                                 )
                                 op.fields
                             )
@@ -223,16 +190,20 @@ generateMockBuilders paths namespace field =
                                                 []
 
                                             else
-                                                case innerField of
-                                                    Can.Field details ->
-                                                        [ ( Utils.String.formatValue (Can.getAliasedName details)
-                                                          , mockValue namespace details
-                                                                |> Input.wrapExpression details.wrapper
-                                                          )
-                                                        ]
-
-                                                    Can.Frag frag ->
-                                                        []
+                                                -- case innerField of
+                                                --     Can.Field details ->
+                                                --         [ ( Utils.String.formatValue (Can.getAliasedName details)
+                                                --           , mockValue namespace details
+                                                --                 |> Input.wrapExpression details.wrapper
+                                                --           )
+                                                --         ]
+                                                --     Can.Frag frag ->
+                                                --         []
+                                                [ ( Can.getFieldName field
+                                                        |> Utils.String.formatValue
+                                                  , Mock.field namespace field
+                                                  )
+                                                ]
                                         )
                                         fields
                                     )
@@ -257,10 +228,28 @@ generateMockBuilders paths namespace field =
                     builderForThisObject :: buildersForChildren
 
                 Can.FieldUnion union ->
-                    generateVariantBuilders paths namespace fieldDetails union
+                    if fieldDetails.selectsOnlyFragment /= Nothing then
+                        []
+
+                    else
+                        generateVariantBuilders paths namespace fieldDetails union
 
                 Can.FieldInterface interface ->
-                    generateVariantBuilders paths namespace fieldDetails interface
+                    if fieldDetails.selectsOnlyFragment /= Nothing then
+                        []
+
+                    else
+                        generateVariantBuilders paths namespace fieldDetails interface
+
+
+onlySingleFragmentSelection : List Can.Field -> Bool
+onlySingleFragmentSelection fields =
+    case fields of
+        [ Can.Frag _ ] ->
+            True
+
+        _ ->
+            False
 
 
 generateVariantBuilders : Generate.Path.Paths -> Namespace -> Can.FieldDetails -> Can.FieldVariantDetails -> List Elm.Declaration
@@ -282,11 +271,14 @@ generateVariantBuilders paths namespace parentField variantDetails =
                                 Just (Type.namedWith paths.modulePath (Can.nameToString parentField.globalAlias) [])
                             }
                         )
+                        |> Elm.expose
                 )
                 variantDetails.remainingTags
 
         builders =
-            Elm.comment (Can.nameToString parentField.globalAlias) :: variantBuilders ++ variantBuildersForRemainigTags
+            Elm.comment (Can.nameToString parentField.globalAlias)
+                :: variantBuilders
+                ++ variantBuildersForRemainigTags
 
         defaultBuilder name =
             Elm.declaration (Utils.String.formatValue (Can.nameToString parentField.globalAlias))
@@ -297,6 +289,7 @@ generateVariantBuilders paths namespace parentField variantDetails =
                         Just (Type.namedWith paths.modulePath (Can.nameToString parentField.globalAlias) [])
                     }
                 )
+                |> Elm.expose
     in
     case variantDetails.variants of
         [] ->
@@ -335,16 +328,11 @@ generateVariantBuilder paths namespace parentDetails parent variant =
                                 []
 
                             else
-                                case field of
-                                    Can.Field details ->
-                                        [ ( Utils.String.formatValue (Can.getAliasedName details)
-                                          , mockValue namespace details
-                                                |> Input.wrapExpression details.wrapper
-                                          )
-                                        ]
-
-                                    Can.Frag frag ->
-                                        []
+                                [ ( Can.getFieldName field
+                                        |> Utils.String.formatValue
+                                  , Mock.field namespace field
+                                  )
+                                ]
                         )
                         variant.selection
                     )
@@ -370,101 +358,6 @@ generateVariantBuilder paths namespace parentDetails parent variant =
                 fields
     in
     builder :: buildersForChildren
-
-
-mockValue :
-    Namespace
-    -> Can.FieldDetails
-    -> Elm.Expression
-mockValue namespace field =
-    -- case field.selectsOnlyFragment of
-    --     Just fragment ->
-    --         Type.named
-    --             fragment.importFrom
-    --             fragment.name
-    --     Nothing ->
-    case field.selection of
-        Can.FieldObject _ ->
-            Can.nameToString field.globalAlias
-                |> Utils.String.formatValue
-                |> Elm.val
-
-        Can.FieldScalar type_ ->
-            mockScalar namespace type_
-
-        Can.FieldEnum enum ->
-            case enum.values of
-                [] ->
-                    Elm.string "Enum with no values"
-
-                top :: _ ->
-                    Elm.value
-                        { name = top.name
-                        , importFrom =
-                            [ namespace.enums
-                            , "Enum"
-                            , Utils.String.formatTypename enum.enumName
-                            ]
-                        , annotation =
-                            Just
-                                (GeneratedTypes.enumType namespace enum.enumName)
-                        }
-
-        Can.FieldUnion union ->
-            Can.nameToString field.globalAlias
-                |> Utils.String.formatValue
-                |> Elm.val
-
-        Can.FieldInterface _ ->
-            Can.nameToString field.globalAlias
-                |> Utils.String.formatValue
-                |> Elm.val
-
-
-mockScalar : Namespace -> GraphQL.Schema.Type -> Elm.Expression
-mockScalar namespace scalar =
-    case scalar of
-        GraphQL.Schema.Scalar name ->
-            case String.toLower name of
-                "int" ->
-                    Elm.int 5
-
-                "float" ->
-                    Elm.float 5
-
-                "boolean" ->
-                    Elm.bool True
-
-                _ ->
-                    Elm.value
-                        { importFrom =
-                            [ namespace.namespace
-                            ]
-                        , name = Utils.String.formatValue name
-                        , annotation = Nothing
-                        }
-                        |> Elm.get "defaultTestingValue"
-
-        GraphQL.Schema.InputObject name ->
-            Elm.unit
-
-        GraphQL.Schema.Object name ->
-            Elm.unit
-
-        GraphQL.Schema.Enum name ->
-            Elm.unit
-
-        GraphQL.Schema.Union name ->
-            Elm.unit
-
-        GraphQL.Schema.Interface name ->
-            Elm.unit
-
-        GraphQL.Schema.List_ inner ->
-            Elm.list [ mockScalar namespace inner ]
-
-        GraphQL.Schema.Nullable inner ->
-            Elm.just (mockScalar namespace inner)
 
 
 aliasedTypes : Namespace -> Can.Definition -> List Elm.Declaration
