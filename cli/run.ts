@@ -424,6 +424,7 @@ The full path of where I looked was:
       gqlDir: options.queries.split(path.sep),
       elmBaseSchema: options.output.split(path.sep),
       schema: schema,
+      generateMocks: options.generateMocks,
       generatePlatform: schemaWasModified.was || options.force,
       force: options.force,
       init: options.init,
@@ -477,7 +478,7 @@ export type Options = {
   namespace: string;
   header: string[];
   force: boolean;
-
+  generateMocks: boolean;
   queries: string;
   existingEnumDefinitions: string | null;
   init: boolean;

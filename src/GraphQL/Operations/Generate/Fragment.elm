@@ -22,8 +22,9 @@ generate :
     -- all the dirs between CWD and the GQL file
     , path : String
 
-    -- all the directories between CWD and the Elm root
+    -- all the directories between the Elm source folder and the GQL file
     , gqlDir : List String
+    , generateMocks : Bool
     }
     -> Can.Fragment
     -> Elm.File

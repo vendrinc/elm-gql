@@ -304,7 +304,7 @@ mergeResults one two =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.succeed
-        (\gqlDir elmBaseSchema namespace header isInit gql schemaUrl genPlatform reportUnused existingEnums ->
+        (\gqlDir elmBaseSchema namespace header isInit gql schemaUrl genPlatform generateMocks reportUnused existingEnums ->
             Flags
                 { schema = schemaUrl
                 , gql = gql
@@ -314,6 +314,7 @@ flagsDecoder =
                 , namespace = namespace
                 , header = header
                 , generatePlatform = genPlatform
+                , generateMocks = generateMocks
                 , reportUnused = reportUnused
                 , existingEnumDefinitions = existingEnums
                 }
@@ -354,6 +355,7 @@ flagsDecoder =
                 ]
             )
         |> andField "generatePlatform" Json.Decode.bool
+        |> andField "generateMocks" Json.Decode.bool
         |> andField "reportUnused" Json.Decode.bool
         |> andField "existingEnumDefinitions"
             (Json.Decode.string
@@ -401,6 +403,7 @@ type alias FlagDetails =
     -- The unparsed header for the introspection query
     , header : List String
     , generatePlatform : Bool
+    , generateMocks : Bool
     , reportUnused : Bool
     , existingEnumDefinitions : Maybe String
     }
@@ -496,6 +499,7 @@ parseAndValidateQuery namespace schema flags gql =
                                 , document = canAST
                                 , path = gql.path
                                 , gqlDir = flags.gqlDir
+                                , generateMocks = flags.generateMocks
                                 }
                         , usages = canAST.usages
                         }

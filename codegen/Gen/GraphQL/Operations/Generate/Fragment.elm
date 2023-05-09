@@ -21,6 +21,7 @@ moduleName_ =
     , document : Can.Document
     , path : String
     , gqlDir : List String
+    , generateMocks : Bool
     }
     -> Can.Fragment
     -> Elm.File
@@ -31,6 +32,7 @@ generate :
     , document : Elm.Expression
     , path : String
     , gqlDir : List String
+    , generateMocks : Bool
     }
     -> Elm.Expression
     -> Elm.Expression
@@ -55,6 +57,7 @@ generate generateArg generateArg0 =
                               )
                             , ( "path", Type.string )
                             , ( "gqlDir", Type.list Type.string )
+                            , ( "generateMocks", Type.bool )
                             ]
                         , Type.namedWith [ "Can" ] "Fragment" []
                         ]
@@ -70,6 +73,7 @@ generate generateArg generateArg0 =
             , Tuple.pair
                 "gqlDir"
                 (Elm.list (List.map Elm.string generateArg.gqlDir))
+            , Tuple.pair "generateMocks" (Elm.bool generateArg.generateMocks)
             ]
         , generateArg0
         ]
@@ -102,6 +106,7 @@ call_ =
                                       )
                                     , ( "path", Type.string )
                                     , ( "gqlDir", Type.list Type.string )
+                                    , ( "generateMocks", Type.bool )
                                     ]
                                 , Type.namedWith [ "Can" ] "Fragment" []
                                 ]
@@ -135,6 +140,7 @@ values_ =
                               )
                             , ( "path", Type.string )
                             , ( "gqlDir", Type.list Type.string )
+                            , ( "generateMocks", Type.bool )
                             ]
                         , Type.namedWith [ "Can" ] "Fragment" []
                         ]

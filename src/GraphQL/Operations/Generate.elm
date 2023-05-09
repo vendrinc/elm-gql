@@ -30,12 +30,21 @@ generate :
 
     -- all the directories between the Elm source folder and the GQL file
     , gqlDir : List String
+    , generateMocks : Bool
     }
     -> List Elm.File
 generate opts =
+    let
+        mocks =
+            if opts.generateMocks then
+                Mock.generate opts
+
+            else
+                []
+    in
     List.map (generateDefinition opts) opts.document.definitions
         ++ List.map (GraphQL.Operations.Generate.Fragment.generate opts) opts.document.fragments
-        ++ Mock.generate opts
+        ++ mocks
 
 
 opTypeName : Can.OperationType -> String
@@ -105,8 +114,9 @@ generateDefinition :
     -- all the dirs between CWD and the GQL file
     , path : String
 
-    -- all the directories between CWD and the Elm root
+    -- all the directories between the Elm source folder and the GQL file
     , gqlDir : List String
+    , generateMocks : Bool
     }
     -> Can.Definition
     -> Elm.File

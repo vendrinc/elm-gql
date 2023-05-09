@@ -40,7 +40,11 @@ program
     "Api"
   )
   .option("--force", "Skip the cache.", false)
-
+  .option(
+    "--generate-mocks",
+    "Generate Elm files to help mock response data for testing.",
+    false
+  )
   .option(
     "--header <header>",
     "The header to include in the introspection query.",
@@ -82,6 +86,11 @@ program
     "Api"
   )
   .option("--force", "Skip the cache.", false)
+  .option(
+    "--generate-mocks",
+    "Generate Elm files to help mock response data for testing.",
+    false
+  )
   .option(
     "-h, --header <header>",
     "The header to include in the introspection query.",

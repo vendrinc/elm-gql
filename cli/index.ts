@@ -5,6 +5,7 @@ export type Options = {
   namespace?: string;
   header?: string[];
   force?: boolean;
+  generateMocks?: boolean;
   queries?: string;
   existingEnumDefinitions?: string | null;
 };
@@ -15,6 +16,7 @@ export async function run(targetFile: string, options: Options) {
     namespace: options.namespace ? options.namespace : "Api",
     header: options.header ? options.header : [],
     force: options.force ? options.force : false,
+    generateMocks: options.generateMocks ? options.generateMocks : false,
     queries: options.queries ? options.queries : "src",
     existingEnumDefinitions: options.existingEnumDefinitions
       ? options.existingEnumDefinitions
@@ -29,6 +31,7 @@ export async function init(targetFile: string, options: Options) {
     namespace: options.namespace ? options.namespace : "Api",
     header: options.header ? options.header : [],
     force: options.force ? options.force : false,
+    generateMocks: options.generateMocks ? options.generateMocks : false,
     queries: options.queries ? options.queries : "src",
     existingEnumDefinitions: options.existingEnumDefinitions
       ? options.existingEnumDefinitions
