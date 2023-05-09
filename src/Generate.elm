@@ -4,7 +4,6 @@ module Generate exposing (Input, Model, Msg, main)
 
 import Elm
 import Gen as Generate
-import Gen.GraphQL.Mock
 import Generate.Enums
 import Generate.InputObjects
 import Generate.Root
@@ -184,8 +183,7 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                 |> appendIf flagDetails.generatePlatform
                     (\_ ->
                         List.map (addOutputDir flagDetails.elmBaseSchema)
-                            (saveSchemaAsElm namespace schemaAsJson
-                                :: saveSchemaAsJson namespace schemaAsJson
+                            (saveSchemaAsJson namespace schemaAsJson
                                 :: Generate.Enums.generateFiles namespace schema
                                 ++ Generate.InputObjects.generateFiles namespace schema
                             )
@@ -233,15 +231,6 @@ addOutputDir pieces file =
     { file
         | path = String.join "/" pieces ++ "/" ++ file.path
     }
-
-
-saveSchemaAsElm : Namespace -> Json.Encode.Value -> Elm.File
-saveSchemaAsElm namespace val =
-    Elm.file [ namespace.namespace, "Meta", "Schema" ]
-        [ Elm.declaration "schema"
-            (Gen.GraphQL.Mock.schemaFromString (Json.Encode.encode 4 val))
-            |> Elm.expose
-        ]
 
 
 saveSchemaAsJson : Namespace -> Json.Encode.Value -> Elm.File
