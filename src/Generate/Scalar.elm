@@ -169,6 +169,9 @@ generate namespace schema =
               , Gen.Json.Decode.annotation_.decoder
                     (Type.var "scalar")
               )
+            , ( "defaultTestingValue"
+              , Type.var "scalar"
+              )
             ]
         )
         :: (schema.scalars
@@ -217,6 +220,9 @@ generateScalarCodec ( rawname, details ) =
                   , Gen.Json.Decode.string
                         |> Gen.Json.Decode.call_.map
                             (Elm.val typename)
+                  )
+                , ( "defaultTestingValue"
+                  , Elm.string "REPLACE ME!"
                   )
                 ]
                 |> Elm.withType
