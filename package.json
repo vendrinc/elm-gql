@@ -3,6 +3,7 @@
   "version": "0.5.0",
   "description": "Write GraphQL, get nice Elm code!",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
     "elm-gql": "./bin/elm-gql"
   },
