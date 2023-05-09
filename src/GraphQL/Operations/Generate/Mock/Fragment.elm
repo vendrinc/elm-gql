@@ -39,7 +39,7 @@ generate { namespace, schema, document, path, gqlDir } frag =
         { aliases = [ ( paths.modulePath, "Fragment" ) ]
         , docs =
             \docs ->
-                [ "This file is generated from " ++ path ++ " using `elm-gql`\n" ++ Help.renderStandardComment docs
+                [ "This is a **mock** module for the `" ++ Can.nameToString frag.name ++ "` fragment.  It is intended to be used in tests.\n\nThis file is generated from " ++ path ++ " using `elm-gql`\n" ++ Help.renderStandardComment docs
                 ]
         }
         (mockFragment paths namespace frag)

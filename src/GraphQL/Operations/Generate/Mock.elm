@@ -88,7 +88,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
             ]
         , docs =
             \docs ->
-                [ "This file is generated from " ++ path ++ " using `elm-gql`" ++ """
+                [ "\nThis is a **mock** module for the `" ++ opName ++ "` operation.  It is intended to be used in tests.\n\nThis file is generated from " ++ path ++ " using `elm-gql`" ++ """
 
 Please avoid modifying directly.
 """ ++ Help.renderStandardComment docs
