@@ -10,7 +10,7 @@ import engine from "./templates/Engine.elm";
 // @ts-ignore
 globalThis["XMLHttpRequest"] = XMLHttpRequest.XMLHttpRequest;
 
-const version: string = "0.1.0";
+const version: string = "0.6.0";
 
 type Cache = {
   engineVersion: string;
@@ -446,7 +446,6 @@ The full path of where I looked was:
 
   // Standard engine
   writeIfChanged(path.join(options.output, "GraphQL", "Engine.elm"), engine());
-
   fs.writeFileSync(".elm-gql-cache", JSON.stringify(newCache));
 }
 
