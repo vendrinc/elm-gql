@@ -38,30 +38,31 @@ import Simplify
 
 config : List Rule
 config =
-    [ Docs.NoMissing.rule
-        { document = onlyExposed
-        , from = exposedModules
-        }
-    , Docs.ReviewLinksAndSections.rule
-    , Docs.ReviewAtDocs.rule
-    , Docs.UpToDateReadmeLinks.rule
-    , NoConfusingPrefixOperator.rule
-    , NoDebug.Log.rule
-    , NoDebug.TodoOrToString.rule
-        |> Rule.ignoreErrorsForDirectories [ "tests/" ]
-    , NoExposingEverything.rule
-    , NoImportingEverything.rule []
-    , NoMissingTypeAnnotation.rule
-    , NoMissingTypeAnnotationInLetIn.rule
-    , NoMissingTypeExpose.rule
-    , NoSimpleLetBody.rule
-    , NoPrematureLetComputation.rule
-    , NoUnused.CustomTypeConstructors.rule []
-    , NoUnused.CustomTypeConstructorArgs.rule
-    , NoUnused.Dependencies.rule
-    , NoUnused.Exports.rule
-    , NoUnused.Parameters.rule
-    , NoUnused.Patterns.rule
-    , NoUnused.Variables.rule
-    , Simplify.rule Simplify.defaults
-    ]
+    List.map (Rule.ignoreErrorsForDirectories [ "codegen/" ])
+        [ Docs.NoMissing.rule
+            { document = onlyExposed
+            , from = exposedModules
+            }
+        , Docs.ReviewLinksAndSections.rule
+        , Docs.ReviewAtDocs.rule
+        , Docs.UpToDateReadmeLinks.rule
+        , NoConfusingPrefixOperator.rule
+        , NoDebug.Log.rule
+        , NoDebug.TodoOrToString.rule
+            |> Rule.ignoreErrorsForDirectories [ "tests/" ]
+        , NoExposingEverything.rule
+        , NoImportingEverything.rule []
+        , NoMissingTypeAnnotation.rule
+        , NoMissingTypeAnnotationInLetIn.rule
+        , NoMissingTypeExpose.rule
+        , NoSimpleLetBody.rule
+        , NoPrematureLetComputation.rule
+        , NoUnused.CustomTypeConstructors.rule []
+        , NoUnused.CustomTypeConstructorArgs.rule
+        , NoUnused.Dependencies.rule
+        , NoUnused.Exports.rule
+        , NoUnused.Parameters.rule
+        , NoUnused.Patterns.rule
+        , NoUnused.Variables.rule
+        , Simplify.rule Simplify.defaults
+        ]
