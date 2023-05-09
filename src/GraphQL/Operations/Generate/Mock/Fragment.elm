@@ -57,7 +57,50 @@ generate { namespace, schema, document, path, gqlDir } frag =
 
 mockFragment : Generate.Path.Paths -> Namespace -> Can.Fragment -> List Elm.Declaration
 mockFragment paths namespace frag =
-    generateMockBuilders paths namespace frag
+    case frag.selection of
+        Can.FragmentObject { selection } ->
+            let
+                primaryObject =
+                    Elm.declaration
+                        (frag.name
+                            |> Can.nameToString
+                            |> Utils.String.formatValue
+                        )
+                        (Elm.record
+                            (List.concatMap
+                                (\field ->
+                                    if Can.isTypeNameSelection field then
+                                        []
+
+                                    else
+                                        [ ( Can.getFieldName field
+                                                |> Utils.String.formatValue
+                                          , Mock.field namespace field
+                                          )
+                                        ]
+                                )
+                                selection
+                            )
+                            |> Elm.withType
+                                (Type.named paths.mockModulePath
+                                    (frag.name
+                                        |> Can.nameToString
+                                        |> Utils.String.formatTypename
+                                    )
+                                 -- []
+                                 -- record
+                                )
+                        )
+                        |> Elm.exposeWith
+                            { exposeConstructor = True
+                            , group = Just "primary"
+                            }
+            in
+            primaryObject
+                :: generateMockBuilders paths namespace frag
+
+        _ ->
+            generateMockBuilders paths namespace frag
 
 
 generateMockBuilders : Generate.Path.Paths -> Namespace -> Can.Fragment -> List Elm.Declaration
