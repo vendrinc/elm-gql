@@ -10,7 +10,7 @@ import engine from "./templates/Engine.elm";
 // @ts-ignore
 globalThis["XMLHttpRequest"] = XMLHttpRequest.XMLHttpRequest;
 
-const version: string = "0.6.0";
+const version: string = "0.6.1";
 
 type Cache = {
   engineVersion: string;

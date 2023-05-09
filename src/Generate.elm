@@ -198,7 +198,7 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
 # This captures all parts of the schema that were not used by any of your graphQL queries or mutations.
 
 """
-                            |> toFile "unused.schema"
+                            |> toFile flagDetails "unused.schema"
                         ]
                     )
                 |> Generate.files
@@ -209,9 +209,9 @@ prepend prefix str =
     prefix ++ "\n\n" ++ str
 
 
-toFile : String -> String -> Elm.File
-toFile path contents =
-    { path = String.join "/" [ "src" ] ++ "/" ++ path
+toFile : FlagDetails -> String -> String -> Elm.File
+toFile flagDetails path contents =
+    { path = String.join "/" flagDetails.elmBaseSchema ++ "/" ++ path
     , contents = contents
     , warnings = []
     }
