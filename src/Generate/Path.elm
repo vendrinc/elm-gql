@@ -3,6 +3,11 @@ module Generate.Path exposing (Paths, fragment, operation)
 import Utils.String
 
 
+isDot : String -> Bool
+isDot str =
+    str == "."
+
+
 fragment :
     { name : String
 
@@ -26,7 +31,7 @@ fragment { name, path, gqlDir } =
                     (String.replace ".gql" ""
                         >> String.replace ".graphql" ""
                     )
-                |> removePrefix gqlDir
+                |> removePrefix (List.filter (not << isDot) gqlDir)
                 |> List.map Utils.String.formatTypename
 
         filePathPieces =
@@ -76,7 +81,7 @@ operation { name, path, gqlDir } =
                     (String.replace ".gql" ""
                         >> String.replace ".graphql" ""
                     )
-                |> removePrefix gqlDir
+                |> removePrefix (List.filter (not << isDot) gqlDir)
                 |> List.map Utils.String.formatTypename
 
         filePathPieces =
