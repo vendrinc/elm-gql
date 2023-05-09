@@ -6,7 +6,8 @@ module GraphQL.Operations.Canonicalize.Cache exposing
     , dropLevel, dropLevelNotSiblings
     , saveSibling, siblingCollision
     , levelFromField
-    , enum, field, inputObject, mutation, query, scalar
+    , enum, field, mutation, query, scalar
+    , FilePath
     )
 
 {-|
@@ -31,7 +32,7 @@ module GraphQL.Operations.Canonicalize.Cache exposing
 
 ## Tracking Usage
 
-@docs enum, field, inputObject, interface, mutation, query, scalar
+@docs enum, field, interface, mutation, query, scalar
 
 -}
 
@@ -227,8 +228,3 @@ scalar name path =
 enum : String -> FilePath -> Cache -> Cache
 enum name path =
     onUsage (Usage.enum name path)
-
-
-inputObject : String -> String -> FilePath -> Cache -> Cache
-inputObject name fieldName path =
-    onUsage (Usage.inputObject name fieldName path)

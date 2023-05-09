@@ -2,19 +2,9 @@ module GraphQL.Operations.Generate.Mock.Value exposing (builders, field, variant
 
 import Elm
 import Elm.Annotation as Type
-import Elm.Case
-import Elm.Op
-import Gen.GraphQL.Engine as Engine
-import Gen.Json.Decode as Decode
-import Generate.Input as Input
-import Generate.Input.Encode
 import Generate.Path
-import Generate.Scalar
-import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Generate.Decode exposing (Namespace)
-import GraphQL.Operations.Generate.Fragment
-import GraphQL.Operations.Generate.Help as Help
 import GraphQL.Operations.Generate.Types as GeneratedTypes
 import GraphQL.Schema
 import Utils.String
@@ -26,7 +16,7 @@ field :
     -> Elm.Expression
 field namespace fullField =
     case fullField of
-        Can.Frag frag ->
+        Can.Frag _ ->
             Elm.unit
 
         Can.Field fieldDetails ->
@@ -66,7 +56,7 @@ field namespace fullField =
                                                 (GeneratedTypes.enumType namespace enum.enumName)
                                         }
 
-                        Can.FieldUnion union ->
+                        Can.FieldUnion _ ->
                             Can.nameToString fieldDetails.globalAlias
                                 |> Utils.String.formatValue
                                 |> Elm.val
@@ -104,19 +94,19 @@ mockScalar namespace scalar =
                         }
                         |> Elm.get "defaultTestingValue"
 
-        GraphQL.Schema.InputObject name ->
+        GraphQL.Schema.InputObject _ ->
             Elm.unit
 
-        GraphQL.Schema.Object name ->
+        GraphQL.Schema.Object _ ->
             Elm.unit
 
-        GraphQL.Schema.Enum name ->
+        GraphQL.Schema.Enum _ ->
             Elm.unit
 
-        GraphQL.Schema.Union name ->
+        GraphQL.Schema.Union _ ->
             Elm.unit
 
-        GraphQL.Schema.Interface name ->
+        GraphQL.Schema.Interface _ ->
             Elm.unit
 
         GraphQL.Schema.List_ inner ->
@@ -133,16 +123,16 @@ mockScalar namespace scalar =
 builders : Generate.Path.Paths -> Namespace -> Can.Field -> List Elm.Declaration
 builders paths namespace fullField =
     case fullField of
-        Can.Frag fragDetails ->
+        Can.Frag _ ->
             []
 
         Can.Field fieldDetails ->
             case fieldDetails.selection of
-                Can.FieldScalar type_ ->
+                Can.FieldScalar _ ->
                     -- Don't need builders for scalars
                     []
 
-                Can.FieldEnum enum ->
+                Can.FieldEnum _ ->
                     -- Don't need builders for enums
                     []
 
@@ -197,16 +187,6 @@ builders paths namespace fullField =
 
                 Can.FieldInterface interface ->
                     variantBuilders paths namespace fieldDetails interface
-
-
-onlySingleFragmentSelection : List Can.Field -> Bool
-onlySingleFragmentSelection fields =
-    case fields of
-        [ Can.Frag _ ] ->
-            True
-
-        _ ->
-            False
 
 
 variantBuilders :
@@ -296,9 +276,6 @@ generateVariantBuilder paths namespace parentDetails parent variant =
 
         fields =
             variant.selection
-
-        variantType =
-            GeneratedTypes.toAliasedFields namespace [] fields
 
         builder =
             Elm.declaration

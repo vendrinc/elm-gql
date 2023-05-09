@@ -4,20 +4,11 @@ module GraphQL.Operations.Generate.Mock.Fragment exposing (generate)
 
 import Elm
 import Elm.Annotation as Type
-import Elm.Case
-import Elm.Op
-import Gen.GraphQL.Engine as Engine
-import Gen.Json.Decode as Decode
-import Generate.Input as Input
-import Generate.Input.Encode
 import Generate.Path
-import Generate.Scalar
-import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Generate.Decode exposing (Namespace)
 import GraphQL.Operations.Generate.Help as Help
 import GraphQL.Operations.Generate.Mock.Value as Mock
-import GraphQL.Operations.Generate.Types as GeneratedTypes
 import GraphQL.Schema
 import Utils.String
 
@@ -87,8 +78,6 @@ mockFragment paths namespace frag =
                                         |> Can.nameToString
                                         |> Utils.String.formatTypename
                                     )
-                                 -- []
-                                 -- record
                                 )
                         )
                         |> Elm.exposeWith

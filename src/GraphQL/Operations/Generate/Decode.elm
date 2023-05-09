@@ -1,5 +1,6 @@
 module GraphQL.Operations.Generate.Decode exposing
-    ( Namespace
+    ( Index
+    , Namespace
     , decodeFields
     , decodeInterface
     , decodeUnion
@@ -15,10 +16,6 @@ import Elm.Op
 import Gen.GraphQL.Engine as Engine
 import Gen.Json.Decode as Decode
 import Generate.Input as Input
-import Generate.Input.Encode
-import Generate.Path
-import Generate.Scalar
-import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
 import Utils.String

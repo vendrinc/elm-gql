@@ -1,7 +1,11 @@
 module GraphQL.Operations.Canonicalize.Error exposing
-    ( Error(..)
+    ( Coords
+    , DeclaredVariable
+    , Error(..)
     , ErrorDetails(..)
     , FragmentVariableSummary
+    , Position
+    , SuggestedVariable
     , VarIssue(..)
     , VariableSummary
     , cyan

@@ -5,18 +5,9 @@ module GraphQL.Operations.Generate.Mock exposing (generate)
 
 import Elm
 import Elm.Annotation as Type
-import Elm.Case
-import Elm.Op
-import Gen.GraphQL.Engine as Engine
-import Gen.Json.Decode as Decode
-import Generate.Input as Input
-import Generate.Input.Encode
 import Generate.Path
-import Generate.Scalar
-import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Generate.Decode exposing (Namespace)
-import GraphQL.Operations.Generate.Fragment
 import GraphQL.Operations.Generate.Help as Help
 import GraphQL.Operations.Generate.Mock.Fragment as MockFragment
 import GraphQL.Operations.Generate.Mock.Value as Mock

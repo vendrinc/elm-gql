@@ -10,15 +10,8 @@ module GraphQL.Operations.Generate.Types exposing
 
 import Elm
 import Elm.Annotation as Type
-import Elm.Case
-import Elm.Op
-import Gen.GraphQL.Engine as Engine
-import Gen.Json.Decode as Decode
 import Generate.Input as Input
-import Generate.Input.Encode
-import Generate.Path
 import Generate.Scalar
-import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Generate.Decode as GenDecode exposing (Namespace)
 import GraphQL.Schema
