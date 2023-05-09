@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.CanonicalAST exposing (annotation_, call_, caseOf_, getAliasedName, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, toFragmentRendererExpression, toRendererExpression, toString, values_)
+module Gen.GraphQL.Operations.CanonicalAST exposing (annotation_, call_, caseOf_, getAliasedName, getFieldName, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, toFragmentRendererExpression, toRendererExpression, toString, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, nameToString, toString, operationLabel, toRendererExpression, toFragmentRendererExpression, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, nameToString, toString, operationLabel, getFieldName, toRendererExpression, toFragmentRendererExpression, moduleName_
 -}
 
 
@@ -66,6 +66,21 @@ toRendererExpression toRendererExpressionArg toRendererExpressionArg0 =
             }
         )
         [ toRendererExpressionArg, toRendererExpressionArg0 ]
+
+
+{-| getFieldName: Field -> String -}
+getFieldName : Elm.Expression -> Elm.Expression
+getFieldName getFieldNameArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "getFieldName"
+            , annotation =
+                Just
+                    (Type.function [ Type.namedWith [] "Field" [] ] Type.string)
+            }
+        )
+        [ getFieldNameArg ]
 
 
 {-| {-| Only render the fields of the query, but with no outer brackets
@@ -295,6 +310,7 @@ annotation_ =
                         "Maybe"
                         [ Type.record
                             [ ( "importFrom", Type.list Type.string )
+                            , ( "importMockFrom", Type.list Type.string )
                             , ( "name", Type.string )
                             ]
                         ]
@@ -718,6 +734,9 @@ make_ =
                                 "Maybe"
                                 [ Type.record
                                     [ ( "importFrom", Type.list Type.string )
+                                    , ( "importMockFrom"
+                                      , Type.list Type.string
+                                      )
                                     , ( "name", Type.string )
                                     ]
                                 ]
@@ -1254,6 +1273,7 @@ call_ :
     { toFragmentRendererExpression :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , toRendererExpression : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , getFieldName : Elm.Expression -> Elm.Expression
     , operationLabel : Elm.Expression -> Elm.Expression
     , toString : Elm.Expression -> Elm.Expression
     , nameToString : Elm.Expression -> Elm.Expression
@@ -1299,6 +1319,21 @@ call_ =
                     }
                 )
                 [ toRendererExpressionArg, toRendererExpressionArg0 ]
+    , getFieldName =
+        \getFieldNameArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "getFieldName"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Field" [] ]
+                                Type.string
+                            )
+                    }
+                )
+                [ getFieldNameArg ]
     , operationLabel =
         \operationLabelArg ->
             Elm.apply
@@ -1380,6 +1415,7 @@ call_ =
 values_ :
     { toFragmentRendererExpression : Elm.Expression
     , toRendererExpression : Elm.Expression
+    , getFieldName : Elm.Expression
     , operationLabel : Elm.Expression
     , toString : Elm.Expression
     , nameToString : Elm.Expression
@@ -1413,6 +1449,14 @@ values_ =
                         ]
                         (Type.namedWith [ "Elm" ] "Expression" [])
                     )
+            }
+    , getFieldName =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "getFieldName"
+            , annotation =
+                Just
+                    (Type.function [ Type.namedWith [] "Field" [] ] Type.string)
             }
     , operationLabel =
         Elm.value

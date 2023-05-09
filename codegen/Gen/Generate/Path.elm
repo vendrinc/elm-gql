@@ -59,10 +59,7 @@ operation operationArg =
         ]
 
 
-{-| fragment: 
-    { name : String, path : String, gqlDir : List String }
-    -> { modulePath : List String, filePath : String }
--}
+{-| fragment: { name : String, path : String, gqlDir : List String } -> Paths -}
 fragment :
     { name : String, path : String, gqlDir : List String } -> Elm.Expression
 fragment fragmentArg =
@@ -79,11 +76,7 @@ fragment fragmentArg =
                             , ( "gqlDir", Type.list Type.string )
                             ]
                         ]
-                        (Type.record
-                            [ ( "modulePath", Type.list Type.string )
-                            , ( "filePath", Type.string )
-                            ]
-                        )
+                        (Type.namedWith [] "Paths" [])
                     )
             }
         )
@@ -199,11 +192,7 @@ call_ =
                                     , ( "gqlDir", Type.list Type.string )
                                     ]
                                 ]
-                                (Type.record
-                                    [ ( "modulePath", Type.list Type.string )
-                                    , ( "filePath", Type.string )
-                                    ]
-                                )
+                                (Type.namedWith [] "Paths" [])
                             )
                     }
                 )
@@ -248,11 +237,7 @@ values_ =
                             , ( "gqlDir", Type.list Type.string )
                             ]
                         ]
-                        (Type.record
-                            [ ( "modulePath", Type.list Type.string )
-                            , ( "filePath", Type.string )
-                            ]
-                        )
+                        (Type.namedWith [] "Paths" [])
                     )
             }
     }
