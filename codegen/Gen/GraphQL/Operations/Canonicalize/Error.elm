@@ -81,14 +81,34 @@ todo todoArg =
 
 
 annotation_ :
-    { fragmentVariableSummary : Type.Annotation
+    { suggestedVariable : Type.Annotation
+    , declaredVariable : Type.Annotation
+    , fragmentVariableSummary : Type.Annotation
     , variableSummary : Type.Annotation
+    , position : Type.Annotation
+    , coords : Type.Annotation
     , varIssue : Type.Annotation
     , errorDetails : Type.Annotation
     , error : Type.Annotation
     }
 annotation_ =
-    { fragmentVariableSummary =
+    { suggestedVariable =
+        Type.alias
+            moduleName_
+            "SuggestedVariable"
+            []
+            (Type.record [ ( "name", Type.string ), ( "type_", Type.string ) ])
+    , declaredVariable =
+        Type.alias
+            moduleName_
+            "DeclaredVariable"
+            []
+            (Type.record
+                [ ( "name", Type.string )
+                , ( "type_", Type.namedWith [] "Maybe" [ Type.string ] )
+                ]
+            )
+    , fragmentVariableSummary =
         Type.alias
             moduleName_
             "FragmentVariableSummary"
@@ -131,6 +151,22 @@ annotation_ =
                   )
                 ]
             )
+    , position =
+        Type.alias
+            moduleName_
+            "Position"
+            []
+            (Type.record [ ( "line", Type.int ), ( "char", Type.int ) ])
+    , coords =
+        Type.alias
+            moduleName_
+            "Coords"
+            []
+            (Type.record
+                [ ( "start", Type.namedWith [] "Position" [] )
+                , ( "end", Type.namedWith [] "Position" [] )
+                ]
+            )
     , varIssue =
         Type.namedWith
             [ "GraphQL", "Operations", "Canonicalize", "Error" ]
@@ -150,7 +186,11 @@ annotation_ =
 
 
 make_ :
-    { fragmentVariableSummary :
+    { suggestedVariable :
+        { name : Elm.Expression, type_ : Elm.Expression } -> Elm.Expression
+    , declaredVariable :
+        { name : Elm.Expression, type_ : Elm.Expression } -> Elm.Expression
+    , fragmentVariableSummary :
         { fragmentName : Elm.Expression
         , declared : Elm.Expression
         , used : Elm.Expression
@@ -163,6 +203,10 @@ make_ :
         , suggestions : Elm.Expression
         }
         -> Elm.Expression
+    , position :
+        { line : Elm.Expression, char : Elm.Expression } -> Elm.Expression
+    , coords :
+        { start : Elm.Expression, end : Elm.Expression } -> Elm.Expression
     , unused : Elm.Expression -> Elm.Expression
     , unexpectedType : Elm.Expression -> Elm.Expression
     , undeclared : Elm.Expression -> Elm.Expression
@@ -188,7 +232,41 @@ make_ :
     , error : Elm.Expression -> Elm.Expression
     }
 make_ =
-    { fragmentVariableSummary =
+    { suggestedVariable =
+        \suggestedVariable_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    "SuggestedVariable"
+                    []
+                    (Type.record
+                        [ ( "name", Type.string ), ( "type_", Type.string ) ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "name" suggestedVariable_args.name
+                    , Tuple.pair "type_" suggestedVariable_args.type_
+                    ]
+                )
+    , declaredVariable =
+        \declaredVariable_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    "DeclaredVariable"
+                    []
+                    (Type.record
+                        [ ( "name", Type.string )
+                        , ( "type_", Type.namedWith [] "Maybe" [ Type.string ] )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "name" declaredVariable_args.name
+                    , Tuple.pair "type_" declaredVariable_args.type_
+                    ]
+                )
+    , fragmentVariableSummary =
         \fragmentVariableSummary_args ->
             Elm.withType
                 (Type.alias
@@ -259,6 +337,38 @@ make_ =
                     , Tuple.pair "valid" variableSummary_args.valid
                     , Tuple.pair "issues" variableSummary_args.issues
                     , Tuple.pair "suggestions" variableSummary_args.suggestions
+                    ]
+                )
+    , position =
+        \position_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    "Position"
+                    []
+                    (Type.record [ ( "line", Type.int ), ( "char", Type.int ) ])
+                )
+                (Elm.record
+                    [ Tuple.pair "line" position_args.line
+                    , Tuple.pair "char" position_args.char
+                    ]
+                )
+    , coords =
+        \coords_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    "Coords"
+                    []
+                    (Type.record
+                        [ ( "start", Type.namedWith [] "Position" [] )
+                        , ( "end", Type.namedWith [] "Position" [] )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "start" coords_args.start
+                    , Tuple.pair "end" coords_args.end
                     ]
                 )
     , unused =

@@ -158,7 +158,7 @@ initIndex =
         }
 
 
-annotation_ : { namespace : Type.Annotation }
+annotation_ : { namespace : Type.Annotation, index : Type.Annotation }
 annotation_ =
     { namespace =
         Type.alias
@@ -168,6 +168,11 @@ annotation_ =
             (Type.record
                 [ ( "namespace", Type.string ), ( "enums", Type.string ) ]
             )
+    , index =
+        Type.namedWith
+            [ "GraphQL", "Operations", "Generate", "Decode" ]
+            "Index"
+            []
     }
 
 
