@@ -195,7 +195,7 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                         [ parsedGQL.usages
                             |> GraphQL.Usage.toUnusedReport schema
                             |> GraphQL.Schema.toString
-                            |> toFile "unused.json"
+                            |> toFile "unused.schema"
                         ]
                     )
                 |> Generate.files

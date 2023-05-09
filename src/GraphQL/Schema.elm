@@ -1129,8 +1129,9 @@ toString schema =
             |> List.foldl
                 (\( name, obj ) acc ->
                     acc
+                        ++ "type "
                         ++ name
-                        ++ "\n{\n"
+                        ++ " {\n"
                         ++ (obj.fields
                                 |> List.sortBy .name
                                 |> List.foldl
@@ -1148,8 +1149,9 @@ toString schema =
             |> List.foldl
                 (\( name, obj ) acc ->
                     acc
+                        ++ "interface "
                         ++ name
-                        ++ "\n{\n"
+                        ++ " {\n"
                         ++ (obj.fields
                                 |> List.sortBy .name
                                 |> List.foldl
