@@ -1,7 +1,7 @@
-module Gen.Generate.Input exposing (annotation_, call_, caseOf_, decodeWrapper, isOptional, make_, moduleName_, operationToString, splitRequired, values_, wrapElmType, wrapExpression)
+module Gen.Generate.Input exposing (annotation_, call_, caseOf_, decodeWrapper, make_, moduleName_, splitRequired, values_, wrapElmType, wrapExpression)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, operationToString, wrapElmType, wrapExpression, splitRequired, isOptional, decodeWrapper, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, wrapElmType, wrapExpression, splitRequired, decodeWrapper, moduleName_
 -}
 
 
@@ -34,30 +34,6 @@ decodeWrapper decodeWrapperArg decodeWrapperArg0 =
             }
         )
         [ decodeWrapperArg, decodeWrapperArg0 ]
-
-
-{-| isOptional: { a | type_ : GraphQL.Schema.Type } -> Bool -}
-isOptional : { a | type_ : Elm.Expression } -> Elm.Expression
-isOptional isOptionalArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Generate", "Input" ]
-            , name = "isOptional"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.extensible
-                            "a"
-                            [ ( "type_"
-                              , Type.namedWith [ "GraphQL", "Schema" ] "Type" []
-                              )
-                            ]
-                        ]
-                        Type.bool
-                    )
-            }
-        )
-        [ Elm.record [ Tuple.pair "type_" isOptionalArg.type_ ] ]
 
 
 {-| splitRequired: 
@@ -164,24 +140,6 @@ wrapElmType wrapElmTypeArg wrapElmTypeArg0 =
         [ wrapElmTypeArg, wrapElmTypeArg0 ]
 
 
-{-| operationToString: Operation -> String -}
-operationToString : Elm.Expression -> Elm.Expression
-operationToString operationToStringArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "Generate", "Input" ]
-            , name = "operationToString"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Operation" [] ]
-                        Type.string
-                    )
-            }
-        )
-        [ operationToStringArg ]
-
-
 annotation_ : { operation : Type.Annotation }
 annotation_ =
     { operation = Type.namedWith [ "Generate", "Input" ] "Operation" [] }
@@ -227,11 +185,9 @@ caseOf_ =
 
 call_ :
     { decodeWrapper : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , isOptional : Elm.Expression -> Elm.Expression
     , splitRequired : Elm.Expression -> Elm.Expression
     , wrapExpression : Elm.Expression -> Elm.Expression -> Elm.Expression
     , wrapElmType : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , operationToString : Elm.Expression -> Elm.Expression
     }
 call_ =
     { decodeWrapper =
@@ -251,30 +207,6 @@ call_ =
                     }
                 )
                 [ decodeWrapperArg, decodeWrapperArg0 ]
-    , isOptional =
-        \isOptionalArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Generate", "Input" ]
-                    , name = "isOptional"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.extensible
-                                    "a"
-                                    [ ( "type_"
-                                      , Type.namedWith
-                                            [ "GraphQL", "Schema" ]
-                                            "Type"
-                                            []
-                                      )
-                                    ]
-                                ]
-                                Type.bool
-                            )
-                    }
-                )
-                [ isOptionalArg ]
     , splitRequired =
         \splitRequiredArg ->
             Elm.apply
@@ -360,31 +292,14 @@ call_ =
                     }
                 )
                 [ wrapElmTypeArg, wrapElmTypeArg0 ]
-    , operationToString =
-        \operationToStringArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Generate", "Input" ]
-                    , name = "operationToString"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Operation" [] ]
-                                Type.string
-                            )
-                    }
-                )
-                [ operationToStringArg ]
     }
 
 
 values_ :
     { decodeWrapper : Elm.Expression
-    , isOptional : Elm.Expression
     , splitRequired : Elm.Expression
     , wrapExpression : Elm.Expression
     , wrapElmType : Elm.Expression
-    , operationToString : Elm.Expression
     }
 values_ =
     { decodeWrapper =
@@ -398,23 +313,6 @@ values_ =
                         , Type.namedWith [ "Elm" ] "Expression" []
                         ]
                         (Type.namedWith [ "Elm" ] "Expression" [])
-                    )
-            }
-    , isOptional =
-        Elm.value
-            { importFrom = [ "Generate", "Input" ]
-            , name = "isOptional"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.extensible
-                            "a"
-                            [ ( "type_"
-                              , Type.namedWith [ "GraphQL", "Schema" ] "Type" []
-                              )
-                            ]
-                        ]
-                        Type.bool
                     )
             }
     , splitRequired =
@@ -488,17 +386,6 @@ values_ =
                         , Type.namedWith [ "Type" ] "Annotation" []
                         ]
                         (Type.namedWith [ "Type" ] "Annotation" [])
-                    )
-            }
-    , operationToString =
-        Elm.value
-            { importFrom = [ "Generate", "Input" ]
-            , name = "operationToString"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "Operation" [] ]
-                        Type.string
                     )
             }
     }
