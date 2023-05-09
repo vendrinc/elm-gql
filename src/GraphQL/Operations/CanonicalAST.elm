@@ -20,6 +20,7 @@ module GraphQL.Operations.CanonicalAST exposing
     , VariantCase
     , Wrapper(..)
     , getAliasedName
+    , getFieldName
     , isTypeNameSelection
     , nameToString
     , operationLabel
@@ -120,6 +121,7 @@ type alias FieldDetails =
     , selectsOnlyFragment :
         Maybe
             { importFrom : List String
+            , importMockFrom : List String
             , name : String
             }
     , arguments : List Argument
@@ -267,6 +269,16 @@ operationLabel (Operation def) =
 
         Just (Name str) ->
             Just str
+
+
+getFieldName : Field -> String
+getFieldName field =
+    case field of
+        Field details ->
+            aliasedName details
+
+        Frag frag ->
+            nameToString frag.fragment.name
 
 
 fieldToString : Field -> String

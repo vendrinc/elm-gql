@@ -827,6 +827,7 @@ selectsSingleFragment :
     ->
         Maybe
             { importFrom : List String
+            , importMockFrom : List String
             , name : String
             }
 selectsSingleFragment refs fields =
@@ -845,6 +846,7 @@ selectsSingleFragment refs fields =
             in
             Just
                 { importFrom = paths.modulePath
+                , importMockFrom = paths.mockModulePath
                 , name = fragName
                 }
 
