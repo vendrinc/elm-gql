@@ -195,10 +195,20 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
                         [ parsedGQL.usages
                             |> GraphQL.Usage.toUnusedReport schema
                             |> GraphQL.Schema.toString
+                            |> prepend """# This file is generated automatically when `elm-gql` is run.
+# 
+# This captures all parts of the schema that were not used by any of your graphQL queries or mutations.
+
+"""
                             |> toFile "unused.schema"
                         ]
                     )
                 |> Generate.files
+
+
+prepend : String -> String -> String
+prepend prefix str =
+    prefix ++ "\n\n" ++ str
 
 
 toFile : String -> String -> Elm.File
