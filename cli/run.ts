@@ -5,13 +5,6 @@ import chalk from "chalk";
 import { XMLHttpRequest } from "./vendor/XMLHttpRequest";
 const schema_generator = require("./generators/schema");
 import engine from "./templates/Engine.elm";
-import mock from "./templates/Mock.elm";
-import schemaModule from "./templates/Schema.elm";
-import opsAST from "./templates/Operations/AST.elm";
-import opsMock from "./templates/Operations/Mock.elm";
-import opsCanAST from "./templates/Operations/CanonicalAST.elm";
-import opsParse from "./templates/Operations/Parse.elm";
-import opsCanonicalize from "./templates/Operations/Canonicalize.elm";
 
 // We have to stub this in the allow Elm the ability to make http requests.
 // @ts-ignore
@@ -453,30 +446,7 @@ The full path of where I looked was:
   // Standard engine
   writeIfChanged(path.join(options.output, "GraphQL", "Engine.elm"), engine());
 
-  // When mocking becomes a thing again, we'll turn this on
-  // write_mock(options)
-
   fs.writeFileSync(".elm-gql-cache", JSON.stringify(newCache));
-}
-
-function write_mock(options: Options) {
-  fs.mkdirSync(path.join(options.output, "GraphQL", "Operations"), {
-    recursive: true,
-  });
-
-  const ops = path.join(options.output, "GraphQL", "Operations");
-  writeIfChanged(path.join(ops, "Mock.elm"), opsMock());
-  writeIfChanged(path.join(ops, "AST.elm"), opsAST());
-  writeIfChanged(path.join(ops, "Parse.elm"), opsParse());
-  writeIfChanged(path.join(ops, "CanonicalAST.elm"), opsCanAST());
-  writeIfChanged(path.join(ops, "Canonicalize.elm"), opsCanonicalize());
-
-  // Everything required for auto-mocking
-  writeIfChanged(path.join(options.output, "GraphQL", "Mock.elm"), mock());
-  writeIfChanged(
-    path.join(options.output, "GraphQL", "Schema.elm"),
-    schemaModule()
-  );
 }
 
 function checkNamespace(options: Options) {
