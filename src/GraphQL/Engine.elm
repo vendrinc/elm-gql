@@ -1,21 +1,14 @@
 module GraphQL.Engine exposing
     ( batch
-    , nullable, list, object, objectWith, decode
-    , enum, maybeEnum
-    , field, fieldWith
-    , union
-    , Selection, select, with, map, map2, recover, withName
-    , arg, argList, Optional, optional
+    , Selection, map, map2, withName
     , Query, query, queryRisky, queryTask, queryRiskyTask
     , Mutation, mutation, mutationRisky, mutationTask, mutationRiskyTask, Error(..)
     , queryString
     , Argument(..), maybeScalarEncode
-    , encodeOptionals, encodeOptionalsAsJson, encodeInputObject, encodeArgument
     , decodeNullable
-    , unsafe, selectTypeNameButSkip
     , Request, send, simulate, mapRequest
     , Option(..), InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
-    , jsonField, andMap, versionedJsonField, versionedName, versionedAlias
+    , andMap, versionedJsonField, versionedName, versionedAlias
     , bakeToSelection
     )
 
@@ -23,17 +16,7 @@ module GraphQL.Engine exposing
 
 @docs batch
 
-@docs nullable, list, object, objectWith, decode
-
-@docs enum, maybeEnum
-
-@docs field, fieldWith
-
-@docs union
-
-@docs Selection, select, with, map, map2, recover, withName
-
-@docs arg, argList, Optional, optional
+@docs Selection, select, with, map, map2, withName
 
 @docs Query, query, queryRisky, queryTask, queryRiskyTask
 
@@ -43,17 +26,13 @@ module GraphQL.Engine exposing
 
 @docs Argument, maybeScalarEncode
 
-@docs encodeOptionals, encodeOptionalsAsJson, encodeInputObject, encodeArgument
-
 @docs decodeNullable
-
-@docs unsafe, selectTypeNameButSkip
 
 @docs Request, toRequest, send, simulate, mapRequest
 
 @docs Option, InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
 
-@docs jsonField, andMap, versionedJsonField, versionedName, versionedAlias
+@docs andMap, versionedJsonField, versionedName, versionedAlias
 
 -}
 
@@ -120,113 +99,6 @@ batch selections =
             )
 
 
-{-| -}
-recover : recovered -> (data -> recovered) -> Selection source data -> Selection source recovered
-recover default wrapValue (Selection (Details opName toQuery toDecoder)) =
-    Selection
-        (Details opName
-            toQuery
-            (\context ->
-                let
-                    ( newContext, decoder ) =
-                        toDecoder context
-                in
-                ( newContext
-                , Json.Decode.oneOf
-                    [ Json.Decode.map wrapValue decoder
-                    , Json.Decode.succeed default
-                    ]
-                )
-            )
-        )
-
-
-{-| -}
-union : List ( String, Selection source data ) -> Selection source data
-union options =
-    Selection <|
-        Details Nothing
-            (\context ->
-                let
-                    ( fragments, fragmentContext ) =
-                        List.foldl
-                            (\( name, Selection (Details _ fragQuery _) ) ( frags, currentContext ) ->
-                                let
-                                    rendered =
-                                        fragQuery currentContext
-
-                                    nonEmptyFields =
-                                        case rendered.fields of
-                                            [] ->
-                                                -- we're already selecting typename at the root.
-                                                -- this is just so we don't have an empty set of brackets
-                                                [ Field "__typename" Nothing [] [] ]
-
-                                            fields ->
-                                                fields
-                                in
-                                ( Fragment name nonEmptyFields :: frags
-                                , rendered.context
-                                )
-                            )
-                            ( [], context )
-                            options
-                in
-                { context = fragmentContext
-                , fields = Field "__typename" Nothing [] [] :: fragments
-                , fragments = ""
-                }
-            )
-            (\context ->
-                let
-                    ( fragmentDecoders, fragmentContext ) =
-                        List.foldl
-                            (\( name, Selection (Details _ _ toFragDecoder) ) ( frags, currentContext ) ->
-                                let
-                                    ( newContext, fragDecoder ) =
-                                        toFragDecoder currentContext
-
-                                    fragDecoderWithTypename =
-                                        Json.Decode.field "__typename" Json.Decode.string
-                                            |> Json.Decode.andThen
-                                                (\typename ->
-                                                    if typename == name then
-                                                        fragDecoder
-
-                                                    else
-                                                        Json.Decode.fail "Unknown union variant"
-                                                )
-                                in
-                                ( fragDecoderWithTypename :: frags
-                                , newContext
-                                )
-                            )
-                            ( [], context )
-                            options
-                in
-                ( fragmentContext
-                , Json.Decode.oneOf fragmentDecoders
-                )
-            )
-
-
-{-| -}
-maybeEnum : List ( String, item ) -> Json.Decode.Decoder (Maybe item)
-maybeEnum options =
-    Json.Decode.oneOf
-        [ Json.Decode.map Just (enum options)
-        , Json.Decode.succeed Nothing
-        ]
-
-
-{-| -}
-enum : List ( String, item ) -> Json.Decode.Decoder item
-enum options =
-    Json.Decode.string
-        |> Json.Decode.andThen
-            (findFirstMatch options)
-
-
 findFirstMatch : List ( String, item ) -> String -> Json.Decode.Decoder item
 findFirstMatch options str =
     case options of
@@ -241,279 +113,8 @@ findFirstMatch options str =
                 findFirstMatch remaining str
 
 
-{-| Used in generated code to handle maybes
--}
-nullable : Selection source data -> Selection source (Maybe data)
-nullable (Selection (Details opName toFieldsGql toFieldsDecoder)) =
-    Selection <|
-        Details
-            opName
-            toFieldsGql
-            (\context ->
-                let
-                    ( fieldContext, fieldsDecoder ) =
-                        toFieldsDecoder context
-                in
-                ( fieldContext
-                , Json.Decode.oneOf
-                    [ Json.Decode.map Just fieldsDecoder
-                    , Json.Decode.succeed Nothing
-                    ]
-                )
-            )
-
-
-{-| Used in generated code to handle maybes
--}
-list : Selection source data -> Selection source (List data)
-list (Selection (Details opName toFieldsGql toFieldsDecoder)) =
-    Selection <|
-        Details
-            opName
-            toFieldsGql
-            (\context ->
-                let
-                    ( fieldContext, fieldsDecoder ) =
-                        toFieldsDecoder context
-                in
-                ( fieldContext
-                , Json.Decode.list fieldsDecoder
-                )
-            )
-
-
-{-| -}
-object : String -> Selection source data -> Selection otherSource data
-object =
-    objectWith (inputObject "NoArgs")
-
-
 type Variable
     = Variable String
-
-
-{-| -}
-objectWith : InputObject args -> String -> Selection source data -> Selection otherSource data
-objectWith inputObj name (Selection (Details opName toFieldsGql toFieldsDecoder)) =
-    Selection <|
-        Details
-            opName
-            (\context ->
-                let
-                    rendered =
-                        toFieldsGql { context | aliases = Dict.empty }
-
-                    fieldContext =
-                        rendered.context
-
-                    new =
-                        applyContext inputObj name { fieldContext | aliases = context.aliases }
-                in
-                { context = new.context
-                , fields =
-                    [ Field name new.aliasString new.args rendered.fields
-                    ]
-                , fragments = rendered.fragments
-                }
-            )
-            (\context ->
-                let
-                    ( fieldContext, fieldsDecoder ) =
-                        toFieldsDecoder { context | aliases = Dict.empty }
-
-                    new =
-                        applyContext inputObj name { fieldContext | aliases = context.aliases }
-
-                    aliasedName =
-                        Maybe.withDefault name new.aliasString
-                in
-                ( new.context
-                , Json.Decode.field aliasedName fieldsDecoder
-                )
-            )
-
-
-{-| This adds a bare decoder for data that has already been pulled down.
-
-Note, this is rarely needed! So far, only when a query or mutation returns a scalar directly without selecting any fields.
-
--}
-decode : Json.Decode.Decoder data -> Selection source data
-decode decoder =
-    Selection <|
-        Details Nothing
-            (\context ->
-                { context = context
-                , fields = []
-                , fragments = ""
-                }
-            )
-            (\context ->
-                ( context
-                , decoder
-                )
-            )
-
-
-{-| -}
-selectTypeNameButSkip : Selection source ()
-selectTypeNameButSkip =
-    Selection <|
-        Details Nothing
-            (\context ->
-                { context = context
-                , fields =
-                    [ Field "__typename" Nothing [] []
-                    ]
-                , fragments = ""
-                }
-            )
-            (\context ->
-                ( context
-                , Json.Decode.succeed ()
-                )
-            )
-
-
-{-| -}
-field : String -> String -> Json.Decode.Decoder data -> Selection source data
-field name gqlTypeName decoder =
-    fieldWith (inputObject gqlTypeName) name gqlTypeName decoder
-
-
-{-| -}
-fieldWith : InputObject args -> String -> String -> Json.Decode.Decoder data -> Selection source data
-fieldWith args name gqlType decoder =
-    Selection <|
-        Details Nothing
-            (\context ->
-                let
-                    new =
-                        applyContext args name context
-                in
-                { context = new.context
-                , fields =
-                    [ Field name new.aliasString new.args []
-                    ]
-                , fragments = ""
-                }
-            )
-            (\context ->
-                let
-                    new =
-                        applyContext args name context
-
-                    aliasedName =
-                        Maybe.withDefault name new.aliasString
-                in
-                ( new.context
-                , Json.Decode.field aliasedName decoder
-                )
-            )
-
-
-applyContext :
-    InputObject args
-    -> String
-    -> Context
-    ->
-        { context : Context
-        , aliasString : Maybe String
-        , args : List ( String, Variable )
-        }
-applyContext args name context =
-    let
-        ( maybeAlias, newAliases ) =
-            makeAlias name context.aliases
-
-        ( vars, newVariables ) =
-            captureArgs args context.variables
-    in
-    { context =
-        { aliases = newAliases
-        , variables = newVariables
-        , version = context.version
-        }
-    , aliasString = maybeAlias
-    , args = vars
-    }
-
-
-{-| This is the piece of code that's responsible for swapping real argument values (i.e. json values)
-
-with variables.
-
--}
-captureArgs :
-    InputObject args
-    -> Dict String VariableDetails
-    ->
-        ( List ( String, Variable )
-        , Dict String VariableDetails
-        )
-captureArgs (InputObject objname args) context =
-    case args of
-        [] ->
-            ( [], context )
-
-        _ ->
-            captureArgsHelper args context []
-
-
-{-| -}
-captureArgsHelper :
-    List ( String, VariableDetails )
-    -> Dict String VariableDetails
-    -> List ( String, Variable )
-    ->
-        ( List ( String, Variable )
-        , Dict String VariableDetails
-        )
-captureArgsHelper args context alreadyPassed =
-    case args of
-        [] ->
-            ( alreadyPassed, context )
-
-        ( name, value ) :: remaining ->
-            let
-                varname =
-                    getValidVariableName name 0 context
-
-                newContext =
-                    Dict.insert varname value context
-            in
-            captureArgsHelper remaining
-                newContext
-                (( name, Variable varname ) :: alreadyPassed)
-
-
-getValidVariableName : String -> Int -> Dict String val -> String
-getValidVariableName str index used =
-    let
-        attemptedName =
-            if index == 0 then
-                str
-
-            else
-                str ++ String.fromInt index
-    in
-    if Dict.member attemptedName used then
-        getValidVariableName str (index + 1) used
-
-    else
-        attemptedName
-
-
-makeAlias : String -> Dict String Int -> ( Maybe String, Dict String Int )
-makeAlias name aliases =
-    case Dict.get name aliases of
-        Nothing ->
-            ( Nothing, Dict.insert name 0 aliases )
-
-        Just found ->
-            ( Just (name ++ String.fromInt (found + 1))
-            , Dict.insert name (found + 1) aliases
-            )
 
 
 {-| -}
@@ -532,26 +133,6 @@ type alias VariableDetails =
     { gqlTypeName : String
     , value : Maybe Json.Encode.Value
     }
-
-
-{-| -}
-unsafe : Selection source selected -> Selection unsafe selected
-unsafe (Selection deets) =
-    Selection deets
-
-
-type Free
-    = Free
-
-
-toFree : Argument thing -> Argument Free
-toFree argument =
-    case argument of
-        ArgValue json tag ->
-            ArgValue json tag
-
-        Var varname ->
-            Var varname
 
 
 empty : Context
@@ -666,31 +247,6 @@ type Optional arg
     = Optional String (Argument arg)
 
 
-{-| The encoded value and the name of the expected type for this argument
--}
-arg : Json.Encode.Value -> String -> Argument obj
-arg val typename =
-    ArgValue val typename
-
-
-{-| -}
-argList : List (Argument obj) -> String -> Argument input
-argList fields typeName =
-    ArgValue
-        (fields
-            |> Json.Encode.list
-                (\argVal ->
-                    case argVal of
-                        ArgValue val _ ->
-                            val
-
-                        Var varName ->
-                            Json.Encode.string varName
-                )
-        )
-        typeName
-
-
 {-| -}
 inputObjectToFieldList : InputObject a -> List ( String, VariableDetails )
 inputObjectToFieldList (InputObject _ fields) =
@@ -714,36 +270,6 @@ encodeInputObjectAsJson (InputObject _ fields) =
 
 
 {-| -}
-encodeInputObject : List ( String, Argument obj ) -> String -> Argument input
-encodeInputObject fields typeName =
-    ArgValue
-        (fields
-            |> List.map
-                (\( name, argVal ) ->
-                    case argVal of
-                        ArgValue val _ ->
-                            ( name, val )
-
-                        Var varName ->
-                            ( name, Json.Encode.string varName )
-                )
-            |> Json.Encode.object
-        )
-        typeName
-
-
-{-| -}
-encodeArgument : Argument obj -> Json.Encode.Value
-encodeArgument argVal =
-    case argVal of
-        ArgValue val _ ->
-            val
-
-        Var varName ->
-            Json.Encode.string varName
-
-
-{-| -}
 encodeOptionals : List (Optional arg) -> List ( String, Argument arg )
 encodeOptionals opts =
     List.foldl
@@ -759,58 +285,6 @@ encodeOptionals opts =
         ( Set.empty, [] )
         opts
         |> Tuple.second
-
-
-{-| -}
-encodeOptionalsAsJson : List (Optional arg) -> List ( String, Json.Encode.Value )
-encodeOptionalsAsJson opts =
-    List.foldl
-        (\(Optional optName argument) (( found, gathered ) as skip) ->
-            if Set.member optName found then
-                skip
-
-            else
-                ( Set.insert optName found
-                , ( optName, argument ) :: gathered
-                )
-        )
-        ( Set.empty, [] )
-        opts
-        |> Tuple.second
-        |> List.map (Tuple.mapSecond encodeArgument)
-
-
-{-|
-
-    Encode the nullability in the argument itself.
-
--}
-optional : String -> Argument arg -> Optional arg
-optional =
-    Optional
-
-
-{-| -}
-select : data -> Selection source data
-select data =
-    Selection
-        (Details Nothing
-            (\context ->
-                { context = context
-                , fields = []
-                , fragments = ""
-                }
-            )
-            (\context ->
-                ( context, Json.Decode.succeed data )
-            )
-        )
-
-
-{-| -}
-with : Selection source a -> Selection source (a -> b) -> Selection source b
-with =
-    map2 (|>)
 
 
 {-| -}
@@ -1218,35 +692,10 @@ body operation q =
     in
     Http.jsonBody
         (Json.Encode.object
-            (List.filterMap identity
-                [ Just ( "query", Json.Encode.string (queryString operation q) )
-                , Just ( "variables", encodedVariables )
-                ]
-            )
+            [ ( "query", Json.Encode.string (queryString operation q) )
+            , ( "variables", encodedVariables )
+            ]
         )
-
-
-{-|
-
-    Operation names need to be formatted in a certain way.
-
-    This is maybe too restrictive, but this keeps everything as [a-zA-Z0-9] and _
-
-    None matching characters will be transformed to _.
-
--}
-sanitizeOperationName : String -> String
-sanitizeOperationName input =
-    String.toList input
-        |> List.map
-            (\c ->
-                if Char.isAlphaNum c || c == '_' then
-                    c
-
-                else
-                    '_'
-            )
-        |> String.fromList
 
 
 getContext : Selection source selected -> Context
@@ -1439,26 +888,6 @@ renderArgs args rendered =
                 renderArgs remaining (rendered ++ ", " ++ name ++ ": $" ++ varName)
 
 
-argToString : Argument arg -> String
-argToString argument =
-    case argument of
-        ArgValue json typename ->
-            Json.Encode.encode 0 json
-
-        Var str ->
-            "$" ++ str
-
-
-argToTypeString : Argument arg -> String
-argToTypeString argument =
-    case argument of
-        ArgValue v typename ->
-            typename
-
-        Var str ->
-            ""
-
-
 {-| -}
 maybeScalarEncode : (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
 maybeScalarEncode encoder maybeA =
@@ -1517,18 +946,6 @@ versionedAlias i name =
 
     else
         name ++ "_batch_" ++ String.fromInt i ++ ": " ++ name
-
-
-jsonField :
-    String
-    -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> b)
-    -> Json.Decode.Decoder b
-jsonField name new build =
-    Json.Decode.map2
-        (\a fn -> fn a)
-        (Json.Decode.field name new)
-        build
 
 
 andMap :
