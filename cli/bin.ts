@@ -3,7 +3,7 @@ import chalk from "chalk";
 
 import * as Run from "./run";
 
-const version: string = "0.1.0";
+const version: string = "0.6.1";
 
 function collect(val: string, memo: string[]) {
   memo.push(val);
