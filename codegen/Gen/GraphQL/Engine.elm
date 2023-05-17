@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, bakeToSelection, batch, call_, caseOf_, decodeNullable, encodeInputObjectAsJson, inputObject, inputObjectToFieldList, make_, map, map2, mapRequest, maybeScalarEncode, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, query, queryRisky, queryRiskyTask, queryString, queryTask, select, send, simulate, values_, versionedAlias, versionedJsonField, versionedName, withName)
+module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, bakeToSelection, batch, call_, caseOf_, decodeNullable, encodeInputObjectAsJson, inputObject, inputObjectToFieldList, make_, map, map2, mapRequest, maybeScalarEncode, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, query, queryRisky, queryRiskyTask, queryString, queryTask, select, send, simulate, subscription, values_, versionedAlias, versionedJsonField, versionedName, withName)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, select, withName, inputObject, addField, addOptionalField, inputObjectToFieldList, encodeInputObjectAsJson, map, map2, bakeToSelection, mapRequest, send, simulate, query, mutation, queryTask, mutationTask, queryRisky, mutationRisky, queryRiskyTask, mutationRiskyTask, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, andMap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, batch, select, withName, inputObject, addField, addOptionalField, inputObjectToFieldList, encodeInputObjectAsJson, map, map2, bakeToSelection, mapRequest, send, simulate, subscription, query, mutation, queryTask, mutationTask, queryRisky, mutationRisky, queryRiskyTask, mutationRiskyTask, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, andMap, moduleName_
 -}
 
 
@@ -699,6 +699,46 @@ query queryArg queryArg0 =
 
 {-| {-| -}
 
+subscription: 
+    Selection Subscription data
+    -> { payload : Json.Encode.Value, decoder : Json.Decode.Decoder data }
+-}
+subscription : Elm.Expression -> Elm.Expression
+subscription subscriptionArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "subscription"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Subscription" []
+                            , Type.var "data"
+                            ]
+                        ]
+                        (Type.record
+                            [ ( "payload"
+                              , Type.namedWith [ "Json", "Encode" ] "Value" []
+                              )
+                            , ( "decoder"
+                              , Type.namedWith
+                                    [ "Json", "Decode" ]
+                                    "Decoder"
+                                    [ Type.var "data" ]
+                              )
+                            ]
+                        )
+                    )
+            }
+        )
+        [ subscriptionArg ]
+
+
+{-| {-| -}
+
 simulate: 
     { toHeader : String -> String -> header
     , toExpectation : (Http.Response String -> Result Error value) -> expectation
@@ -1252,6 +1292,7 @@ batch batchArg =
 annotation_ :
     { error : Type.Annotation
     , request : Type.Annotation -> Type.Annotation
+    , subscription : Type.Annotation
     , mutation : Type.Annotation
     , query : Type.Annotation
     , inputObject : Type.Annotation -> Type.Annotation
@@ -1264,6 +1305,7 @@ annotation_ =
     , request =
         \requestArg0 ->
             Type.namedWith [ "GraphQL", "Engine" ] "Request" [ requestArg0 ]
+    , subscription = Type.namedWith [ "GraphQL", "Engine" ] "Subscription" []
     , mutation = Type.namedWith [ "GraphQL", "Engine" ] "Mutation" []
     , query = Type.namedWith [ "GraphQL", "Engine" ] "Query" []
     , inputObject =
@@ -1511,6 +1553,7 @@ call_ :
     , queryTask : Elm.Expression -> Elm.Expression -> Elm.Expression
     , mutation : Elm.Expression -> Elm.Expression -> Elm.Expression
     , query : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , subscription : Elm.Expression -> Elm.Expression
     , simulate : Elm.Expression -> Elm.Expression -> Elm.Expression
     , send : Elm.Expression -> Elm.Expression
     , mapRequest : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -2070,6 +2113,41 @@ call_ =
                     }
                 )
                 [ queryArg, queryArg0 ]
+    , subscription =
+        \subscriptionArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "subscription"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.namedWith [] "Subscription" []
+                                    , Type.var "data"
+                                    ]
+                                ]
+                                (Type.record
+                                    [ ( "payload"
+                                      , Type.namedWith
+                                            [ "Json", "Encode" ]
+                                            "Value"
+                                            []
+                                      )
+                                    , ( "decoder"
+                                      , Type.namedWith
+                                            [ "Json", "Decode" ]
+                                            "Decoder"
+                                            [ Type.var "data" ]
+                                      )
+                                    ]
+                                )
+                            )
+                    }
+                )
+                [ subscriptionArg ]
     , simulate =
         \simulateArg simulateArg0 ->
             Elm.apply
@@ -2518,6 +2596,7 @@ values_ :
     , queryTask : Elm.Expression
     , mutation : Elm.Expression
     , query : Elm.Expression
+    , subscription : Elm.Expression
     , simulate : Elm.Expression
     , send : Elm.Expression
     , mapRequest : Elm.Expression
@@ -2910,6 +2989,34 @@ values_ =
                                 [ Type.namedWith [] "Error" []
                                 , Type.var "value"
                                 ]
+                            ]
+                        )
+                    )
+            }
+    , subscription =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "subscription"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Subscription" []
+                            , Type.var "data"
+                            ]
+                        ]
+                        (Type.record
+                            [ ( "payload"
+                              , Type.namedWith [ "Json", "Encode" ] "Value" []
+                              )
+                            , ( "decoder"
+                              , Type.namedWith
+                                    [ "Json", "Decode" ]
+                                    "Decoder"
+                                    [ Type.var "data" ]
+                              )
                             ]
                         )
                     )

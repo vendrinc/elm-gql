@@ -2,7 +2,9 @@ module GraphQL.Engine exposing
     ( batch
     , Selection, select, map, map2, withName
     , Query, query, queryRisky, queryTask, queryRiskyTask
-    , Mutation, mutation, mutationRisky, mutationTask, mutationRiskyTask, Error(..)
+    , Mutation, mutation, mutationRisky, mutationTask, mutationRiskyTask
+    , Subscription, subscription
+    , Error(..)
     , queryString
     , Argument(..), maybeScalarEncode
     , decodeNullable
@@ -20,9 +22,16 @@ module GraphQL.Engine exposing
 
 @docs Query, query, queryRisky, queryTask, queryRiskyTask
 
-@docs Mutation, mutation, mutationRisky, mutationTask, mutationRiskyTask, Error
+@docs Mutation, mutation, mutationRisky, mutationTask, mutationRiskyTask
+
+@docs Subscription, subscription
+
+@docs Error
 
 @docs queryString
+
+
+## Internal encoding and decoding
 
 @docs Argument, maybeScalarEncode
 
@@ -33,6 +42,8 @@ module GraphQL.Engine exposing
 @docs Option, InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
 
 @docs andMap, versionedJsonField, versionedName, versionedAlias
+
+@docs bakeToSelection
 
 -}
 
@@ -433,6 +444,11 @@ type Mutation
 
 
 {-| -}
+type Subscription
+    = Subscription
+
+
+{-| -}
 type Request value
     = Request
         { method : String
@@ -502,6 +518,23 @@ simulate config (Request req) =
         , timeout = req.timeout
         , tracker = req.tracker
         }
+
+
+{-| -}
+subscription :
+    Selection Subscription data
+    ->
+        { payload : Json.Encode.Value
+        , decoder : Json.Decode.Decoder data
+        }
+subscription ((Selection (Details _ fields toDecoder)) as sel) =
+    let
+        ( context_, decoder ) =
+            toDecoder empty
+    in
+    { payload = encodePayload "subscription" sel
+    , decoder = decoder
+    }
 
 
 {-| -}
@@ -687,32 +720,37 @@ mutationRiskyTask sel config =
 -}
 body : String -> Selection source data -> Http.Body
 body operation q =
+    Http.jsonBody
+        (encodePayload operation q)
+
+
+encodePayload : String -> Selection source data -> Json.Encode.Value
+encodePayload operation q =
     let
         variables : Dict String VariableDetails
         variables =
             (getContext q).variables
-
-        encodedVariables : Json.Decode.Value
-        encodedVariables =
-            variables
-                |> Dict.toList
-                |> List.filterMap
-                    (\( varName, var ) ->
-                        case var.value of
-                            Nothing ->
-                                Nothing
-
-                            Just value ->
-                                Just ( varName, value )
-                    )
-                |> Json.Encode.object
     in
-    Http.jsonBody
-        (Json.Encode.object
-            [ ( "query", Json.Encode.string (queryString operation q) )
-            , ( "variables", encodedVariables )
-            ]
-        )
+    Json.Encode.object
+        [ ( "query", Json.Encode.string (queryString operation q) )
+        , ( "variables", encodeVariables variables )
+        ]
+
+
+encodeVariables : Dict String VariableDetails -> Json.Encode.Value
+encodeVariables variables =
+    variables
+        |> Dict.toList
+        |> List.filterMap
+            (\( varName, var ) ->
+                case var.value of
+                    Nothing ->
+                        Nothing
+
+                    Just value ->
+                        Just ( varName, value )
+            )
+        |> Json.Encode.object
 
 
 getContext : Selection source selected -> Context
