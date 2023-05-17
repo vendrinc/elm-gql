@@ -43,6 +43,7 @@ type alias Namespace =
 type alias Schema =
     { queries : Dict Ref Query
     , mutations : Dict Ref Mutation
+    , subscriptions : Dict Ref Field
     , objects : Dict Ref ObjectDetails
     , scalars : Dict Ref ScalarDetails
     , inputObjects : Dict Ref InputObjectDetails
@@ -400,6 +401,7 @@ type alias Ref =
 type SchemaGrouping
     = Query_Group (Dict String Query)
     | Mutation_Group (Dict String Mutation)
+    | Subscription_Group (Dict String Mutation)
     | Object_Group ObjectDetails
     | Scalar_Group ScalarDetails
     | InputObject_Group InputObjectDetails
@@ -442,11 +444,16 @@ namesDecoder =
                     ]
                 )
             )
+        |> apply
+            (Json.maybe
+                (Json.field "subscriptionType" (Json.field "name" Json.string))
+            )
 
 
 type alias Names =
     { queryName : String
     , mutationName : Maybe String
+    , subscriptionName : Maybe String
     }
 
 
@@ -461,6 +468,9 @@ grabTypes names =
 
                 Mutation_Group mutations ->
                     { schema | mutations = mutations }
+
+                Subscription_Group subscriptions ->
+                    { schema | subscriptions = subscriptions }
 
                 Object_Group object ->
                     { schema
@@ -514,6 +524,9 @@ kinds names =
                     else if Just name_ == names.mutationName then
                         Json.map Mutation_Group decodeOperation |> Json.map Just
 
+                    else if Just name_ == names.subscriptionName then
+                        Json.map Subscription_Group decodeOperation |> Json.map Just
+
                     else
                         filterHidden (Json.map Object_Group decodeObject)
 
@@ -543,6 +556,7 @@ empty : Schema
 empty =
     { queries = Dict.empty
     , mutations = Dict.empty
+    , subscriptions = Dict.empty
     , objects = Dict.empty
     , scalars = Dict.empty
     , inputObjects = Dict.empty

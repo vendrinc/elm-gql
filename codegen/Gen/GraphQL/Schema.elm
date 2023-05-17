@@ -342,6 +342,14 @@ annotation_ =
                         , Type.namedWith [] "Mutation" []
                         ]
                   )
+                , ( "subscriptions"
+                  , Type.namedWith
+                        []
+                        "Dict"
+                        [ Type.namedWith [] "Ref" []
+                        , Type.namedWith [] "Field" []
+                        ]
+                  )
                 , ( "objects"
                   , Type.namedWith
                         []
@@ -456,6 +464,7 @@ make_ :
     , schema :
         { queries : Elm.Expression
         , mutations : Elm.Expression
+        , subscriptions : Elm.Expression
         , objects : Elm.Expression
         , scalars : Elm.Expression
         , inputObjects : Elm.Expression
@@ -697,6 +706,14 @@ make_ =
                                 , Type.namedWith [] "Mutation" []
                                 ]
                           )
+                        , ( "subscriptions"
+                          , Type.namedWith
+                                []
+                                "Dict"
+                                [ Type.namedWith [] "Ref" []
+                                , Type.namedWith [] "Field" []
+                                ]
+                          )
                         , ( "objects"
                           , Type.namedWith
                                 []
@@ -751,6 +768,7 @@ make_ =
                 (Elm.record
                     [ Tuple.pair "queries" schema_args.queries
                     , Tuple.pair "mutations" schema_args.mutations
+                    , Tuple.pair "subscriptions" schema_args.subscriptions
                     , Tuple.pair "objects" schema_args.objects
                     , Tuple.pair "scalars" schema_args.scalars
                     , Tuple.pair "inputObjects" schema_args.inputObjects
