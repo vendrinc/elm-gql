@@ -183,7 +183,9 @@ generateFragmentTypes namespace frag =
                             ghostVariants =
                                 List.map (Elm.variant << GraphQL.Operations.Generate.Decode.unionVariantName) interface.remainingTags
                         in
-                        Elm.alias name interfaceRecord
+                        (Elm.alias name interfaceRecord
+                            |> Elm.expose
+                        )
                             :: (Elm.customType
                                     (name ++ "_Specifics")
                                     (final.variants ++ ghostVariants)
