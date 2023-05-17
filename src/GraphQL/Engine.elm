@@ -1,6 +1,6 @@
 module GraphQL.Engine exposing
     ( batch
-    , Selection, map, map2, withName
+    , Selection, select, map, map2, withName
     , Query, query, queryRisky, queryTask, queryRiskyTask
     , Mutation, mutation, mutationRisky, mutationTask, mutationRiskyTask, Error(..)
     , queryString
@@ -141,6 +141,23 @@ empty =
     , version = 0
     , variables = Dict.empty
     }
+
+
+{-| -}
+select : data -> Selection source data
+select data =
+    Selection
+        (Details Nothing
+            (\context ->
+                { context = context
+                , fields = []
+                , fragments = ""
+                }
+            )
+            (\context ->
+                ( context, Json.Decode.succeed data )
+            )
+        )
 
 
 withName : String -> Selection source data -> Selection source data

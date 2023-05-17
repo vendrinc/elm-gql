@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, bakeToSelection, batch, call_, caseOf_, decodeNullable, encodeInputObjectAsJson, inputObject, inputObjectToFieldList, make_, map, map2, mapRequest, maybeScalarEncode, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, query, queryRisky, queryRiskyTask, queryString, queryTask, send, simulate, values_, versionedAlias, versionedJsonField, versionedName, withName)
+module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, bakeToSelection, batch, call_, caseOf_, decodeNullable, encodeInputObjectAsJson, inputObject, inputObjectToFieldList, make_, map, map2, mapRequest, maybeScalarEncode, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, query, queryRisky, queryRiskyTask, queryString, queryTask, select, send, simulate, values_, versionedAlias, versionedJsonField, versionedName, withName)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, withName, inputObject, addField, addOptionalField, inputObjectToFieldList, encodeInputObjectAsJson, map, map2, bakeToSelection, mapRequest, send, simulate, query, mutation, queryTask, mutationTask, queryRisky, mutationRisky, queryRiskyTask, mutationRiskyTask, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, andMap, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, batch, select, withName, inputObject, addField, addOptionalField, inputObjectToFieldList, encodeInputObjectAsJson, map, map2, bakeToSelection, mapRequest, send, simulate, query, mutation, queryTask, mutationTask, queryRisky, mutationRisky, queryRiskyTask, mutationRiskyTask, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, andMap, moduleName_
 -}
 
 
@@ -1192,6 +1192,31 @@ withName withNameArg withNameArg0 =
         [ Elm.string withNameArg, withNameArg0 ]
 
 
+{-| {-| -}
+
+select: data -> Selection source data
+-}
+select : Elm.Expression -> Elm.Expression
+select selectArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "select"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.var "data" ]
+                        (Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.var "source", Type.var "data" ]
+                        )
+                    )
+            }
+        )
+        [ selectArg ]
+
+
 {-| {-| Batch a number of selection sets together!
 -}
 
@@ -1511,6 +1536,7 @@ call_ :
         -> Elm.Expression
     , inputObject : Elm.Expression -> Elm.Expression
     , withName : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , select : Elm.Expression -> Elm.Expression
     , batch : Elm.Expression -> Elm.Expression
     }
 call_ =
@@ -2427,6 +2453,25 @@ call_ =
                     }
                 )
                 [ withNameArg, withNameArg0 ]
+    , select =
+        \selectArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "select"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.var "data" ]
+                                (Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.var "source", Type.var "data" ]
+                                )
+                            )
+                    }
+                )
+                [ selectArg ]
     , batch =
         \batchArg ->
             Elm.apply
@@ -2485,6 +2530,7 @@ values_ :
     , addField : Elm.Expression
     , inputObject : Elm.Expression
     , withName : Elm.Expression
+    , select : Elm.Expression
     , batch : Elm.Expression
     }
 values_ =
@@ -3145,6 +3191,21 @@ values_ =
                             "Selection"
                             [ Type.var "source", Type.var "data" ]
                         ]
+                        (Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.var "source", Type.var "data" ]
+                        )
+                    )
+            }
+    , select =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "select"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.var "data" ]
                         (Type.namedWith
                             []
                             "Selection"
