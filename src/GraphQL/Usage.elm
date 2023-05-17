@@ -1,6 +1,6 @@
 module GraphQL.Usage exposing
     ( Usages, init
-    , enum, field, inputObject, mutation, query, scalar
+    , enum, field, inputObject, mutation, query, subscription, scalar
     , merge
     , toUnusedReport
     )
@@ -9,7 +9,7 @@ module GraphQL.Usage exposing
 
 @docs Usages, init
 
-@docs enum, field, inputObject, interface, mutation, query, scalar
+@docs enum, field, inputObject, interface, mutation, query, subscription, scalar
 
 @docs merge
 
@@ -43,6 +43,7 @@ type alias FilePath =
 type Type
     = Query String
     | Mutation String
+    | Subscription String
     | Field
         { name : String
         , field : String
@@ -63,6 +64,11 @@ query name =
 mutation : String -> FilePath -> Usages -> Usages
 mutation name =
     used (Mutation name)
+
+
+subscription : String -> FilePath -> Usages -> Usages
+subscription name =
+    used (Subscription name)
 
 
 field : String -> String -> FilePath -> Usages -> Usages
@@ -107,6 +113,7 @@ toUnusedReport : GraphQL.Schema.Schema -> Usages -> GraphQL.Schema.Schema
 toUnusedReport schema (Usages usages) =
     { queries = remove RemoveQuery usages schema.queries
     , mutations = remove RemoveMutation usages schema.mutations
+    , subscriptions = remove RemoveSubscription usages schema.subscriptions
     , objects = removeField usages schema.objects
     , scalars = remove RemoveScalar usages schema.scalars
     , inputObjects = Dict.empty --schema.inputObjects
@@ -119,6 +126,7 @@ toUnusedReport schema (Usages usages) =
 type RemoveType
     = RemoveQuery
     | RemoveMutation
+    | RemoveSubscription
     | RemoveScalar
     | RemoveInputObject
     | RemoveEnum
@@ -142,6 +150,14 @@ removeItem toRemove usage dict =
             case usage.type_ of
                 Mutation mutationName ->
                     Dict.remove mutationName dict
+
+                _ ->
+                    dict
+
+        RemoveSubscription ->
+            case usage.type_ of
+                Subscription subName ->
+                    Dict.remove subName dict
 
                 _ ->
                     dict

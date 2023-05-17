@@ -31,6 +31,7 @@ type alias OperationDetails =
 type OperationType
     = Query
     | Mutation
+    | Subscription
 
 
 type alias VariableDefinition =

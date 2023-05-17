@@ -190,6 +190,9 @@ canonicalizeDefinition refs def result =
                                 AST.Mutation ->
                                     Can.Mutation
 
+                                AST.Subscription ->
+                                    Can.Subscription
+
                         initialNameCache =
                             startCache
                                 |> Cache.getGlobalName
@@ -332,6 +335,9 @@ opTypeName op =
 
         Can.Mutation ->
             "Mutation"
+
+        Can.Subscription ->
+            "Subscription"
 
 
 {-| The AST.Type is the type declared at the top of the document.
@@ -587,6 +593,9 @@ canonicalizeOperation refs op cache selection =
 
                         AST.Mutation ->
                             Dict.get (AST.nameToString field.name) refs.schema.mutations
+
+                        AST.Subscription ->
+                            Dict.get (AST.nameToString field.name) refs.schema.subscriptions
             in
             case matched of
                 Nothing ->
@@ -602,6 +611,9 @@ canonicalizeOperation refs op cache selection =
 
                                     AST.Mutation ->
                                         Cache.mutation (AST.nameToString field.name) refs.paths.path
+
+                                    AST.Subscription ->
+                                        Cache.subscription (AST.nameToString field.name) refs.paths.path
                                )
                         )
                         query

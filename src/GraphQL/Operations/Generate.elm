@@ -47,26 +47,6 @@ generate opts =
         ++ mocks
 
 
-opTypeName : Can.OperationType -> String
-opTypeName op =
-    case op of
-        Can.Query ->
-            "Query"
-
-        Can.Mutation ->
-            "Mutation"
-
-
-opValueName : Can.OperationType -> String
-opValueName op =
-    case op of
-        Can.Query ->
-            "query"
-
-        Can.Mutation ->
-            "mutation"
-
-
 toArgument : Can.VariableDefinition -> GraphQL.Schema.Argument
 toArgument varDef =
     -- if the declared type is required, and the schema is optional
@@ -94,7 +74,7 @@ toArgument varDef =
 
 getOpName : Can.Definition -> String
 getOpName (Can.Operation op) =
-    Maybe.withDefault (opTypeName op.operationType)
+    Maybe.withDefault (Can.operationTypeName op.operationType)
         (Maybe.map
             Can.nameToString
             op.name
@@ -147,7 +127,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
         query =
             case op.variableDefinitions of
                 [] ->
-                    Elm.declaration (opValueName op.operationType)
+                    Elm.declaration (Can.operationName op.operationType)
                         (Engine.call_.bakeToSelection
                             (case Can.operationLabel def of
                                 Nothing ->
@@ -175,7 +155,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                             (Elm.val "decoder_")
                             |> Elm.withType
                                 (Type.namedWith [ namespace.namespace ]
-                                    (opTypeName op.operationType)
+                                    (Can.operationTypeName op.operationType)
                                     [ Type.named [] responseName ]
                                 )
                         )
@@ -223,11 +203,11 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                                 (Elm.val "decoder_")
                                 |> Elm.withType
                                     (Type.namedWith [ namespace.namespace ]
-                                        (opTypeName op.operationType)
+                                        (Can.operationTypeName op.operationType)
                                         [ Type.named [] responseName ]
                                     )
                         )
-                        |> Elm.declaration (opValueName op.operationType)
+                        |> Elm.declaration (Can.operationName op.operationType)
                         |> Elm.exposeWith { exposeConstructor = True, group = Just "query" }
 
         decodersAndStuff =

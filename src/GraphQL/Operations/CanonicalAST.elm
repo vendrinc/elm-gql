@@ -24,6 +24,8 @@ module GraphQL.Operations.CanonicalAST exposing
     , isTypeNameSelection
     , nameToString
     , operationLabel
+    , operationName
+    , operationTypeName
     , toFragmentRendererExpression
     , toRendererExpression
     , toString
@@ -71,6 +73,7 @@ type alias OperationDetails =
 type OperationType
     = Query
     | Mutation
+    | Subscription
 
 
 type alias Directive =
@@ -445,6 +448,22 @@ operationName opType =
 
         Mutation ->
             "mutation"
+
+        Subscription ->
+            "subscription"
+
+
+operationTypeName : OperationType -> String
+operationTypeName opType =
+    case opType of
+        Query ->
+            "Query"
+
+        Mutation ->
+            "Mutation"
+
+        Subscription ->
+            "Subscription"
 
 
 brackets : String -> String

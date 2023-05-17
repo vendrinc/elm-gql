@@ -43,6 +43,9 @@ opTypeName op =
         Can.Mutation ->
             "Mutation"
 
+        Can.Subscription ->
+            "Subscription"
+
 
 getOpName : Can.Definition -> String
 getOpName (Can.Operation op) =

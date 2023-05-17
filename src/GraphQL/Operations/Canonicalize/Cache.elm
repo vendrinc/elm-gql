@@ -6,7 +6,7 @@ module GraphQL.Operations.Canonicalize.Cache exposing
     , dropLevel, dropLevelNotSiblings
     , saveSibling, siblingCollision
     , levelFromField
-    , enum, field, mutation, query, scalar
+    , enum, field, mutation, query, scalar, subscription
     , FilePath
     )
 
@@ -32,7 +32,7 @@ module GraphQL.Operations.Canonicalize.Cache exposing
 
 ## Tracking Usage
 
-@docs enum, field, interface, mutation, query, scalar
+@docs enum, field, interface, mutation, query, scalar, subscription
 
 -}
 
@@ -213,6 +213,11 @@ query name file =
 mutation : String -> FilePath -> Cache -> Cache
 mutation name file =
     onUsage (Usage.mutation name file)
+
+
+subscription : String -> FilePath -> Cache -> Cache
+subscription name file =
+    onUsage (Usage.subscription name file)
 
 
 field : String -> String -> FilePath -> Cache -> Cache
