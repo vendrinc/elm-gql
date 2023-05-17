@@ -95,8 +95,16 @@ generateFiles namespace graphQLSchema =
                                     )
                     in
                     Just <|
-                        Elm.file
-                            (Generate.Common.modules.enumSourceModule namespace enumDefinition.name)
+                        Elm.fileWith (Generate.Common.modules.enumSourceModule namespace enumDefinition.name)
+                            { aliases = []
+                            , docs =
+                                \docs ->
+                                    [ "\nThis file wass generated using `elm-gql`" ++ """
+
+Please avoid modifying directly.
+""" ++ Help.renderStandardComment docs
+                                    ]
+                            }
                             [ enumTypeDeclaration
                                 |> Elm.exposeWith { exposeConstructor = True, group = Nothing }
                             , listOfValues
