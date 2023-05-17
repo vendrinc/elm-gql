@@ -1162,12 +1162,7 @@ canonicalizeField refs object selection existingFieldResult =
 
                                             siblingID =
                                                 { aliasedName = aliased
-                                                , scalar =
-                                                    if GraphQL.Schema.isScalar matched.type_ then
-                                                        Just (GraphQL.Schema.typeToString matched.type_)
-
-                                                    else
-                                                        Nothing
+                                                , selection = field.selection
                                                 }
                                         in
                                         if Cache.siblingCollision siblingID newCache then
@@ -1630,9 +1625,7 @@ canonicalizeObject refs field schemaField varCache obj =
                     let
                         siblingID =
                             { aliasedName = aliasedName
-
-                            -- This is an object, not a scalar
-                            , scalar = Nothing
+                            , selection = field.selection
                             }
                     in
                     if Cache.siblingCollision siblingID global.used then

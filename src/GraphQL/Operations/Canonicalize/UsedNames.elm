@@ -52,7 +52,7 @@ type UsedNames
 
 type alias Sibling =
     { aliasedName : String
-    , scalar : Maybe String
+    , selection : List AST.Selection
     }
 
 
@@ -97,12 +97,7 @@ siblingCollision sib (UsedNames used) =
     List.any
         (\sibAlias ->
             if sibAlias.aliasedName == sib.aliasedName then
-                case ( sibAlias.scalar, sib.scalar ) of
-                    ( Just scalarOneName, Just scalarTwoName ) ->
-                        scalarOneName /= scalarTwoName
-
-                    _ ->
-                        True
+                sibAlias.selection /= sib.selection
 
             else
                 False

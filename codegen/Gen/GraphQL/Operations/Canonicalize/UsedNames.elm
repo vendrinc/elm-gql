@@ -279,7 +279,9 @@ annotation_ =
             []
             (Type.record
                 [ ( "aliasedName", Type.string )
-                , ( "scalar", Type.namedWith [] "Maybe" [ Type.string ] )
+                , ( "selection"
+                  , Type.list (Type.namedWith [ "AST" ] "Selection" [])
+                  )
                 ]
             )
     , usedNames =
@@ -292,7 +294,7 @@ annotation_ =
 
 make_ :
     { sibling :
-        { aliasedName : Elm.Expression, scalar : Elm.Expression }
+        { aliasedName : Elm.Expression, selection : Elm.Expression }
         -> Elm.Expression
     }
 make_ =
@@ -305,15 +307,15 @@ make_ =
                     []
                     (Type.record
                         [ ( "aliasedName", Type.string )
-                        , ( "scalar"
-                          , Type.namedWith [] "Maybe" [ Type.string ]
+                        , ( "selection"
+                          , Type.list (Type.namedWith [ "AST" ] "Selection" [])
                           )
                         ]
                     )
                 )
                 (Elm.record
                     [ Tuple.pair "aliasedName" sibling_args.aliasedName
-                    , Tuple.pair "scalar" sibling_args.scalar
+                    , Tuple.pair "selection" sibling_args.selection
                     ]
                 )
     }
