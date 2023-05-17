@@ -310,6 +310,7 @@ make_ :
     , inlineFragmentSelection : Elm.Expression -> Elm.Expression
     , query : Elm.Expression
     , mutation : Elm.Expression
+    , subscription : Elm.Expression
     , fragment : Elm.Expression -> Elm.Expression
     , operation : Elm.Expression -> Elm.Expression
     }
@@ -733,6 +734,12 @@ make_ =
             , name = "Mutation"
             , annotation = Just (Type.namedWith [] "OperationType" [])
             }
+    , subscription =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "AST" ]
+            , name = "Subscription"
+            , annotation = Just (Type.namedWith [] "OperationType" [])
+            }
     , fragment =
         \ar0 ->
             Elm.apply
@@ -800,6 +807,7 @@ caseOf_ :
         -> { operationTypeTags_5_0
             | query : Elm.Expression
             , mutation : Elm.Expression
+            , subscription : Elm.Expression
         }
         -> Elm.Expression
     , definition :
@@ -927,6 +935,7 @@ caseOf_ =
                 )
                 [ Elm.Case.branch0 "Query" operationTypeTags.query
                 , Elm.Case.branch0 "Mutation" operationTypeTags.mutation
+                , Elm.Case.branch0 "Subscription" operationTypeTags.subscription
                 ]
     , definition =
         \definitionExpression definitionTags ->

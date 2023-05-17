@@ -383,6 +383,7 @@ operationType =
     oneOf
         [ Parser.map (\_ -> AST.Query) <| keyword "query"
         , Parser.map (\_ -> AST.Mutation) <| keyword "mutation"
+        , Parser.map (\_ -> AST.Subscription) <| keyword "subscription"
         ]
 
 

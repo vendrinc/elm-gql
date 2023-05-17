@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.CanonicalAST exposing (annotation_, call_, caseOf_, getAliasedName, getFieldName, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, toFragmentRendererExpression, toRendererExpression, toString, values_)
+module Gen.GraphQL.Operations.CanonicalAST exposing (annotation_, call_, caseOf_, getAliasedName, getFieldName, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, operationName, operationTypeName, toFragmentRendererExpression, toRendererExpression, toString, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, nameToString, toString, operationLabel, getFieldName, toRendererExpression, toFragmentRendererExpression, moduleName_
+@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, nameToString, toString, operationLabel, getFieldName, operationName, operationTypeName, toRendererExpression, toFragmentRendererExpression, moduleName_
 -}
 
 
@@ -66,6 +66,42 @@ toRendererExpression toRendererExpressionArg toRendererExpressionArg0 =
             }
         )
         [ toRendererExpressionArg, toRendererExpressionArg0 ]
+
+
+{-| operationTypeName: OperationType -> String -}
+operationTypeName : Elm.Expression -> Elm.Expression
+operationTypeName operationTypeNameArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "operationTypeName"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "OperationType" [] ]
+                        Type.string
+                    )
+            }
+        )
+        [ operationTypeNameArg ]
+
+
+{-| operationName: OperationType -> String -}
+operationName : Elm.Expression -> Elm.Expression
+operationName operationNameArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "operationName"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "OperationType" [] ]
+                        Type.string
+                    )
+            }
+        )
+        [ operationNameArg ]
 
 
 {-| getFieldName: Field -> String -}
@@ -521,6 +557,7 @@ make_ :
     , frag : Elm.Expression -> Elm.Expression
     , query : Elm.Expression
     , mutation : Elm.Expression
+    , subscription : Elm.Expression
     , operation : Elm.Expression -> Elm.Expression
     }
 make_ =
@@ -1052,6 +1089,12 @@ make_ =
             , name = "Mutation"
             , annotation = Just (Type.namedWith [] "OperationType" [])
             }
+    , subscription =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "Subscription"
+            , annotation = Just (Type.namedWith [] "OperationType" [])
+            }
     , operation =
         \ar0 ->
             Elm.apply
@@ -1107,6 +1150,7 @@ caseOf_ :
         -> { operationTypeTags_5_0
             | query : Elm.Expression
             , mutation : Elm.Expression
+            , subscription : Elm.Expression
         }
         -> Elm.Expression
     , definition :
@@ -1249,6 +1293,7 @@ caseOf_ =
                 )
                 [ Elm.Case.branch0 "Query" operationTypeTags.query
                 , Elm.Case.branch0 "Mutation" operationTypeTags.mutation
+                , Elm.Case.branch0 "Subscription" operationTypeTags.subscription
                 ]
     , definition =
         \definitionExpression definitionTags ->
@@ -1273,6 +1318,8 @@ call_ :
     { toFragmentRendererExpression :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , toRendererExpression : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , operationTypeName : Elm.Expression -> Elm.Expression
+    , operationName : Elm.Expression -> Elm.Expression
     , getFieldName : Elm.Expression -> Elm.Expression
     , operationLabel : Elm.Expression -> Elm.Expression
     , toString : Elm.Expression -> Elm.Expression
@@ -1319,6 +1366,36 @@ call_ =
                     }
                 )
                 [ toRendererExpressionArg, toRendererExpressionArg0 ]
+    , operationTypeName =
+        \operationTypeNameArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "operationTypeName"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "OperationType" [] ]
+                                Type.string
+                            )
+                    }
+                )
+                [ operationTypeNameArg ]
+    , operationName =
+        \operationNameArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+                    , name = "operationName"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "OperationType" [] ]
+                                Type.string
+                            )
+                    }
+                )
+                [ operationNameArg ]
     , getFieldName =
         \getFieldNameArg ->
             Elm.apply
@@ -1415,6 +1492,8 @@ call_ =
 values_ :
     { toFragmentRendererExpression : Elm.Expression
     , toRendererExpression : Elm.Expression
+    , operationTypeName : Elm.Expression
+    , operationName : Elm.Expression
     , getFieldName : Elm.Expression
     , operationLabel : Elm.Expression
     , toString : Elm.Expression
@@ -1448,6 +1527,28 @@ values_ =
                         , Type.namedWith [] "Definition" []
                         ]
                         (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+    , operationTypeName =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "operationTypeName"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "OperationType" [] ]
+                        Type.string
+                    )
+            }
+    , operationName =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
+            , name = "operationName"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "OperationType" [] ]
+                        Type.string
                     )
             }
     , getFieldName =

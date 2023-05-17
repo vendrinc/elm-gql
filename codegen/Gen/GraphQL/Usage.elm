@@ -1,7 +1,7 @@
-module Gen.GraphQL.Usage exposing (annotation_, call_, enum, field, init, inputObject, merge, moduleName_, mutation, query, scalar, toUnusedReport, values_)
+module Gen.GraphQL.Usage exposing (annotation_, call_, enum, field, init, inputObject, merge, moduleName_, mutation, query, scalar, subscription, toUnusedReport, values_)
 
 {-| 
-@docs values_, call_, annotation_, init, query, mutation, field, scalar, enum, inputObject, merge, toUnusedReport, moduleName_
+@docs values_, call_, annotation_, init, query, mutation, subscription, field, scalar, enum, inputObject, merge, toUnusedReport, moduleName_
 -}
 
 
@@ -150,6 +150,27 @@ field fieldArg fieldArg0 fieldArg1 fieldArg2 =
         [ Elm.string fieldArg, Elm.string fieldArg0, fieldArg1, fieldArg2 ]
 
 
+{-| subscription: String -> FilePath -> Usages -> Usages -}
+subscription : String -> Elm.Expression -> Elm.Expression -> Elm.Expression
+subscription subscriptionArg subscriptionArg0 subscriptionArg1 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Usage" ]
+            , name = "subscription"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Usages" []
+                        ]
+                        (Type.namedWith [] "Usages" [])
+                    )
+            }
+        )
+        [ Elm.string subscriptionArg, subscriptionArg0, subscriptionArg1 ]
+
+
 {-| mutation: String -> FilePath -> Usages -> Usages -}
 mutation : String -> Elm.Expression -> Elm.Expression -> Elm.Expression
 mutation mutationArg mutationArg0 mutationArg1 =
@@ -226,6 +247,8 @@ call_ :
         -> Elm.Expression
         -> Elm.Expression
         -> Elm.Expression
+    , subscription :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , mutation :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , query :
@@ -351,6 +374,24 @@ call_ =
                     }
                 )
                 [ fieldArg, fieldArg0, fieldArg1, fieldArg2 ]
+    , subscription =
+        \subscriptionArg subscriptionArg0 subscriptionArg1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Usage" ]
+                    , name = "subscription"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.namedWith [] "FilePath" []
+                                , Type.namedWith [] "Usages" []
+                                ]
+                                (Type.namedWith [] "Usages" [])
+                            )
+                    }
+                )
+                [ subscriptionArg, subscriptionArg0, subscriptionArg1 ]
     , mutation =
         \mutationArg mutationArg0 mutationArg1 ->
             Elm.apply
@@ -397,6 +438,7 @@ values_ :
     , enum : Elm.Expression
     , scalar : Elm.Expression
     , field : Elm.Expression
+    , subscription : Elm.Expression
     , mutation : Elm.Expression
     , query : Elm.Expression
     , init : Elm.Expression
@@ -480,6 +522,20 @@ values_ =
                     (Type.function
                         [ Type.string
                         , Type.string
+                        , Type.namedWith [] "FilePath" []
+                        , Type.namedWith [] "Usages" []
+                        ]
+                        (Type.namedWith [] "Usages" [])
+                    )
+            }
+    , subscription =
+        Elm.value
+            { importFrom = [ "GraphQL", "Usage" ]
+            , name = "subscription"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
                         , Type.namedWith [] "FilePath" []
                         , Type.namedWith [] "Usages" []
                         ]
