@@ -143,6 +143,7 @@ type alias FragmentDetails =
 type alias Fragment =
     { name : Name
     , importFrom : List String
+    , importMockFrom : List String
     , typeCondition : Name
     , usedVariables : List ( String, GraphQL.Schema.Type )
     , fragmentsUsed :

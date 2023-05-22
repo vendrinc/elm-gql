@@ -915,6 +915,7 @@ canonicalizeFragment schema paths frag currentResult =
                                     |> Dict.insert fragName
                                         { name = convertName frag.name
                                         , importFrom = fragPaths.modulePath
+                                        , importMockFrom = fragPaths.mockModulePath
                                         , typeCondition = convertName frag.typeCondition
                                         , usedVariables = fragmentSpecificCache.varTypes
                                         , fragmentsUsed =
@@ -962,6 +963,7 @@ canonicalizeFragment schema paths frag currentResult =
                                             |> Dict.insert (AST.nameToString frag.name)
                                                 { name = convertName frag.name
                                                 , importFrom = fragPaths.modulePath
+                                                , importMockFrom = fragPaths.mockModulePath
                                                 , typeCondition = convertName frag.typeCondition
                                                 , usedVariables = fragmentSpecificCache.varTypes
                                                 , fragmentsUsed = List.map (.fragment >> .name) fragmentSpecificCache.fragmentsUsed
@@ -1007,6 +1009,7 @@ canonicalizeFragment schema paths frag currentResult =
                                                     |> Dict.insert (AST.nameToString frag.name)
                                                         { name = convertName frag.name
                                                         , importFrom = fragPaths.modulePath
+                                                        , importMockFrom = fragPaths.mockModulePath
                                                         , typeCondition = convertName frag.typeCondition
                                                         , usedVariables = fragmentSpecificCache.varTypes
                                                         , fragmentsUsed =

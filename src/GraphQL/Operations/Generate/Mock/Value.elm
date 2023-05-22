@@ -16,8 +16,12 @@ field :
     -> Elm.Expression
 field namespace fullField =
     case fullField of
-        Can.Frag _ ->
-            Elm.unit
+        Can.Frag fragment ->
+            Elm.value
+                { importFrom = fragment.fragment.importMockFrom
+                , name = Utils.String.formatValue (Can.nameToString fragment.fragment.name)
+                , annotation = Nothing
+                }
 
         Can.Field fieldDetails ->
             case fieldDetails.selectsOnlyFragment of

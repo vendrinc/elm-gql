@@ -306,6 +306,7 @@ annotation_ =
             (Type.record
                 [ ( "name", Type.namedWith [] "Name" [] )
                 , ( "importFrom", Type.list Type.string )
+                , ( "importMockFrom", Type.list Type.string )
                 , ( "typeCondition", Type.namedWith [] "Name" [] )
                 , ( "usedVariables"
                   , Type.list
@@ -496,6 +497,7 @@ make_ :
     , fragment :
         { name : Elm.Expression
         , importFrom : Elm.Expression
+        , importMockFrom : Elm.Expression
         , typeCondition : Elm.Expression
         , usedVariables : Elm.Expression
         , fragmentsUsed : Elm.Expression
@@ -695,6 +697,7 @@ make_ =
                     (Type.record
                         [ ( "name", Type.namedWith [] "Name" [] )
                         , ( "importFrom", Type.list Type.string )
+                        , ( "importMockFrom", Type.list Type.string )
                         , ( "typeCondition", Type.namedWith [] "Name" [] )
                         , ( "usedVariables"
                           , Type.list
@@ -722,6 +725,7 @@ make_ =
                 (Elm.record
                     [ Tuple.pair "name" fragment_args.name
                     , Tuple.pair "importFrom" fragment_args.importFrom
+                    , Tuple.pair "importMockFrom" fragment_args.importMockFrom
                     , Tuple.pair "typeCondition" fragment_args.typeCondition
                     , Tuple.pair "usedVariables" fragment_args.usedVariables
                     , Tuple.pair "fragmentsUsed" fragment_args.fragmentsUsed
