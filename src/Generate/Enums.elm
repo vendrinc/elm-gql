@@ -7,6 +7,7 @@ import Elm.Case
 import Gen.Json.Decode as Decode
 import Gen.Json.Encode as Encode
 import Generate.Common
+import GraphQL.Operations.Generate.Help as Help
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
 
