@@ -195,40 +195,54 @@ unionVars namespace unionCase gathered =
 
         fields ->
             let
-                record =
-                    toAliasedFields namespace [] fields
+                ( detailsName, additionalAliases ) =
+                    case fields of
+                        [ Can.Frag fragment ] ->
+                            ( Type.named
+                                fragment.fragment.importFrom
+                                (Can.nameToString fragment.fragment.name)
+                            , []
+                            )
 
-                variantName =
-                    Can.nameToString unionCase.globalTagName
-
-                detailsName =
-                    Can.nameToString unionCase.globalDetailsAlias
-
-                recordAlias =
-                    Elm.alias detailsName record
-                        |> Elm.exposeWith
-                            { exposeConstructor = True
-                            , group = Just "necessary"
-                            }
-
-                -- aliases for subselections
-                subfieldAliases =
-                    generateTypesForFields (genAliasedTypes namespace)
-                        []
-                        fields
+                        _ ->
+                            ( Type.named [] (Can.nameToString unionCase.globalDetailsAlias)
+                            , generateAliasesForSelection namespace
+                                (Can.nameToString unionCase.globalDetailsAlias)
+                                fields
+                            )
             in
             { variants =
-                Elm.variantWith
-                    variantName
-                    [ Type.named [] detailsName
+                Elm.variantWith (Can.nameToString unionCase.globalTagName)
+                    [ detailsName
                     ]
                     :: gathered.variants
             , declarations =
                 Elm.comment (Can.nameToString unionCase.tag)
-                    :: recordAlias
-                    :: subfieldAliases
+                    :: additionalAliases
                     ++ gathered.declarations
             }
+
+
+generateAliasesForSelection : Namespace -> String -> List Can.Field -> List Elm.Declaration
+generateAliasesForSelection namespace detailsName fields =
+    let
+        record =
+            toAliasedFields namespace [] fields
+
+        recordAlias =
+            Elm.alias detailsName record
+                |> Elm.exposeWith
+                    { exposeConstructor = True
+                    , group = Just "necessary"
+                    }
+
+        -- aliases for subselections
+        subfieldAliases =
+            generateTypesForFields (genAliasedTypes namespace)
+                []
+                fields
+    in
+    recordAlias :: subfieldAliases
 
 
 {-| -}
