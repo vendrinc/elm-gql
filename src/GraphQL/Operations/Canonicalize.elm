@@ -910,7 +910,7 @@ canonicalizeFragment schema paths frag currentResult =
                     in
                     case selectionResult of
                         CanSuccess fragmentSpecificCache selection ->
-                            CanSuccess fragmentSpecificCache
+                            CanSuccess (Cache.finishedDefinition fragmentSpecificCache)
                                 (existingFrags
                                     |> Dict.insert fragName
                                         { name = convertName frag.name
