@@ -872,14 +872,19 @@ canonicalizeFragment schema paths frag currentResult =
         CanError errMsg ->
             CanError errMsg
 
-        CanSuccess cache existingFrags ->
+        CanSuccess initialCache existingFrags ->
             let
                 fragName =
-                    AST.nameToString frag.name
+                    initialCache
+                        |> Cache.getGlobalName
+                            (AST.nameToString frag.name)
+
+                cache =
+                    fragName.used
 
                 fragPaths =
                     Generate.Path.fragment
-                        { name = fragName
+                        { name = fragName.globalName
                         , path = paths.path
                         , gqlDir = paths.gqlDir
                         }
@@ -912,7 +917,7 @@ canonicalizeFragment schema paths frag currentResult =
                         CanSuccess fragmentSpecificCache selection ->
                             CanSuccess (Cache.finishedDefinition fragmentSpecificCache)
                                 (existingFrags
-                                    |> Dict.insert fragName
+                                    |> Dict.insert fragName.globalName
                                         { name = convertName frag.name
                                         , importFrom = fragPaths.modulePath
                                         , importMockFrom = fragPaths.mockModulePath
