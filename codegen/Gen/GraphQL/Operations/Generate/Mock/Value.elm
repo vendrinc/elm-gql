@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Generate.Mock.Value exposing (builders, call_, field, moduleName_, values_, variantBuilders)
 
 {-| 
-@docs values_, call_, field, builders, variantBuilders, moduleName_
+@docs moduleName_, variantBuilders, builders, field, call_, values_
 -}
 
 
@@ -312,5 +312,3 @@ values_ =
                     )
             }
     }
-
-

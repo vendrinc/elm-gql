@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Generate.Help exposing (call_, moduleName_, renderStandardComment, replaceFilePath, values_)
 
 {-| 
-@docs values_, call_, replaceFilePath, renderStandardComment, moduleName_
+@docs moduleName_, renderStandardComment, replaceFilePath, call_, values_
 -}
 
 
@@ -168,5 +168,3 @@ values_ =
                     )
             }
     }
-
-

@@ -1,7 +1,7 @@
 module Gen.Result exposing (andThen, annotation_, call_, caseOf_, fromMaybe, make_, map, map2, map3, map4, map5, mapError, moduleName_, toMaybe, values_, withDefault)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, mapError, fromMaybe, toMaybe, withDefault, andThen, map5, map4, map3, map2, map, moduleName_
+@docs moduleName_, map, map2, map3, map4, map5, andThen, withDefault, toMaybe, fromMaybe, mapError, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -1229,5 +1229,3 @@ values_ =
                     )
             }
     }
-
-

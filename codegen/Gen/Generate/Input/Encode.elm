@@ -1,7 +1,7 @@
 module Gen.Generate.Input.Encode exposing (annotation_, call_, fullRecordToInputObject, make_, moduleName_, toInputObject, toInputRecordAlias, toNulls, toOneOfHelper, toOneOfNulls, toOptionHelpers, values_)
 
 {-| 
-@docs values_, call_, make_, annotation_, fullRecordToInputObject, toInputRecordAlias, toInputObject, toOptionHelpers, toOneOfHelper, toOneOfNulls, toNulls, moduleName_
+@docs moduleName_, toNulls, toOneOfNulls, toOneOfHelper, toOptionHelpers, toInputObject, toInputRecordAlias, fullRecordToInputObject, annotation_, make_, call_, values_
 -}
 
 
@@ -844,5 +844,3 @@ values_ =
                     )
             }
     }
-
-

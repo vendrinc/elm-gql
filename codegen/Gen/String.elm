@@ -1,7 +1,7 @@
 module Gen.String exposing (all, annotation_, any, append, call_, concat, cons, contains, dropLeft, dropRight, endsWith, filter, foldl, foldr, fromChar, fromFloat, fromInt, fromList, indexes, indices, isEmpty, join, left, length, lines, map, moduleName_, pad, padLeft, padRight, repeat, replace, reverse, right, slice, split, startsWith, toFloat, toInt, toList, toLower, toUpper, trim, trimLeft, trimRight, uncons, values_, words)
 
 {-| 
-@docs values_, call_, annotation_, all, any, foldr, foldl, filter, map, trimRight, trimLeft, trim, padRight, padLeft, pad, toLower, toUpper, fromList, toList, uncons, cons, fromChar, fromFloat, toFloat, fromInt, toInt, indices, indexes, endsWith, startsWith, contains, dropRight, dropLeft, right, left, slice, lines, words, join, split, concat, append, replace, repeat, reverse, length, isEmpty, moduleName_
+@docs moduleName_, isEmpty, length, reverse, repeat, replace, append, concat, split, join, words, lines, slice, left, right, dropLeft, dropRight, contains, startsWith, endsWith, indexes, indices, toInt, fromInt, toFloat, fromFloat, fromChar, cons, uncons, toList, fromList, toUpper, toLower, pad, padLeft, padRight, trim, trimLeft, trimRight, map, filter, foldl, foldr, any, all, annotation_, call_, values_
 -}
 
 
@@ -2096,5 +2096,3 @@ values_ =
                     )
             }
     }
-
-

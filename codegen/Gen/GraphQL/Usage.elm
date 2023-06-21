@@ -1,7 +1,7 @@
 module Gen.GraphQL.Usage exposing (annotation_, call_, enum, field, init, inputObject, merge, moduleName_, mutation, query, scalar, subscription, toUnusedReport, values_)
 
 {-| 
-@docs values_, call_, annotation_, init, query, mutation, subscription, field, scalar, enum, inputObject, merge, toUnusedReport, moduleName_
+@docs moduleName_, toUnusedReport, merge, inputObject, enum, scalar, field, subscription, mutation, query, init, annotation_, call_, values_
 -}
 
 
@@ -577,5 +577,3 @@ values_ =
             , annotation = Just (Type.namedWith [] "Usages" [])
             }
     }
-
-

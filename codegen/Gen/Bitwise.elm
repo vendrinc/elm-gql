@@ -1,7 +1,7 @@
 module Gen.Bitwise exposing (and, call_, complement, moduleName_, or, shiftLeftBy, shiftRightBy, shiftRightZfBy, values_, xor)
 
 {-| 
-@docs values_, call_, shiftRightZfBy, shiftRightBy, shiftLeftBy, complement, xor, or, and, moduleName_
+@docs moduleName_, and, or, xor, complement, shiftLeftBy, shiftRightBy, shiftRightZfBy, call_, values_
 -}
 
 
@@ -294,5 +294,3 @@ values_ =
             , annotation = Just (Type.function [ Type.int, Type.int ] Type.int)
             }
     }
-
-

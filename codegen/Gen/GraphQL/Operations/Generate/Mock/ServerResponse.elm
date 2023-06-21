@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Generate.Mock.ServerResponse exposing (call_, moduleName_, toJsonEncoder, values_)
 
 {-| 
-@docs values_, call_, toJsonEncoder, moduleName_
+@docs moduleName_, toJsonEncoder, call_, values_
 -}
 
 
@@ -140,5 +140,3 @@ values_ =
                     )
             }
     }
-
-

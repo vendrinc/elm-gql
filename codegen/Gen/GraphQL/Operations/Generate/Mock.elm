@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Generate.Mock exposing (call_, generate, moduleName_, values_)
 
 {-| 
-@docs values_, call_, generate, moduleName_
+@docs moduleName_, generate, call_, values_
 -}
 
 
@@ -142,5 +142,3 @@ values_ =
                     )
             }
     }
-
-

@@ -1,7 +1,7 @@
 module Gen.Task exposing (andThen, annotation_, attempt, call_, fail, map, map2, map3, map4, map5, mapError, moduleName_, onError, perform, sequence, succeed, values_)
 
 {-| 
-@docs values_, call_, annotation_, mapError, onError, map5, map4, map3, map2, map, sequence, fail, succeed, andThen, attempt, perform, moduleName_
+@docs moduleName_, perform, attempt, andThen, succeed, fail, sequence, map, map2, map3, map4, map5, onError, mapError, annotation_, call_, values_
 -}
 
 
@@ -1470,5 +1470,3 @@ values_ =
                     )
             }
     }
-
-

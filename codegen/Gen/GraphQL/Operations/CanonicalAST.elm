@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.CanonicalAST exposing (annotation_, call_, caseOf_, getAliasedName, getFieldName, isTypeNameSelection, make_, moduleName_, nameToString, operationLabel, operationName, operationTypeName, toFragmentRendererExpression, toRendererExpression, toString, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isTypeNameSelection, getAliasedName, nameToString, toString, operationLabel, getFieldName, operationName, operationTypeName, toRendererExpression, toFragmentRendererExpression, moduleName_
+@docs moduleName_, toFragmentRendererExpression, toRendererExpression, operationTypeName, operationName, getFieldName, operationLabel, toString, nameToString, getAliasedName, isTypeNameSelection, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -1611,5 +1611,3 @@ values_ =
                 Just (Type.function [ Type.namedWith [] "Field" [] ] Type.bool)
             }
     }
-
-

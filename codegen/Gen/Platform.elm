@@ -1,7 +1,7 @@
 module Gen.Platform exposing (annotation_, call_, moduleName_, sendToApp, sendToSelf, values_, worker)
 
 {-| 
-@docs values_, call_, annotation_, sendToSelf, sendToApp, worker, moduleName_
+@docs moduleName_, worker, sendToApp, sendToSelf, annotation_, call_, values_
 -}
 
 
@@ -419,5 +419,3 @@ values_ =
                     )
             }
     }
-
-

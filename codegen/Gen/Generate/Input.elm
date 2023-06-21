@@ -1,7 +1,7 @@
 module Gen.Generate.Input exposing (annotation_, call_, caseOf_, decodeWrapper, make_, moduleName_, splitRequired, values_, wrapElmType, wrapExpression)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, wrapElmType, wrapExpression, splitRequired, decodeWrapper, moduleName_
+@docs moduleName_, decodeWrapper, splitRequired, wrapExpression, wrapElmType, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -389,5 +389,3 @@ values_ =
                     )
             }
     }
-
-

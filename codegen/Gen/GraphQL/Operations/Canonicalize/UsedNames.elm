@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Canonicalize.UsedNames exposing (addLevel, addLevelKeepSiblingStack, annotation_, call_, dropLevel, dropLevelNotSiblings, getGlobalName, init, levelFromField, make_, moduleName_, saveSibling, siblingCollision, values_)
 
 {-| 
-@docs values_, call_, make_, annotation_, init, saveSibling, siblingCollision, getGlobalName, levelFromField, addLevel, addLevelKeepSiblingStack, dropLevelNotSiblings, dropLevel, moduleName_
+@docs moduleName_, dropLevel, dropLevelNotSiblings, addLevelKeepSiblingStack, addLevel, levelFromField, getGlobalName, siblingCollision, saveSibling, init, annotation_, make_, call_, values_
 -}
 
 
@@ -673,5 +673,3 @@ values_ =
                     )
             }
     }
-
-

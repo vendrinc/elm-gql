@@ -1,7 +1,7 @@
 module Gen.Generate.Scalar exposing (call_, encode, generate, moduleName_, type_, values_)
 
 {-| 
-@docs values_, call_, type_, encode, generate, moduleName_
+@docs moduleName_, generate, encode, type_, call_, values_
 -}
 
 
@@ -207,5 +207,3 @@ values_ =
                     )
             }
     }
-
-

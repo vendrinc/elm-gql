@@ -1,7 +1,7 @@
 module Gen.Maybe exposing (andThen, annotation_, call_, caseOf_, make_, map, map2, map3, map4, map5, moduleName_, values_, withDefault)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, andThen, map5, map4, map3, map2, map, withDefault, moduleName_
+@docs moduleName_, withDefault, map, map2, map3, map4, map5, andThen, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -726,5 +726,3 @@ values_ =
                     )
             }
     }
-
-

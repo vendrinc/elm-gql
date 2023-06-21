@@ -1,7 +1,7 @@
 module Gen.Generate exposing (annotation_, main, make_, moduleName_, values_)
 
 {-| 
-@docs values_, make_, annotation_, main, moduleName_
+@docs moduleName_, main, annotation_, make_, values_
 -}
 
 
@@ -105,5 +105,3 @@ values_ =
                     )
             }
     }
-
-

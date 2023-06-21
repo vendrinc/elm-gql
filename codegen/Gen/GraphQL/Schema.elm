@@ -1,7 +1,7 @@
 module Gen.GraphQL.Schema exposing (annotation_, call_, caseOf_, decoder, empty, getInner, getJsonValue, getWrap, isScalar, kindToString, make_, mockScalar, moduleName_, toString, typeToElmString, typeToString, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, isScalar, getWrap, getInner, mockScalar, typeToElmString, typeToString, decoder, empty, getJsonValue, kindToString, toString, moduleName_
+@docs moduleName_, toString, kindToString, getJsonValue, empty, decoder, typeToString, typeToElmString, mockScalar, getInner, getWrap, isScalar, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -1372,5 +1372,3 @@ values_ =
                 Just (Type.function [ Type.namedWith [] "Type" [] ] Type.bool)
             }
     }
-
-

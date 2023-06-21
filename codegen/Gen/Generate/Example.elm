@@ -1,7 +1,7 @@
 module Gen.Generate.Example exposing (call_, example, moduleName_, operation, values_)
 
 {-| 
-@docs values_, call_, operation, example, moduleName_
+@docs moduleName_, example, operation, call_, values_
 -}
 
 
@@ -286,5 +286,3 @@ values_ =
                     )
             }
     }
-
-

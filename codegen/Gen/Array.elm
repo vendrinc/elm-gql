@@ -1,7 +1,7 @@
 module Gen.Array exposing (annotation_, append, call_, empty, filter, foldl, foldr, fromList, get, indexedMap, initialize, isEmpty, length, map, moduleName_, push, repeat, set, slice, toIndexedList, toList, values_)
 
 {-| 
-@docs values_, call_, annotation_, filter, foldr, foldl, indexedMap, map, toIndexedList, toList, slice, append, push, set, get, length, isEmpty, fromList, repeat, initialize, empty, moduleName_
+@docs moduleName_, empty, initialize, repeat, fromList, isEmpty, length, get, set, push, append, slice, toList, toIndexedList, map, indexedMap, foldl, foldr, filter, annotation_, call_, values_
 -}
 
 
@@ -1163,5 +1163,3 @@ values_ =
                     )
             }
     }
-
-

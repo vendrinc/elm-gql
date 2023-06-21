@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Generate.Decode exposing (annotation_, call_, decodeFields, decodeInterface, decodeUnion, initIndex, make_, moduleName_, removeTypename, values_)
 
 {-| 
-@docs values_, call_, make_, annotation_, initIndex, decodeFields, decodeInterface, decodeUnion, removeTypename, moduleName_
+@docs moduleName_, removeTypename, decodeUnion, decodeInterface, decodeFields, initIndex, annotation_, make_, call_, values_
 -}
 
 
@@ -401,5 +401,3 @@ values_ =
             , annotation = Just (Type.namedWith [] "Index" [])
             }
     }
-
-

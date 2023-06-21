@@ -1,7 +1,7 @@
 module Gen.Utils.String exposing (call_, formatScalar, formatTypename, formatValue, moduleName_, values_)
 
 {-| 
-@docs values_, call_, formatTypename, formatScalar, formatValue, moduleName_
+@docs moduleName_, formatValue, formatScalar, formatTypename, call_, values_
 -}
 
 
@@ -141,5 +141,3 @@ values_ =
             , annotation = Just (Type.function [ Type.string ] Type.string)
             }
     }
-
-

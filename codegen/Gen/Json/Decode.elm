@@ -1,7 +1,7 @@
 module Gen.Json.Decode exposing (andThen, annotation_, array, at, bool, call_, caseOf_, decodeString, decodeValue, dict, errorToString, fail, field, float, index, int, keyValuePairs, lazy, list, make_, map, map2, map3, map4, map5, map6, map7, map8, maybe, moduleName_, null, nullable, oneOf, oneOrMore, string, succeed, value, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, andThen, fail, succeed, null, value, lazy, map8, map7, map6, map5, map4, map3, map2, map, errorToString, decodeValue, decodeString, oneOf, maybe, index, at, field, oneOrMore, keyValuePairs, dict, array, list, nullable, float, int, bool, string, moduleName_
+@docs moduleName_, string, bool, int, float, nullable, list, array, dict, keyValuePairs, oneOrMore, field, at, index, maybe, oneOf, decodeString, decodeValue, errorToString, map, map2, map3, map4, map5, map6, map7, map8, lazy, value, null, succeed, fail, andThen, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -3471,5 +3471,3 @@ values_ =
                     )
             }
     }
-
-

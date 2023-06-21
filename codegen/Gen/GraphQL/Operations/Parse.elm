@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Parse exposing (call_, errorToString, moduleName_, parse, values_)
 
 {-| 
-@docs values_, call_, parse, errorToString, moduleName_
+@docs moduleName_, errorToString, parse, call_, values_
 -}
 
 
@@ -141,5 +141,3 @@ values_ =
                     )
             }
     }
-
-

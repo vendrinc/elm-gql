@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Generate.Types exposing (call_, enumType, generate, interfaceVariants, moduleName_, toAliasedFields, unionVars, values_)
 
 {-| 
-@docs values_, call_, generate, unionVars, interfaceVariants, toAliasedFields, enumType, moduleName_
+@docs moduleName_, enumType, toAliasedFields, interfaceVariants, unionVars, generate, call_, values_
 -}
 
 
@@ -518,5 +518,3 @@ values_ =
                     )
             }
     }
-
-

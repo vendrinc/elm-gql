@@ -1,7 +1,7 @@
 module Gen.Generate.Path exposing (annotation_, call_, fragment, make_, moduleName_, operation, values_)
 
 {-| 
-@docs values_, call_, make_, annotation_, fragment, operation, moduleName_
+@docs moduleName_, operation, fragment, annotation_, make_, call_, values_
 -}
 
 
@@ -241,5 +241,3 @@ values_ =
                     )
             }
     }
-
-

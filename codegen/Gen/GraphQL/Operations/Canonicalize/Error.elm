@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Canonicalize.Error exposing (annotation_, call_, caseOf_, cyan, error, make_, moduleName_, toString, todo, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, todo, error, cyan, toString, moduleName_
+@docs moduleName_, toString, cyan, error, todo, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -1003,5 +1003,3 @@ values_ =
                     )
             }
     }
-
-

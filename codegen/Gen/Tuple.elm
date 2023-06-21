@@ -1,7 +1,7 @@
 module Gen.Tuple exposing (call_, first, mapBoth, mapFirst, mapSecond, moduleName_, pair, second, values_)
 
 {-| 
-@docs values_, call_, mapBoth, mapSecond, mapFirst, second, first, pair, moduleName_
+@docs moduleName_, pair, first, second, mapFirst, mapSecond, mapBoth, call_, values_
 -}
 
 
@@ -375,5 +375,3 @@ values_ =
                     )
             }
     }
-
-

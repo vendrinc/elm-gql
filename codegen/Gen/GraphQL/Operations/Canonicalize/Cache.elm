@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Canonicalize.Cache exposing (addFragment, addLevel, addLevelKeepSiblingStack, addVars, annotation_, call_, dropLevel, dropLevelNotSiblings, enum, field, finishedDefinition, getGlobalName, init, levelFromField, make_, moduleName_, mutation, query, saveSibling, scalar, siblingCollision, subscription, values_)
 
 {-| 
-@docs values_, call_, make_, annotation_, init, finishedDefinition, addVars, addFragment, addLevelKeepSiblingStack, addLevel, dropLevel, dropLevelNotSiblings, getGlobalName, saveSibling, siblingCollision, levelFromField, query, mutation, subscription, field, scalar, enum, moduleName_
+@docs moduleName_, enum, scalar, field, subscription, mutation, query, levelFromField, siblingCollision, saveSibling, getGlobalName, dropLevelNotSiblings, dropLevel, addLevel, addLevelKeepSiblingStack, addFragment, addVars, finishedDefinition, init, annotation_, make_, call_, values_
 -}
 
 
@@ -1229,5 +1229,3 @@ values_ =
                     )
             }
     }
-
-

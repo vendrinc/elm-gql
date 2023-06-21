@@ -1,7 +1,7 @@
 module Gen.Generate.Enums exposing (call_, generateFiles, moduleName_, values_)
 
 {-| 
-@docs values_, call_, generateFiles, moduleName_
+@docs moduleName_, generateFiles, call_, values_
 -}
 
 
@@ -76,5 +76,3 @@ values_ =
                     )
             }
     }
-
-

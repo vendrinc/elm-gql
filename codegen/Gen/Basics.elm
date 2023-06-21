@@ -1,7 +1,7 @@
 module Gen.Basics exposing (abs, acos, always, annotation_, asin, atan, atan2, call_, caseOf_, ceiling, clamp, compare, cos, degrees, e, floor, fromPolar, identity, isInfinite, isNaN, logBase, make_, max, min, modBy, moduleName_, negate, never, not, pi, radians, remainderBy, round, sin, sqrt, tan, toFloat, toPolar, truncate, turns, values_, xor)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, never, always, identity, isInfinite, isNaN, fromPolar, toPolar, atan2, atan, asin, acos, tan, sin, cos, pi, turns, radians, degrees, e, logBase, sqrt, clamp, abs, negate, remainderBy, modBy, xor, not, compare, min, max, truncate, ceiling, floor, round, toFloat, moduleName_
+@docs moduleName_, toFloat, round, floor, ceiling, truncate, max, min, compare, not, xor, modBy, remainderBy, negate, abs, clamp, sqrt, logBase, e, degrees, radians, turns, pi, cos, sin, tan, acos, asin, atan, atan2, toPolar, fromPolar, isNaN, isInfinite, identity, always, never, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -1676,5 +1676,3 @@ values_ =
                     )
             }
     }
-
-

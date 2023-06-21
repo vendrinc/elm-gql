@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.AST exposing (annotation_, call_, caseOf_, fragmentCount, getAliasedName, make_, moduleName_, nameToString, typeToGqlString, valueToString, values_)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, getAliasedName, nameToString, valueToString, typeToGqlString, fragmentCount, moduleName_
+@docs moduleName_, fragmentCount, typeToGqlString, valueToString, nameToString, getAliasedName, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -1101,5 +1101,3 @@ values_ =
                     )
             }
     }
-
-

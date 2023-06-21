@@ -1,7 +1,7 @@
 module Gen.GraphQL.Operations.Canonicalize exposing (annotation_, call_, canonicalize, make_, moduleName_, values_)
 
 {-| 
-@docs values_, call_, make_, annotation_, canonicalize, moduleName_
+@docs moduleName_, canonicalize, annotation_, make_, call_, values_
 -}
 
 
@@ -146,5 +146,3 @@ values_ =
                     )
             }
     }
-
-

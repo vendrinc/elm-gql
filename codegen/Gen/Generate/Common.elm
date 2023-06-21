@@ -10,5 +10,3 @@ module Gen.Generate.Common exposing (moduleName_)
 moduleName_ : List String
 moduleName_ =
     [ "Generate", "Common" ]
-
-

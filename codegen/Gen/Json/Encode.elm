@@ -1,7 +1,7 @@
 module Gen.Json.Encode exposing (annotation_, array, bool, call_, dict, encode, float, int, list, moduleName_, null, object, set, string, values_)
 
 {-| 
-@docs values_, call_, annotation_, dict, object, set, array, list, null, bool, float, int, string, encode, moduleName_
+@docs moduleName_, encode, string, int, float, bool, null, list, array, set, object, dict, annotation_, call_, values_
 -}
 
 
@@ -739,5 +739,3 @@ values_ =
                     )
             }
     }
-
-

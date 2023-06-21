@@ -1,7 +1,7 @@
 module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, bakeToSelection, batch, call_, caseOf_, decodeNullable, encodeInputObjectAsJson, inputObject, inputObjectToFieldList, make_, map, map2, mapRequest, maybeScalarEncode, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, query, queryRisky, queryRiskyTask, queryString, queryTask, select, send, simulate, subscription, values_, versionedAlias, versionedJsonField, versionedName, withName)
 
 {-| 
-@docs values_, call_, caseOf_, make_, annotation_, batch, select, withName, inputObject, addField, addOptionalField, inputObjectToFieldList, encodeInputObjectAsJson, map, map2, bakeToSelection, mapRequest, send, simulate, subscription, query, mutation, queryTask, mutationTask, queryRisky, mutationRisky, queryRiskyTask, mutationRiskyTask, queryString, maybeScalarEncode, decodeNullable, versionedJsonField, versionedName, versionedAlias, andMap, moduleName_
+@docs moduleName_, andMap, versionedAlias, versionedName, versionedJsonField, decodeNullable, maybeScalarEncode, queryString, mutationRiskyTask, queryRiskyTask, mutationRisky, queryRisky, mutationTask, queryTask, mutation, query, subscription, simulate, send, mapRequest, bakeToSelection, map2, map, encodeInputObjectAsJson, inputObjectToFieldList, addOptionalField, addField, inputObject, withName, select, batch, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -3342,5 +3342,3 @@ values_ =
                     )
             }
     }
-
-

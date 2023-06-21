@@ -1,7 +1,7 @@
 module Gen.Platform.Sub exposing (annotation_, batch, call_, map, moduleName_, none, values_)
 
 {-| 
-@docs values_, call_, annotation_, map, batch, none, moduleName_
+@docs moduleName_, none, batch, map, annotation_, call_, values_
 -}
 
 
@@ -167,5 +167,3 @@ values_ =
                     )
             }
     }
-
-

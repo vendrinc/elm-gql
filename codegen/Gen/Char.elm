@@ -1,7 +1,7 @@
 module Gen.Char exposing (annotation_, call_, fromCode, isAlpha, isAlphaNum, isDigit, isHexDigit, isLower, isOctDigit, isUpper, moduleName_, toCode, toLocaleLower, toLocaleUpper, toLower, toUpper, values_)
 
 {-| 
-@docs values_, call_, annotation_, fromCode, toCode, toLocaleLower, toLocaleUpper, toLower, toUpper, isHexDigit, isOctDigit, isDigit, isAlphaNum, isAlpha, isLower, isUpper, moduleName_
+@docs moduleName_, isUpper, isLower, isAlpha, isAlphaNum, isDigit, isOctDigit, isHexDigit, toUpper, toLower, toLocaleUpper, toLocaleLower, toCode, fromCode, annotation_, call_, values_
 -}
 
 
@@ -550,5 +550,3 @@ values_ =
             , annotation = Just (Type.function [ Type.int ] Type.char)
             }
     }
-
-

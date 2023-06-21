@@ -1,7 +1,7 @@
 module Gen.Dict exposing (annotation_, call_, diff, empty, filter, foldl, foldr, fromList, get, insert, intersect, isEmpty, keys, map, member, merge, moduleName_, partition, remove, singleton, size, toList, union, update, values, values_)
 
 {-| 
-@docs values_, call_, annotation_, merge, diff, intersect, union, partition, filter, foldr, foldl, map, fromList, toList, values, keys, size, get, member, isEmpty, remove, update, insert, singleton, empty, moduleName_
+@docs moduleName_, empty, singleton, insert, update, remove, isEmpty, member, get, size, keys, values, toList, fromList, map, foldl, foldr, filter, partition, union, intersect, diff, merge, annotation_, call_, values_
 -}
 
 
@@ -1881,5 +1881,3 @@ values_ =
                     )
             }
     }
-
-
