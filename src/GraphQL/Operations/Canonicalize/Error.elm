@@ -363,7 +363,7 @@ toString (Error details) =
                                 [ "I found a usage of a fragment named " ++ cyan deets.found ++ ", but I don't see any fragments defined in this document!"
                                 , "You could add one by adding this if you want."
                                 , block
-                                    [ cyan "fragment" ++ " on " ++ yellow deets.object ++ " {"
+                                    [ cyan "fragment" ++ cyan deets.found ++ " on " ++ yellow deets.object ++ " {"
                                     , "    # select some fields here!"
                                     , "}"
                                     ]
