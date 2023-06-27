@@ -140,7 +140,7 @@ getFragments schema def result =
                         Nothing ->
                             frags
                                 |> Dict.insert
-                                    (AST.nameToString frag.name)
+                                    name
                                     frag
                                 |> Ok
 
@@ -917,7 +917,7 @@ canonicalizeFragment schema paths frag currentResult =
                         CanSuccess fragmentSpecificCache selection ->
                             CanSuccess (Cache.finishedDefinition fragmentSpecificCache)
                                 (existingFrags
-                                    |> Dict.insert fragName.globalName
+                                    |> Dict.insert (AST.nameToString frag.name)
                                         { name = convertName frag.name
                                         , importFrom = fragPaths.modulePath
                                         , importMockFrom = fragPaths.mockModulePath
