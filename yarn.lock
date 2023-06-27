@@ -481,10 +481,10 @@ ee-first@1.1.1:
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
   integrity sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==
 
-elm-codegen@^0.4.1:
-  version "0.4.1"
-  resolved "https://registry.yarnpkg.com/elm-codegen/-/elm-codegen-0.4.1.tgz#67acbd56c43178c0815bfdc238cc0ba0c2f73f9f"
-  integrity sha512-UoHR0ELwx1NbiX308DF+PxbZAWqB0hj1t9GT4gwyRJdb47apAHmX8+qZlQ9u7PeMWfnLYinDO0ysDoPGP+nvRA==
+elm-codegen@^0.4.4:
+  version "0.4.4"
+  resolved "https://registry.yarnpkg.com/elm-codegen/-/elm-codegen-0.4.4.tgz#99494fb6857b590e76468c267c171d3d2cac0f46"
+  integrity sha512-bXm+odZn9g0BJsh9DH4LHzFuIu8yTlUJpi5yYELe8Zjspn7/a99CTKYV5m0k46c87n7Tg7pfeAOPPrOYA8c9Sg==
   dependencies:
     chalk "^4.1.1"
     chokidar "^3.5.1"
