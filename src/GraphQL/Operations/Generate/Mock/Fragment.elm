@@ -74,7 +74,7 @@ mockFragment paths namespace frag =
                                 selection
                             )
                             |> Elm.withType
-                                (Type.named paths.mockModulePath
+                                (Type.named paths.modulePath
                                     (frag.name
                                         |> Can.nameToString
                                         |> Utils.String.formatTypename

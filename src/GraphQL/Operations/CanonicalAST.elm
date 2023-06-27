@@ -279,7 +279,7 @@ getFieldName : Field -> String
 getFieldName field =
     case field of
         Field details ->
-            aliasedName details
+            getAliasedName details
 
         Frag frag ->
             nameToString frag.fragment.name
