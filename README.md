@@ -49,3 +49,12 @@ and everything will be checked and generated again.
 - [The Life of a Query](https://github.com/vendrinc/elm-gql/blob/main/guide/LifeOfAQuery.md)
 - [Code Reuse and Patterns](https://github.com/vendrinc/elm-gql/blob/main/guide/CodePatterns.md)
 - [Check out the Github Example Repo](https://github.com/mdgriffith/elm-gql-github-example)
+
+## Talk to me in the Elm-GQL Slack or Discord!
+
+If you have any further questions or feedback, there is both
+
+- [The #graphql channel in the Elm slack](https://elm-lang.org/community/slack). This channel is for people who are getting started with GraphQL in Elm or want to find people to help them debug a situation.
+- [The #elm-gql channel in the "Incremental Elm" Discord](https://incrementalelm.com/chat/). This is generally where I discuss future development of `vendr/elm-gql`, but I'm also happy to hear about initial experiences.
+
+See you in thre :wave:!
