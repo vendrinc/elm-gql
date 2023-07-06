@@ -13,6 +13,7 @@ import Elm
 import Elm.Annotation as Type
 import Elm.Case
 import Elm.Op
+import Gen.GraphQL.Decode
 import Gen.GraphQL.Engine as Engine
 import Gen.Json.Decode as Decode
 import Generate.Input as Input
@@ -207,17 +208,22 @@ decodeSelection namespace version field index =
 decodeSingleField version index name decoder exp =
     exp
         |> Elm.Op.pipe
-            (Elm.apply
-                Engine.values_.versionedJsonField
-                -- we only care about adjusting the aliases of the top-level things that could collide
-                [ if isTopLevel index then
-                    version
+            (if isTopLevel index then
+                Elm.apply
+                    Gen.GraphQL.Decode.values_.versionedField
+                    -- we only care about adjusting the aliases of the top-level things that could collide
+                    [ version
+                    , Elm.string name
+                    , decoder
+                    ]
 
-                  else
-                    Elm.int 0
-                , Elm.string name
-                , decoder
-                ]
+             else
+                Elm.apply
+                    Gen.GraphQL.Decode.values_.field
+                    -- we only care about adjusting the aliases of the top-level things that could collide
+                    [ Elm.string name
+                    , decoder
+                    ]
             )
 
 
@@ -407,7 +413,7 @@ andMap decoder builder =
     builder
         |> Elm.Op.pipe
             (Elm.apply
-                Engine.values_.andMap
+                Gen.GraphQL.Decode.values_.andMap
                 [ decoder
                 ]
             )

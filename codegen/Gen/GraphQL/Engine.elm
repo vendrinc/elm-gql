@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (addField, addOptionalField, andMap, annotation_, bakeToSelection, batch, call_, caseOf_, decodeNullable, encodeInputObjectAsJson, inputObject, inputObjectToFieldList, make_, map, map2, mapRequest, maybeScalarEncode, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, query, queryRisky, queryRiskyTask, queryString, queryTask, select, send, simulate, subscription, values_, versionedAlias, versionedJsonField, versionedName, withName)
+module Gen.GraphQL.Engine exposing (annotation_, batch, call_, caseOf_, make_, map, map2, mapRequest, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, operation, query, queryRisky, queryRiskyTask, queryString, queryTask, select, send, simulate, subscription, values_, versionedAlias, versionedName, withName)
 
 {-| 
-@docs moduleName_, andMap, versionedAlias, versionedName, versionedJsonField, decodeNullable, maybeScalarEncode, queryString, mutationRiskyTask, queryRiskyTask, mutationRisky, queryRisky, mutationTask, queryTask, mutation, query, subscription, simulate, send, mapRequest, bakeToSelection, map2, map, encodeInputObjectAsJson, inputObjectToFieldList, addOptionalField, addField, inputObject, withName, select, batch, annotation_, make_, caseOf_, call_, values_
+@docs moduleName_, queryString, mutationRiskyTask, queryRiskyTask, mutationRisky, queryRisky, mutationTask, queryTask, mutation, query, subscription, simulate, send, mapRequest, versionedAlias, versionedName, operation, map2, map, withName, select, batch, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -14,181 +14,6 @@ import Elm.Case
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Engine" ]
-
-
-{-| andMap: Json.Decode.Decoder a -> Json.Decode.Decoder (a -> b) -> Json.Decode.Decoder b -}
-andMap : Elm.Expression -> Elm.Expression -> Elm.Expression
-andMap andMapArg andMapArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "andMap"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "a" ]
-                        , Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.function [ Type.var "a" ] (Type.var "b") ]
-                        ]
-                        (Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "b" ]
-                        )
-                    )
-            }
-        )
-        [ andMapArg, andMapArg0 ]
-
-
-{-| {-| Slightly different than versioned name, this is specific to only making an alias if the version is not 0.
-
-so if I'm selecting a field "myField"
-
-Then
-
-    versionedAlias 0 "myField"
-        -> "myField"
-
-but
-
-    versionedAlias 1 "myField"
-        -> "myField\_batch\_1: myField"
-
--}
-
-versionedAlias: Int -> String -> String
--}
-versionedAlias : Int -> String -> Elm.Expression
-versionedAlias versionedAliasArg versionedAliasArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "versionedAlias"
-            , annotation =
-                Just (Type.function [ Type.int, Type.string ] Type.string)
-            }
-        )
-        [ Elm.int versionedAliasArg, Elm.string versionedAliasArg0 ]
-
-
-{-| versionedName: Int -> String -> String -}
-versionedName : Int -> String -> Elm.Expression
-versionedName versionedNameArg versionedNameArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "versionedName"
-            , annotation =
-                Just (Type.function [ Type.int, Type.string ] Type.string)
-            }
-        )
-        [ Elm.int versionedNameArg, Elm.string versionedNameArg0 ]
-
-
-{-| versionedJsonField: 
-    Int
-    -> String
-    -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> b)
-    -> Json.Decode.Decoder b
--}
-versionedJsonField :
-    Int -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
-versionedJsonField versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFieldArg1 versionedJsonFieldArg2 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "versionedJsonField"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.int
-                        , Type.string
-                        , Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "a" ]
-                        , Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.function [ Type.var "a" ] (Type.var "b") ]
-                        ]
-                        (Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "b" ]
-                        )
-                    )
-            }
-        )
-        [ Elm.int versionedJsonFieldArg
-        , Elm.string versionedJsonFieldArg0
-        , versionedJsonFieldArg1
-        , versionedJsonFieldArg2
-        ]
-
-
-{-| {-| -}
-
-decodeNullable: Json.Decode.Decoder data -> Json.Decode.Decoder (Maybe data)
--}
-decodeNullable : Elm.Expression -> Elm.Expression
-decodeNullable decodeNullableArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "decodeNullable"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "data" ]
-                        ]
-                        (Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.namedWith [] "Maybe" [ Type.var "data" ] ]
-                        )
-                    )
-            }
-        )
-        [ decodeNullableArg ]
-
-
-{-| {-| -}
-
-maybeScalarEncode: (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
--}
-maybeScalarEncode :
-    (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
-maybeScalarEncode maybeScalarEncodeArg maybeScalarEncodeArg0 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "maybeScalarEncode"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.function
-                            [ Type.var "a" ]
-                            (Type.namedWith [ "Json", "Encode" ] "Value" [])
-                        , Type.namedWith [] "Maybe" [ Type.var "a" ]
-                        ]
-                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
-                    )
-            }
-        )
-        [ Elm.functionReduced "maybeScalarEncodeUnpack" maybeScalarEncodeArg
-        , maybeScalarEncodeArg0
-        ]
 
 
 {-| {-| -}
@@ -919,9 +744,54 @@ mapRequest mapRequestArg mapRequestArg0 =
         [ Elm.functionReduced "mapRequestUnpack" mapRequestArg, mapRequestArg0 ]
 
 
+{-| {-| Slightly different than versioned name, this is specific to only making an alias if the version is not 0.
+
+so if I'm selecting a field "myField"
+
+Then
+
+    versionedAlias 0 "myField"
+        -> "myField"
+
+but
+
+    versionedAlias 1 "myField"
+        -> "myField\_batch\_1: myField"
+
+-}
+
+versionedAlias: Int -> String -> String
+-}
+versionedAlias : Int -> String -> Elm.Expression
+versionedAlias versionedAliasArg versionedAliasArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "versionedAlias"
+            , annotation =
+                Just (Type.function [ Type.int, Type.string ] Type.string)
+            }
+        )
+        [ Elm.int versionedAliasArg, Elm.string versionedAliasArg0 ]
+
+
+{-| versionedName: Int -> String -> String -}
+versionedName : Int -> String -> Elm.Expression
+versionedName versionedNameArg versionedNameArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "versionedName"
+            , annotation =
+                Just (Type.function [ Type.int, Type.string ] Type.string)
+            }
+        )
+        [ Elm.int versionedNameArg, Elm.string versionedNameArg0 ]
+
+
 {-| {-| -}
 
-bakeToSelection: 
+operation: 
     Maybe String
     -> (Int
     -> { args : List ( String, VariableDetails )
@@ -931,16 +801,16 @@ bakeToSelection:
     -> (Int -> Json.Decode.Decoder data)
     -> Selection source data
 -}
-bakeToSelection :
+operation :
     Elm.Expression
     -> (Elm.Expression -> Elm.Expression)
     -> (Elm.Expression -> Elm.Expression)
     -> Elm.Expression
-bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
+operation operationArg operationArg0 operationArg1 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
-            , name = "bakeToSelection"
+            , name = "operation"
             , annotation =
                 Just
                     (Type.function
@@ -979,9 +849,9 @@ bakeToSelection bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 =
                     )
             }
         )
-        [ bakeToSelectionArg
-        , Elm.functionReduced "bakeToSelectionUnpack" bakeToSelectionArg0
-        , Elm.functionReduced "bakeToSelectionUnpack" bakeToSelectionArg1
+        [ operationArg
+        , Elm.functionReduced "operationUnpack" operationArg0
+        , Elm.functionReduced "operationUnpack" operationArg1
         ]
 
 
@@ -1060,149 +930,6 @@ map mapArg mapArg0 =
             }
         )
         [ Elm.functionReduced "mapUnpack" mapArg, mapArg0 ]
-
-
-{-| {-| -}
-
-encodeInputObjectAsJson: InputObject value -> Json.Decode.Value
--}
-encodeInputObjectAsJson : Elm.Expression -> Elm.Expression
-encodeInputObjectAsJson encodeInputObjectAsJsonArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "encodeInputObjectAsJson"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "InputObject" [ Type.var "value" ] ]
-                        (Type.namedWith [ "Json", "Decode" ] "Value" [])
-                    )
-            }
-        )
-        [ encodeInputObjectAsJsonArg ]
-
-
-{-| {-| -}
-
-inputObjectToFieldList: InputObject a -> List ( String, VariableDetails )
--}
-inputObjectToFieldList : Elm.Expression -> Elm.Expression
-inputObjectToFieldList inputObjectToFieldListArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "inputObjectToFieldList"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "InputObject" [ Type.var "a" ] ]
-                        (Type.list
-                            (Type.tuple
-                                Type.string
-                                (Type.namedWith [] "VariableDetails" [])
-                            )
-                        )
-                    )
-            }
-        )
-        [ inputObjectToFieldListArg ]
-
-
-{-| {-| -}
-
-addOptionalField: 
-    String
-    -> String
-    -> Option value
-    -> (value -> Json.Encode.Value)
-    -> InputObject input
-    -> InputObject input
--}
-addOptionalField :
-    String
-    -> String
-    -> Elm.Expression
-    -> (Elm.Expression -> Elm.Expression)
-    -> Elm.Expression
-    -> Elm.Expression
-addOptionalField addOptionalFieldArg addOptionalFieldArg0 addOptionalFieldArg1 addOptionalFieldArg2 addOptionalFieldArg3 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "addOptionalField"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string
-                        , Type.string
-                        , Type.namedWith [] "Option" [ Type.var "value" ]
-                        , Type.function
-                            [ Type.var "value" ]
-                            (Type.namedWith [ "Json", "Encode" ] "Value" [])
-                        , Type.namedWith [] "InputObject" [ Type.var "input" ]
-                        ]
-                        (Type.namedWith [] "InputObject" [ Type.var "input" ])
-                    )
-            }
-        )
-        [ Elm.string addOptionalFieldArg
-        , Elm.string addOptionalFieldArg0
-        , addOptionalFieldArg1
-        , Elm.functionReduced "addOptionalFieldUnpack" addOptionalFieldArg2
-        , addOptionalFieldArg3
-        ]
-
-
-{-| {-| -}
-
-addField: String -> String -> Json.Encode.Value -> InputObject value -> InputObject value
--}
-addField :
-    String -> String -> Elm.Expression -> Elm.Expression -> Elm.Expression
-addField addFieldArg addFieldArg0 addFieldArg1 addFieldArg2 =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "addField"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string
-                        , Type.string
-                        , Type.namedWith [ "Json", "Encode" ] "Value" []
-                        , Type.namedWith [] "InputObject" [ Type.var "value" ]
-                        ]
-                        (Type.namedWith [] "InputObject" [ Type.var "value" ])
-                    )
-            }
-        )
-        [ Elm.string addFieldArg
-        , Elm.string addFieldArg0
-        , addFieldArg1
-        , addFieldArg2
-        ]
-
-
-{-| {-| -}
-
-inputObject: String -> InputObject value
--}
-inputObject : String -> Elm.Expression
-inputObject inputObjectArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "inputObject"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string ]
-                        (Type.namedWith [] "InputObject" [ Type.var "value" ])
-                    )
-            }
-        )
-        [ Elm.string inputObjectArg ]
 
 
 {-| withName: String -> Selection source data -> Selection source data -}
@@ -1295,9 +1022,7 @@ annotation_ :
     , subscription : Type.Annotation
     , mutation : Type.Annotation
     , query : Type.Annotation
-    , inputObject : Type.Annotation -> Type.Annotation
     , option : Type.Annotation -> Type.Annotation
-    , argument : Type.Annotation -> Type.Annotation
     , selection : Type.Annotation -> Type.Annotation -> Type.Annotation
     }
 annotation_ =
@@ -1308,18 +1033,9 @@ annotation_ =
     , subscription = Type.namedWith [ "GraphQL", "Engine" ] "Subscription" []
     , mutation = Type.namedWith [ "GraphQL", "Engine" ] "Mutation" []
     , query = Type.namedWith [ "GraphQL", "Engine" ] "Query" []
-    , inputObject =
-        \inputObjectArg0 ->
-            Type.namedWith
-                [ "GraphQL", "Engine" ]
-                "InputObject"
-                [ inputObjectArg0 ]
     , option =
         \optionArg0 ->
             Type.namedWith [ "GraphQL", "Engine" ] "Option" [ optionArg0 ]
-    , argument =
-        \argumentArg0 ->
-            Type.namedWith [ "GraphQL", "Engine" ] "Argument" [ argumentArg0 ]
     , selection =
         \selectionArg0 selectionArg1 ->
             Type.namedWith
@@ -1338,8 +1054,6 @@ make_ :
     , present : Elm.Expression -> Elm.Expression
     , null : Elm.Expression
     , absent : Elm.Expression
-    , argValue : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , var : Elm.Expression -> Elm.Expression
     }
 make_ =
     { badUrl =
@@ -1409,28 +1123,6 @@ make_ =
             , annotation =
                 Just (Type.namedWith [] "Option" [ Type.var "value" ])
             }
-    , argValue =
-        \ar0 ar1 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "ArgValue"
-                    , annotation =
-                        Just (Type.namedWith [] "Argument" [ Type.var "obj" ])
-                    }
-                )
-                [ ar0, ar1 ]
-    , var =
-        \ar0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "Var"
-                    , annotation =
-                        Just (Type.namedWith [] "Argument" [ Type.var "obj" ])
-                    }
-                )
-                [ ar0 ]
     }
 
 
@@ -1451,13 +1143,6 @@ caseOf_ :
             | present : Elm.Expression -> Elm.Expression
             , null : Elm.Expression
             , absent : Elm.Expression
-        }
-        -> Elm.Expression
-    , argument :
-        Elm.Expression
-        -> { argumentTags_2_0
-            | argValue : Elm.Expression -> Elm.Expression -> Elm.Expression
-            , var : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
     }
@@ -1508,43 +1193,11 @@ caseOf_ =
                 , Elm.Case.branch0 "Null" optionTags.null
                 , Elm.Case.branch0 "Absent" optionTags.absent
                 ]
-    , argument =
-        \argumentExpression argumentTags ->
-            Elm.Case.custom
-                argumentExpression
-                (Type.namedWith
-                    [ "GraphQL", "Engine" ]
-                    "Argument"
-                    [ Type.var "obj" ]
-                )
-                [ Elm.Case.branch2
-                    "ArgValue"
-                    ( "json.Encode.Value"
-                    , Type.namedWith [ "Json", "Encode" ] "Value" []
-                    )
-                    ( "string.String", Type.string )
-                    argumentTags.argValue
-                , Elm.Case.branch1
-                    "Var"
-                    ( "string.String", Type.string )
-                    argumentTags.var
-                ]
     }
 
 
 call_ :
-    { andMap : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , versionedAlias : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , versionedName : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , versionedJsonField :
-        Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-    , decodeNullable : Elm.Expression -> Elm.Expression
-    , maybeScalarEncode : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , queryString : Elm.Expression -> Elm.Expression -> Elm.Expression
+    { queryString : Elm.Expression -> Elm.Expression -> Elm.Expression
     , mutationRiskyTask : Elm.Expression -> Elm.Expression -> Elm.Expression
     , queryRiskyTask : Elm.Expression -> Elm.Expression -> Elm.Expression
     , mutationRisky : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -1557,175 +1210,19 @@ call_ :
     , simulate : Elm.Expression -> Elm.Expression -> Elm.Expression
     , send : Elm.Expression -> Elm.Expression
     , mapRequest : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , bakeToSelection :
+    , versionedAlias : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , versionedName : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , operation :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , map2 :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , map : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , encodeInputObjectAsJson : Elm.Expression -> Elm.Expression
-    , inputObjectToFieldList : Elm.Expression -> Elm.Expression
-    , addOptionalField :
-        Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-    , addField :
-        Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-        -> Elm.Expression
-    , inputObject : Elm.Expression -> Elm.Expression
     , withName : Elm.Expression -> Elm.Expression -> Elm.Expression
     , select : Elm.Expression -> Elm.Expression
     , batch : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { andMap =
-        \andMapArg andMapArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "andMap"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith
-                                    [ "Json", "Decode" ]
-                                    "Decoder"
-                                    [ Type.var "a" ]
-                                , Type.namedWith
-                                    [ "Json", "Decode" ]
-                                    "Decoder"
-                                    [ Type.function
-                                        [ Type.var "a" ]
-                                        (Type.var "b")
-                                    ]
-                                ]
-                                (Type.namedWith
-                                    [ "Json", "Decode" ]
-                                    "Decoder"
-                                    [ Type.var "b" ]
-                                )
-                            )
-                    }
-                )
-                [ andMapArg, andMapArg0 ]
-    , versionedAlias =
-        \versionedAliasArg versionedAliasArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "versionedAlias"
-                    , annotation =
-                        Just
-                            (Type.function [ Type.int, Type.string ] Type.string
-                            )
-                    }
-                )
-                [ versionedAliasArg, versionedAliasArg0 ]
-    , versionedName =
-        \versionedNameArg versionedNameArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "versionedName"
-                    , annotation =
-                        Just
-                            (Type.function [ Type.int, Type.string ] Type.string
-                            )
-                    }
-                )
-                [ versionedNameArg, versionedNameArg0 ]
-    , versionedJsonField =
-        \versionedJsonFieldArg versionedJsonFieldArg0 versionedJsonFieldArg1 versionedJsonFieldArg2 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "versionedJsonField"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.int
-                                , Type.string
-                                , Type.namedWith
-                                    [ "Json", "Decode" ]
-                                    "Decoder"
-                                    [ Type.var "a" ]
-                                , Type.namedWith
-                                    [ "Json", "Decode" ]
-                                    "Decoder"
-                                    [ Type.function
-                                        [ Type.var "a" ]
-                                        (Type.var "b")
-                                    ]
-                                ]
-                                (Type.namedWith
-                                    [ "Json", "Decode" ]
-                                    "Decoder"
-                                    [ Type.var "b" ]
-                                )
-                            )
-                    }
-                )
-                [ versionedJsonFieldArg
-                , versionedJsonFieldArg0
-                , versionedJsonFieldArg1
-                , versionedJsonFieldArg2
-                ]
-    , decodeNullable =
-        \decodeNullableArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "decodeNullable"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith
-                                    [ "Json", "Decode" ]
-                                    "Decoder"
-                                    [ Type.var "data" ]
-                                ]
-                                (Type.namedWith
-                                    [ "Json", "Decode" ]
-                                    "Decoder"
-                                    [ Type.namedWith
-                                        []
-                                        "Maybe"
-                                        [ Type.var "data" ]
-                                    ]
-                                )
-                            )
-                    }
-                )
-                [ decodeNullableArg ]
-    , maybeScalarEncode =
-        \maybeScalarEncodeArg maybeScalarEncodeArg0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "maybeScalarEncode"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.function
-                                    [ Type.var "a" ]
-                                    (Type.namedWith
-                                        [ "Json", "Encode" ]
-                                        "Value"
-                                        []
-                                    )
-                                , Type.namedWith [] "Maybe" [ Type.var "a" ]
-                                ]
-                                (Type.namedWith [ "Json", "Encode" ] "Value" [])
-                            )
-                    }
-                )
-                [ maybeScalarEncodeArg, maybeScalarEncodeArg0 ]
-    , queryString =
+    { queryString =
         \queryStringArg queryStringArg0 ->
             Elm.apply
                 (Elm.value
@@ -2279,12 +1776,38 @@ call_ =
                     }
                 )
                 [ mapRequestArg, mapRequestArg0 ]
-    , bakeToSelection =
-        \bakeToSelectionArg bakeToSelectionArg0 bakeToSelectionArg1 ->
+    , versionedAlias =
+        \versionedAliasArg versionedAliasArg0 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "bakeToSelection"
+                    , name = "versionedAlias"
+                    , annotation =
+                        Just
+                            (Type.function [ Type.int, Type.string ] Type.string
+                            )
+                    }
+                )
+                [ versionedAliasArg, versionedAliasArg0 ]
+    , versionedName =
+        \versionedNameArg versionedNameArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "versionedName"
+                    , annotation =
+                        Just
+                            (Type.function [ Type.int, Type.string ] Type.string
+                            )
+                    }
+                )
+                [ versionedNameArg, versionedNameArg0 ]
+    , operation =
+        \operationArg operationArg0 operationArg1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "operation"
                     , annotation =
                         Just
                             (Type.function
@@ -2323,7 +1846,7 @@ call_ =
                             )
                     }
                 )
-                [ bakeToSelectionArg, bakeToSelectionArg0, bakeToSelectionArg1 ]
+                [ operationArg, operationArg0, operationArg1 ]
     , map2 =
         \map2Arg map2Arg0 map2Arg1 ->
             Elm.apply
@@ -2378,135 +1901,6 @@ call_ =
                     }
                 )
                 [ mapArg, mapArg0 ]
-    , encodeInputObjectAsJson =
-        \encodeInputObjectAsJsonArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "encodeInputObjectAsJson"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith
-                                    []
-                                    "InputObject"
-                                    [ Type.var "value" ]
-                                ]
-                                (Type.namedWith [ "Json", "Decode" ] "Value" [])
-                            )
-                    }
-                )
-                [ encodeInputObjectAsJsonArg ]
-    , inputObjectToFieldList =
-        \inputObjectToFieldListArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "inputObjectToFieldList"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith
-                                    []
-                                    "InputObject"
-                                    [ Type.var "a" ]
-                                ]
-                                (Type.list
-                                    (Type.tuple
-                                        Type.string
-                                        (Type.namedWith [] "VariableDetails" [])
-                                    )
-                                )
-                            )
-                    }
-                )
-                [ inputObjectToFieldListArg ]
-    , addOptionalField =
-        \addOptionalFieldArg addOptionalFieldArg0 addOptionalFieldArg1 addOptionalFieldArg2 addOptionalFieldArg3 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "addOptionalField"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.string
-                                , Type.string
-                                , Type.namedWith
-                                    []
-                                    "Option"
-                                    [ Type.var "value" ]
-                                , Type.function
-                                    [ Type.var "value" ]
-                                    (Type.namedWith
-                                        [ "Json", "Encode" ]
-                                        "Value"
-                                        []
-                                    )
-                                , Type.namedWith
-                                    []
-                                    "InputObject"
-                                    [ Type.var "input" ]
-                                ]
-                                (Type.namedWith
-                                    []
-                                    "InputObject"
-                                    [ Type.var "input" ]
-                                )
-                            )
-                    }
-                )
-                [ addOptionalFieldArg
-                , addOptionalFieldArg0
-                , addOptionalFieldArg1
-                , addOptionalFieldArg2
-                , addOptionalFieldArg3
-                ]
-    , addField =
-        \addFieldArg addFieldArg0 addFieldArg1 addFieldArg2 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "addField"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.string
-                                , Type.string
-                                , Type.namedWith [ "Json", "Encode" ] "Value" []
-                                , Type.namedWith
-                                    []
-                                    "InputObject"
-                                    [ Type.var "value" ]
-                                ]
-                                (Type.namedWith
-                                    []
-                                    "InputObject"
-                                    [ Type.var "value" ]
-                                )
-                            )
-                    }
-                )
-                [ addFieldArg, addFieldArg0, addFieldArg1, addFieldArg2 ]
-    , inputObject =
-        \inputObjectArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "inputObject"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.string ]
-                                (Type.namedWith
-                                    []
-                                    "InputObject"
-                                    [ Type.var "value" ]
-                                )
-                            )
-                    }
-                )
-                [ inputObjectArg ]
     , withName =
         \withNameArg withNameArg0 ->
             Elm.apply
@@ -2581,13 +1975,7 @@ call_ =
 
 
 values_ :
-    { andMap : Elm.Expression
-    , versionedAlias : Elm.Expression
-    , versionedName : Elm.Expression
-    , versionedJsonField : Elm.Expression
-    , decodeNullable : Elm.Expression
-    , maybeScalarEncode : Elm.Expression
-    , queryString : Elm.Expression
+    { queryString : Elm.Expression
     , mutationRiskyTask : Elm.Expression
     , queryRiskyTask : Elm.Expression
     , mutationRisky : Elm.Expression
@@ -2600,116 +1988,17 @@ values_ :
     , simulate : Elm.Expression
     , send : Elm.Expression
     , mapRequest : Elm.Expression
-    , bakeToSelection : Elm.Expression
+    , versionedAlias : Elm.Expression
+    , versionedName : Elm.Expression
+    , operation : Elm.Expression
     , map2 : Elm.Expression
     , map : Elm.Expression
-    , encodeInputObjectAsJson : Elm.Expression
-    , inputObjectToFieldList : Elm.Expression
-    , addOptionalField : Elm.Expression
-    , addField : Elm.Expression
-    , inputObject : Elm.Expression
     , withName : Elm.Expression
     , select : Elm.Expression
     , batch : Elm.Expression
     }
 values_ =
-    { andMap =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "andMap"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "a" ]
-                        , Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.function [ Type.var "a" ] (Type.var "b") ]
-                        ]
-                        (Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "b" ]
-                        )
-                    )
-            }
-    , versionedAlias =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "versionedAlias"
-            , annotation =
-                Just (Type.function [ Type.int, Type.string ] Type.string)
-            }
-    , versionedName =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "versionedName"
-            , annotation =
-                Just (Type.function [ Type.int, Type.string ] Type.string)
-            }
-    , versionedJsonField =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "versionedJsonField"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.int
-                        , Type.string
-                        , Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "a" ]
-                        , Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.function [ Type.var "a" ] (Type.var "b") ]
-                        ]
-                        (Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "b" ]
-                        )
-                    )
-            }
-    , decodeNullable =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "decodeNullable"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.var "data" ]
-                        ]
-                        (Type.namedWith
-                            [ "Json", "Decode" ]
-                            "Decoder"
-                            [ Type.namedWith [] "Maybe" [ Type.var "data" ] ]
-                        )
-                    )
-            }
-    , maybeScalarEncode =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "maybeScalarEncode"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.function
-                            [ Type.var "a" ]
-                            (Type.namedWith [ "Json", "Encode" ] "Value" [])
-                        , Type.namedWith [] "Maybe" [ Type.var "a" ]
-                        ]
-                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
-                    )
-            }
-    , queryString =
+    { queryString =
         Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
             , name = "queryString"
@@ -3127,10 +2416,24 @@ values_ =
                         (Type.namedWith [] "Request" [ Type.var "b" ])
                     )
             }
-    , bakeToSelection =
+    , versionedAlias =
         Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
-            , name = "bakeToSelection"
+            , name = "versionedAlias"
+            , annotation =
+                Just (Type.function [ Type.int, Type.string ] Type.string)
+            }
+    , versionedName =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "versionedName"
+            , annotation =
+                Just (Type.function [ Type.int, Type.string ] Type.string)
+            }
+    , operation =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "operation"
             , annotation =
                 Just
                     (Type.function
@@ -3212,77 +2515,6 @@ values_ =
                             "Selection"
                             [ Type.var "source", Type.var "b" ]
                         )
-                    )
-            }
-    , encodeInputObjectAsJson =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "encodeInputObjectAsJson"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "InputObject" [ Type.var "value" ] ]
-                        (Type.namedWith [ "Json", "Decode" ] "Value" [])
-                    )
-            }
-    , inputObjectToFieldList =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "inputObjectToFieldList"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.namedWith [] "InputObject" [ Type.var "a" ] ]
-                        (Type.list
-                            (Type.tuple
-                                Type.string
-                                (Type.namedWith [] "VariableDetails" [])
-                            )
-                        )
-                    )
-            }
-    , addOptionalField =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "addOptionalField"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string
-                        , Type.string
-                        , Type.namedWith [] "Option" [ Type.var "value" ]
-                        , Type.function
-                            [ Type.var "value" ]
-                            (Type.namedWith [ "Json", "Encode" ] "Value" [])
-                        , Type.namedWith [] "InputObject" [ Type.var "input" ]
-                        ]
-                        (Type.namedWith [] "InputObject" [ Type.var "input" ])
-                    )
-            }
-    , addField =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "addField"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string
-                        , Type.string
-                        , Type.namedWith [ "Json", "Encode" ] "Value" []
-                        , Type.namedWith [] "InputObject" [ Type.var "value" ]
-                        ]
-                        (Type.namedWith [] "InputObject" [ Type.var "value" ])
-                    )
-            }
-    , inputObject =
-        Elm.value
-            { importFrom = [ "GraphQL", "Engine" ]
-            , name = "inputObject"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string ]
-                        (Type.namedWith [] "InputObject" [ Type.var "value" ])
                     )
             }
     , withName =

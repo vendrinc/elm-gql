@@ -74,5 +74,5 @@ decodeWrapper wrap exp =
                 (decodeWrapper inner exp)
 
         InMaybe inner ->
-            Engine.decodeNullable
+            Decode.nullable
                 (decodeWrapper inner exp)

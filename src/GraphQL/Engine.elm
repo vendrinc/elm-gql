@@ -6,12 +6,10 @@ module GraphQL.Engine exposing
     , Subscription, subscription
     , Error(..)
     , queryString
-    , Argument(..), maybeScalarEncode
-    , decodeNullable
     , Request, send, simulate, mapRequest
-    , Option(..), InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
-    , andMap, versionedJsonField, versionedName, versionedAlias
-    , bakeToSelection
+    , Option(..)
+    , operation
+    , versionedName, versionedAlias
     )
 
 {-|
@@ -31,19 +29,15 @@ module GraphQL.Engine exposing
 @docs queryString
 
 
-## Internal encoding and decoding
-
-@docs Argument, maybeScalarEncode
-
-@docs decodeNullable
+## Requests
 
 @docs Request, toRequest, send, simulate, mapRequest
 
-@docs Option, InputObject, inputObject, addField, addOptionalField, encodeInputObjectAsJson, inputObjectToFieldList
+@docs Option
 
-@docs andMap, versionedJsonField, versionedName, versionedAlias
+@docs operation
 
-@docs bakeToSelection
+@docs versionedName, versionedAlias
 
 -}
 
@@ -239,83 +233,6 @@ inputObject name =
 
 
 {-| -}
-addField : String -> String -> Json.Encode.Value -> InputObject value -> InputObject value
-addField fieldName gqlFieldType val (InputObject name inputFields) =
-    InputObject name
-        (inputFields
-            ++ [ ( fieldName
-                 , { gqlTypeName = gqlFieldType
-                   , value = Just val
-                   }
-                 )
-               ]
-        )
-
-
-{-| -}
-addOptionalField : String -> String -> Option value -> (value -> Json.Encode.Value) -> InputObject input -> InputObject input
-addOptionalField fieldName gqlFieldType optionalValue toJsonValue (InputObject name inputFields) =
-    let
-        newField =
-            case optionalValue of
-                Absent ->
-                    ( fieldName, { value = Nothing, gqlTypeName = gqlFieldType } )
-
-                Null ->
-                    ( fieldName, { value = Just Json.Encode.null, gqlTypeName = gqlFieldType } )
-
-                Present val ->
-                    ( fieldName, { value = Just (toJsonValue val), gqlTypeName = gqlFieldType } )
-    in
-    InputObject name (inputFields ++ [ newField ])
-
-
-{-| -}
-type Optional arg
-    = Optional String (Argument arg)
-
-
-{-| -}
-inputObjectToFieldList : InputObject a -> List ( String, VariableDetails )
-inputObjectToFieldList (InputObject _ fields) =
-    fields
-
-
-{-| -}
-encodeInputObjectAsJson : InputObject value -> Json.Decode.Value
-encodeInputObjectAsJson (InputObject _ fields) =
-    fields
-        |> List.filterMap
-            (\( varName, var ) ->
-                case var.value of
-                    Nothing ->
-                        Nothing
-
-                    Just value ->
-                        Just ( varName, value )
-            )
-        |> Json.Encode.object
-
-
-{-| -}
-encodeOptionals : List (Optional arg) -> List ( String, Argument arg )
-encodeOptionals opts =
-    List.foldl
-        (\(Optional optName argument) (( found, gathered ) as skip) ->
-            if Set.member optName found then
-                skip
-
-            else
-                ( Set.insert optName found
-                , ( optName, argument ) :: gathered
-                )
-        )
-        ( Set.empty, [] )
-        opts
-        |> Tuple.second
-
-
-{-| -}
 map : (a -> b) -> Selection source a -> Selection source b
 map fn (Selection (Details maybeOpName fields decoder)) =
     Selection <|
@@ -377,7 +294,7 @@ map2 fn (Selection (Details oneOpName oneFields oneDecoder)) (Selection (Details
 
 
 {-| -}
-bakeToSelection :
+operation :
     Maybe String
     ->
         (Int
@@ -389,7 +306,7 @@ bakeToSelection :
         )
     -> (Int -> Json.Decode.Decoder data)
     -> Selection source data
-bakeToSelection maybeOpName toGql toDecoder =
+operation maybeOpName toGql toDecoder =
     Selection
         (Details maybeOpName
             (\context ->
@@ -427,6 +344,39 @@ bakeToSelection maybeOpName toGql toDecoder =
 protectArgs : Int -> ( String, VariableDetails ) -> ( String, VariableDetails )
 protectArgs version ( name, var ) =
     ( versionedName version name, var )
+
+
+versionedName : Int -> String -> String
+versionedName i name =
+    if i == 0 then
+        name
+
+    else
+        name ++ "_batch_" ++ String.fromInt i
+
+
+{-| Slightly different than versioned name, this is specific to only making an alias if the version is not 0.
+
+so if I'm selecting a field "myField"
+
+Then
+
+    versionedAlias 0 "myField"
+        -> "myField"
+
+but
+
+    versionedAlias 1 "myField"
+        -> "myField\_batch\_1: myField"
+
+-}
+versionedAlias : Int -> String -> String
+versionedAlias i name =
+    if i == 0 then
+        name
+
+    else
+        name ++ "_batch_" ++ String.fromInt i ++ ": " ++ name
 
 
 
@@ -719,20 +669,20 @@ mutationRiskyTask sel config =
 
 -}
 body : String -> Selection source data -> Http.Body
-body operation q =
+body operationName q =
     Http.jsonBody
-        (encodePayload operation q)
+        (encodePayload operationName q)
 
 
 encodePayload : String -> Selection source data -> Json.Encode.Value
-encodePayload operation q =
+encodePayload operationName q =
     let
         variables : Dict String VariableDetails
         variables =
             (getContext q).variables
     in
     Json.Encode.object
-        [ ( "query", Json.Encode.string (queryString operation q) )
+        [ ( "query", Json.Encode.string (queryString operationName q) )
         , ( "variables", encodeVariables variables )
         ]
 
@@ -833,12 +783,12 @@ type Error
 
 {-| -}
 queryString : String -> Selection source data -> String
-queryString operation (Selection (Details maybeOpName gql _)) =
+queryString operationName (Selection (Details maybeOpName gql _)) =
     let
         rendered =
             gql empty
     in
-    operation
+    operationName
         ++ " "
         ++ Maybe.withDefault "" maybeOpName
         ++ renderParameters rendered.context.variables
@@ -941,74 +891,3 @@ renderArgs args rendered =
 
             else
                 renderArgs remaining (rendered ++ ", " ++ name ++ ": $" ++ varName)
-
-
-{-| -}
-maybeScalarEncode : (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
-maybeScalarEncode encoder maybeA =
-    maybeA
-        |> Maybe.map encoder
-        |> Maybe.withDefault Json.Encode.null
-
-
-{-| -}
-decodeNullable : Json.Decode.Decoder data -> Json.Decode.Decoder (Maybe data)
-decodeNullable =
-    Json.Decode.nullable
-
-
-versionedJsonField :
-    Int
-    -> String
-    -> Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> b)
-    -> Json.Decode.Decoder b
-versionedJsonField int name new build =
-    Json.Decode.map2
-        (\a fn -> fn a)
-        (Json.Decode.field (versionedName int name) new)
-        build
-
-
-versionedName : Int -> String -> String
-versionedName i name =
-    if i == 0 then
-        name
-
-    else
-        name ++ "_batch_" ++ String.fromInt i
-
-
-{-| Slightly different than versioned name, this is specific to only making an alias if the version is not 0.
-
-so if I'm selecting a field "myField"
-
-Then
-
-    versionedAlias 0 "myField"
-        -> "myField"
-
-but
-
-    versionedAlias 1 "myField"
-        -> "myField\_batch\_1: myField"
-
--}
-versionedAlias : Int -> String -> String
-versionedAlias i name =
-    if i == 0 then
-        name
-
-    else
-        name ++ "_batch_" ++ String.fromInt i ++ ": " ++ name
-
-
-andMap :
-    Json.Decode.Decoder a
-    -> Json.Decode.Decoder (a -> b)
-    -> Json.Decode.Decoder b
-andMap new build =
-    Json.Decode.map2
-        (\a fn -> fn a)
-        new
-        build

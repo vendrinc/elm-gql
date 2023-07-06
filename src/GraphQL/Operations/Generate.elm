@@ -6,6 +6,7 @@ module GraphQL.Operations.Generate exposing (generate)
 import Elm
 import Elm.Annotation as Type
 import Gen.GraphQL.Engine as Engine
+import Gen.GraphQL.Input
 import Gen.Json.Decode as Decode
 import Generate.Input.Encode
 import Generate.Path
@@ -128,7 +129,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
             case op.variableDefinitions of
                 [] ->
                     Elm.declaration (Can.operationName op.operationType)
-                        (Engine.call_.bakeToSelection
+                        (Engine.call_.operation
                             (case Can.operationLabel def of
                                 Nothing ->
                                     Elm.nothing
@@ -174,9 +175,9 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                                         schema
                                         arguments
                                         args
-                                        |> Engine.inputObjectToFieldList
+                                        |> Gen.GraphQL.Input.toFieldList
                             in
-                            Engine.call_.bakeToSelection
+                            Engine.call_.operation
                                 (case Can.operationLabel def of
                                     Nothing ->
                                         Elm.nothing
