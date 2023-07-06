@@ -34,7 +34,7 @@
   },
   "homepage": "https://github.com/vendrinc/elm-gql#readme",
   "devDependencies": {
-    "elm-codegen": "^0.4.4",
+    "elm-codegen": "^0.5.0",
     "elm-doc-preview": "^5.0.5",
     "elm-format": "^0.8.7",
     "elm-optimize-level-2": "^0.3.4",
