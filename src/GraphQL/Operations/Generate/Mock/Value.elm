@@ -152,19 +152,20 @@ builders paths namespace fullField =
                                     |> Utils.String.formatValue
                                 )
                                 (Elm.record
-                                    (List.concatMap
-                                        (\innerField ->
-                                            if Can.isTypeNameSelection innerField then
-                                                []
+                                    (fields
+                                        |> List.reverse
+                                        |> List.concatMap
+                                            (\innerField ->
+                                                if Can.isTypeNameSelection innerField then
+                                                    []
 
-                                            else
-                                                [ ( Can.getFieldName innerField
-                                                        |> Utils.String.formatValue
-                                                  , field namespace innerField
-                                                  )
-                                                ]
-                                        )
-                                        fields
+                                                else
+                                                    [ ( Can.getFieldName innerField
+                                                            |> Utils.String.formatValue
+                                                      , field namespace innerField
+                                                      )
+                                                    ]
+                                            )
                                     )
                                     |> Elm.withType
                                         (Type.alias paths.modulePath
@@ -287,19 +288,20 @@ generateVariantBuilder paths namespace parentDetails parent variant =
                     |> Utils.String.formatValue
                 )
                 (Elm.record
-                    (List.concatMap
-                        (\fieldItem ->
-                            if Can.isTypeNameSelection fieldItem then
-                                []
+                    (variant.selection
+                        |> List.reverse
+                        |> List.concatMap
+                            (\fieldItem ->
+                                if Can.isTypeNameSelection fieldItem then
+                                    []
 
-                            else
-                                [ ( Can.getFieldName fieldItem
-                                        |> Utils.String.formatValue
-                                  , field namespace fieldItem
-                                  )
-                                ]
-                        )
-                        variant.selection
+                                else
+                                    [ ( Can.getFieldName fieldItem
+                                            |> Utils.String.formatValue
+                                      , field namespace fieldItem
+                                      )
+                                    ]
+                            )
                     )
                     |> List.singleton
                     |> Elm.apply
