@@ -71,7 +71,7 @@ mockFragment paths namespace frag =
                                           )
                                         ]
                                 )
-                                selection
+                                (List.reverse selection)
                             )
                             |> Elm.withType
                                 (Type.named paths.modulePath
