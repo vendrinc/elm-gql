@@ -1,6 +1,15 @@
-module Utils.String exposing (formatScalar, formatTypename, formatValue)
+module Utils.String exposing (capitalize, formatScalar, formatTypename, formatValue)
 
 import String
+
+
+capitalize : String -> String
+capitalize name =
+    let
+        first =
+            String.left 1 name
+    in
+    String.toUpper first ++ String.dropLeft 1 name
 
 
 formatTypename : String -> String

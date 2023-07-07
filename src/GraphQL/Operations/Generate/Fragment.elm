@@ -116,11 +116,36 @@ generateFragmentTypes namespace frag =
 
                 fieldResult =
                     GeneratedTypes.toAliasedFields namespace [] selection
+
+                openRecord =
+                    GeneratedTypes.toOpenAliasedFields namespace (name ++ "_Open") [] selection
             in
-            (Elm.alias name fieldResult
-                |> Elm.expose
-            )
-                :: newDecls
+            List.concat
+                [ [ Elm.alias name fieldResult
+                        |> Elm.expose
+                  ]
+                , newDecls
+                , [ Elm.declaration ("to" ++ Utils.String.capitalize name)
+                        (Elm.fn
+                            ( "open", Just openRecord )
+                            (\open ->
+                                Elm.record
+                                    (List.map
+                                        (\fieldName ->
+                                            ( fieldName
+                                            , Elm.get fieldName open
+                                            )
+                                        )
+                                        (GeneratedTypes.toFieldNames namespace [] selection)
+                                    )
+                                    |> Elm.withType (Type.named [] name)
+                            )
+                        )
+                        |> Elm.expose
+                        |> Elm.withDocumentation
+                            "Convert an open record to a record with all fields required.\n"
+                  ]
+                ]
 
         Can.FragmentUnion union ->
             let

@@ -1,7 +1,7 @@
-module Gen.Utils.String exposing (call_, formatScalar, formatTypename, formatValue, moduleName_, values_)
+module Gen.Utils.String exposing (call_, capitalize, formatScalar, formatTypename, formatValue, moduleName_, values_)
 
 {-| 
-@docs moduleName_, formatValue, formatScalar, formatTypename, call_, values_
+@docs moduleName_, formatValue, formatScalar, formatTypename, capitalize, call_, values_
 -}
 
 
@@ -74,10 +74,24 @@ formatTypename formatTypenameArg =
         [ Elm.string formatTypenameArg ]
 
 
+{-| capitalize: String -> String -}
+capitalize : String -> Elm.Expression
+capitalize capitalizeArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Utils", "String" ]
+            , name = "capitalize"
+            , annotation = Just (Type.function [ Type.string ] Type.string)
+            }
+        )
+        [ Elm.string capitalizeArg ]
+
+
 call_ :
     { formatValue : Elm.Expression -> Elm.Expression
     , formatScalar : Elm.Expression -> Elm.Expression
     , formatTypename : Elm.Expression -> Elm.Expression
+    , capitalize : Elm.Expression -> Elm.Expression
     }
 call_ =
     { formatValue =
@@ -113,6 +127,17 @@ call_ =
                     }
                 )
                 [ formatTypenameArg ]
+    , capitalize =
+        \capitalizeArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "Utils", "String" ]
+                    , name = "capitalize"
+                    , annotation =
+                        Just (Type.function [ Type.string ] Type.string)
+                    }
+                )
+                [ capitalizeArg ]
     }
 
 
@@ -120,6 +145,7 @@ values_ :
     { formatValue : Elm.Expression
     , formatScalar : Elm.Expression
     , formatTypename : Elm.Expression
+    , capitalize : Elm.Expression
     }
 values_ =
     { formatValue =
@@ -138,6 +164,12 @@ values_ =
         Elm.value
             { importFrom = [ "Utils", "String" ]
             , name = "formatTypename"
+            , annotation = Just (Type.function [ Type.string ] Type.string)
+            }
+    , capitalize =
+        Elm.value
+            { importFrom = [ "Utils", "String" ]
+            , name = "capitalize"
             , annotation = Just (Type.function [ Type.string ] Type.string)
             }
     }
