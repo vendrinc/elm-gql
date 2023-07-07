@@ -346,33 +346,34 @@ fieldAliasedAnnotation namespace field =
                 ]
 
             Can.Frag frag ->
-                case frag.fragment.selection of
-                    Can.FragmentObject { selection } ->
-                        List.concatMap
-                            (fieldAliasedAnnotation namespace)
-                            selection
-
-                    Can.FragmentUnion union ->
-                        List.concatMap
-                            (fieldAliasedAnnotation namespace)
-                            union.selection
-
-                    Can.FragmentInterface interface ->
-                        if not (List.isEmpty interface.variants) || not (List.isEmpty interface.remainingTags) then
-                            let
-                                name =
-                                    Can.nameToString frag.fragment.name
-                            in
+                List.reverse <|
+                    case frag.fragment.selection of
+                        Can.FragmentObject { selection } ->
                             List.concatMap
                                 (fieldAliasedAnnotation namespace)
-                                interface.selection
-                                ++ [ ( name, Type.named [] (name ++ "_Specifics") )
-                                   ]
+                                selection
 
-                        else
+                        Can.FragmentUnion union ->
                             List.concatMap
                                 (fieldAliasedAnnotation namespace)
-                                interface.selection
+                                union.selection
+
+                        Can.FragmentInterface interface ->
+                            if not (List.isEmpty interface.variants) || not (List.isEmpty interface.remainingTags) then
+                                let
+                                    name =
+                                        Can.nameToString frag.fragment.name
+                                in
+                                List.concatMap
+                                    (fieldAliasedAnnotation namespace)
+                                    interface.selection
+                                    ++ [ ( name, Type.named [] (name ++ "_Specifics") )
+                                       ]
+
+                            else
+                                List.concatMap
+                                    (fieldAliasedAnnotation namespace)
+                                    interface.selection
 
 
 selectionAliasedAnnotation :
