@@ -67,28 +67,36 @@ generateFragmentDecoder : Namespace -> Can.Fragment -> Elm.Expression
 generateFragmentDecoder namespace frag =
     case frag.selection of
         Can.FragmentObject fragSelection ->
-            Elm.fn ( "start_", Nothing )
-                (\start ->
+            Elm.fn2
+                ( "version_", Just Type.int )
+                ( "start_", Nothing )
+                (\version start ->
                     GraphQL.Operations.Generate.Decode.decodeFields namespace
-                        (Elm.int 0)
+                        version
                         GraphQL.Operations.Generate.Decode.initIndex
                         fragSelection.selection
                         start
                 )
 
         Can.FragmentUnion fragSelection ->
-            GraphQL.Operations.Generate.Decode.decodeUnion namespace
-                (Elm.int 0)
-                GraphQL.Operations.Generate.Decode.initIndex
-                fragSelection
-                |> Elm.withType (Decode.annotation_.decoder (Type.named [] (Can.nameToString frag.name)))
+            Elm.fn
+                ( "version_", Just Type.int )
+                (\version ->
+                    GraphQL.Operations.Generate.Decode.decodeUnion namespace
+                        version
+                        GraphQL.Operations.Generate.Decode.initIndex
+                        fragSelection
+                        |> Elm.withType (Decode.annotation_.decoder (Type.named [] (Can.nameToString frag.name)))
+                )
 
         Can.FragmentInterface fragSelection ->
-            Elm.fn ( "start_", Nothing )
-                (\start ->
+            Elm.fn2
+                ( "version_", Just Type.int )
+                ( "start_", Nothing )
+                (\version start ->
                     start
                         |> GraphQL.Operations.Generate.Decode.decodeInterface namespace
-                            (Elm.int 0)
+                            version
                             GraphQL.Operations.Generate.Decode.initIndex
                             fragSelection
                 )

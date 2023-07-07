@@ -121,12 +121,15 @@ decodeFieldHelper namespace version field ( index, exp ) =
             ( index
             , exp
                 |> Elm.Op.pipe
-                    (Elm.value
-                        { importFrom =
-                            fragment.fragment.importFrom
-                        , name = "decoder"
-                        , annotation = Nothing
-                        }
+                    (Elm.apply
+                        (Elm.value
+                            { importFrom =
+                                fragment.fragment.importFrom
+                            , name = "decoder"
+                            , annotation = Nothing
+                            }
+                        )
+                        [ version ]
                     )
             )
 
@@ -182,13 +185,16 @@ decodeSelection namespace version field index =
             Can.FieldUnion union ->
                 case field.selectsOnlyFragment of
                     Just fragment ->
-                        Elm.value
-                            { importFrom =
-                                fragment.importFrom
-                            , name = "decoder"
-                            , annotation =
-                                Nothing
-                            }
+                        Elm.apply
+                            (Elm.value
+                                { importFrom =
+                                    fragment.importFrom
+                                , name = "decoder"
+                                , annotation =
+                                    Nothing
+                                }
+                            )
+                            [ version ]
 
                     Nothing ->
                         decodeUnion namespace
