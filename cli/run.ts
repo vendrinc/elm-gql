@@ -5,6 +5,8 @@ import chalk from "chalk";
 import { XMLHttpRequest } from "./vendor/XMLHttpRequest";
 const schema_generator = require("./generators/schema");
 import engine from "./templates/Engine.elm";
+import input from "./templates/Input.elm";
+import decode from "./templates/Decode.elm";
 
 // We have to stub this in the allow Elm the ability to make http requests.
 // @ts-ignore
@@ -446,6 +448,8 @@ The full path of where I looked was:
 
   // Standard engine
   writeIfChanged(path.join(options.output, "GraphQL", "Engine.elm"), engine());
+  writeIfChanged(path.join(options.output, "GraphQL", "Input.elm"), input());
+  writeIfChanged(path.join(options.output, "GraphQL", "Decode.elm"), decode());
   fs.writeFileSync(".elm-gql-cache", JSON.stringify(newCache));
 }
 
