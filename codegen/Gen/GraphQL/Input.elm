@@ -45,7 +45,7 @@ maybeScalarEncode maybeScalarEncodeArg maybeScalarEncodeArg0 =
 
 {-| {-| -}
 
-encode: InputObject value -> Json.Decode.Value
+encode: InputObject value -> Json.Encode.Value
 -}
 encode : Elm.Expression -> Elm.Expression
 encode encodeArg =
@@ -57,7 +57,7 @@ encode encodeArg =
                 Just
                     (Type.function
                         [ Type.namedWith [] "InputObject" [ Type.var "value" ] ]
-                        (Type.namedWith [ "Json", "Decode" ] "Value" [])
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
                     )
             }
         )
@@ -254,7 +254,7 @@ call_ =
                                     "InputObject"
                                     [ Type.var "value" ]
                                 ]
-                                (Type.namedWith [ "Json", "Decode" ] "Value" [])
+                                (Type.namedWith [ "Json", "Encode" ] "Value" [])
                             )
                     }
                 )
@@ -404,7 +404,7 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith [] "InputObject" [ Type.var "value" ] ]
-                        (Type.namedWith [ "Json", "Decode" ] "Value" [])
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
                     )
             }
     , toFieldList =

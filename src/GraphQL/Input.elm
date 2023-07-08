@@ -1,6 +1,6 @@
 module GraphQL.Input exposing
     ( InputObject, inputObject
-    , Option(..), addField, addOptionalField
+    , addField, addOptionalField
     , maybeScalarEncode
     , encode, toFieldList
     )
@@ -9,7 +9,7 @@ module GraphQL.Input exposing
 
 @docs InputObject, inputObject
 
-@docs Option, addField, addOptionalField
+@docs addField, addOptionalField
 
 @docs maybeScalarEncode
 
@@ -96,7 +96,7 @@ toFieldList (InputObject _ fields) =
 
 
 {-| -}
-encode : InputObject value -> Json.Decode.Value
+encode : InputObject value -> Json.Encode.Value
 encode (InputObject _ fields) =
     fields
         |> List.filterMap
