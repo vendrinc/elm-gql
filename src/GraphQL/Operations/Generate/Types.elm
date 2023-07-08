@@ -352,14 +352,15 @@ aliasedFieldRecord namespace sel fields =
         fields
 
     else
-        fieldAliasedAnnotation namespace sel ++ fields
+        fieldAliasedAnnotation namespace Nothing sel ++ fields
 
 
 fieldAliasedAnnotation :
     Namespace
+    -> Maybe { importedFromFragment : List String }
     -> Can.Field
     -> List ( String, Type.Annotation )
-fieldAliasedAnnotation namespace field =
+fieldAliasedAnnotation namespace maybeFromFragment field =
     if Can.isTypeNameSelection field then
         []
 
@@ -367,7 +368,7 @@ fieldAliasedAnnotation namespace field =
         case field of
             Can.Field details ->
                 [ ( Utils.String.formatValue (Can.getAliasedName details)
-                  , selectionAliasedAnnotation namespace details
+                  , selectionAliasedAnnotation namespace maybeFromFragment details
                         |> Input.wrapElmType details.wrapper
                   )
                 ]
@@ -377,12 +378,12 @@ fieldAliasedAnnotation namespace field =
                     case frag.fragment.selection of
                         Can.FragmentObject { selection } ->
                             List.concatMap
-                                (fieldAliasedAnnotation namespace)
+                                (fieldAliasedAnnotation namespace (Just { importedFromFragment = frag.fragment.importFrom }))
                                 selection
 
                         Can.FragmentUnion union ->
                             List.concatMap
-                                (fieldAliasedAnnotation namespace)
+                                (fieldAliasedAnnotation namespace (Just { importedFromFragment = frag.fragment.importFrom }))
                                 union.selection
 
                         Can.FragmentInterface interface ->
@@ -392,22 +393,27 @@ fieldAliasedAnnotation namespace field =
                                         Can.nameToString frag.fragment.name
                                 in
                                 List.concatMap
-                                    (fieldAliasedAnnotation namespace)
+                                    (fieldAliasedAnnotation namespace
+                                        (Just { importedFromFragment = frag.fragment.importFrom })
+                                    )
                                     interface.selection
                                     ++ [ ( name, Type.named [] (name ++ "_Specifics") )
                                        ]
 
                             else
                                 List.concatMap
-                                    (fieldAliasedAnnotation namespace)
+                                    (fieldAliasedAnnotation namespace
+                                        (Just { importedFromFragment = frag.fragment.importFrom })
+                                    )
                                     interface.selection
 
 
 selectionAliasedAnnotation :
     Namespace
+    -> Maybe { importedFromFragment : List String }
     -> Can.FieldDetails
     -> Type.Annotation
-selectionAliasedAnnotation namespace field =
+selectionAliasedAnnotation namespace maybeFromFragment field =
     case field.selectsOnlyFragment of
         Just fragment ->
             Type.named
@@ -415,10 +421,19 @@ selectionAliasedAnnotation namespace field =
                 fragment.name
 
         Nothing ->
+            let
+                importFrom =
+                    case maybeFromFragment of
+                        Nothing ->
+                            []
+
+                        Just { importedFromFragment } ->
+                            importedFromFragment
+            in
             case field.selection of
                 Can.FieldObject _ ->
                     Type.named
-                        []
+                        importFrom
                         (Can.nameToString field.globalAlias)
 
                 Can.FieldScalar type_ ->
@@ -429,12 +444,12 @@ selectionAliasedAnnotation namespace field =
 
                 Can.FieldUnion _ ->
                     Type.named
-                        []
+                        importFrom
                         (Can.nameToString field.globalAlias)
 
                 Can.FieldInterface _ ->
                     Type.named
-                        []
+                        importFrom
                         (Can.nameToString field.globalAlias)
 
 
