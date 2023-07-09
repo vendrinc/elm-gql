@@ -92,7 +92,7 @@ canonicalize schema paths doc =
                                     (canonicalizeFragment schema paths)
                                     (CanSuccess startingCache Dict.empty)
                     in
-                    case Debug.log "CANONICALIZED" canonicalizedFragments of
+                    case canonicalizedFragments of
                         CanSuccess _ canonicalFrags ->
                             let
                                 canonicalizedDefinitions =
