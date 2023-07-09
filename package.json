@@ -1,6 +1,6 @@
 {
   "name": "elm-gql",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Write GraphQL, get nice Elm code!",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,7 +17,8 @@
     "elm-gql:init": "cd sandbox ; node ../bin/elm-gql init ../schema.json --force --queries queries/elm",
     "sandbox": "cd sandbox ; elm make src/Main.elm",
     "test": "elm-test",
-    "review": "elm-review --fix-all"
+    "review": "elm-review --fix-all",
+    "test:secret": "bash tests/secret-example/run.sh"
   },
   "files": [
     "dist",
