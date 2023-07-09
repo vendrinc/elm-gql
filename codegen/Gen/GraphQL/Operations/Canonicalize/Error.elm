@@ -228,6 +228,7 @@ make_ :
     , fragmentDuplicateFound : Elm.Expression -> Elm.Expression
     , fragmentSelectionNotAllowedInObjects : Elm.Expression -> Elm.Expression
     , fragmentInlineTopLevel : Elm.Expression -> Elm.Expression
+    , fragmentCyclicDependency : Elm.Expression -> Elm.Expression
     , todo : Elm.Expression -> Elm.Expression
     , error : Elm.Expression -> Elm.Expression
     }
@@ -602,6 +603,17 @@ make_ =
                     }
                 )
                 [ ar0 ]
+    , fragmentCyclicDependency =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "FragmentCyclicDependency"
+                    , annotation = Just (Type.namedWith [] "ErrorDetails" [])
+                    }
+                )
+                [ ar0 ]
     , todo =
         \ar0 ->
             Elm.apply
@@ -658,6 +670,7 @@ caseOf_ :
             , fragmentSelectionNotAllowedInObjects :
                 Elm.Expression -> Elm.Expression
             , fragmentInlineTopLevel : Elm.Expression -> Elm.Expression
+            , fragmentCyclicDependency : Elm.Expression -> Elm.Expression
             , todo : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
@@ -862,6 +875,17 @@ caseOf_ =
                         ]
                     )
                     errorDetailsTags.fragmentInlineTopLevel
+                , Elm.Case.branch1
+                    "FragmentCyclicDependency"
+                    ( "one"
+                    , Type.record
+                        [ ( "fragments"
+                          , Type.list
+                                (Type.namedWith [ "AST" ] "FragmentDetails" [])
+                          )
+                        ]
+                    )
+                    errorDetailsTags.fragmentCyclicDependency
                 , Elm.Case.branch1
                     "Todo"
                     ( "string.String", Type.string )

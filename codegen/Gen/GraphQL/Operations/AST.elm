@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.AST exposing (annotation_, call_, caseOf_, fragmentCount, getAliasedName, make_, moduleName_, nameToString, typeToGqlString, valueToString, values_)
+module Gen.GraphQL.Operations.AST exposing (annotation_, call_, caseOf_, fragmentCount, getAliasedName, getUsedFragments, make_, moduleName_, nameToString, typeToGqlString, valueToString, values_)
 
 {-| 
-@docs moduleName_, fragmentCount, typeToGqlString, valueToString, nameToString, getAliasedName, annotation_, make_, caseOf_, call_, values_
+@docs moduleName_, getUsedFragments, fragmentCount, typeToGqlString, valueToString, nameToString, getAliasedName, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -14,6 +14,27 @@ import Elm.Case
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "AST" ]
+
+
+{-| {-| -}
+
+getUsedFragments: FragmentDetails -> Set String
+-}
+getUsedFragments : Elm.Expression -> Elm.Expression
+getUsedFragments getUsedFragmentsArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "AST" ]
+            , name = "getUsedFragments"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "FragmentDetails" [] ]
+                        (Type.namedWith [] "Set" [ Type.string ])
+                    )
+            }
+        )
+        [ getUsedFragmentsArg ]
 
 
 {-| {-| Bfore canonicalizing fragments, we need to order them so that fragments with no fragments start first
@@ -963,14 +984,30 @@ caseOf_ =
 
 
 call_ :
-    { fragmentCount : Elm.Expression -> Elm.Expression
+    { getUsedFragments : Elm.Expression -> Elm.Expression
+    , fragmentCount : Elm.Expression -> Elm.Expression
     , typeToGqlString : Elm.Expression -> Elm.Expression
     , valueToString : Elm.Expression -> Elm.Expression
     , nameToString : Elm.Expression -> Elm.Expression
     , getAliasedName : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { fragmentCount =
+    { getUsedFragments =
+        \getUsedFragmentsArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "AST" ]
+                    , name = "getUsedFragments"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "FragmentDetails" [] ]
+                                (Type.namedWith [] "Set" [ Type.string ])
+                            )
+                    }
+                )
+                [ getUsedFragmentsArg ]
+    , fragmentCount =
         \fragmentCountArg ->
             Elm.apply
                 (Elm.value
@@ -1049,14 +1086,26 @@ call_ =
 
 
 values_ :
-    { fragmentCount : Elm.Expression
+    { getUsedFragments : Elm.Expression
+    , fragmentCount : Elm.Expression
     , typeToGqlString : Elm.Expression
     , valueToString : Elm.Expression
     , nameToString : Elm.Expression
     , getAliasedName : Elm.Expression
     }
 values_ =
-    { fragmentCount =
+    { getUsedFragments =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "AST" ]
+            , name = "getUsedFragments"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "FragmentDetails" [] ]
+                        (Type.namedWith [] "Set" [ Type.string ])
+                    )
+            }
+    , fragmentCount =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "AST" ]
             , name = "fragmentCount"

@@ -12,6 +12,7 @@ import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize.Cache as Cache
 import GraphQL.Operations.Canonicalize.Error as Error
 import GraphQL.Schema
+import Set exposing (Set)
 import Utils.String
 
 
@@ -78,42 +79,46 @@ canonicalize schema paths doc =
                             , "Response"
                             ]
                         }
-
-                canonicalizedFragments =
-                    List.foldl
-                        (canonicalizeFragment schema paths)
-                        (CanSuccess startingCache Dict.empty)
-                        (List.sortBy AST.fragmentCount
-                            (Dict.values fragments)
-                        )
             in
-            case canonicalizedFragments of
-                CanSuccess _ canonicalFrags ->
+            case sortTopologically (Dict.values fragments) of
+                Err error ->
+                    Err [ Error.error error ]
+
+                Ok sortedFragments ->
                     let
-                        canonicalizedDefinitions =
-                            List.foldl
-                                (canonicalizeDefinition
-                                    { schema = schema
-                                    , fragments = canonicalFrags
-                                    , paths = paths
-                                    }
-                                )
-                                (CanSuccess startingCache [])
-                                doc.definitions
+                        canonicalizedFragments =
+                            sortedFragments
+                                |> List.foldl
+                                    (canonicalizeFragment schema paths)
+                                    (CanSuccess startingCache Dict.empty)
                     in
-                    case canonicalizedDefinitions of
-                        CanSuccess finalCache defs ->
-                            Ok
-                                { definitions = defs
-                                , fragments = Dict.values canonicalFrags
-                                , usages = finalCache.usage
-                                }
+                    case Debug.log "CANONICALIZED" canonicalizedFragments of
+                        CanSuccess _ canonicalFrags ->
+                            let
+                                canonicalizedDefinitions =
+                                    List.foldl
+                                        (canonicalizeDefinition
+                                            { schema = schema
+                                            , fragments = canonicalFrags
+                                            , paths = paths
+                                            }
+                                        )
+                                        (CanSuccess startingCache [])
+                                        doc.definitions
+                            in
+                            case canonicalizedDefinitions of
+                                CanSuccess finalCache defs ->
+                                    Ok
+                                        { definitions = defs
+                                        , fragments = Dict.values canonicalFrags
+                                        , usages = finalCache.usage
+                                        }
+
+                                CanError errorMsg ->
+                                    Err errorMsg
 
                         CanError errorMsg ->
                             Err errorMsg
-
-                CanError errorMsg ->
-                    Err errorMsg
 
 
 getFragments :
@@ -859,6 +864,47 @@ selectsSingleFragment refs fields =
 
         _ ->
             Nothing
+
+
+sortTopologically : List AST.FragmentDetails -> Result Error.ErrorDetails (List AST.FragmentDetails)
+sortTopologically fragments =
+    sortTopologicallyHelp [] Set.empty fragments
+
+
+sortTopologicallyHelp : List AST.FragmentDetails -> Set String -> List AST.FragmentDetails -> Result Error.ErrorDetails (List AST.FragmentDetails)
+sortTopologicallyHelp sortedFragments satisfiedFragmentNames remaining =
+    let
+        ( newlySatisfied, newlyRemaining ) =
+            List.partition
+                (\fragment ->
+                    let
+                        deps =
+                            AST.getUsedFragments fragment
+                    in
+                    deps
+                        |> Set.foldl
+                            (\dep satisfied ->
+                                satisfied && Set.member dep satisfiedFragmentNames
+                            )
+                            True
+                )
+                remaining
+    in
+    case newlyRemaining of
+        [] ->
+            Ok (sortedFragments ++ newlySatisfied)
+
+        _ ->
+            case newlySatisfied of
+                [] ->
+                    Err (Error.FragmentCyclicDependency { fragments = newlyRemaining })
+
+                _ ->
+                    sortTopologicallyHelp (sortedFragments ++ newlySatisfied)
+                        (Set.union satisfiedFragmentNames
+                            (Set.fromList (List.map (\f -> AST.nameToString f.name) newlySatisfied))
+                        )
+                        newlyRemaining
 
 
 canonicalizeFragment :
@@ -1974,3 +2020,21 @@ matchTag tag tags ( matched, captured ) =
                 matchTag tag
                     remain
                     ( matched, top :: captured )
+
+
+
+-- test =
+--     Ok
+--         (Dict.fromList
+--             [ ( "ItemFrBase"
+--               , { directives = []
+--                 , name = Name "ItemFrBase"
+--                 , selection = [ Field { alias_ = Nothing, arguments = [], directives = [], name = Name "itemId", selection = [ Field { alias_ = Nothing, arguments = [], directives = [], name = Name "id", selection = [] } ] } ]
+--                 , typeCondition = Name "Item"
+--                 }
+--               )
+--             , ( "ItemFrCommon", { directives = [], name = Name "ItemFrCommon", selection = [ FragmentSpreadSelection { directives = [], name = Name "ItemFrBase" }, Field { alias_ = Nothing, arguments = [], directives = [], name = Name "zone", selection = [ Field { alias_ = Nothing, arguments = [], directives = [], name = Name "item", selection = [ FragmentSpreadSelection { directives = [], name = Name "ItemFrBase" } ] } ] } ], typeCondition = Name "Item" } )
+--             , ( "ItemFrMed", { directives = [], name = Name "ItemFrMed", selection = [ FragmentSpreadSelection { directives = [], name = Name "ItemFrCommon" }, Field { alias_ = Nothing, arguments = [], directives = [], name = Name "body", selection = [ Field { alias_ = Nothing, arguments = [], directives = [], name = Name "data", selection = [] } ] } ], typeCondition = Name "Item" } )
+--             , ( "ItemFr_ViewBase", { directives = [], name = Name "ItemFr_ViewBase", selection = [ Field { alias_ = Nothing, arguments = [], directives = [], name = Name "summary", selection = [] }, Field { alias_ = Nothing, arguments = [], directives = [], name = Name "itemId", selection = [ Field { alias_ = Nothing, arguments = [], directives = [], name = Name "id", selection = [] }, Field { alias_ = Nothing, arguments = [], directives = [], name = Name "itemType", selection = [] }, Field { alias_ = Nothing, arguments = [], directives = [], name = Name "full", selection = [] } ] }, Field { alias_ = Nothing, arguments = [], directives = [], name = Name "title", selection = [] } ], typeCondition = Name "Item" } )
+--             ]
+--         )

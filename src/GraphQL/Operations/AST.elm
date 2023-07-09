@@ -1,4 +1,30 @@
-module GraphQL.Operations.AST exposing (Argument, Definition(..), Directive, Document, FieldDetails, FragmentDetails, FragmentSpread, InlineFragment, Name(..), OperationDetails, OperationType(..), Selection(..), Type(..), Value(..), Variable, VariableDefinition, Wrapper(..), fragmentCount, getAliasedName, nameToString, typeToGqlString, valueToString)
+module GraphQL.Operations.AST exposing
+    ( Argument
+    , Definition(..)
+    , Directive
+    , Document
+    , FieldDetails
+    , FragmentDetails
+    , FragmentSpread
+    , InlineFragment
+    , Name(..)
+    , OperationDetails
+    , OperationType(..)
+    , Selection(..)
+    , Type(..)
+    , Value(..)
+    , Variable
+    , VariableDefinition
+    , Wrapper(..)
+    , fragmentCount
+    , getAliasedName
+    , getUsedFragments
+    , nameToString
+    , typeToGqlString
+    , valueToString
+    )
+
+import Set exposing (Set)
 
 
 type alias Document =
@@ -238,3 +264,22 @@ fragmentCountHelper selection count =
 
         InlineFragmentSelection inline ->
             List.foldl fragmentCountHelper count inline.selection
+
+
+{-| -}
+getUsedFragments : FragmentDetails -> Set String
+getUsedFragments fragment =
+    List.foldl getUsedFragmentsHelper Set.empty fragment.selection
+
+
+getUsedFragmentsHelper : Selection -> Set String -> Set String
+getUsedFragmentsHelper selection count =
+    case selection of
+        Field field ->
+            List.foldl getUsedFragmentsHelper count field.selection
+
+        FragmentSpreadSelection frag ->
+            Set.insert (nameToString frag.name) count
+
+        InlineFragmentSelection inline ->
+            List.foldl getUsedFragmentsHelper count inline.selection

@@ -124,6 +124,7 @@ type ErrorDetails
     | FragmentInlineTopLevel
         { fragment : AST.InlineFragment
         }
+    | FragmentCyclicDependency { fragments : List AST.FragmentDetails }
     | Todo String
 
 
@@ -217,9 +218,17 @@ toString (Error details) =
         Todo msg ->
             "Todo: " ++ msg
 
+        FragmentCyclicDependency { fragments } ->
+            String.join "\n"
+                [ "I found two fragments that depend on each other"
+                , block
+                    (List.map (cyan << AST.nameToString << .name) fragments)
+                , "Is there a way to rewrite your query so that they don't depend on each other?"
+                ]
+
         EnumUnknown name ->
             String.join "\n"
-                [ "I don't recognize this name:"
+                [ "I don't recognize this Enum:"
                 , block
                     [ yellow name ]
                 ]
@@ -363,7 +372,7 @@ toString (Error details) =
                                 [ "I found a usage of a fragment named " ++ cyan deets.found ++ ", but I don't see any fragments defined in this document!"
                                 , "You could add one by adding this if you want."
                                 , block
-                                    [ cyan "fragment" ++ cyan deets.found ++ " on " ++ yellow deets.object ++ " {"
+                                    [ cyan "fragment " ++ cyan deets.found ++ " on " ++ yellow deets.object ++ " {"
                                     , "    # select some fields here!"
                                     , "}"
                                     ]
