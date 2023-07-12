@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (annotation_, batch, call_, caseOf_, make_, map, map2, mapRequest, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, operation, query, queryRisky, queryRiskyTask, queryString, queryTask, select, send, simulate, subscription, values_, versionedAlias, versionedName, withName)
+module Gen.GraphQL.Engine exposing (annotation_, batch, call_, caseOf_, encodeVariables, make_, map, map2, mapRequest, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, operation, query, queryRisky, queryRiskyTask, queryString, queryTask, select, selectionVariables, send, simulate, subscription, values_, versionedAlias, versionedName, withName)
 
 {-| 
-@docs moduleName_, queryString, mutationRiskyTask, queryRiskyTask, mutationRisky, queryRisky, mutationTask, queryTask, mutation, query, subscription, simulate, send, mapRequest, versionedAlias, versionedName, operation, map2, map, withName, select, batch, annotation_, make_, caseOf_, call_, values_
+@docs moduleName_, queryString, encodeVariables, selectionVariables, mutationRiskyTask, queryRiskyTask, mutationRisky, queryRisky, mutationTask, queryTask, mutation, query, subscription, simulate, send, mapRequest, versionedAlias, versionedName, operation, map2, map, withName, select, batch, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -40,6 +40,58 @@ queryString queryStringArg queryStringArg0 =
             }
         )
         [ Elm.string queryStringArg, queryStringArg0 ]
+
+
+{-| encodeVariables: Dict String VariableDetails -> Json.Encode.Value -}
+encodeVariables : Elm.Expression -> Elm.Expression
+encodeVariables encodeVariablesArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "encodeVariables"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Dict"
+                            [ Type.string
+                            , Type.namedWith [] "VariableDetails" []
+                            ]
+                        ]
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                    )
+            }
+        )
+        [ encodeVariablesArg ]
+
+
+{-| selectionVariables: Selection source data -> Dict String VariableDetails -}
+selectionVariables : Elm.Expression -> Elm.Expression
+selectionVariables selectionVariablesArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "selectionVariables"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.var "source", Type.var "data" ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Dict"
+                            [ Type.string
+                            , Type.namedWith [] "VariableDetails" []
+                            ]
+                        )
+                    )
+            }
+        )
+        [ selectionVariablesArg ]
 
 
 {-| {-| -}
@@ -1017,7 +1069,8 @@ batch batchArg =
 
 
 annotation_ :
-    { error : Type.Annotation
+    { variableDetails : Type.Annotation
+    , error : Type.Annotation
     , request : Type.Annotation -> Type.Annotation
     , subscription : Type.Annotation
     , mutation : Type.Annotation
@@ -1026,7 +1079,22 @@ annotation_ :
     , selection : Type.Annotation -> Type.Annotation -> Type.Annotation
     }
 annotation_ =
-    { error = Type.namedWith [ "GraphQL", "Engine" ] "Error" []
+    { variableDetails =
+        Type.alias
+            moduleName_
+            "VariableDetails"
+            []
+            (Type.record
+                [ ( "gqlTypeName", Type.string )
+                , ( "value"
+                  , Type.namedWith
+                        []
+                        "Maybe"
+                        [ Type.namedWith [ "Json", "Encode" ] "Value" [] ]
+                  )
+                ]
+            )
+    , error = Type.namedWith [ "GraphQL", "Engine" ] "Error" []
     , request =
         \requestArg0 ->
             Type.namedWith [ "GraphQL", "Engine" ] "Request" [ requestArg0 ]
@@ -1046,7 +1114,10 @@ annotation_ =
 
 
 make_ :
-    { badUrl : Elm.Expression -> Elm.Expression
+    { variableDetails :
+        { gqlTypeName : Elm.Expression, value : Elm.Expression }
+        -> Elm.Expression
+    , badUrl : Elm.Expression -> Elm.Expression
     , timeout : Elm.Expression
     , networkError : Elm.Expression
     , badStatus : Elm.Expression -> Elm.Expression
@@ -1056,7 +1127,31 @@ make_ :
     , absent : Elm.Expression
     }
 make_ =
-    { badUrl =
+    { variableDetails =
+        \variableDetails_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Engine" ]
+                    "VariableDetails"
+                    []
+                    (Type.record
+                        [ ( "gqlTypeName", Type.string )
+                        , ( "value"
+                          , Type.namedWith
+                                []
+                                "Maybe"
+                                [ Type.namedWith [ "Json", "Encode" ] "Value" []
+                                ]
+                          )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "gqlTypeName" variableDetails_args.gqlTypeName
+                    , Tuple.pair "value" variableDetails_args.value
+                    ]
+                )
+    , badUrl =
         \ar0 ->
             Elm.apply
                 (Elm.value
@@ -1198,6 +1293,8 @@ caseOf_ =
 
 call_ :
     { queryString : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , encodeVariables : Elm.Expression -> Elm.Expression
+    , selectionVariables : Elm.Expression -> Elm.Expression
     , mutationRiskyTask : Elm.Expression -> Elm.Expression -> Elm.Expression
     , queryRiskyTask : Elm.Expression -> Elm.Expression -> Elm.Expression
     , mutationRisky : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -1242,6 +1339,52 @@ call_ =
                     }
                 )
                 [ queryStringArg, queryStringArg0 ]
+    , encodeVariables =
+        \encodeVariablesArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "encodeVariables"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith
+                                    []
+                                    "Dict"
+                                    [ Type.string
+                                    , Type.namedWith [] "VariableDetails" []
+                                    ]
+                                ]
+                                (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                            )
+                    }
+                )
+                [ encodeVariablesArg ]
+    , selectionVariables =
+        \selectionVariablesArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "selectionVariables"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.var "source", Type.var "data" ]
+                                ]
+                                (Type.namedWith
+                                    []
+                                    "Dict"
+                                    [ Type.string
+                                    , Type.namedWith [] "VariableDetails" []
+                                    ]
+                                )
+                            )
+                    }
+                )
+                [ selectionVariablesArg ]
     , mutationRiskyTask =
         \mutationRiskyTaskArg mutationRiskyTaskArg0 ->
             Elm.apply
@@ -1976,6 +2119,8 @@ call_ =
 
 values_ :
     { queryString : Elm.Expression
+    , encodeVariables : Elm.Expression
+    , selectionVariables : Elm.Expression
     , mutationRiskyTask : Elm.Expression
     , queryRiskyTask : Elm.Expression
     , mutationRisky : Elm.Expression
@@ -2012,6 +2157,44 @@ values_ =
                             [ Type.var "source", Type.var "data" ]
                         ]
                         Type.string
+                    )
+            }
+    , encodeVariables =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "encodeVariables"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Dict"
+                            [ Type.string
+                            , Type.namedWith [] "VariableDetails" []
+                            ]
+                        ]
+                        (Type.namedWith [ "Json", "Encode" ] "Value" [])
+                    )
+            }
+    , selectionVariables =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "selectionVariables"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.var "source", Type.var "data" ]
+                        ]
+                        (Type.namedWith
+                            []
+                            "Dict"
+                            [ Type.string
+                            , Type.namedWith [] "VariableDetails" []
+                            ]
+                        )
                     )
             }
     , mutationRiskyTask =
