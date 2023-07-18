@@ -12,7 +12,7 @@ import decode from "./templates/Decode.elm";
 // @ts-ignore
 globalThis["XMLHttpRequest"] = XMLHttpRequest.XMLHttpRequest;
 
-export const version: string = "0.7.2";
+export const version: string = "0.8.0";
 
 type Cache = {
   engineVersion: string;
