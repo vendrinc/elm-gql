@@ -5,6 +5,7 @@ module GraphQL.Engine exposing
     , Mutation, mutation, mutationRisky, mutationTask, mutationRiskyTask
     , Subscription, subscription
     , Error(..)
+    , VariableDetails, selectionVariables, encodeVariables
     , queryString
     , Request, send, simulate, mapRequest
     , Option(..)
@@ -25,6 +26,8 @@ module GraphQL.Engine exposing
 @docs Subscription, subscription
 
 @docs Error
+
+@docs VariableDetails, selectionVariables, encodeVariables
 
 @docs queryString
 
@@ -676,15 +679,15 @@ body operationName q =
 
 encodePayload : String -> Selection source data -> Json.Encode.Value
 encodePayload operationName q =
-    let
-        variables : Dict String VariableDetails
-        variables =
-            (getContext q).variables
-    in
     Json.Encode.object
         [ ( "query", Json.Encode.string (queryString operationName q) )
-        , ( "variables", encodeVariables variables )
+        , ( "variables", encodeVariables (selectionVariables q) )
         ]
+
+
+selectionVariables : Selection source data -> Dict String VariableDetails
+selectionVariables q =
+    (getContext q).variables
 
 
 encodeVariables : Dict String VariableDetails -> Json.Encode.Value
