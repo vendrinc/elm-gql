@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Generate.Types exposing (call_, enumType, generate, interfaceVariants, moduleName_, toAliasedFields, toFieldNames, toOpenAliasedFields, unionVars, values_)
+module Gen.GraphQL.Operations.Generate.Types exposing (call_, enumType, generate, interfaceVariants, moduleName_, toAliasedFields, toFieldNames, toFields, toOpenAliasedFields, unionVars, values_)
 
 {-| 
-@docs moduleName_, enumType, toFieldNames, toOpenAliasedFields, toAliasedFields, interfaceVariants, unionVars, generate, call_, values_
+@docs moduleName_, enumType, toFieldNames, toFields, toOpenAliasedFields, toAliasedFields, interfaceVariants, unionVars, generate, call_, values_
 -}
 
 
@@ -63,6 +63,45 @@ toFieldNames toFieldNamesArg toFieldNamesArg0 toFieldNamesArg1 =
         , Elm.list toFieldNamesArg0
         , Elm.list toFieldNamesArg1
         ]
+
+
+{-| toFields: 
+    Namespace
+    -> List ( String, Type.Annotation )
+    -> List Can.Field
+    -> List ( String, Type.Annotation )
+-}
+toFields :
+    Elm.Expression
+    -> List Elm.Expression
+    -> List Elm.Expression
+    -> Elm.Expression
+toFields toFieldsArg toFieldsArg0 toFieldsArg1 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Generate", "Types" ]
+            , name = "toFields"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" []
+                        , Type.list
+                            (Type.tuple
+                                Type.string
+                                (Type.namedWith [ "Type" ] "Annotation" [])
+                            )
+                        , Type.list (Type.namedWith [ "Can" ] "Field" [])
+                        ]
+                        (Type.list
+                            (Type.tuple
+                                Type.string
+                                (Type.namedWith [ "Type" ] "Annotation" [])
+                            )
+                        )
+                    )
+            }
+        )
+        [ toFieldsArg, Elm.list toFieldsArg0, Elm.list toFieldsArg1 ]
 
 
 {-| toOpenAliasedFields: 
@@ -286,6 +325,8 @@ call_ :
     { enumType : Elm.Expression -> Elm.Expression -> Elm.Expression
     , toFieldNames :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , toFields :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , toOpenAliasedFields :
         Elm.Expression
         -> Elm.Expression
@@ -347,6 +388,43 @@ call_ =
                     }
                 )
                 [ toFieldNamesArg, toFieldNamesArg0, toFieldNamesArg1 ]
+    , toFields =
+        \toFieldsArg toFieldsArg0 toFieldsArg1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Generate", "Types" ]
+                    , name = "toFields"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Namespace" []
+                                , Type.list
+                                    (Type.tuple
+                                        Type.string
+                                        (Type.namedWith
+                                            [ "Type" ]
+                                            "Annotation"
+                                            []
+                                        )
+                                    )
+                                , Type.list
+                                    (Type.namedWith [ "Can" ] "Field" [])
+                                ]
+                                (Type.list
+                                    (Type.tuple
+                                        Type.string
+                                        (Type.namedWith
+                                            [ "Type" ]
+                                            "Annotation"
+                                            []
+                                        )
+                                    )
+                                )
+                            )
+                    }
+                )
+                [ toFieldsArg, toFieldsArg0, toFieldsArg1 ]
     , toOpenAliasedFields =
         \toOpenAliasedFieldsArg toOpenAliasedFieldsArg0 toOpenAliasedFieldsArg1 toOpenAliasedFieldsArg2 ->
             Elm.apply
@@ -546,6 +624,7 @@ call_ =
 values_ :
     { enumType : Elm.Expression
     , toFieldNames : Elm.Expression
+    , toFields : Elm.Expression
     , toOpenAliasedFields : Elm.Expression
     , toAliasedFields : Elm.Expression
     , interfaceVariants : Elm.Expression
@@ -580,6 +659,29 @@ values_ =
                         , Type.list (Type.namedWith [ "Can" ] "Field" [])
                         ]
                         (Type.list Type.string)
+                    )
+            }
+    , toFields =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Generate", "Types" ]
+            , name = "toFields"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" []
+                        , Type.list
+                            (Type.tuple
+                                Type.string
+                                (Type.namedWith [ "Type" ] "Annotation" [])
+                            )
+                        , Type.list (Type.namedWith [ "Can" ] "Field" [])
+                        ]
+                        (Type.list
+                            (Type.tuple
+                                Type.string
+                                (Type.namedWith [ "Type" ] "Annotation" [])
+                            )
+                        )
                     )
             }
     , toOpenAliasedFields =

@@ -4,6 +4,7 @@ module GraphQL.Operations.Generate.Types exposing
     , interfaceVariants
     , toAliasedFields
     , toFieldNames
+    , toFields
     , toOpenAliasedFields
     , unionVars
     )
@@ -310,9 +311,7 @@ toAliasedFields :
     -> List Can.Field
     -> Type.Annotation
 toAliasedFields namespace additionalFields selection =
-    List.foldl (aliasedFieldRecord namespace)
-        additionalFields
-        selection
+    toFields namespace additionalFields selection
         |> Type.record
 
 
@@ -323,10 +322,19 @@ toOpenAliasedFields :
     -> List Can.Field
     -> Type.Annotation
 toOpenAliasedFields namespace name additionalFields selection =
+    toFields namespace additionalFields selection
+        |> Type.extensible name
+
+
+toFields :
+    Namespace
+    -> List ( String, Type.Annotation )
+    -> List Can.Field
+    -> List ( String, Type.Annotation )
+toFields namespace additionalFields selection =
     List.foldl (aliasedFieldRecord namespace)
         additionalFields
         selection
-        |> Type.extensible name
 
 
 toFieldNames :
@@ -335,9 +343,7 @@ toFieldNames :
     -> List Can.Field
     -> List String
 toFieldNames namespace additionalFields selection =
-    List.foldl (aliasedFieldRecord namespace)
-        additionalFields
-        selection
+    toFields namespace additionalFields selection
         |> List.map Tuple.first
 
 

@@ -65,17 +65,35 @@ Please avoid modifying directly.
 
 generateFragmentDecoder : Namespace -> Can.Fragment -> Elm.Expression
 generateFragmentDecoder namespace frag =
+    let
+        finalType =
+            Type.var (Can.nameToString frag.name)
+    in
     case frag.selection of
         Can.FragmentObject fragSelection ->
+            let
+                fields =
+                    GeneratedTypes.toFields namespace [] fragSelection.selection
+            in
             Elm.fn2
                 ( "version_", Just Type.int )
-                ( "start_", Nothing )
+                ( "start_"
+                , Just
+                    (Decode.annotation_.decoder
+                        (Type.function
+                            (List.map Tuple.second fields)
+                            finalType
+                        )
+                    )
+                )
                 (\version start ->
                     GraphQL.Operations.Generate.Decode.decodeFields namespace
                         version
                         GraphQL.Operations.Generate.Decode.initIndex
                         fragSelection.selection
                         start
+                        |> Elm.withType
+                            (Decode.annotation_.decoder finalType)
                 )
 
         Can.FragmentUnion fragSelection ->
