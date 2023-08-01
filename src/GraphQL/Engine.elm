@@ -759,7 +759,15 @@ responseToResult decoder response =
             let
                 bodyDecoder =
                     Json.Decode.oneOf
-                        [ Json.Decode.field "data" decoder
+                        [ Json.Decode.map2
+                            (\_ errs ->
+                                Err errs
+                            )
+                            (Json.Decode.field "data" (Json.Decode.null ()))
+                            (Json.Decode.field "errors"
+                                (Json.Decode.list gqlErrorDecoder)
+                            )
+                        , Json.Decode.field "data" decoder
                             |> Json.Decode.map Ok
                         , Json.Decode.field "errors"
                             (Json.Decode.list gqlErrorDecoder)
