@@ -1069,7 +1069,9 @@ batch batchArg =
 
 
 annotation_ :
-    { variableDetails : Type.Annotation
+    { location : Type.Annotation
+    , gqlError : Type.Annotation
+    , variableDetails : Type.Annotation
     , error : Type.Annotation
     , request : Type.Annotation -> Type.Annotation
     , subscription : Type.Annotation
@@ -1079,7 +1081,37 @@ annotation_ :
     , selection : Type.Annotation -> Type.Annotation -> Type.Annotation
     }
 annotation_ =
-    { variableDetails =
+    { location =
+        Type.alias
+            moduleName_
+            "Location"
+            []
+            (Type.record [ ( "line", Type.int ), ( "column", Type.int ) ])
+    , gqlError =
+        Type.alias
+            moduleName_
+            "GqlError"
+            []
+            (Type.record
+                [ ( "message", Type.string )
+                , ( "path"
+                  , Type.namedWith [] "Maybe" [ Type.list Type.string ]
+                  )
+                , ( "locations"
+                  , Type.namedWith
+                        []
+                        "Maybe"
+                        [ Type.list (Type.namedWith [] "Location" []) ]
+                  )
+                , ( "extensions"
+                  , Type.namedWith
+                        []
+                        "Maybe"
+                        [ Type.namedWith [ "Json", "Decode" ] "Value" [] ]
+                  )
+                ]
+            )
+    , variableDetails =
         Type.alias
             moduleName_
             "VariableDetails"
@@ -1114,7 +1146,16 @@ annotation_ =
 
 
 make_ :
-    { variableDetails :
+    { location :
+        { line : Elm.Expression, column : Elm.Expression } -> Elm.Expression
+    , gqlError :
+        { message : Elm.Expression
+        , path : Elm.Expression
+        , locations : Elm.Expression
+        , extensions : Elm.Expression
+        }
+        -> Elm.Expression
+    , variableDetails :
         { gqlTypeName : Elm.Expression, value : Elm.Expression }
         -> Elm.Expression
     , badUrl : Elm.Expression -> Elm.Expression
@@ -1122,12 +1163,64 @@ make_ :
     , networkError : Elm.Expression
     , badStatus : Elm.Expression -> Elm.Expression
     , badBody : Elm.Expression -> Elm.Expression
+    , errorField : Elm.Expression -> Elm.Expression
     , present : Elm.Expression -> Elm.Expression
     , null : Elm.Expression
     , absent : Elm.Expression
     }
 make_ =
-    { variableDetails =
+    { location =
+        \location_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Engine" ]
+                    "Location"
+                    []
+                    (Type.record
+                        [ ( "line", Type.int ), ( "column", Type.int ) ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "line" location_args.line
+                    , Tuple.pair "column" location_args.column
+                    ]
+                )
+    , gqlError =
+        \gqlError_args ->
+            Elm.withType
+                (Type.alias
+                    [ "GraphQL", "Engine" ]
+                    "GqlError"
+                    []
+                    (Type.record
+                        [ ( "message", Type.string )
+                        , ( "path"
+                          , Type.namedWith [] "Maybe" [ Type.list Type.string ]
+                          )
+                        , ( "locations"
+                          , Type.namedWith
+                                []
+                                "Maybe"
+                                [ Type.list (Type.namedWith [] "Location" []) ]
+                          )
+                        , ( "extensions"
+                          , Type.namedWith
+                                []
+                                "Maybe"
+                                [ Type.namedWith [ "Json", "Decode" ] "Value" []
+                                ]
+                          )
+                        ]
+                    )
+                )
+                (Elm.record
+                    [ Tuple.pair "message" gqlError_args.message
+                    , Tuple.pair "path" gqlError_args.path
+                    , Tuple.pair "locations" gqlError_args.locations
+                    , Tuple.pair "extensions" gqlError_args.extensions
+                    ]
+                )
+    , variableDetails =
         \variableDetails_args ->
             Elm.withType
                 (Type.alias
@@ -1193,6 +1286,16 @@ make_ =
                     }
                 )
                 [ ar0 ]
+    , errorField =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "ErrorField"
+                    , annotation = Just (Type.namedWith [] "Error" [])
+                    }
+                )
+                [ ar0 ]
     , present =
         \ar0 ->
             Elm.apply
@@ -1230,6 +1333,7 @@ caseOf_ :
             , networkError : Elm.Expression
             , badStatus : Elm.Expression -> Elm.Expression
             , badBody : Elm.Expression -> Elm.Expression
+            , errorField : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
     , option :
@@ -1271,6 +1375,16 @@ caseOf_ =
                         ]
                     )
                     errorTags.badBody
+                , Elm.Case.branch1
+                    "ErrorField"
+                    ( "one"
+                    , Type.record
+                        [ ( "errors"
+                          , Type.list (Type.namedWith [] "GqlError" [])
+                          )
+                        ]
+                    )
+                    errorTags.errorField
                 ]
     , option =
         \optionExpression optionTags ->

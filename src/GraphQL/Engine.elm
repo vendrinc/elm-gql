@@ -4,7 +4,7 @@ module GraphQL.Engine exposing
     , Query, query, queryRisky, queryTask, queryRiskyTask
     , Mutation, mutation, mutationRisky, mutationTask, mutationRiskyTask
     , Subscription, subscription
-    , Error(..)
+    , Error(..), GqlError, Location
     , VariableDetails, selectionVariables, encodeVariables
     , queryString
     , Request, send, simulate, mapRequest
@@ -25,7 +25,7 @@ module GraphQL.Engine exposing
 
 @docs Subscription, subscription
 
-@docs Error
+@docs Error, GqlError, Location
 
 @docs VariableDetails, selectionVariables, encodeVariables
 
@@ -756,9 +756,26 @@ responseToResult decoder response =
                 )
 
         Http.GoodStatus_ metadata responseBody ->
-            case Json.Decode.decodeString (Json.Decode.field "data" decoder) responseBody of
-                Ok value ->
-                    Ok value
+            let
+                bodyDecoder =
+                    Json.Decode.oneOf
+                        [ Json.Decode.field "data" decoder
+                            |> Json.Decode.map Ok
+                        , Json.Decode.field "errors"
+                            (Json.Decode.list gqlErrorDecoder)
+                            |> Json.Decode.map Err
+                        ]
+            in
+            case Json.Decode.decodeString bodyDecoder responseBody of
+                Ok (Ok success) ->
+                    Ok success
+
+                Ok (Err graphqlErrors) ->
+                    Err
+                        (ErrorField
+                            { errors = graphqlErrors
+                            }
+                        )
 
                 Err err ->
                     Err
@@ -782,6 +799,41 @@ type Error
         { decodingError : String
         , responseBody : String
         }
+    | ErrorField
+        { errors : List GqlError
+        }
+
+
+{-| A graphQL error specified here: <https://github.com/graphql/graphql-spec/blob/main/spec/Section%207%20--%20Response.md>
+-}
+gqlErrorDecoder : Json.Decode.Decoder GqlError
+gqlErrorDecoder =
+    Json.Decode.map4 GqlError
+        (Json.Decode.field "message" Json.Decode.string)
+        (Json.Decode.maybe (Json.Decode.field "path" (Json.Decode.list Json.Decode.string)))
+        (Json.Decode.maybe (Json.Decode.field "locations" (Json.Decode.list locationDecoder)))
+        (Json.Decode.maybe (Json.Decode.field "extensions" Json.Decode.value))
+
+
+locationDecoder : Json.Decode.Decoder Location
+locationDecoder =
+    Json.Decode.map2 Location
+        (Json.Decode.field "line" Json.Decode.int)
+        (Json.Decode.field "column" Json.Decode.int)
+
+
+type alias GqlError =
+    { message : String
+    , path : Maybe (List String)
+    , locations : Maybe (List Location)
+    , extensions : Maybe Json.Decode.Value
+    }
+
+
+type alias Location =
+    { line : Int
+    , column : Int
+    }
 
 
 {-| -}
