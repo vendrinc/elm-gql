@@ -624,12 +624,22 @@ canonicalizeOperation refs op cache selection =
                         query
                         |> mapCache Cache.dropLevel
 
-        AST.FragmentSpreadSelection _ ->
-            err [ Error.todo "Top level Fragments aren't suported yet!" ]
+        AST.FragmentSpreadSelection { name } ->
+            err [ Error.error (Error.TopLevelFragmentsNotAllowed { fragmentName = AST.nameToString name }) ]
 
         AST.InlineFragmentSelection inline ->
             -- This is when we're selecting a union fragment
             err [ Error.error (Error.FragmentInlineTopLevel { fragment = inline }) ]
+
+        AST.Explain options ->
+            err
+                [ Error.error
+                    (Error.Explanation
+                        { query = options.query
+                        , options = []
+                        }
+                    )
+                ]
 
 
 type InputValidation
@@ -1032,7 +1042,7 @@ canonicalizeFragment schema paths frag currentResult =
                                 Just union ->
                                     let
                                         variants =
-                                            Maybe.withDefault [] <| extractUnionTags union.variants []
+                                            extractUnionTags union.variants []
 
                                         canVarSelectionResult =
                                             canonicalizeVariantSelection
@@ -1178,6 +1188,16 @@ canonicalizeField refs object selection existingFieldResult =
 
         CanSuccess cache existingFields ->
             case selection of
+                AST.Explain explanation ->
+                    err
+                        [ Error.error
+                            (Error.Explanation
+                                { query = explanation.query
+                                , options = []
+                                }
+                            )
+                        ]
+
                 AST.Field field ->
                     let
                         fieldName =
@@ -1446,8 +1466,15 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                             }
                         )
 
-            GraphQL.Schema.InputObject _ ->
-                err [ Error.todo "Invalid schema!  Weird InputObject" ]
+            GraphQL.Schema.InputObject inputObj ->
+                err
+                    [ Error.error
+                        (Error.FoundSelectionOfInputObject
+                            { fieldName = AST.nameToString field.name
+                            , inputObjectName = inputObj
+                            }
+                        )
+                    ]
 
             GraphQL.Schema.Object name ->
                 case Dict.get name refs.schema.objects of
@@ -1495,53 +1522,51 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                         err [ Error.error (Error.UnionUnknown name) ]
 
                     Just union ->
-                        case extractUnionTags union.variants [] of
-                            Nothing ->
-                                err [ Error.todo "Things in a union are not objects!" ]
+                        let
+                            variants =
+                                extractUnionTags union.variants []
 
-                            Just variants ->
-                                let
-                                    aliasedName =
-                                        field.alias_
-                                            |> Maybe.withDefault field.name
-                                            |> convertName
-                                            |> Can.nameToString
+                            aliasedName =
+                                field.alias_
+                                    |> Maybe.withDefault field.name
+                                    |> convertName
+                                    |> Can.nameToString
 
-                                    global =
-                                        Cache.getGlobalName aliasedName newCache
+                            global =
+                                Cache.getGlobalName aliasedName newCache
 
-                                    canVarSelectionResult =
-                                        canonicalizeVariantSelection refs
-                                            (global.used
-                                                |> Cache.addLevel (Cache.levelFromField field)
-                                            )
-                                            { name = union.name
-                                            , description = union.description
+                            canVarSelectionResult =
+                                canonicalizeVariantSelection refs
+                                    (global.used
+                                        |> Cache.addLevel (Cache.levelFromField field)
+                                    )
+                                    { name = union.name
+                                    , description = union.description
 
-                                            -- Note, unions dont have any fields themselves, unlike interfaces
-                                            , fields = []
-                                            }
-                                            field.selection
-                                            variants
-                                in
-                                case canVarSelectionResult of
-                                    CanSuccess cache variantSelection ->
-                                        CanSuccess cache
-                                            (Can.Field
-                                                { alias_ = Maybe.map convertName field.alias_
-                                                , name = convertName field.name
-                                                , globalAlias = Can.Name global.globalName
-                                                , selectsOnlyFragment = selectsSingleFragment refs field.selection
-                                                , arguments = field.arguments
-                                                , directives = List.map convertDirective field.directives
-                                                , wrapper = GraphQL.Schema.getWrap schemaField.type_
-                                                , selection =
-                                                    Can.FieldUnion variantSelection
-                                                }
-                                            )
+                                    -- Note, unions dont have any fields themselves, unlike interfaces
+                                    , fields = []
+                                    }
+                                    field.selection
+                                    variants
+                        in
+                        case canVarSelectionResult of
+                            CanSuccess cache variantSelection ->
+                                CanSuccess cache
+                                    (Can.Field
+                                        { alias_ = Maybe.map convertName field.alias_
+                                        , name = convertName field.name
+                                        , globalAlias = Can.Name global.globalName
+                                        , selectsOnlyFragment = selectsSingleFragment refs field.selection
+                                        , arguments = field.arguments
+                                        , directives = List.map convertDirective field.directives
+                                        , wrapper = GraphQL.Schema.getWrap schemaField.type_
+                                        , selection =
+                                            Can.FieldUnion variantSelection
+                                        }
+                                    )
 
-                                    CanError errorMsg ->
-                                        CanError errorMsg
+                            CanError errorMsg ->
+                                CanError errorMsg
 
             GraphQL.Schema.Interface name ->
                 case Dict.get name refs.schema.interfaces of
@@ -1740,11 +1765,11 @@ getInterfaceNames kind found =
 Some more details: <https://github.com/graphql/graphql-js/issues/451>
 
 -}
-extractUnionTags : List GraphQL.Schema.Variant -> List String -> Maybe (List String)
+extractUnionTags : List GraphQL.Schema.Variant -> List String -> List String
 extractUnionTags vars captured =
     case vars of
         [] ->
-            Just captured
+            captured
 
         top :: remain ->
             case top.kind of
@@ -1752,7 +1777,7 @@ extractUnionTags vars captured =
                     extractUnionTags remain (name :: captured)
 
                 _ ->
-                    Nothing
+                    extractUnionTags remain captured
 
 
 canonicalizeFieldWithVariants :
@@ -1783,6 +1808,21 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
 
         CanSuccess cache existingFields ->
             case selection of
+                AST.Explain explanation ->
+                    { result =
+                        err
+                            [ Error.error
+                                (Error.Explanation
+                                    { query = explanation.query
+                                    , options = []
+                                    }
+                                )
+                            ]
+                    , variants = found.variants
+                    , capturedVariants = found.capturedVariants
+                    , typenameAlreadySelected = found.typenameAlreadySelected
+                    }
+
                 AST.Field field ->
                     let
                         fieldName =
@@ -1999,7 +2039,15 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
 
                             else
                                 { result =
-                                    err [ Error.todo (tag ++ " does not match!") ]
+                                    err
+                                        [ Error.error
+                                            (Error.UnionVariantNotFound
+                                                { found = tag
+                                                , objectOrInterfaceName = unionOrInterface.name
+                                                , knownVariants = found.variants
+                                                }
+                                            )
+                                        ]
                                 , variants = found.variants
                                 , capturedVariants = found.capturedVariants
                                 , typenameAlreadySelected = found.typenameAlreadySelected

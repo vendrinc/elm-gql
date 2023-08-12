@@ -3,6 +3,7 @@ module GraphQL.Operations.Canonicalize.Error exposing
     , DeclaredVariable
     , Error(..)
     , ErrorDetails(..)
+    , FieldExplanation(..)
     , FragmentVariableSummary
     , Position
     , SuggestedVariable
@@ -11,7 +12,6 @@ module GraphQL.Operations.Canonicalize.Error exposing
     , cyan
     , error
     , toString
-    , todo
     )
 
 import GraphQL.Operations.AST as AST
@@ -23,17 +23,6 @@ type Error
     = Error
         { coords : Coords
         , error : ErrorDetails
-        }
-
-
-todo : String -> Error
-todo msg =
-    Error
-        { coords =
-            { start = zeroPosition
-            , end = zeroPosition
-            }
-        , error = Todo msg
         }
 
 
@@ -69,6 +58,13 @@ type ErrorDetails
     | EnumUnknown String
     | ObjectUnknown String
     | UnionUnknown String
+    | TopLevelFragmentsNotAllowed { fragmentName : String }
+    | FoundSelectionOfInputObject { fieldName : String, inputObjectName : String }
+    | UnionVariantNotFound
+        { found : String
+        , objectOrInterfaceName : String
+        , knownVariants : List String
+        }
     | UnknownArgs
         { field : String
         , unknownArgs : List String
@@ -125,7 +121,16 @@ type ErrorDetails
         { fragment : AST.InlineFragment
         }
     | FragmentCyclicDependency { fragments : List AST.FragmentDetails }
-    | Todo String
+    | Explanation
+        { query : String
+        , options :
+            List ( String, FieldExplanation )
+        }
+
+
+type FieldExplanation
+    = ExplainType String
+    | ExplainSubselection (List ( String, String ))
 
 
 type alias VariableSummary =
@@ -215,8 +220,33 @@ color openCode closeCode content =
 toString : Error -> String
 toString (Error details) =
     case details.error of
-        Todo msg ->
-            "Todo: " ++ msg
+        TopLevelFragmentsNotAllowed errorDetails ->
+            String.join "\n"
+                [ "I found a top level fragment"
+                , block
+                    [ yellow errorDetails.fragmentName ]
+                , "But fragments aren't allowed at the top level."
+                ]
+
+        FoundSelectionOfInputObject errorDetails ->
+            String.join "\n"
+                [ "I found a field, " ++ cyan errorDetails.fieldName ++ ", that seems to be selecting from an InputObject"
+                , block
+                    [ yellow errorDetails.inputObjectName ]
+                , "That's very confusing!  If you run into this error, report it to the elm-gql repo as it should be possible to do."
+                ]
+
+        UnionVariantNotFound errorDetails ->
+            String.join "\n"
+                [ "I found a variant, " ++ cyan errorDetails.found ++ ", that doesn't exist on " ++ yellow errorDetails.objectOrInterfaceName
+                , ""
+                , "Here are the variants that I know about:"
+                , block
+                    (List.map
+                        yellow
+                        errorDetails.knownVariants
+                    )
+                ]
 
         FragmentCyclicDependency { fragments } ->
             String.join "\n"
@@ -532,6 +562,29 @@ toString (Error details) =
                         summary.declared
                     )
                 ]
+
+        Explanation { query, options } ->
+            String.join "\n"
+                [ yellow "EXPLAIN"
+                , "I found a '?' in your query.  Here's what could go there: "
+                , block
+                    (List.map
+                        renderFieldExplanation
+                        options
+                    )
+                ]
+
+
+renderFieldExplanation : ( String, FieldExplanation ) -> String
+renderFieldExplanation ( fieldname, fieldExplanation ) =
+    case fieldExplanation of
+        ExplainType type_ ->
+            yellow fieldname ++ " : " ++ cyan type_
+
+        ExplainSubselection subselections ->
+            (yellow fieldname ++ " : " ++ cyan " {\n")
+                ++ String.join ", " (List.map (\( subfield, type_ ) -> yellow subfield ++ " : " ++ cyan type_) subselections)
+                ++ cyan "\n}"
 
 
 fragmentName : Can.Fragment -> String
