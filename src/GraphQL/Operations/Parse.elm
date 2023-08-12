@@ -216,12 +216,25 @@ selectionSet =
                         Parser.oneOf
                             [ Parser.map AST.Field field_
                             , inlineOrSpread_
+                            , explain
                             ]
                     )
                 )
             )
         |. ws
         |. Parser.symbol "}"
+
+
+explain : Parser AST.Selection
+explain =
+    Parser.succeed (\query -> AST.Explain { query = query })
+        |. Parser.symbol "?"
+        |. Parser.chompWhile
+            (\c ->
+                c == ' '
+            )
+        |= Parser.getChompedString
+            (Parser.chompWhile (multiOr [ Char.isAlphaNum, (==) '_' ]))
 
 
 comment : Parser ()
