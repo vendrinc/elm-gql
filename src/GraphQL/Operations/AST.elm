@@ -76,6 +76,15 @@ type Selection
     = Field FieldDetails
     | FragmentSpreadSelection FragmentSpread
     | InlineFragmentSelection InlineFragment
+      -- The below will prevent code from being generated, but provide you information about what's going on
+    | Explain ExpanationOptions
+
+
+{-| You can specify a search query to filter the results
+-}
+type alias ExpanationOptions =
+    { query : String
+    }
 
 
 type alias FieldDetails =
@@ -265,6 +274,9 @@ fragmentCountHelper selection count =
         InlineFragmentSelection inline ->
             List.foldl fragmentCountHelper count inline.selection
 
+        Explain _ ->
+            count
+
 
 {-| -}
 getUsedFragments : FragmentDetails -> Set String
@@ -283,3 +295,6 @@ getUsedFragmentsHelper selection count =
 
         InlineFragmentSelection inline ->
             List.foldl getUsedFragmentsHelper count inline.selection
+
+        Explain _ ->
+            count

@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Canonicalize.Error exposing (annotation_, call_, caseOf_, cyan, error, make_, moduleName_, toString, todo, values_)
+module Gen.GraphQL.Operations.Canonicalize.Error exposing (annotation_, call_, caseOf_, cyan, error, make_, moduleName_, toString, values_)
 
 {-| 
-@docs moduleName_, toString, cyan, error, todo, annotation_, make_, caseOf_, call_, values_
+@docs moduleName_, toString, cyan, error, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -62,24 +62,6 @@ error errorArg =
         [ errorArg ]
 
 
-{-| todo: String -> Error -}
-todo : String -> Elm.Expression
-todo todoArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-            , name = "todo"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string ]
-                        (Type.namedWith [] "Error" [])
-                    )
-            }
-        )
-        [ Elm.string todoArg ]
-
-
 annotation_ :
     { suggestedVariable : Type.Annotation
     , declaredVariable : Type.Annotation
@@ -88,6 +70,7 @@ annotation_ :
     , position : Type.Annotation
     , coords : Type.Annotation
     , varIssue : Type.Annotation
+    , fieldExplanation : Type.Annotation
     , errorDetails : Type.Annotation
     , error : Type.Annotation
     }
@@ -172,6 +155,11 @@ annotation_ =
             [ "GraphQL", "Operations", "Canonicalize", "Error" ]
             "VarIssue"
             []
+    , fieldExplanation =
+        Type.namedWith
+            [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+            "FieldExplanation"
+            []
     , errorDetails =
         Type.namedWith
             [ "GraphQL", "Operations", "Canonicalize", "Error" ]
@@ -210,10 +198,15 @@ make_ :
     , unused : Elm.Expression -> Elm.Expression
     , unexpectedType : Elm.Expression -> Elm.Expression
     , undeclared : Elm.Expression -> Elm.Expression
+    , explainType : Elm.Expression -> Elm.Expression
+    , explainSubselection : Elm.Expression -> Elm.Expression
     , queryUnknown : Elm.Expression -> Elm.Expression
     , enumUnknown : Elm.Expression -> Elm.Expression
     , objectUnknown : Elm.Expression -> Elm.Expression
     , unionUnknown : Elm.Expression -> Elm.Expression
+    , topLevelFragmentsNotAllowed : Elm.Expression -> Elm.Expression
+    , foundSelectionOfInputObject : Elm.Expression -> Elm.Expression
+    , unionVariantNotFound : Elm.Expression -> Elm.Expression
     , unknownArgs : Elm.Expression -> Elm.Expression
     , emptySelection : Elm.Expression -> Elm.Expression
     , fieldUnknown : Elm.Expression -> Elm.Expression
@@ -229,7 +222,7 @@ make_ :
     , fragmentSelectionNotAllowedInObjects : Elm.Expression -> Elm.Expression
     , fragmentInlineTopLevel : Elm.Expression -> Elm.Expression
     , fragmentCyclicDependency : Elm.Expression -> Elm.Expression
-    , todo : Elm.Expression -> Elm.Expression
+    , explanation : Elm.Expression -> Elm.Expression
     , error : Elm.Expression -> Elm.Expression
     }
 make_ =
@@ -405,6 +398,30 @@ make_ =
                     }
                 )
                 [ ar0 ]
+    , explainType =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "ExplainType"
+                    , annotation =
+                        Just (Type.namedWith [] "FieldExplanation" [])
+                    }
+                )
+                [ ar0 ]
+    , explainSubselection =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "ExplainSubselection"
+                    , annotation =
+                        Just (Type.namedWith [] "FieldExplanation" [])
+                    }
+                )
+                [ ar0 ]
     , queryUnknown =
         \ar0 ->
             Elm.apply
@@ -445,6 +462,39 @@ make_ =
                     { importFrom =
                         [ "GraphQL", "Operations", "Canonicalize", "Error" ]
                     , name = "UnionUnknown"
+                    , annotation = Just (Type.namedWith [] "ErrorDetails" [])
+                    }
+                )
+                [ ar0 ]
+    , topLevelFragmentsNotAllowed =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "TopLevelFragmentsNotAllowed"
+                    , annotation = Just (Type.namedWith [] "ErrorDetails" [])
+                    }
+                )
+                [ ar0 ]
+    , foundSelectionOfInputObject =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "FoundSelectionOfInputObject"
+                    , annotation = Just (Type.namedWith [] "ErrorDetails" [])
+                    }
+                )
+                [ ar0 ]
+    , unionVariantNotFound =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "UnionVariantNotFound"
                     , annotation = Just (Type.namedWith [] "ErrorDetails" [])
                     }
                 )
@@ -614,13 +664,13 @@ make_ =
                     }
                 )
                 [ ar0 ]
-    , todo =
+    , explanation =
         \ar0 ->
             Elm.apply
                 (Elm.value
                     { importFrom =
                         [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-                    , name = "Todo"
+                    , name = "Explanation"
                     , annotation = Just (Type.namedWith [] "ErrorDetails" [])
                     }
                 )
@@ -648,13 +698,23 @@ caseOf_ :
             , undeclared : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
+    , fieldExplanation :
+        Elm.Expression
+        -> { fieldExplanationTags_1_0
+            | explainType : Elm.Expression -> Elm.Expression
+            , explainSubselection : Elm.Expression -> Elm.Expression
+        }
+        -> Elm.Expression
     , errorDetails :
         Elm.Expression
-        -> { errorDetailsTags_1_0
+        -> { errorDetailsTags_2_0
             | queryUnknown : Elm.Expression -> Elm.Expression
             , enumUnknown : Elm.Expression -> Elm.Expression
             , objectUnknown : Elm.Expression -> Elm.Expression
             , unionUnknown : Elm.Expression -> Elm.Expression
+            , topLevelFragmentsNotAllowed : Elm.Expression -> Elm.Expression
+            , foundSelectionOfInputObject : Elm.Expression -> Elm.Expression
+            , unionVariantNotFound : Elm.Expression -> Elm.Expression
             , unknownArgs : Elm.Expression -> Elm.Expression
             , emptySelection : Elm.Expression -> Elm.Expression
             , fieldUnknown : Elm.Expression -> Elm.Expression
@@ -671,12 +731,12 @@ caseOf_ :
                 Elm.Expression -> Elm.Expression
             , fragmentInlineTopLevel : Elm.Expression -> Elm.Expression
             , fragmentCyclicDependency : Elm.Expression -> Elm.Expression
-            , todo : Elm.Expression -> Elm.Expression
+            , explanation : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
     , error :
         Elm.Expression
-        -> { errorTags_2_0 | error : Elm.Expression -> Elm.Expression }
+        -> { errorTags_3_0 | error : Elm.Expression -> Elm.Expression }
         -> Elm.Expression
     }
 caseOf_ =
@@ -718,6 +778,26 @@ caseOf_ =
                     )
                     varIssueTags.undeclared
                 ]
+    , fieldExplanation =
+        \fieldExplanationExpression fieldExplanationTags ->
+            Elm.Case.custom
+                fieldExplanationExpression
+                (Type.namedWith
+                    [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    "FieldExplanation"
+                    []
+                )
+                [ Elm.Case.branch1
+                    "ExplainType"
+                    ( "string.String", Type.string )
+                    fieldExplanationTags.explainType
+                , Elm.Case.branch1
+                    "ExplainSubselection"
+                    ( "list.List"
+                    , Type.list (Type.tuple Type.string Type.string)
+                    )
+                    fieldExplanationTags.explainSubselection
+                ]
     , errorDetails =
         \errorDetailsExpression errorDetailsTags ->
             Elm.Case.custom
@@ -743,6 +823,29 @@ caseOf_ =
                     "UnionUnknown"
                     ( "string.String", Type.string )
                     errorDetailsTags.unionUnknown
+                , Elm.Case.branch1
+                    "TopLevelFragmentsNotAllowed"
+                    ( "one", Type.record [ ( "fragmentName", Type.string ) ] )
+                    errorDetailsTags.topLevelFragmentsNotAllowed
+                , Elm.Case.branch1
+                    "FoundSelectionOfInputObject"
+                    ( "one"
+                    , Type.record
+                        [ ( "fieldName", Type.string )
+                        , ( "inputObjectName", Type.string )
+                        ]
+                    )
+                    errorDetailsTags.foundSelectionOfInputObject
+                , Elm.Case.branch1
+                    "UnionVariantNotFound"
+                    ( "one"
+                    , Type.record
+                        [ ( "found", Type.string )
+                        , ( "objectOrInterfaceName", Type.string )
+                        , ( "knownVariants", Type.list Type.string )
+                        ]
+                    )
+                    errorDetailsTags.unionVariantNotFound
                 , Elm.Case.branch1
                     "UnknownArgs"
                     ( "one"
@@ -887,9 +990,20 @@ caseOf_ =
                     )
                     errorDetailsTags.fragmentCyclicDependency
                 , Elm.Case.branch1
-                    "Todo"
-                    ( "string.String", Type.string )
-                    errorDetailsTags.todo
+                    "Explanation"
+                    ( "one"
+                    , Type.record
+                        [ ( "query", Type.string )
+                        , ( "options"
+                          , Type.list
+                                (Type.tuple
+                                    Type.string
+                                    (Type.namedWith [] "FieldExplanation" [])
+                                )
+                          )
+                        ]
+                    )
+                    errorDetailsTags.explanation
                 ]
     , error =
         \errorExpression errorTags ->
@@ -917,7 +1031,6 @@ call_ :
     { toString : Elm.Expression -> Elm.Expression
     , cyan : Elm.Expression -> Elm.Expression
     , error : Elm.Expression -> Elm.Expression
-    , todo : Elm.Expression -> Elm.Expression
     }
 call_ =
     { toString =
@@ -964,31 +1077,11 @@ call_ =
                     }
                 )
                 [ errorArg ]
-    , todo =
-        \todoArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom =
-                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-                    , name = "todo"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.string ]
-                                (Type.namedWith [] "Error" [])
-                            )
-                    }
-                )
-                [ todoArg ]
     }
 
 
 values_ :
-    { toString : Elm.Expression
-    , cyan : Elm.Expression
-    , error : Elm.Expression
-    , todo : Elm.Expression
-    }
+    { toString : Elm.Expression, cyan : Elm.Expression, error : Elm.Expression }
 values_ =
     { toString =
         Elm.value
@@ -1012,17 +1105,6 @@ values_ =
                 Just
                     (Type.function
                         [ Type.namedWith [] "ErrorDetails" [] ]
-                        (Type.namedWith [] "Error" [])
-                    )
-            }
-    , todo =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-            , name = "todo"
-            , annotation =
-                Just
-                    (Type.function
-                        [ Type.string ]
                         (Type.namedWith [] "Error" [])
                     )
             }

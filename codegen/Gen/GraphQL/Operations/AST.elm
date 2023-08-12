@@ -329,6 +329,7 @@ make_ :
     , field : Elm.Expression -> Elm.Expression
     , fragmentSpreadSelection : Elm.Expression -> Elm.Expression
     , inlineFragmentSelection : Elm.Expression -> Elm.Expression
+    , explain : Elm.Expression -> Elm.Expression
     , query : Elm.Expression
     , mutation : Elm.Expression
     , subscription : Elm.Expression
@@ -743,6 +744,16 @@ make_ =
                     }
                 )
                 [ ar0 ]
+    , explain =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "AST" ]
+                    , name = "Explain"
+                    , annotation = Just (Type.namedWith [] "Selection" [])
+                    }
+                )
+                [ ar0 ]
     , query =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "AST" ]
@@ -821,6 +832,7 @@ caseOf_ :
             | field : Elm.Expression -> Elm.Expression
             , fragmentSpreadSelection : Elm.Expression -> Elm.Expression
             , inlineFragmentSelection : Elm.Expression -> Elm.Expression
+            , explain : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
     , operationType :
@@ -944,6 +956,12 @@ caseOf_ =
                     "InlineFragmentSelection"
                     ( "inlineFragment", Type.namedWith [] "InlineFragment" [] )
                     selectionTags.inlineFragmentSelection
+                , Elm.Case.branch1
+                    "Explain"
+                    ( "expanationOptions"
+                    , Type.namedWith [] "ExpanationOptions" []
+                    )
+                    selectionTags.explain
                 ]
     , operationType =
         \operationTypeExpression operationTypeTags ->

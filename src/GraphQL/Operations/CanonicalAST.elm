@@ -146,8 +146,7 @@ type alias Fragment =
     , importMockFrom : List String
     , typeCondition : Name
     , usedVariables : List ( String, GraphQL.Schema.Type )
-    , fragmentsUsed :
-        List Name
+    , fragmentsUsed : List Name
     , directives : List Directive
     , selection : FragmentSelection
     }
