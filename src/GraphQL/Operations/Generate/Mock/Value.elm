@@ -40,7 +40,7 @@ field namespace fullField =
                                 |> Elm.val
 
                         Can.FieldScalar type_ ->
-                            mockScalar namespace type_
+                            mockScalar namespace fieldDetails type_
 
                         Can.FieldEnum enum ->
                             case enum.values of
@@ -71,8 +71,8 @@ field namespace fullField =
                                 |> Elm.val
 
 
-mockScalar : Namespace -> GraphQL.Schema.Type -> Elm.Expression
-mockScalar namespace scalar =
+mockScalar : Namespace -> Can.FieldDetails -> GraphQL.Schema.Type -> Elm.Expression
+mockScalar namespace fieldDetails scalar =
     case scalar of
         GraphQL.Schema.Scalar name ->
             case String.toLower name of
@@ -86,7 +86,10 @@ mockScalar namespace scalar =
                     Elm.bool True
 
                 "string" ->
-                    Elm.string "placeholder"
+                    fieldDetails.alias_
+                        |> Maybe.withDefault fieldDetails.name
+                        |> Can.nameToString
+                        |> Elm.string
 
                 _ ->
                     Elm.value
@@ -114,10 +117,10 @@ mockScalar namespace scalar =
             Elm.unit
 
         GraphQL.Schema.List_ inner ->
-            Elm.list [ mockScalar namespace inner ]
+            Elm.list [ mockScalar namespace fieldDetails inner ]
 
         GraphQL.Schema.Nullable inner ->
-            Elm.just (mockScalar namespace inner)
+            Elm.just (mockScalar namespace fieldDetails inner)
 
 
 
