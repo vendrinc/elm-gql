@@ -70,7 +70,7 @@ annotation_ :
     , position : Type.Annotation
     , coords : Type.Annotation
     , varIssue : Type.Annotation
-    , fieldExplanation : Type.Annotation
+    , explanantionDetails : Type.Annotation
     , errorDetails : Type.Annotation
     , error : Type.Annotation
     }
@@ -155,10 +155,10 @@ annotation_ =
             [ "GraphQL", "Operations", "Canonicalize", "Error" ]
             "VarIssue"
             []
-    , fieldExplanation =
+    , explanantionDetails =
         Type.namedWith
             [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-            "FieldExplanation"
+            "ExplanantionDetails"
             []
     , errorDetails =
         Type.namedWith
@@ -198,8 +198,10 @@ make_ :
     , unused : Elm.Expression -> Elm.Expression
     , unexpectedType : Elm.Expression -> Elm.Expression
     , undeclared : Elm.Expression -> Elm.Expression
-    , explainType : Elm.Expression -> Elm.Expression
-    , explainSubselection : Elm.Expression -> Elm.Expression
+    , operation : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , object : Elm.Expression -> Elm.Expression
+    , union : Elm.Expression -> Elm.Expression
+    , interface : Elm.Expression -> Elm.Expression
     , queryUnknown : Elm.Expression -> Elm.Expression
     , enumUnknown : Elm.Expression -> Elm.Expression
     , objectUnknown : Elm.Expression -> Elm.Expression
@@ -398,27 +400,51 @@ make_ =
                     }
                 )
                 [ ar0 ]
-    , explainType =
+    , operation =
+        \ar0 ar1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "Operation"
+                    , annotation =
+                        Just (Type.namedWith [] "ExplanantionDetails" [])
+                    }
+                )
+                [ ar0, ar1 ]
+    , object =
         \ar0 ->
             Elm.apply
                 (Elm.value
                     { importFrom =
                         [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-                    , name = "ExplainType"
+                    , name = "Object"
                     , annotation =
-                        Just (Type.namedWith [] "FieldExplanation" [])
+                        Just (Type.namedWith [] "ExplanantionDetails" [])
                     }
                 )
                 [ ar0 ]
-    , explainSubselection =
+    , union =
         \ar0 ->
             Elm.apply
                 (Elm.value
                     { importFrom =
                         [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-                    , name = "ExplainSubselection"
+                    , name = "Union"
                     , annotation =
-                        Just (Type.namedWith [] "FieldExplanation" [])
+                        Just (Type.namedWith [] "ExplanantionDetails" [])
+                    }
+                )
+                [ ar0 ]
+    , interface =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "Interface"
+                    , annotation =
+                        Just (Type.namedWith [] "ExplanantionDetails" [])
                     }
                 )
                 [ ar0 ]
@@ -698,11 +724,13 @@ caseOf_ :
             , undeclared : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
-    , fieldExplanation :
+    , explanantionDetails :
         Elm.Expression
-        -> { fieldExplanationTags_1_0
-            | explainType : Elm.Expression -> Elm.Expression
-            , explainSubselection : Elm.Expression -> Elm.Expression
+        -> { explanantionDetailsTags_1_0
+            | operation : Elm.Expression -> Elm.Expression -> Elm.Expression
+            , object : Elm.Expression -> Elm.Expression
+            , union : Elm.Expression -> Elm.Expression
+            , interface : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
     , errorDetails :
@@ -778,25 +806,78 @@ caseOf_ =
                     )
                     varIssueTags.undeclared
                 ]
-    , fieldExplanation =
-        \fieldExplanationExpression fieldExplanationTags ->
+    , explanantionDetails =
+        \explanantionDetailsExpression explanantionDetailsTags ->
             Elm.Case.custom
-                fieldExplanationExpression
+                explanantionDetailsExpression
                 (Type.namedWith
                     [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-                    "FieldExplanation"
+                    "ExplanantionDetails"
                     []
                 )
-                [ Elm.Case.branch1
-                    "ExplainType"
-                    ( "string.String", Type.string )
-                    fieldExplanationTags.explainType
-                , Elm.Case.branch1
-                    "ExplainSubselection"
-                    ( "list.List"
-                    , Type.list (Type.tuple Type.string Type.string)
+                [ Elm.Case.branch2
+                    "Operation"
+                    ( "aST.OperationType"
+                    , Type.namedWith [ "AST" ] "OperationType" []
                     )
-                    fieldExplanationTags.explainSubselection
+                    ( "list.List"
+                    , Type.list
+                        (Type.tuple
+                            Type.string
+                            (Type.namedWith [ "GraphQL", "Schema" ] "Type" [])
+                        )
+                    )
+                    explanantionDetailsTags.operation
+                , Elm.Case.branch1
+                    "Object"
+                    ( "one"
+                    , Type.record
+                        [ ( "name", Type.string )
+                        , ( "fields"
+                          , Type.list
+                                (Type.namedWith
+                                    [ "GraphQL", "Schema" ]
+                                    "Field"
+                                    []
+                                )
+                          )
+                        ]
+                    )
+                    explanantionDetailsTags.object
+                , Elm.Case.branch1
+                    "Union"
+                    ( "one"
+                    , Type.record
+                        [ ( "name", Type.string )
+                        , ( "fields"
+                          , Type.list
+                                (Type.namedWith
+                                    [ "GraphQL", "Schema" ]
+                                    "Field"
+                                    []
+                                )
+                          )
+                        , ( "tags", Type.list Type.string )
+                        ]
+                    )
+                    explanantionDetailsTags.union
+                , Elm.Case.branch1
+                    "Interface"
+                    ( "one"
+                    , Type.record
+                        [ ( "name", Type.string )
+                        , ( "fields"
+                          , Type.list
+                                (Type.namedWith
+                                    [ "GraphQL", "Schema" ]
+                                    "Field"
+                                    []
+                                )
+                          )
+                        , ( "tags", Type.list Type.string )
+                        ]
+                    )
+                    explanantionDetailsTags.interface
                 ]
     , errorDetails =
         \errorDetailsExpression errorDetailsTags ->
@@ -994,12 +1075,8 @@ caseOf_ =
                     ( "one"
                     , Type.record
                         [ ( "query", Type.string )
-                        , ( "options"
-                          , Type.list
-                                (Type.tuple
-                                    Type.string
-                                    (Type.namedWith [] "FieldExplanation" [])
-                                )
+                        , ( "explanation"
+                          , Type.namedWith [] "ExplanantionDetails" []
                           )
                         ]
                     )

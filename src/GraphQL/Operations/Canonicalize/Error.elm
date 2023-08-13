@@ -3,7 +3,7 @@ module GraphQL.Operations.Canonicalize.Error exposing
     , DeclaredVariable
     , Error(..)
     , ErrorDetails(..)
-    , FieldExplanation(..)
+    , ExplanantionDetails(..)
     , FragmentVariableSummary
     , Position
     , SuggestedVariable
@@ -123,14 +123,26 @@ type ErrorDetails
     | FragmentCyclicDependency { fragments : List AST.FragmentDetails }
     | Explanation
         { query : String
-        , options :
-            List ( String, FieldExplanation )
+        , explanation : ExplanantionDetails
         }
 
 
-type FieldExplanation
-    = ExplainType String
-    | ExplainSubselection (List ( String, String ))
+type ExplanantionDetails
+    = Operation AST.OperationType (List ( String, GraphQL.Schema.Type ))
+    | Object
+        { name : String
+        , fields : List GraphQL.Schema.Field
+        }
+    | Union
+        { name : String
+        , fields : List GraphQL.Schema.Field
+        , tags : List String
+        }
+    | Interface
+        { name : String
+        , fields : List GraphQL.Schema.Field
+        , tags : List String
+        }
 
 
 type alias VariableSummary =
@@ -177,8 +189,13 @@ type alias SuggestedVariable =
 {-| An indented block with a newline above and below
 -}
 block : List String -> String
-block lines =
-    "\n    " ++ String.join "\n    " lines ++ "\n"
+block items =
+    "\n    " ++ String.join "\n    " items ++ "\n"
+
+
+lines : List String -> String
+lines items =
+    String.join "\n" items ++ "\n"
 
 
 
@@ -563,28 +580,188 @@ toString (Error details) =
                     )
                 ]
 
-        Explanation { query, options } ->
-            String.join "\n"
-                [ yellow "EXPLAIN"
-                , "I found a '?' in your query.  Here's what could go there: "
-                , block
-                    (List.map
-                        renderFieldExplanation
-                        options
+        Explanation { query, explanation } ->
+            case explanation of
+                Operation opType fields ->
+                    String.join "\n"
+                        [ "I found a '?' in a "
+                            ++ (case opType of
+                                    AST.Query ->
+                                        "query."
+
+                                    AST.Mutation ->
+                                        "mutation."
+
+                                    AST.Subscription ->
+                                        "subscription."
+                               )
+                        , yellow
+                            ((case opType of
+                                AST.Query ->
+                                    "Queries "
+
+                                AST.Mutation ->
+                                    "Mutations "
+
+                                AST.Subscription ->
+                                    "Subscriptions "
+                             )
+                                ++ " available"
+                            )
+                        , lines
+                            (searchBlock
+                                { query = query
+                                , toSearchString = Tuple.first
+                                , render =
+                                    \( fieldName, type_ ) ->
+                                        [ yellow fieldName ++ grey (" # " ++ GraphQL.Schema.typeToString type_) ]
+                                }
+                                fields
+                            )
+                        ]
+
+                Object { name, fields } ->
+                    String.join "\n"
+                        [ "I found a '?' in your query, here's what I can tell you about it."
+                        , "It's on an Object named " ++ cyan name ++ " that has the following fields:"
+                        , lines
+                            (searchBlock
+                                { query = query
+                                , toSearchString = .name
+                                , render = renderFieldExplanation
+                                }
+                                fields
+                            )
+                        ]
+
+                Union { name, fields, tags } ->
+                    String.join "\n"
+                        [ "I found a '?' in your query, here's what I can tell you about it."
+                        , "It's on a Union named " ++ cyan name ++ " that has the following types:"
+                        , lines
+                            (searchBlock
+                                { query = query
+                                , toSearchString = \tag -> tag
+                                , render =
+                                    \tag ->
+                                        [ "... on " ++ cyan tag ++ " {"
+                                        , grey "    # select some fields here!"
+                                        , "}"
+                                        ]
+                                }
+                                tags
+                            )
+                        ]
+
+                Interface { name, fields, tags } ->
+                    String.join "\n"
+                        [ "I found a '?' in your query, here's what I can tell you about it."
+                        , "It's on an Interface named " ++ cyan name ++ " that has the following fields:"
+                        , block
+                            (searchBlock
+                                { query = query
+                                , toSearchString = .name
+                                , render = renderFieldExplanation
+                                }
+                                fields
+                            )
+                        , yellow "and the following types:"
+                        , lines
+                            (searchBlock
+                                { query = query
+                                , toSearchString = \tag -> tag
+                                , render =
+                                    \tag ->
+                                        [ "... on " ++ cyan tag ++ " {"
+                                        , grey "    # select some fields here!"
+                                        , "}"
+                                        ]
+                                }
+                                tags
+                            )
+                        ]
+
+
+queryNotice : String
+queryNotice =
+    grey "Search by typing a filter after the '?',(Such as ?user to search for fields that contain user)"
+
+
+limit : Int
+limit =
+    20
+
+
+searchBlock :
+    { query : String
+    , toSearchString : item -> String
+    , render : item -> List String
+    }
+    -> List item
+    -> List String
+searchBlock options items =
+    let
+        ( finalCount, renderedItems ) =
+            items
+                |> List.sortBy options.toSearchString
+                |> List.foldl
+                    (\item ( count, rendered ) ->
+                        let
+                            searchString =
+                                options.toSearchString item
+                        in
+                        if String.contains (String.toLower options.query) (String.toLower searchString) then
+                            ( count + 1
+                            , if count <= limit then
+                                rendered ++ options.render item
+
+                              else
+                                rendered
+                            )
+
+                        else
+                            ( count, rendered )
                     )
+                    ( 0, [] )
+
+        final =
+            if finalCount > limit then
+                List.filterMap identity
+                    [ Just (grey ("...and " ++ String.fromInt (finalCount - limit) ++ " more"))
+                    , if String.isEmpty (String.trim options.query) then
+                        Just queryNotice
+
+                      else
+                        Nothing
+                    ]
+
+            else if String.isEmpty (String.trim options.query) then
+                []
+
+            else
+                [ grey "Only showing values that match the query: " ++ cyan ("?" ++ options.query)
                 ]
 
+        finalItems =
+            case renderedItems of
+                [] ->
+                    [ grey "Nothing found"
+                    ]
 
-renderFieldExplanation : ( String, FieldExplanation ) -> String
-renderFieldExplanation ( fieldname, fieldExplanation ) =
-    case fieldExplanation of
-        ExplainType type_ ->
-            yellow fieldname ++ " : " ++ cyan type_
+                _ ->
+                    renderedItems
+    in
+    [ block finalItems ] ++ final
 
-        ExplainSubselection subselections ->
-            (yellow fieldname ++ " : " ++ cyan " {\n")
-                ++ String.join ", " (List.map (\( subfield, type_ ) -> yellow subfield ++ " : " ++ cyan type_) subselections)
-                ++ cyan "\n}"
+
+renderFieldExplanation : GraphQL.Schema.Field -> List String
+renderFieldExplanation field =
+    if GraphQL.Schema.isScalar field.type_ then
+        [ yellow field.name ++ grey (" # " ++ GraphQL.Schema.typeToString field.type_) ]
+
+    else
+        [ yellow field.name ++ " { " ++ grey ("# " ++ GraphQL.Schema.typeToString field.type_) ++ "}"
+        ]
 
 
 fragmentName : Can.Fragment -> String

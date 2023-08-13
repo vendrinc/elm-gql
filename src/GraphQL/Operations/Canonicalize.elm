@@ -636,7 +636,7 @@ canonicalizeOperation refs op cache selection =
                 [ Error.error
                     (Error.Explanation
                         { query = options.query
-                        , options = []
+                        , explanation = Error.Operation op []
                         }
                     )
                 ]
@@ -1011,6 +1011,7 @@ canonicalizeFragment schema paths frag currentResult =
                                                 }
                                         )
                                         { name = interface.name
+                                        , isUnion = False
                                         , description = interface.description
                                         , fields = interface.fields
                                         }
@@ -1057,6 +1058,7 @@ canonicalizeFragment schema paths frag currentResult =
                                                         }
                                                 )
                                                 { name = union.name
+                                                , isUnion = True
                                                 , description = union.description
                                                 , fields = []
                                                 }
@@ -1098,7 +1100,8 @@ canonicalizeVariantSelection :
     References
     -> Cache.Cache
     ->
-        { description : Maybe String
+        { isUnion : Bool
+        , description : Maybe String
         , fields :
             List GraphQL.Schema.Field
         , name : String
@@ -1193,7 +1196,11 @@ canonicalizeField refs object selection existingFieldResult =
                         [ Error.error
                             (Error.Explanation
                                 { query = explanation.query
-                                , options = []
+                                , explanation =
+                                    Error.Object
+                                        { name = object.name
+                                        , fields = object.fields
+                                        }
                                 }
                             )
                         ]
@@ -1541,6 +1548,7 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                                         |> Cache.addLevel (Cache.levelFromField field)
                                     )
                                     { name = union.name
+                                    , isUnion = True
                                     , description = union.description
 
                                     -- Note, unions dont have any fields themselves, unlike interfaces
@@ -1593,6 +1601,7 @@ canonicalizeFieldTypeHelper refs field type_ initialVarCache schemaField =
                                         |> Cache.addLevel (Cache.levelFromField field)
                                     )
                                     { name = interface.name
+                                    , isUnion = False
                                     , description = interface.description
                                     , fields = interface.fields
                                     }
@@ -1784,7 +1793,8 @@ canonicalizeFieldWithVariants :
     References
     ->
         { obj
-            | name : String
+            | isUnion : Bool
+            , name : String
             , description : Maybe String
             , fields : List GraphQL.Schema.Field
         }
@@ -1814,7 +1824,24 @@ canonicalizeFieldWithVariants refs unionOrInterface selection found =
                             [ Error.error
                                 (Error.Explanation
                                     { query = explanation.query
-                                    , options = []
+                                    , explanation =
+                                        if unionOrInterface.isUnion then
+                                            Error.Union
+                                                { name = unionOrInterface.name
+                                                , fields = unionOrInterface.fields
+                                                , tags =
+                                                    List.map (Can.nameToString << .tag) found.capturedVariants
+                                                        ++ found.variants
+                                                }
+
+                                        else
+                                            Error.Interface
+                                                { name = unionOrInterface.name
+                                                , fields = unionOrInterface.fields
+                                                , tags =
+                                                    List.map (Can.nameToString << .tag) found.capturedVariants
+                                                        ++ found.variants
+                                                }
                                     }
                                 )
                             ]
