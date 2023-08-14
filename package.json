@@ -1,6 +1,6 @@
 {
   "name": "elm-gql",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Write GraphQL, get nice Elm code!",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
