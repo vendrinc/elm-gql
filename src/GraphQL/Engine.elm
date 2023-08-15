@@ -6,6 +6,7 @@ module GraphQL.Engine exposing
     , Subscription, subscription
     , Error(..), GqlError, Location
     , VariableDetails, selectionVariables, encodeVariables
+    , InputObject
     , queryString
     , Request, send, simulate, mapRequest
     , Option(..)
@@ -28,6 +29,8 @@ module GraphQL.Engine exposing
 @docs Error, GqlError, Location
 
 @docs VariableDetails, selectionVariables, encodeVariables
+
+@docs InputObject
 
 @docs queryString
 

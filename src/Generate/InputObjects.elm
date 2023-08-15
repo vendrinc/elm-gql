@@ -74,7 +74,7 @@ renderNewOptional namespace schema input =
             input.name ++ "_"
     in
     [ Elm.alias input.name
-        (Gen.GraphQL.Input.annotation_.inputObject
+        (Engine.annotation_.inputObject
             (Type.named []
                 lockName
             )

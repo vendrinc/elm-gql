@@ -1077,6 +1077,7 @@ annotation_ :
     , subscription : Type.Annotation
     , mutation : Type.Annotation
     , query : Type.Annotation
+    , inputObject : Type.Annotation -> Type.Annotation
     , option : Type.Annotation -> Type.Annotation
     , selection : Type.Annotation -> Type.Annotation -> Type.Annotation
     }
@@ -1133,6 +1134,12 @@ annotation_ =
     , subscription = Type.namedWith [ "GraphQL", "Engine" ] "Subscription" []
     , mutation = Type.namedWith [ "GraphQL", "Engine" ] "Mutation" []
     , query = Type.namedWith [ "GraphQL", "Engine" ] "Query" []
+    , inputObject =
+        \inputObjectArg0 ->
+            Type.namedWith
+                [ "GraphQL", "Engine" ]
+                "InputObject"
+                [ inputObjectArg0 ]
     , option =
         \optionArg0 ->
             Type.namedWith [ "GraphQL", "Engine" ] "Option" [ optionArg0 ]
