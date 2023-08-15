@@ -132,18 +132,16 @@ generateFragmentTypes namespace frag =
                 newDecls =
                     GeneratedTypes.generate namespace selection
 
-                fieldResult =
-                    GeneratedTypes.toAliasedFields namespace [] selection
-
-                openRecord =
-                    GeneratedTypes.toOpenAliasedFields namespace "open" [] selection
+                fields =
+                    GeneratedTypes.toFields namespace [] selection
             in
             List.concat
-                [ [ Elm.alias name fieldResult
+                [ [ Elm.alias name (Type.record fields)
                         |> Elm.expose
                   ]
                 , newDecls
-                , [ Elm.alias (name ++ "_Open") openRecord
+                , [ Elm.alias (name ++ "_Open")
+                        (Type.extensible "open" fields)
                         |> Elm.expose
                   , Elm.declaration ("to" ++ Utils.String.capitalize name)
                         (Elm.fn
@@ -218,7 +216,7 @@ generateFragmentTypes namespace frag =
                         interface.variants
 
                 interfaceRecord =
-                    GeneratedTypes.toAliasedFields namespace
+                    GeneratedTypes.toFields namespace
                         (if selectingForVariants then
                             [ ( "specifics_"
                               , Type.named [] (name ++ "_Specifics")
@@ -229,6 +227,7 @@ generateFragmentTypes namespace frag =
                             []
                         )
                         interface.selection
+                        |> Type.record
 
                 withSpecificType existingList =
                     if selectingForVariants then

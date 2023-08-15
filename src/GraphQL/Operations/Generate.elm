@@ -278,12 +278,12 @@ generatePrimaryResultTypeAliased namespace def =
     case def of
         Can.Operation op ->
             let
-                record =
-                    GeneratedTypes.toAliasedFields namespace [] op.fields
+                fields =
+                    GeneratedTypes.fields namespace [] op.fields
             in
             [ Elm.alias
                 responseName
-                record
+                (Type.record fields)
                 |> Elm.exposeWith
                     { exposeConstructor = True
                     , group = Just "necessary"

@@ -113,7 +113,8 @@ mockPrimaryResult paths namespace def =
         Can.Operation op ->
             let
                 record =
-                    GeneratedTypes.toAliasedFields namespace [] op.fields
+                    GeneratedTypes.toFields namespace [] op.fields
+                        |> Type.record
 
                 primaryResponse =
                     Elm.declaration responseName

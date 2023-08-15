@@ -2,10 +2,8 @@ module GraphQL.Operations.Generate.Types exposing
     ( enumType
     , generate
     , interfaceVariants
-    , toAliasedFields
     , toFieldNames
     , toFields
-    , toOpenAliasedFields
     , unionVars
     )
 
@@ -69,7 +67,8 @@ genAliasedTypes namespace fieldOrFrag =
                                         selection
 
                                 fieldResult =
-                                    toAliasedFields namespace [] selection
+                                    toFields namespace [] selection
+                                        |> Type.record
                             in
                             (Elm.alias name fieldResult
                                 |> Elm.expose
@@ -124,17 +123,18 @@ genAliasedTypes namespace fieldOrFrag =
 
                                 -- Generate the record
                                 interfaceRecord =
-                                    toAliasedFields namespace
-                                        (if selectingForVariants then
-                                            [ ( "specifics_"
-                                              , Type.named [] (name ++ "_Specifics")
-                                              )
-                                            ]
+                                    Type.record <|
+                                        toFields namespace
+                                            (if selectingForVariants then
+                                                [ ( "specifics_"
+                                                  , Type.named [] (name ++ "_Specifics")
+                                                  )
+                                                ]
 
-                                         else
-                                            []
-                                        )
-                                        interface.selection
+                                             else
+                                                []
+                                            )
+                                            interface.selection
 
                                 final =
                                     List.foldl
@@ -230,7 +230,8 @@ generateAliasesForSelection : Namespace -> String -> List Can.Field -> List Elm.
 generateAliasesForSelection namespace detailsName fields =
     let
         record =
-            toAliasedFields namespace [] fields
+            toFields namespace [] fields
+                |> Type.record
 
         recordAlias =
             Elm.alias detailsName record
@@ -313,17 +314,6 @@ toAliasedFields :
 toAliasedFields namespace additionalFields selection =
     toFields namespace additionalFields selection
         |> Type.record
-
-
-toOpenAliasedFields :
-    Namespace
-    -> String
-    -> List ( String, Type.Annotation )
-    -> List Can.Field
-    -> Type.Annotation
-toOpenAliasedFields namespace name additionalFields selection =
-    toFields namespace additionalFields selection
-        |> Type.extensible name
 
 
 toFields :

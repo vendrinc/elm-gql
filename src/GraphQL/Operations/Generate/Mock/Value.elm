@@ -146,7 +146,8 @@ builders paths namespace fullField =
                 Can.FieldObject fields ->
                     let
                         objectType =
-                            GeneratedTypes.toAliasedFields namespace [] fields
+                            GeneratedTypes.toFields namespace [] fields
+                                |> Type.record
 
                         builderForThisObject =
                             Elm.declaration
