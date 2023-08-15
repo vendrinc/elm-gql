@@ -25,7 +25,7 @@ import Elm
 import Elm.Annotation as Type
 import Elm.Op
 import Gen.GraphQL.Engine as Engine
-import Gen.GraphQL.Input
+import Gen.GraphQL.InputObject
 import Gen.Json.Encode as Encode
 import Generate.Common
 import Generate.Scalar
@@ -103,7 +103,7 @@ fullRecordToInputObject :
 fullRecordToInputObject namespace schema args argRecord =
     List.foldl
         (addEncodedVariablesHelper namespace schema argRecord)
-        (Gen.GraphQL.Input.inputObject "Input")
+        (Gen.GraphQL.InputObject.inputObject "Input")
         args
 
 
@@ -123,7 +123,7 @@ addEncodedVariablesHelper namespace schema argRecord var inputObj =
         GraphQL.Schema.Nullable type_ ->
             inputObj
                 |> Elm.Op.pipe
-                    (Elm.apply Gen.GraphQL.Input.values_.addOptionalField
+                    (Elm.apply Gen.GraphQL.InputObject.values_.addOptionalField
                         [ Elm.string name
                         , Elm.string (GraphQL.Schema.typeToString var.type_)
                         , Elm.get name argRecord
@@ -142,7 +142,7 @@ addEncodedVariablesHelper namespace schema argRecord var inputObj =
         _ ->
             inputObj
                 |> Elm.Op.pipe
-                    (Elm.apply Gen.GraphQL.Input.values_.addField
+                    (Elm.apply Gen.GraphQL.InputObject.values_.addField
                         [ Elm.string name
                         , Elm.string (GraphQL.Schema.typeToString var.type_)
                         , Elm.get name argRecord
@@ -269,7 +269,7 @@ toInputObject namespace schema input =
     case required of
         [] ->
             Elm.declaration "input"
-                (Gen.GraphQL.Input.inputObject input.name
+                (Gen.GraphQL.InputObject.inputObject input.name
                     |> Elm.withType (Type.named [] input.name)
                 )
                 |> Elm.exposeWith
@@ -294,7 +294,7 @@ toInputObject namespace schema input =
                 (\val ->
                     List.foldl
                         (\field inputObj ->
-                            Gen.GraphQL.Input.addField
+                            Gen.GraphQL.InputObject.addField
                                 field.name
                                 (GraphQL.Schema.typeToString field.type_)
                                 (encode
@@ -305,7 +305,7 @@ toInputObject namespace schema input =
                                 )
                                 inputObj
                         )
-                        (Gen.GraphQL.Input.inputObject input.name)
+                        (Gen.GraphQL.InputObject.inputObject input.name)
                         required
                         |> Elm.withType (Type.named [] input.name)
                 )
@@ -338,7 +338,7 @@ toOptionHelpers namespace schema input =
                         ( "inputObj_", Just <| Type.named [] input.name )
                         (\new inputObj ->
                             inputObj
-                                |> Gen.GraphQL.Input.addField
+                                |> Gen.GraphQL.InputObject.addField
                                     field.name
                                     (GraphQL.Schema.typeToString field.type_)
                                     (encode
@@ -391,9 +391,9 @@ toOneOfHelper namespace schema input =
                             |> Just
                         )
                         (\new ->
-                            Gen.GraphQL.Input.inputObject input.name
+                            Gen.GraphQL.InputObject.inputObject input.name
                                 |> Elm.withType (Type.named [] input.name)
-                                |> Gen.GraphQL.Input.addField
+                                |> Gen.GraphQL.InputObject.addField
                                     field.name
                                     (GraphQL.Schema.typeToString field.type_)
                                     (encode
@@ -426,9 +426,9 @@ toOneOfNulls inputName fields =
                     Just
                         (Tuple.pair
                             field.name
-                            (Gen.GraphQL.Input.inputObject field.name
+                            (Gen.GraphQL.InputObject.inputObject field.name
                                 |> Elm.withType (Type.named [] field.name)
-                                |> Gen.GraphQL.Input.addField
+                                |> Gen.GraphQL.InputObject.addField
                                     field.name
                                     (GraphQL.Schema.typeToString field.type_)
                                     Encode.null
@@ -467,7 +467,7 @@ toNulls inputName fields =
                                 )
                                 (\inputObj ->
                                     inputObj
-                                        |> Gen.GraphQL.Input.addField
+                                        |> Gen.GraphQL.InputObject.addField
                                             field.name
                                             (GraphQL.Schema.typeToString field.type_)
                                             Encode.null
@@ -553,7 +553,7 @@ encodeHelper :
 encodeHelper namespace schema type_ val =
     case type_ of
         GraphQL.Schema.Nullable newType ->
-            Gen.GraphQL.Input.maybeScalarEncode
+            Gen.GraphQL.InputObject.maybeScalarEncode
                 (encodeHelper namespace schema newType)
                 val
 
@@ -595,7 +595,7 @@ encodeHelper namespace schema type_ val =
                     ]
 
         GraphQL.Schema.InputObject _ ->
-            Gen.GraphQL.Input.encode val
+            Gen.GraphQL.InputObject.encode val
 
         GraphQL.Schema.Object _ ->
             -- not used as input

@@ -4,7 +4,7 @@ import Dict
 import Elm
 import Elm.Annotation as Type
 import Gen.GraphQL.Engine as Engine
-import Gen.GraphQL.Input
+import Gen.GraphQL.InputObject
 import Generate.Input.Encode
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
@@ -74,7 +74,7 @@ renderNewOptional namespace schema input =
             input.name ++ "_"
     in
     [ Elm.alias input.name
-        (Engine.annotation_.inputObject
+        (Gen.GraphQL.InputObject.annotation_.inputObject
             (Type.named []
                 lockName
             )

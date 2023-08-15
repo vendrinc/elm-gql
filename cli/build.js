@@ -15,8 +15,10 @@ let engine = JSON.stringify(
 );
 writeFileSync("./cli/templates/Engine.elm.ts", contents(engine));
 
-let input = JSON.stringify(readFileSync("./src/GraphQL/Input.elm").toString());
-writeFileSync("./cli/templates/Input.elm.ts", contents(input));
+let input = JSON.stringify(
+  readFileSync("./src/GraphQL/InputObject.elm").toString()
+);
+writeFileSync("./cli/templates/InputObject.elm.ts", contents(input));
 
 let decode = JSON.stringify(
   readFileSync("./src/GraphQL/Decode.elm").toString()

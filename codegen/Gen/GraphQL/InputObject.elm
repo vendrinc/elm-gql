@@ -1,4 +1,4 @@
-module Gen.GraphQL.Input exposing (addField, addOptionalField, annotation_, call_, encode, inputObject, maybeScalarEncode, moduleName_, toFieldList, values_)
+module Gen.GraphQL.InputObject exposing (addField, addOptionalField, annotation_, call_, encode, inputObject, maybeScalarEncode, moduleName_, toFieldList, values_)
 
 {-| 
 @docs moduleName_, maybeScalarEncode, encode, toFieldList, addOptionalField, addField, inputObject, annotation_, call_, values_
@@ -12,7 +12,7 @@ import Elm.Annotation as Type
 {-| The name of this module. -}
 moduleName_ : List String
 moduleName_ =
-    [ "GraphQL", "Input" ]
+    [ "GraphQL", "InputObject" ]
 
 
 {-| {-| -}
@@ -24,7 +24,7 @@ maybeScalarEncode :
 maybeScalarEncode maybeScalarEncodeArg maybeScalarEncodeArg0 =
     Elm.apply
         (Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "maybeScalarEncode"
             , annotation =
                 Just
@@ -51,7 +51,7 @@ encode : Elm.Expression -> Elm.Expression
 encode encodeArg =
     Elm.apply
         (Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "encode"
             , annotation =
                 Just
@@ -72,7 +72,7 @@ toFieldList : Elm.Expression -> Elm.Expression
 toFieldList toFieldListArg =
     Elm.apply
         (Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "toFieldList"
             , annotation =
                 Just
@@ -110,7 +110,7 @@ addOptionalField :
 addOptionalField addOptionalFieldArg addOptionalFieldArg0 addOptionalFieldArg1 addOptionalFieldArg2 addOptionalFieldArg3 =
     Elm.apply
         (Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "addOptionalField"
             , annotation =
                 Just
@@ -144,7 +144,7 @@ addField :
 addField addFieldArg addFieldArg0 addFieldArg1 addFieldArg2 =
     Elm.apply
         (Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "addField"
             , annotation =
                 Just
@@ -173,7 +173,7 @@ inputObject : String -> Elm.Expression
 inputObject inputObjectArg =
     Elm.apply
         (Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "inputObject"
             , annotation =
                 Just
@@ -191,7 +191,7 @@ annotation_ =
     { inputObject =
         \inputObjectArg0 ->
             Type.namedWith
-                [ "GraphQL", "Input" ]
+                [ "GraphQL", "InputObject" ]
                 "InputObject"
                 [ inputObjectArg0 ]
     }
@@ -221,7 +221,7 @@ call_ =
         \maybeScalarEncodeArg maybeScalarEncodeArg0 ->
             Elm.apply
                 (Elm.value
-                    { importFrom = [ "GraphQL", "Input" ]
+                    { importFrom = [ "GraphQL", "InputObject" ]
                     , name = "maybeScalarEncode"
                     , annotation =
                         Just
@@ -244,7 +244,7 @@ call_ =
         \encodeArg ->
             Elm.apply
                 (Elm.value
-                    { importFrom = [ "GraphQL", "Input" ]
+                    { importFrom = [ "GraphQL", "InputObject" ]
                     , name = "encode"
                     , annotation =
                         Just
@@ -263,7 +263,7 @@ call_ =
         \toFieldListArg ->
             Elm.apply
                 (Elm.value
-                    { importFrom = [ "GraphQL", "Input" ]
+                    { importFrom = [ "GraphQL", "InputObject" ]
                     , name = "toFieldList"
                     , annotation =
                         Just
@@ -287,7 +287,7 @@ call_ =
         \addOptionalFieldArg addOptionalFieldArg0 addOptionalFieldArg1 addOptionalFieldArg2 addOptionalFieldArg3 ->
             Elm.apply
                 (Elm.value
-                    { importFrom = [ "GraphQL", "Input" ]
+                    { importFrom = [ "GraphQL", "InputObject" ]
                     , name = "addOptionalField"
                     , annotation =
                         Just
@@ -328,7 +328,7 @@ call_ =
         \addFieldArg addFieldArg0 addFieldArg1 addFieldArg2 ->
             Elm.apply
                 (Elm.value
-                    { importFrom = [ "GraphQL", "Input" ]
+                    { importFrom = [ "GraphQL", "InputObject" ]
                     , name = "addField"
                     , annotation =
                         Just
@@ -354,7 +354,7 @@ call_ =
         \inputObjectArg ->
             Elm.apply
                 (Elm.value
-                    { importFrom = [ "GraphQL", "Input" ]
+                    { importFrom = [ "GraphQL", "InputObject" ]
                     , name = "inputObject"
                     , annotation =
                         Just
@@ -383,7 +383,7 @@ values_ :
 values_ =
     { maybeScalarEncode =
         Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "maybeScalarEncode"
             , annotation =
                 Just
@@ -398,7 +398,7 @@ values_ =
             }
     , encode =
         Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "encode"
             , annotation =
                 Just
@@ -409,7 +409,7 @@ values_ =
             }
     , toFieldList =
         Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "toFieldList"
             , annotation =
                 Just
@@ -425,7 +425,7 @@ values_ =
             }
     , addOptionalField =
         Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "addOptionalField"
             , annotation =
                 Just
@@ -443,7 +443,7 @@ values_ =
             }
     , addField =
         Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "addField"
             , annotation =
                 Just
@@ -458,7 +458,7 @@ values_ =
             }
     , inputObject =
         Elm.value
-            { importFrom = [ "GraphQL", "Input" ]
+            { importFrom = [ "GraphQL", "InputObject" ]
             , name = "inputObject"
             , annotation =
                 Just

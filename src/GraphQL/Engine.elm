@@ -6,7 +6,6 @@ module GraphQL.Engine exposing
     , Subscription, subscription
     , Error(..), GqlError, Location
     , VariableDetails, selectionVariables, encodeVariables
-    , InputObject
     , queryString
     , Request, send, simulate, mapRequest
     , Option(..)
@@ -29,8 +28,6 @@ module GraphQL.Engine exposing
 @docs Error, GqlError, Location
 
 @docs VariableDetails, selectionVariables, encodeVariables
-
-@docs InputObject
 
 @docs queryString
 
@@ -225,17 +222,6 @@ type Option value
     = Present value
     | Null
     | Absent
-
-
-{-| -}
-type InputObject value
-    = InputObject String (List ( String, VariableDetails ))
-
-
-{-| -}
-inputObject : String -> InputObject value
-inputObject name =
-    InputObject name []
 
 
 {-| -}

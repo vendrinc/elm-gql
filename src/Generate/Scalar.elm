@@ -5,7 +5,7 @@ import Elm
 import Elm.Annotation as Type
 import Elm.Case
 import Gen.GraphQL.Engine as Engine
-import Gen.GraphQL.Input
+import Gen.GraphQL.InputObject
 import Gen.Json.Decode
 import Gen.Json.Encode
 import GraphQL.Schema exposing (Namespace)
@@ -41,7 +41,7 @@ encode namespace scalarName wrapped =
                 (encode namespace scalarName inner)
 
         GraphQL.Schema.InMaybe inner ->
-            Gen.GraphQL.Input.maybeScalarEncode
+            Gen.GraphQL.InputObject.maybeScalarEncode
                 (encode namespace
                     scalarName
                     inner
