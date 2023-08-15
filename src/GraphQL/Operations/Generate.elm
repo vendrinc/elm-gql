@@ -6,7 +6,7 @@ module GraphQL.Operations.Generate exposing (generate)
 import Elm
 import Elm.Annotation as Type
 import Gen.GraphQL.Engine as Engine
-import Gen.GraphQL.Input
+import Gen.GraphQL.InputObject
 import Gen.Json.Decode as Decode
 import Generate.Input.Encode
 import Generate.Path
@@ -175,7 +175,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                                         schema
                                         arguments
                                         args
-                                        |> Gen.GraphQL.Input.toFieldList
+                                        |> Gen.GraphQL.InputObject.toFieldList
                             in
                             Engine.call_.operation
                                 (case Can.operationLabel def of
@@ -279,7 +279,7 @@ generatePrimaryResultTypeAliased namespace def =
         Can.Operation op ->
             let
                 fields =
-                    GeneratedTypes.fields namespace [] op.fields
+                    GeneratedTypes.toFields namespace [] op.fields
             in
             [ Elm.alias
                 responseName

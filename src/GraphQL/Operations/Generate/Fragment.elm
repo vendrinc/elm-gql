@@ -145,7 +145,7 @@ generateFragmentTypes namespace frag =
                         |> Elm.expose
                   , Elm.declaration ("to" ++ Utils.String.capitalize name)
                         (Elm.fn
-                            ( "open", Just openRecord )
+                            ( "open", Just (Type.extensible "open" fields) )
                             (\open ->
                                 Elm.record
                                     (List.map

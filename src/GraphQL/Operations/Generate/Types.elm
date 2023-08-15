@@ -348,7 +348,7 @@ aliasedFieldRecord namespace sel fields =
         fields
 
     else
-        fieldAliasedAnnotation namespace Nothing sel ++ fields
+        List.reverse (fieldAliasedAnnotation namespace Nothing sel) ++ fields
 
 
 fieldAliasedAnnotation :
@@ -370,38 +370,37 @@ fieldAliasedAnnotation namespace maybeFromFragment field =
                 ]
 
             Can.Frag frag ->
-                List.reverse <|
-                    case frag.fragment.selection of
-                        Can.FragmentObject { selection } ->
+                case frag.fragment.selection of
+                    Can.FragmentObject { selection } ->
+                        List.concatMap
+                            (fieldAliasedAnnotation namespace (Just { importedFromFragment = frag.fragment.importFrom }))
+                            selection
+
+                    Can.FragmentUnion union ->
+                        List.concatMap
+                            (fieldAliasedAnnotation namespace (Just { importedFromFragment = frag.fragment.importFrom }))
+                            union.selection
+
+                    Can.FragmentInterface interface ->
+                        if not (List.isEmpty interface.variants) || not (List.isEmpty interface.remainingTags) then
+                            let
+                                name =
+                                    Can.nameToString frag.fragment.name
+                            in
                             List.concatMap
-                                (fieldAliasedAnnotation namespace (Just { importedFromFragment = frag.fragment.importFrom }))
-                                selection
+                                (fieldAliasedAnnotation namespace
+                                    (Just { importedFromFragment = frag.fragment.importFrom })
+                                )
+                                interface.selection
+                                ++ [ ( name, Type.named [] (name ++ "_Specifics") )
+                                   ]
 
-                        Can.FragmentUnion union ->
+                        else
                             List.concatMap
-                                (fieldAliasedAnnotation namespace (Just { importedFromFragment = frag.fragment.importFrom }))
-                                union.selection
-
-                        Can.FragmentInterface interface ->
-                            if not (List.isEmpty interface.variants) || not (List.isEmpty interface.remainingTags) then
-                                let
-                                    name =
-                                        Can.nameToString frag.fragment.name
-                                in
-                                List.concatMap
-                                    (fieldAliasedAnnotation namespace
-                                        (Just { importedFromFragment = frag.fragment.importFrom })
-                                    )
-                                    interface.selection
-                                    ++ [ ( name, Type.named [] (name ++ "_Specifics") )
-                                       ]
-
-                            else
-                                List.concatMap
-                                    (fieldAliasedAnnotation namespace
-                                        (Just { importedFromFragment = frag.fragment.importFrom })
-                                    )
-                                    interface.selection
+                                (fieldAliasedAnnotation namespace
+                                    (Just { importedFromFragment = frag.fragment.importFrom })
+                                )
+                                interface.selection
 
 
 selectionAliasedAnnotation :
