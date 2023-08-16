@@ -7,6 +7,7 @@ export type Options = {
   force?: boolean;
   generateMocks?: boolean;
   queries?: string;
+  globalFragments: string | null;
   existingEnumDefinitions?: string | null;
 };
 
@@ -18,6 +19,7 @@ export async function run(targetFile: string, options: Options) {
     force: options.force ? options.force : false,
     generateMocks: options.generateMocks ? options.generateMocks : false,
     queries: options.queries ? options.queries : "src",
+    globalFragments: options.globalFragments ? options.globalFragments : null,
     existingEnumDefinitions: options.existingEnumDefinitions
       ? options.existingEnumDefinitions
       : null,
@@ -33,6 +35,7 @@ export async function init(targetFile: string, options: Options) {
     force: options.force ? options.force : false,
     generateMocks: options.generateMocks ? options.generateMocks : false,
     queries: options.queries ? options.queries : "src",
+    globalFragments: options.globalFragments ? options.globalFragments : null,
     existingEnumDefinitions: options.existingEnumDefinitions
       ? options.existingEnumDefinitions
       : null,

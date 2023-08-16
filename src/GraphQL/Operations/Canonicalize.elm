@@ -54,8 +54,8 @@ type alias Paths =
     }
 
 
-canonicalize : GraphQL.Schema.Schema -> Paths -> AST.Document -> Result (List Error.Error) Can.Document
-canonicalize schema paths doc =
+canonicalize : GraphQL.Schema.Schema -> Paths -> List Can.Fragment -> AST.Document -> Result (List Error.Error) Can.Document
+canonicalize schema paths globalFragments doc =
     let
         fragmentResult =
             List.foldl
@@ -86,11 +86,21 @@ canonicalize schema paths doc =
 
                 Ok sortedFragments ->
                     let
+                        existingFragmentDict =
+                            globalFragments
+                                |> List.map
+                                    (\frag ->
+                                        ( Can.nameToString frag.name
+                                        , frag
+                                        )
+                                    )
+                                |> Dict.fromList
+
                         canonicalizedFragments =
                             sortedFragments
                                 |> List.foldl
                                     (canonicalizeFragment schema paths)
-                                    (CanSuccess startingCache Dict.empty)
+                                    (CanSuccess startingCache existingFragmentDict)
                     in
                     case canonicalizedFragments of
                         CanSuccess _ canonicalFrags ->

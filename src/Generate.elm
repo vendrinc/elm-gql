@@ -7,6 +7,7 @@ import Gen as Generate
 import Generate.Enums
 import Generate.InputObjects
 import Generate.Root
+import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Canonicalize.Error as Error
 import GraphQL.Operations.Generate
@@ -163,10 +164,35 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
             , enums = Maybe.withDefault namespaceStr flagDetails.existingEnumDefinitions
             }
 
+        globalFragmentsResult =
+            flagDetails.globalFragments
+                |> List.foldl (parseGlobalFragments namespace schema flagDetails)
+                    (Ok { fragments = [], usages = GraphQL.Usage.init })
+    in
+    case globalFragmentsResult of
+        Err err ->
+            Generate.error [ err ]
+
+        Ok globalFragments ->
+            generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments
+
+
+generatePlatformHelper :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> Json.Encode.Value
+    -> FlagDetails
+    ->
+        { fragments : List Can.Fragment
+        , usages : GraphQL.Usage.Usages
+        }
+    -> Cmd Msg
+generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments =
+    let
         parsedGraphQLQueriesResult =
-            List.foldl (parseGql namespace schema flagDetails)
-                (Ok { files = [], usages = GraphQL.Usage.init })
-                flagDetails.gql
+            flagDetails.gql
+                |> List.foldl (parseGql namespace schema flagDetails globalFragments.fragments)
+                    (Ok { files = [], usages = globalFragments.usages })
     in
     case parsedGraphQLQueriesResult of
         Err err ->
@@ -245,6 +271,7 @@ parseGql :
     Namespace
     -> GraphQL.Schema.Schema
     -> FlagDetails
+    -> List Can.Fragment
     -> { src : String, path : String }
     ->
         Result
@@ -258,10 +285,10 @@ parseGql :
             { files : List Elm.File
             , usages : GraphQL.Usage.Usages
             }
-parseGql namespace schema flagDetails gql result =
+parseGql namespace schema flagDetails fragments gql result =
     case result of
         Ok files ->
-            case parseAndValidateQuery namespace schema flagDetails gql of
+            case parseAndValidateQuery namespace schema flagDetails fragments gql of
                 Ok parsedFiles ->
                     Ok (mergeResults files parsedFiles)
 
@@ -290,13 +317,107 @@ mergeResults one two =
     }
 
 
+parseGlobalFragments :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> FlagDetails
+    -> { src : String, path : String }
+    ->
+        Result
+            Error
+            { fragments : List Can.Fragment
+            , usages : GraphQL.Usage.Usages
+            }
+    ->
+        Result
+            Error
+            { fragments : List Can.Fragment
+            , usages : GraphQL.Usage.Usages
+            }
+parseGlobalFragments namespace schema flagDetails gql result =
+    case result of
+        Ok files ->
+            case parseAndValidateFragments namespace schema flagDetails gql of
+                Ok parsedFiles ->
+                    Ok (mergeFragmentResults files parsedFiles)
+
+                Err err ->
+                    Err err
+
+        Err _ ->
+            result
+
+
+mergeFragmentResults :
+    { fragments : List Can.Fragment
+    , usages : GraphQL.Usage.Usages
+    }
+    ->
+        { fragments : List Can.Fragment
+        , usages : GraphQL.Usage.Usages
+        }
+    ->
+        { fragments : List Can.Fragment
+        , usages : GraphQL.Usage.Usages
+        }
+mergeFragmentResults one two =
+    { fragments = one.fragments ++ two.fragments
+    , usages = GraphQL.Usage.merge one.usages two.usages
+    }
+
+
+parseAndValidateFragments :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> FlagDetails
+    -> Gql
+    ->
+        Result
+            Error
+            { fragments : List Can.Fragment
+            , usages : GraphQL.Usage.Usages
+            }
+parseAndValidateFragments namespace schema flags gql =
+    case GraphQL.Operations.Parse.parse gql.src of
+        Err err ->
+            Err
+                { title = formatTitle "UNABLE TO PARSE QUERY" gql.path
+                , description =
+                    GraphQL.Operations.Parse.errorToString err
+                }
+
+        Ok query ->
+            case
+                Canonicalize.canonicalize schema
+                    { path = gql.path
+                    , gqlDir = flags.gqlDir
+                    }
+                    []
+                    query
+            of
+                Err errors ->
+                    Err
+                        { title = formatTitle "ELM GQL" gql.path
+                        , description =
+                            List.map Error.toString errors
+                                |> String.join (Error.cyan "\n-------------------\n\n")
+                        }
+
+                Ok canAST ->
+                    Ok
+                        { fragments = canAST.fragments
+                        , usages = canAST.usages
+                        }
+
+
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.succeed
-        (\gqlDir elmBaseSchema namespace header isInit gql schemaUrl genPlatform generateMocks reportUnused existingEnums ->
+        (\gqlDir elmBaseSchema namespace header isInit gql globalFragments schemaUrl genPlatform generateMocks reportUnused existingEnums ->
             Flags
                 { schema = schemaUrl
                 , gql = gql
+                , globalFragments = globalFragments
                 , isInit = isInit
                 , gqlDir = gqlDir
                 , elmBaseSchema = elmBaseSchema
@@ -314,6 +435,18 @@ flagsDecoder =
         |> andField "header" (Json.Decode.list Json.Decode.string)
         |> andField "init" Json.Decode.bool
         |> andField "gql"
+            (Json.Decode.list
+                (Json.Decode.map2
+                    (\path src ->
+                        { path = path
+                        , src = src
+                        }
+                    )
+                    (Json.Decode.field "path" Json.Decode.string)
+                    (Json.Decode.field "src" Json.Decode.string)
+                )
+            )
+        |> andField "globalFragments"
             (Json.Decode.list
                 (Json.Decode.map2
                     (\path src ->
@@ -377,6 +510,7 @@ type Input
 type alias FlagDetails =
     { schema : Schema
     , gql : List Gql
+    , globalFragments : List Gql
 
     -- all directories between and including cwd and the elm src dir
     , gqlDir : List String
@@ -447,6 +581,7 @@ parseAndValidateQuery :
     Namespace
     -> GraphQL.Schema.Schema
     -> FlagDetails
+    -> List Can.Fragment
     -> Gql
     ->
         Result
@@ -454,7 +589,7 @@ parseAndValidateQuery :
             { files : List Elm.File
             , usages : GraphQL.Usage.Usages
             }
-parseAndValidateQuery namespace schema flags gql =
+parseAndValidateQuery namespace schema flags globalFragments gql =
     case GraphQL.Operations.Parse.parse gql.src of
         Err err ->
             Err
@@ -469,6 +604,7 @@ parseAndValidateQuery namespace schema flags gql =
                     { path = gql.path
                     , gqlDir = flags.gqlDir
                     }
+                    globalFragments
                     query
             of
                 Err errors ->

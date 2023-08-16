@@ -57,6 +57,10 @@ program
     "src"
   )
   .option(
+    "--global-fragments <dir>",
+    "The directory to scan for GraphQL fragments that you want available globally."
+  )
+  .option(
     "--output <dir>",
     "The directory where your generated files should go.",
     "api"
@@ -101,6 +105,10 @@ program
     "--queries <dir>",
     "The directory to scan for GraphQL queries and mutations.",
     "src"
+  )
+  .option(
+    "--global-fragments <dir>",
+    "The directory to scan for GraphQL fragments that you want available globally."
   )
   .option(
     "--output <dir>",

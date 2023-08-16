@@ -388,6 +388,8 @@ async function generate(schema: string, options: Options) {
       process.exit(1);
     }
   }
+
+  // Query files
   let gql_filepaths = [];
   try {
     gql_filepaths = getFilesRecursively(options.queries);
@@ -408,6 +410,29 @@ The full path of where I looked was:
     process.exit(1);
   }
 
+  // Global fragments
+  let gql_global_fragments: string[] = [];
+  if (options.globalFragments) {
+    try {
+      gql_global_fragments = getFilesRecursively(options.globalFragments);
+    } catch (error) {
+      console.log(
+        format_block([
+          `${chalk.cyan("elm-gql: ")} I was trying to read the ${chalk.yellow(
+            options.globalFragments
+          )} directory for GraphQL files, but wasn't able to!
+  
+  The full path of where I looked was:
+  
+      ${chalk.cyan(path.join(process.cwd(), options.globalFragments))}
+          
+  `,
+        ])
+      );
+      process.exit(1);
+    }
+  }
+
   const fileSources = [];
   for (const file of gql_filepaths) {
     const modified = wasModified(options.namespace, cache, file);
@@ -417,11 +442,23 @@ The full path of where I looked was:
     }
     newCache.files[options.namespace][file] = { modified: modified.at };
   }
+
+  const globalFragmentFileSources = [];
+  for (const file of gql_global_fragments) {
+    const modified = wasModified(options.namespace, cache, file);
+    if (modified.was || options.force) {
+      const src = fs.readFileSync(file).toString();
+      globalFragmentFileSources.push({ src, path: file });
+    }
+    newCache.files[options.namespace][file] = { modified: modified.at };
+  }
+
   if (fileSources.length > 0 || schemaWasModified.was || options.force) {
     run_generator(schema_generator.Elm.Generate, {
       namespace: options.namespace,
       // @ts-ignore
       gql: fileSources,
+      globalFragments: globalFragmentFileSources,
       header: options.header,
       gqlDir: options.queries.split(path.sep),
       elmBaseSchema: options.output.split(path.sep),
@@ -486,6 +523,7 @@ export type Options = {
   force: boolean;
   generateMocks: boolean;
   queries: string;
+  globalFragments: string | null;
   existingEnumDefinitions: string | null;
   init: boolean;
 };

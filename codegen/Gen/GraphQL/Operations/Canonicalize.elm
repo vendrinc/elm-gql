@@ -18,12 +18,17 @@ moduleName_ =
 {-| canonicalize: 
     GraphQL.Schema.Schema
     -> Paths
+    -> List Can.Fragment
     -> AST.Document
     -> Result (List Error.Error) Can.Document
 -}
 canonicalize :
-    Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
-canonicalize canonicalizeArg canonicalizeArg0 canonicalizeArg1 =
+    Elm.Expression
+    -> Elm.Expression
+    -> List Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+canonicalize canonicalizeArg canonicalizeArg0 canonicalizeArg1 canonicalizeArg2 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Operations", "Canonicalize" ]
@@ -33,6 +38,7 @@ canonicalize canonicalizeArg canonicalizeArg0 canonicalizeArg1 =
                     (Type.function
                         [ Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
                         , Type.namedWith [] "Paths" []
+                        , Type.list (Type.namedWith [ "Can" ] "Fragment" [])
                         , Type.namedWith [ "AST" ] "Document" []
                         ]
                         (Type.namedWith
@@ -45,7 +51,11 @@ canonicalize canonicalizeArg canonicalizeArg0 canonicalizeArg1 =
                     )
             }
         )
-        [ canonicalizeArg, canonicalizeArg0, canonicalizeArg1 ]
+        [ canonicalizeArg
+        , canonicalizeArg0
+        , Elm.list canonicalizeArg1
+        , canonicalizeArg2
+        ]
 
 
 annotation_ : { paths : Type.Annotation }
@@ -89,11 +99,15 @@ make_ =
 
 call_ :
     { canonicalize :
-        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+        Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
     }
 call_ =
     { canonicalize =
-        \canonicalizeArg canonicalizeArg0 canonicalizeArg1 ->
+        \canonicalizeArg canonicalizeArg0 canonicalizeArg1 canonicalizeArg2 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Operations", "Canonicalize" ]
@@ -106,6 +120,8 @@ call_ =
                                     "Schema"
                                     []
                                 , Type.namedWith [] "Paths" []
+                                , Type.list
+                                    (Type.namedWith [ "Can" ] "Fragment" [])
                                 , Type.namedWith [ "AST" ] "Document" []
                                 ]
                                 (Type.namedWith
@@ -119,7 +135,11 @@ call_ =
                             )
                     }
                 )
-                [ canonicalizeArg, canonicalizeArg0, canonicalizeArg1 ]
+                [ canonicalizeArg
+                , canonicalizeArg0
+                , canonicalizeArg1
+                , canonicalizeArg2
+                ]
     }
 
 
@@ -134,6 +154,7 @@ values_ =
                     (Type.function
                         [ Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
                         , Type.namedWith [] "Paths" []
+                        , Type.list (Type.namedWith [ "Can" ] "Fragment" [])
                         , Type.namedWith [ "AST" ] "Document" []
                         ]
                         (Type.namedWith
