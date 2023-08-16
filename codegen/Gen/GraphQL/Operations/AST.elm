@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.AST exposing (annotation_, call_, caseOf_, fragmentCount, getAliasedName, getUsedFragments, make_, moduleName_, nameToString, typeToGqlString, valueToString, values_)
+module Gen.GraphQL.Operations.AST exposing (annotation_, call_, caseOf_, fragmentCount, getAliasedName, getUsedFragments, make_, merge, moduleName_, nameToString, typeToGqlString, valueToString, values_)
 
 {-| 
-@docs moduleName_, getUsedFragments, fragmentCount, typeToGqlString, valueToString, nameToString, getAliasedName, annotation_, make_, caseOf_, call_, values_
+@docs moduleName_, getUsedFragments, fragmentCount, typeToGqlString, valueToString, nameToString, getAliasedName, merge, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -118,6 +118,26 @@ getAliasedName getAliasedNameArg =
             }
         )
         [ getAliasedNameArg ]
+
+
+{-| merge: Document -> Document -> Document -}
+merge : Elm.Expression -> Elm.Expression -> Elm.Expression
+merge mergeArg mergeArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "AST" ]
+            , name = "merge"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Document" []
+                        , Type.namedWith [] "Document" []
+                        ]
+                        (Type.namedWith [] "Document" [])
+                    )
+            }
+        )
+        [ mergeArg, mergeArg0 ]
 
 
 annotation_ :
@@ -1008,6 +1028,7 @@ call_ :
     , valueToString : Elm.Expression -> Elm.Expression
     , nameToString : Elm.Expression -> Elm.Expression
     , getAliasedName : Elm.Expression -> Elm.Expression
+    , merge : Elm.Expression -> Elm.Expression -> Elm.Expression
     }
 call_ =
     { getUsedFragments =
@@ -1100,6 +1121,23 @@ call_ =
                     }
                 )
                 [ getAliasedNameArg ]
+    , merge =
+        \mergeArg mergeArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Operations", "AST" ]
+                    , name = "merge"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Document" []
+                                , Type.namedWith [] "Document" []
+                                ]
+                                (Type.namedWith [] "Document" [])
+                            )
+                    }
+                )
+                [ mergeArg, mergeArg0 ]
     }
 
 
@@ -1110,6 +1148,7 @@ values_ :
     , valueToString : Elm.Expression
     , nameToString : Elm.Expression
     , getAliasedName : Elm.Expression
+    , merge : Elm.Expression
     }
 values_ =
     { getUsedFragments =
@@ -1165,6 +1204,19 @@ values_ =
                     (Type.function
                         [ Type.namedWith [] "FieldDetails" [] ]
                         Type.string
+                    )
+            }
+    , merge =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "AST" ]
+            , name = "merge"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Document" []
+                        , Type.namedWith [] "Document" []
+                        ]
+                        (Type.namedWith [] "Document" [])
                     )
             }
     }

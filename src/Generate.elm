@@ -7,6 +7,7 @@ import Gen as Generate
 import Generate.Enums
 import Generate.InputObjects
 import Generate.Root
+import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Canonicalize.Error as Error
@@ -167,8 +168,7 @@ generatePlatform namespaceStr schema schemaAsJson flagDetails =
 
         globalFragmentsResult =
             flagDetails.globalFragments
-                |> List.foldl (parseGlobalFragments namespace schema flagDetails)
-                    (Ok { fragments = [], usages = GraphQL.Usage.init })
+                |> parseGlobalFragments namespace schema flagDetails
     in
     case globalFragmentsResult of
         Err err ->
@@ -322,31 +322,72 @@ parseGlobalFragments :
     Namespace
     -> GraphQL.Schema.Schema
     -> FlagDetails
-    -> { src : String, path : String }
+    -> List { src : String, path : String }
     ->
         Result
             Error
             { fragments : List Can.Fragment
             , usages : GraphQL.Usage.Usages
             }
-    ->
-        Result
-            Error
-            { fragments : List Can.Fragment
-            , usages : GraphQL.Usage.Usages
-            }
-parseGlobalFragments namespace schema flagDetails gql result =
-    case result of
-        Ok files ->
-            case parseAndValidateFragments namespace schema flagDetails gql of
-                Ok parsedFiles ->
-                    Ok (mergeFragmentResults files parsedFiles)
+parseGlobalFragments namespace schema flagDetails files =
+    let
+        maybeParsedAst =
+            List.foldl
+                (\file maybeGathered ->
+                    case maybeGathered of
+                        Nothing ->
+                            case parseGlobalFragmentsFile namespace schema flagDetails file of
+                                Err err ->
+                                    Just (Err err)
 
-                Err err ->
-                    Err err
+                                Ok ast ->
+                                    Just (Ok ast)
 
-        Err _ ->
-            result
+                        Just (Err err) ->
+                            maybeGathered
+
+                        Just (Ok existingAST) ->
+                            case parseGlobalFragmentsFile namespace schema flagDetails file of
+                                Err err ->
+                                    Just (Err err)
+
+                                Ok ast ->
+                                    Just (Ok (AST.merge ast existingAST))
+                )
+                Nothing
+                files
+    in
+    case maybeParsedAst of
+        Nothing ->
+            Ok { fragments = [], usages = GraphQL.Usage.init }
+
+        Just (Err err) ->
+            Err err
+
+        Just (Ok ast) ->
+            let
+                canonicalizationResult =
+                    Canonicalize.canonicalize schema
+                        { path = "Global fragments"
+                        , gqlDir = []
+                        }
+                        []
+                        ast
+            in
+            case canonicalizationResult of
+                Err errors ->
+                    Err
+                        (Error.render
+                            { path = "Global fragments"
+                            , errors = errors
+                            }
+                        )
+
+                Ok canAST ->
+                    Ok
+                        { fragments = canAST.fragments
+                        , usages = canAST.usages
+                        }
 
 
 mergeFragmentResults :
@@ -365,6 +406,66 @@ mergeFragmentResults one two =
     { fragments = one.fragments ++ two.fragments
     , usages = GraphQL.Usage.merge one.usages two.usages
     }
+
+
+{-| Go through each fragment file and parse into an `AST`.
+-}
+parseGlobalFragmentsFile :
+    Namespace
+    -> GraphQL.Schema.Schema
+    -> FlagDetails
+    -> Gql
+    -> Result Error AST.Document
+parseGlobalFragmentsFile namespace schema flags gql =
+    case GraphQL.Operations.Parse.parse gql.src of
+        Err err ->
+            Err
+                (Error.render
+                    { path = gql.path
+                    , errors =
+                        [ Error.UnableToParse { description = GraphQL.Operations.Parse.errorToString err }
+                            |> Error.error
+                        ]
+                    }
+                )
+
+        Ok ast ->
+            case ast.definitions of
+                [ AST.Fragment single ] ->
+                    let
+                        fragname =
+                            AST.nameToString single.name
+
+                        fragnameFromPath =
+                            Utils.String.toFilename gql.path
+                    in
+                    if String.toLower fragname == String.toLower fragnameFromPath then
+                        Ok ast
+
+                    else
+                        Err
+                            (Error.render
+                                { path = gql.path
+                                , errors =
+                                    [ Error.GlobalFragmentNameFilenameMismatch
+                                        { filename = fragnameFromPath
+                                        , fragmentName = fragname
+                                        }
+                                        |> Error.error
+                                    ]
+                                }
+                            )
+
+                _ ->
+                    Err
+                        (Error.render
+                            { path = gql.path
+                            , errors =
+                                [ Error.GlobalFragmentTooMuchStuff
+                                    |> Error.error
+                                ]
+                            }
+                        )
 
 
 parseAndValidateFragments :

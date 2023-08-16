@@ -19,6 +19,7 @@ module GraphQL.Operations.AST exposing
     , fragmentCount
     , getAliasedName
     , getUsedFragments
+    , merge
     , nameToString
     , typeToGqlString
     , valueToString
@@ -30,6 +31,11 @@ import Set exposing (Set)
 type alias Document =
     { definitions : List Definition
     }
+
+
+merge : Document -> Document -> Document
+merge doc1 doc2 =
+    { definitions = doc1.definitions ++ doc2.definitions }
 
 
 type Definition
