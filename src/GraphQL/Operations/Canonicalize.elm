@@ -79,8 +79,17 @@ canonicalize schema paths globalFragments doc =
                             , "Response"
                             ]
                         }
+
+                sortedResult =
+                    sortTopologically
+                        { fragments = Dict.values fragments
+                        , satisfied =
+                            globalFragments
+                                |> List.map (.name >> Can.nameToString)
+                                |> Set.fromList
+                        }
             in
-            case sortTopologically (Dict.values fragments) of
+            case sortedResult of
                 Err error ->
                     Err [ Error.error error ]
 
@@ -886,9 +895,9 @@ selectsSingleFragment refs fields =
             Nothing
 
 
-sortTopologically : List AST.FragmentDetails -> Result Error.ErrorDetails (List AST.FragmentDetails)
-sortTopologically fragments =
-    sortTopologicallyHelp [] Set.empty fragments
+sortTopologically : { satisfied : Set String, fragments : List AST.FragmentDetails } -> Result Error.ErrorDetails (List AST.FragmentDetails)
+sortTopologically { satisfied, fragments } =
+    sortTopologicallyHelp [] satisfied fragments
 
 
 sortTopologicallyHelp : List AST.FragmentDetails -> Set String -> List AST.FragmentDetails -> Result Error.ErrorDetails (List AST.FragmentDetails)
