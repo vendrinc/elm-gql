@@ -35,6 +35,7 @@ type alias References =
     { schema : GraphQL.Schema.Schema
     , fragments : Dict String Can.Fragment
     , paths : Paths
+    , namespace : GraphQL.Schema.Namespace
     }
 
 
@@ -51,11 +52,12 @@ ok data cache =
 type alias Paths =
     { path : String
     , gqlDir : List String
+    , fragmentDir : List String
     }
 
 
-canonicalize : GraphQL.Schema.Schema -> Paths -> List Can.Fragment -> AST.Document -> Result (List Error.Error) Can.Document
-canonicalize schema paths globalFragments doc =
+canonicalize : GraphQL.Schema.Namespace -> GraphQL.Schema.Schema -> Paths -> List Can.Fragment -> AST.Document -> Result (List Error.Error) Can.Document
+canonicalize namespace schema paths globalFragments doc =
     let
         fragmentResult =
             List.foldl
@@ -108,7 +110,7 @@ canonicalize schema paths globalFragments doc =
                         canonicalizedFragments =
                             sortedFragments
                                 |> List.foldl
-                                    (canonicalizeFragment schema paths)
+                                    (canonicalizeFragment namespace schema paths)
                                     (CanSuccess startingCache existingFragmentDict)
                     in
                     case canonicalizedFragments of
@@ -120,6 +122,7 @@ canonicalize schema paths globalFragments doc =
                                             { schema = schema
                                             , fragments = canonicalFrags
                                             , paths = paths
+                                            , namespace = namespace
                                             }
                                         )
                                         (CanSuccess startingCache [])
@@ -874,22 +877,36 @@ selectsSingleFragment :
 selectsSingleFragment refs fields =
     case fields of
         [ AST.FragmentSpreadSelection fragment ] ->
-            let
-                fragName =
-                    Utils.String.formatTypename (AST.nameToString fragment.name)
+            case Dict.get (AST.nameToString fragment.name) refs.fragments of
+                Nothing ->
+                    Nothing
 
-                paths =
-                    Generate.Path.fragment
-                        { name = fragName
-                        , path = refs.paths.path
-                        , gqlDir = refs.paths.gqlDir
+                Just fragDefinition ->
+                    let
+                        fragName =
+                            Utils.String.formatTypename (AST.nameToString fragment.name)
+
+                        paths =
+                            if fragDefinition.isGlobal then
+                                Generate.Path.fragmentGlobal
+                                    { name = fragName
+                                    , namespace = refs.namespace.namespace
+                                    , path = refs.namespace.namespace
+                                    , gqlDir = refs.paths.fragmentDir
+                                    }
+
+                            else
+                                Generate.Path.fragment
+                                    { name = fragName
+                                    , path = refs.paths.path
+                                    , gqlDir = refs.paths.gqlDir
+                                    }
+                    in
+                    Just
+                        { importFrom = paths.modulePath
+                        , importMockFrom = paths.mockModulePath
+                        , name = fragName
                         }
-            in
-            Just
-                { importFrom = paths.modulePath
-                , importMockFrom = paths.mockModulePath
-                , name = fragName
-                }
 
         _ ->
             Nothing
@@ -937,12 +954,13 @@ sortTopologicallyHelp sortedFragments satisfiedFragmentNames remaining =
 
 
 canonicalizeFragment :
-    GraphQL.Schema.Schema
+    GraphQL.Schema.Namespace
+    -> GraphQL.Schema.Schema
     -> Paths
     -> AST.FragmentDetails
     -> CanResult (Dict String Can.Fragment)
     -> CanResult (Dict String Can.Fragment)
-canonicalizeFragment schema paths frag currentResult =
+canonicalizeFragment namespace schema paths frag currentResult =
     case currentResult of
         CanError errMsg ->
             CanError errMsg
@@ -976,6 +994,7 @@ canonicalizeFragment schema paths frag currentResult =
                                     { schema = schema
                                     , fragments = existingFrags
                                     , paths = paths
+                                    , namespace = namespace
                                     }
                                     obj
                                 )
@@ -1023,6 +1042,7 @@ canonicalizeFragment schema paths frag currentResult =
                                         { schema = schema
                                         , fragments = existingFrags
                                         , paths = paths
+                                        , namespace = namespace
                                         }
                                         (cache
                                             |> Cache.addLevel
@@ -1071,6 +1091,7 @@ canonicalizeFragment schema paths frag currentResult =
                                                 { schema = schema
                                                 , fragments = existingFrags
                                                 , paths = paths
+                                                , namespace = namespace
                                                 }
                                                 (cache
                                                     |> Cache.addLevel

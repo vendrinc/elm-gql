@@ -371,9 +371,11 @@ parseGlobalFragments namespace schema flagDetails files =
         Just (Ok ast) ->
             let
                 canonicalizationResult =
-                    Canonicalize.canonicalize schema
+                    Canonicalize.canonicalize namespace
+                        schema
                         { path = namespace.namespace
                         , gqlDir = []
+                        , fragmentDir = flagDetails.fragmentDir
                         }
                         []
                         ast
@@ -390,7 +392,14 @@ parseGlobalFragments namespace schema flagDetails files =
                 Ok canAST ->
                     let
                         fragments =
-                            List.map Can.markFragmentAsGlobal canAST.fragments
+                            List.map
+                                (Can.markFragmentAsGlobal
+                                    { path = namespace.namespace
+                                    , gqlDir = flagDetails.fragmentDir
+                                    , namespace = namespace.namespace
+                                    }
+                                )
+                                canAST.fragments
                     in
                     Ok
                         { fragments =
@@ -399,9 +408,6 @@ parseGlobalFragments namespace schema flagDetails files =
                             List.concatMap
                                 (\frag ->
                                     let
-                                        _ =
-                                            Debug.log "   GLOBAL FRAG" frag.name
-
                                         opts =
                                             { namespace = namespace
                                             , schema = schema
@@ -535,9 +541,11 @@ parseAndValidateFragments namespace schema flags gql =
 
         Ok query ->
             case
-                Canonicalize.canonicalize schema
+                Canonicalize.canonicalize namespace
+                    schema
                     { path = gql.path
                     , gqlDir = flags.gqlDir
+                    , fragmentDir = flags.fragmentDir
                     }
                     []
                     query
@@ -799,9 +807,11 @@ parseAndValidateQuery namespace schema flags globalFragments gql =
 
         Ok query ->
             case
-                Canonicalize.canonicalize schema
+                Canonicalize.canonicalize namespace
+                    schema
                     { path = gql.path
                     , gqlDir = flags.gqlDir
+                    , fragmentDir = flags.fragmentDir
                     }
                     globalFragments
                     query

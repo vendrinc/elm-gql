@@ -208,9 +208,16 @@ isTypeNameSelection isTypeNameSelectionArg =
         [ isTypeNameSelectionArg ]
 
 
-{-| markFragmentAsGlobal: Fragment -> Fragment -}
-markFragmentAsGlobal : Elm.Expression -> Elm.Expression
-markFragmentAsGlobal markFragmentAsGlobalArg =
+{-| markFragmentAsGlobal: 
+    { path : String, namespace : String, gqlDir : List String }
+    -> Fragment
+    -> Fragment
+-}
+markFragmentAsGlobal :
+    { path : String, namespace : String, gqlDir : List String }
+    -> Elm.Expression
+    -> Elm.Expression
+markFragmentAsGlobal markFragmentAsGlobalArg markFragmentAsGlobalArg0 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
@@ -218,12 +225,28 @@ markFragmentAsGlobal markFragmentAsGlobalArg =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [] "Fragment" [] ]
+                        [ Type.record
+                            [ ( "path", Type.string )
+                            , ( "namespace", Type.string )
+                            , ( "gqlDir", Type.list Type.string )
+                            ]
+                        , Type.namedWith [] "Fragment" []
+                        ]
                         (Type.namedWith [] "Fragment" [])
                     )
             }
         )
-        [ markFragmentAsGlobalArg ]
+        [ Elm.record
+            [ Tuple.pair "path" (Elm.string markFragmentAsGlobalArg.path)
+            , Tuple.pair
+                "namespace"
+                (Elm.string markFragmentAsGlobalArg.namespace)
+            , Tuple.pair
+                "gqlDir"
+                (Elm.list (List.map Elm.string markFragmentAsGlobalArg.gqlDir))
+            ]
+        , markFragmentAsGlobalArg0
+        ]
 
 
 annotation_ :
@@ -1352,7 +1375,7 @@ call_ :
     , nameToString : Elm.Expression -> Elm.Expression
     , getAliasedName : Elm.Expression -> Elm.Expression
     , isTypeNameSelection : Elm.Expression -> Elm.Expression
-    , markFragmentAsGlobal : Elm.Expression -> Elm.Expression
+    , markFragmentAsGlobal : Elm.Expression -> Elm.Expression -> Elm.Expression
     }
 call_ =
     { toFragmentRendererExpression =
@@ -1514,7 +1537,7 @@ call_ =
                 )
                 [ isTypeNameSelectionArg ]
     , markFragmentAsGlobal =
-        \markFragmentAsGlobalArg ->
+        \markFragmentAsGlobalArg markFragmentAsGlobalArg0 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Operations", "CanonicalAST" ]
@@ -1522,12 +1545,18 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.namedWith [] "Fragment" [] ]
+                                [ Type.record
+                                    [ ( "path", Type.string )
+                                    , ( "namespace", Type.string )
+                                    , ( "gqlDir", Type.list Type.string )
+                                    ]
+                                , Type.namedWith [] "Fragment" []
+                                ]
                                 (Type.namedWith [] "Fragment" [])
                             )
                     }
                 )
-                [ markFragmentAsGlobalArg ]
+                [ markFragmentAsGlobalArg, markFragmentAsGlobalArg0 ]
     }
 
 
@@ -1656,7 +1685,13 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [] "Fragment" [] ]
+                        [ Type.record
+                            [ ( "path", Type.string )
+                            , ( "namespace", Type.string )
+                            , ( "gqlDir", Type.list Type.string )
+                            ]
+                        , Type.namedWith [] "Fragment" []
+                        ]
                         (Type.namedWith [] "Fragment" [])
                     )
             }

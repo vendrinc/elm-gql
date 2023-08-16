@@ -54,7 +54,7 @@ generate { namespace, schema, document, path, gqlDir } frag =
         fragmentType =
             generateFragmentTypes namespace frag
     in
-    Elm.fileWith (Debug.log "GENERATING" paths.modulePath)
+    Elm.fileWith paths.modulePath
         { aliases = []
         , docs =
             \docs ->

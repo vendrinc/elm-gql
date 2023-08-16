@@ -73,16 +73,6 @@ fragmentGlobal { name, path, gqlDir, namespace } =
         fragName =
             Utils.String.formatTypename name
 
-        _ =
-            Debug.log
-                "fragpaths"
-                { name = name
-                , path = path
-                , gqlDir = gqlDir
-                , moduleName = moduleName
-                , finalFilepath = String.join "/" filePathPieces ++ ".elm"
-                }
-
         moduleName =
             pathFromElmRootToGqlFile ++ [ namespace, "Fragments", fragName ]
 

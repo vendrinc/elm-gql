@@ -19,6 +19,12 @@ schema =
             Debug.todo (Debug.toString errs)
 
 
+namespace =
+    { namespace = "Api"
+    , enums = "Api"
+    }
+
+
 suite : Test
 suite =
     describe "Operational GQL"
@@ -57,9 +63,10 @@ suite =
                             paths =
                                 { path = "/"
                                 , gqlDir = []
+                                , fragmentDir = []
                                 }
                         in
-                        case Canonicalize.canonicalize schema paths query of
+                        case Canonicalize.canonicalize namespace schema paths query of
                             Err _ ->
                                 Expect.fail "Deals failed to canonicalize"
 

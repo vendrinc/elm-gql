@@ -37,6 +37,7 @@ import Elm
 import Elm.Op
 import Gen.GraphQL.Engine as Engine
 import Gen.String
+import Generate.Path
 import GraphQL.Operations.AST as AST
 import GraphQL.Schema
 import GraphQL.Usage
@@ -141,10 +142,31 @@ type alias FragmentDetails =
     }
 
 
-markFragmentAsGlobal : Fragment -> Fragment
-markFragmentAsGlobal frag =
+markFragmentAsGlobal :
+    { -- all the dirs between CWD and the GQL file
+      path : String
+    , namespace : String
+
+    -- all the directories between CWD and the Elm root
+    , gqlDir : List String
+    }
+    -> Fragment
+    -> Fragment
+markFragmentAsGlobal paths frag =
+    let
+        fragPaths =
+            Generate.Path.fragmentGlobal
+                { name = nameToString frag.name
+                , path = paths.path
+                , gqlDir = paths.gqlDir
+                , namespace = paths.namespace
+                }
+                |> Debug.log "GLOBAL PATHS"
+    in
     { frag
         | isGlobal = True
+        , importFrom = fragPaths.modulePath
+        , importMockFrom = fragPaths.mockModulePath
     }
 
 

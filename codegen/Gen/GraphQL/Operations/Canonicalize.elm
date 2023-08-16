@@ -16,7 +16,8 @@ moduleName_ =
 
 
 {-| canonicalize: 
-    GraphQL.Schema.Schema
+    GraphQL.Schema.Namespace
+    -> GraphQL.Schema.Schema
     -> Paths
     -> List Can.Fragment
     -> AST.Document
@@ -25,10 +26,11 @@ moduleName_ =
 canonicalize :
     Elm.Expression
     -> Elm.Expression
+    -> Elm.Expression
     -> List Elm.Expression
     -> Elm.Expression
     -> Elm.Expression
-canonicalize canonicalizeArg canonicalizeArg0 canonicalizeArg1 canonicalizeArg2 =
+canonicalize canonicalizeArg canonicalizeArg0 canonicalizeArg1 canonicalizeArg2 canonicalizeArg3 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Operations", "Canonicalize" ]
@@ -36,7 +38,8 @@ canonicalize canonicalizeArg canonicalizeArg0 canonicalizeArg1 canonicalizeArg2 
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
+                        [ Type.namedWith [ "GraphQL", "Schema" ] "Namespace" []
+                        , Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
                         , Type.namedWith [] "Paths" []
                         , Type.list (Type.namedWith [ "Can" ] "Fragment" [])
                         , Type.namedWith [ "AST" ] "Document" []
@@ -53,8 +56,9 @@ canonicalize canonicalizeArg canonicalizeArg0 canonicalizeArg1 canonicalizeArg2 
         )
         [ canonicalizeArg
         , canonicalizeArg0
-        , Elm.list canonicalizeArg1
-        , canonicalizeArg2
+        , canonicalizeArg1
+        , Elm.list canonicalizeArg2
+        , canonicalizeArg3
         ]
 
 
@@ -66,14 +70,21 @@ annotation_ =
             "Paths"
             []
             (Type.record
-                [ ( "path", Type.string ), ( "gqlDir", Type.list Type.string ) ]
+                [ ( "path", Type.string )
+                , ( "gqlDir", Type.list Type.string )
+                , ( "fragmentDir", Type.list Type.string )
+                ]
             )
     }
 
 
 make_ :
     { paths :
-        { path : Elm.Expression, gqlDir : Elm.Expression } -> Elm.Expression
+        { path : Elm.Expression
+        , gqlDir : Elm.Expression
+        , fragmentDir : Elm.Expression
+        }
+        -> Elm.Expression
     }
 make_ =
     { paths =
@@ -86,12 +97,14 @@ make_ =
                     (Type.record
                         [ ( "path", Type.string )
                         , ( "gqlDir", Type.list Type.string )
+                        , ( "fragmentDir", Type.list Type.string )
                         ]
                     )
                 )
                 (Elm.record
                     [ Tuple.pair "path" paths_args.path
                     , Tuple.pair "gqlDir" paths_args.gqlDir
+                    , Tuple.pair "fragmentDir" paths_args.fragmentDir
                     ]
                 )
     }
@@ -104,10 +117,11 @@ call_ :
         -> Elm.Expression
         -> Elm.Expression
         -> Elm.Expression
+        -> Elm.Expression
     }
 call_ =
     { canonicalize =
-        \canonicalizeArg canonicalizeArg0 canonicalizeArg1 canonicalizeArg2 ->
+        \canonicalizeArg canonicalizeArg0 canonicalizeArg1 canonicalizeArg2 canonicalizeArg3 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Operations", "Canonicalize" ]
@@ -116,6 +130,10 @@ call_ =
                         Just
                             (Type.function
                                 [ Type.namedWith
+                                    [ "GraphQL", "Schema" ]
+                                    "Namespace"
+                                    []
+                                , Type.namedWith
                                     [ "GraphQL", "Schema" ]
                                     "Schema"
                                     []
@@ -139,6 +157,7 @@ call_ =
                 , canonicalizeArg0
                 , canonicalizeArg1
                 , canonicalizeArg2
+                , canonicalizeArg3
                 ]
     }
 
@@ -152,7 +171,8 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
+                        [ Type.namedWith [ "GraphQL", "Schema" ] "Namespace" []
+                        , Type.namedWith [ "GraphQL", "Schema" ] "Schema" []
                         , Type.namedWith [] "Paths" []
                         , Type.list (Type.namedWith [ "Can" ] "Fragment" [])
                         , Type.namedWith [ "AST" ] "Document" []
