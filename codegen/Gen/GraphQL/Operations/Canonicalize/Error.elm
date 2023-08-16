@@ -232,6 +232,7 @@ make_ :
     , fragmentSelectionNotAllowedInObjects : Elm.Expression -> Elm.Expression
     , fragmentInlineTopLevel : Elm.Expression -> Elm.Expression
     , fragmentCyclicDependency : Elm.Expression -> Elm.Expression
+    , globalFragmentPresent : Elm.Expression -> Elm.Expression
     , globalFragmentNameFilenameMismatch : Elm.Expression -> Elm.Expression
     , globalFragmentTooMuchStuff : Elm.Expression
     , explanation : Elm.Expression -> Elm.Expression
@@ -711,6 +712,17 @@ make_ =
                     }
                 )
                 [ ar0 ]
+    , globalFragmentPresent =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "GlobalFragmentPresent"
+                    , annotation = Just (Type.namedWith [] "ErrorDetails" [])
+                    }
+                )
+                [ ar0 ]
     , globalFragmentNameFilenameMismatch =
         \ar0 ->
             Elm.apply
@@ -798,6 +810,7 @@ caseOf_ :
                 Elm.Expression -> Elm.Expression
             , fragmentInlineTopLevel : Elm.Expression -> Elm.Expression
             , fragmentCyclicDependency : Elm.Expression -> Elm.Expression
+            , globalFragmentPresent : Elm.Expression -> Elm.Expression
             , globalFragmentNameFilenameMismatch :
                 Elm.Expression -> Elm.Expression
             , globalFragmentTooMuchStuff : Elm.Expression
@@ -1116,6 +1129,16 @@ caseOf_ =
                         ]
                     )
                     errorDetailsTags.fragmentCyclicDependency
+                , Elm.Case.branch1
+                    "GlobalFragmentPresent"
+                    ( "one"
+                    , Type.record
+                        [ ( "fragmentsDuplicatingGlobalOnes"
+                          , Type.list Type.string
+                          )
+                        ]
+                    )
+                    errorDetailsTags.globalFragmentPresent
                 , Elm.Case.branch1
                     "GlobalFragmentNameFilenameMismatch"
                     ( "one"

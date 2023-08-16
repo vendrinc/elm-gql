@@ -161,7 +161,6 @@ markFragmentAsGlobal paths frag =
                 , gqlDir = paths.gqlDir
                 , namespace = paths.namespace
                 }
-                |> Debug.log "GLOBAL PATHS"
     in
     { frag
         | isGlobal = True

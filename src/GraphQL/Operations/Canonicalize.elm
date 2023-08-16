@@ -73,74 +73,104 @@ canonicalize namespace schema paths globalFragments doc =
 
         Ok fragments ->
             let
-                startingCache =
-                    Cache.init
-                        { reservedNames =
-                            -- These are names that we know will be in the generated code
-                            [ "Input"
-                            , "Response"
-                            ]
-                        }
-
-                sortedResult =
-                    sortTopologically
-                        { fragments = Dict.values fragments
-                        , satisfied =
-                            globalFragments
-                                |> List.map (.name >> Can.nameToString)
-                                |> Set.fromList
-                        }
+                globalFragmentSet =
+                    globalFragments
+                        |> List.map (.name >> Can.nameToString)
+                        |> Set.fromList
             in
-            case sortedResult of
+            case checkForDuplicates { fragments = Dict.values fragments, globalFragments = globalFragmentSet } of
                 Err error ->
                     Err [ Error.error error ]
 
-                Ok sortedFragments ->
+                Ok () ->
                     let
-                        existingFragmentDict =
-                            globalFragments
-                                |> List.map
-                                    (\frag ->
-                                        ( Can.nameToString frag.name
-                                        , frag
-                                        )
-                                    )
-                                |> Dict.fromList
+                        startingCache =
+                            Cache.init
+                                { reservedNames =
+                                    -- These are names that we know will be in the generated code
+                                    [ "Input"
+                                    , "Response"
+                                    ]
+                                }
 
-                        canonicalizedFragments =
-                            sortedFragments
-                                |> List.foldl
-                                    (canonicalizeFragment namespace schema paths)
-                                    (CanSuccess startingCache existingFragmentDict)
+                        sortedResult =
+                            sortTopologically
+                                { fragments = Dict.values fragments
+                                , satisfied = globalFragmentSet
+                                }
                     in
-                    case canonicalizedFragments of
-                        CanSuccess _ canonicalFrags ->
+                    case sortedResult of
+                        Err error ->
+                            Err [ Error.error error ]
+
+                        Ok sortedFragments ->
                             let
-                                canonicalizedDefinitions =
-                                    List.foldl
-                                        (canonicalizeDefinition
-                                            { schema = schema
-                                            , fragments = canonicalFrags
-                                            , paths = paths
-                                            , namespace = namespace
-                                            }
-                                        )
-                                        (CanSuccess startingCache [])
-                                        doc.definitions
+                                existingFragmentDict =
+                                    globalFragments
+                                        |> List.map
+                                            (\frag ->
+                                                ( Can.nameToString frag.name
+                                                , frag
+                                                )
+                                            )
+                                        |> Dict.fromList
+
+                                canonicalizedFragments =
+                                    sortedFragments
+                                        |> List.foldl
+                                            (canonicalizeFragment namespace schema paths)
+                                            (CanSuccess startingCache existingFragmentDict)
                             in
-                            case canonicalizedDefinitions of
-                                CanSuccess finalCache defs ->
-                                    Ok
-                                        { definitions = defs
-                                        , fragments = Dict.values canonicalFrags
-                                        , usages = finalCache.usage
-                                        }
+                            case canonicalizedFragments of
+                                CanSuccess _ canonicalFrags ->
+                                    let
+                                        canonicalizedDefinitions =
+                                            List.foldl
+                                                (canonicalizeDefinition
+                                                    { schema = schema
+                                                    , fragments = canonicalFrags
+                                                    , paths = paths
+                                                    , namespace = namespace
+                                                    }
+                                                )
+                                                (CanSuccess startingCache [])
+                                                doc.definitions
+                                    in
+                                    case canonicalizedDefinitions of
+                                        CanSuccess finalCache defs ->
+                                            Ok
+                                                { definitions = defs
+                                                , fragments = Dict.values canonicalFrags
+                                                , usages = finalCache.usage
+                                                }
+
+                                        CanError errorMsg ->
+                                            Err errorMsg
 
                                 CanError errorMsg ->
                                     Err errorMsg
 
-                        CanError errorMsg ->
-                            Err errorMsg
+
+checkForDuplicates : { fragments : List AST.FragmentDetails, globalFragments : Set String } -> Result Error.ErrorDetails ()
+checkForDuplicates { fragments, globalFragments } =
+    let
+        duplicates =
+            List.filter
+                (\frag ->
+                    Set.member (AST.nameToString frag.name) globalFragments
+                )
+                fragments
+    in
+    case duplicates of
+        [] ->
+            Ok ()
+
+        _ ->
+            Err
+                (Error.GlobalFragmentPresent
+                    { fragmentsDuplicatingGlobalOnes = List.map (.name >> AST.nameToString) duplicates
+                    }
+                )
 
 
 getFragments :

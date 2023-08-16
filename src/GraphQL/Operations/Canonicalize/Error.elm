@@ -147,6 +147,9 @@ type ErrorDetails
         { fragment : AST.InlineFragment
         }
     | FragmentCyclicDependency { fragments : List AST.FragmentDetails }
+    | GlobalFragmentPresent
+        { fragmentsDuplicatingGlobalOnes : List String
+        }
     | GlobalFragmentNameFilenameMismatch
         { filename : String
         , fragmentName : String
@@ -345,6 +348,9 @@ toTitle (Error details) =
 
         GlobalFragmentTooMuchStuff ->
             "Too much stuff in global fragment"
+
+        GlobalFragmentPresent _ ->
+            "Duplicate of global fragment"
 
 
 toDescription : Error -> String
@@ -811,6 +817,22 @@ toDescription (Error details) =
                 [ "Global fragment files can only contain one fragment definition, but I found some other stuff in there."
                 , "Also, make sure to name your fragment the same as the filename!"
                 ]
+
+        GlobalFragmentPresent { fragmentsDuplicatingGlobalOnes } ->
+            case fragmentsDuplicatingGlobalOnes of
+                [ single ] ->
+                    String.join "\n"
+                        [ "I found a fragment that collides with a globally defined one: "
+                        , block
+                            [ yellow single ]
+                        ]
+
+                _ ->
+                    String.join "\n"
+                        [ "I found some fragments that collide with  "
+                        , block
+                            (List.map yellow fragmentsDuplicatingGlobalOnes)
+                        ]
 
 
 queryNotice : String
