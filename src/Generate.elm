@@ -382,10 +382,14 @@ parseAndValidateFragments namespace schema flags gql =
     case GraphQL.Operations.Parse.parse gql.src of
         Err err ->
             Err
-                { title = formatTitle "UNABLE TO PARSE QUERY" gql.path
-                , description =
-                    GraphQL.Operations.Parse.errorToString err
-                }
+                (Error.render
+                    { path = gql.path
+                    , errors =
+                        [ Error.UnableToParse { description = GraphQL.Operations.Parse.errorToString err }
+                            |> Error.error
+                        ]
+                    }
+                )
 
         Ok query ->
             case
@@ -414,17 +418,33 @@ parseAndValidateFragments namespace schema flags gql =
                                 fragnameFromPath =
                                     Utils.String.toFilename gql.path
                             in
-                            if String.toLower fragname == String.toLower fragnameFromPath then
+                            if String.toLower fragname == String.toLower fragnameFromPath && List.isEmpty canAST.definitions then
                                 Ok
                                     { fragments = canAST.fragments
                                     , usages = canAST.usages
                                     }
 
+                            else if not (List.isEmpty canAST.definitions) then
+                                Err
+                                    (Error.render
+                                        { path = gql.path
+                                        , errors =
+                                            [ Error.error Error.GlobalFragmentTooMuchStuff
+                                            ]
+                                        }
+                                    )
+
                             else
                                 Err
                                     (Error.render
                                         { path = gql.path
-                                        , errors = []
+                                        , errors =
+                                            [ Error.GlobalFragmentNameFilenameMismatch
+                                                { filename = fragnameFromPath
+                                                , fragmentName = fragname
+                                                }
+                                                |> Error.error
+                                            ]
                                         }
                                     )
 
@@ -432,7 +452,10 @@ parseAndValidateFragments namespace schema flags gql =
                             Err
                                 (Error.render
                                     { path = gql.path
-                                    , errors = []
+                                    , errors =
+                                        [ Error.GlobalFragmentTooMuchStuff
+                                            |> Error.error
+                                        ]
                                     }
                                 )
 
@@ -620,10 +643,14 @@ parseAndValidateQuery namespace schema flags globalFragments gql =
     case GraphQL.Operations.Parse.parse gql.src of
         Err err ->
             Err
-                { title = formatTitle "UNABLE TO PARSE QUERY" gql.path
-                , description =
-                    GraphQL.Operations.Parse.errorToString err
-                }
+                (Error.render
+                    { path = gql.path
+                    , errors =
+                        [ Error.UnableToParse { description = GraphQL.Operations.Parse.errorToString err }
+                            |> Error.error
+                        ]
+                    }
+                )
 
         Ok query ->
             case
@@ -655,12 +682,3 @@ parseAndValidateQuery namespace schema flags globalFragments gql =
                                 }
                         , usages = canAST.usages
                         }
-
-
-formatTitle : String -> String -> String
-formatTitle title path =
-    let
-        middle =
-            "-" |> String.repeat (78 - (String.length title + 2 + String.length path))
-    in
-    title ++ middle ++ path

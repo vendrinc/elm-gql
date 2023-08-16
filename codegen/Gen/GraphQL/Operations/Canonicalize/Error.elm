@@ -209,6 +209,7 @@ make_ :
     , object : Elm.Expression -> Elm.Expression
     , union : Elm.Expression -> Elm.Expression
     , interface : Elm.Expression -> Elm.Expression
+    , unableToParse : Elm.Expression -> Elm.Expression
     , queryUnknown : Elm.Expression -> Elm.Expression
     , enumUnknown : Elm.Expression -> Elm.Expression
     , objectUnknown : Elm.Expression -> Elm.Expression
@@ -231,6 +232,8 @@ make_ :
     , fragmentSelectionNotAllowedInObjects : Elm.Expression -> Elm.Expression
     , fragmentInlineTopLevel : Elm.Expression -> Elm.Expression
     , fragmentCyclicDependency : Elm.Expression -> Elm.Expression
+    , globalFragmentNameFilenameMismatch : Elm.Expression -> Elm.Expression
+    , globalFragmentTooMuchStuff : Elm.Expression
     , explanation : Elm.Expression -> Elm.Expression
     , error : Elm.Expression -> Elm.Expression
     }
@@ -452,6 +455,17 @@ make_ =
                     , name = "Interface"
                     , annotation =
                         Just (Type.namedWith [] "ExplanantionDetails" [])
+                    }
+                )
+                [ ar0 ]
+    , unableToParse =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "UnableToParse"
+                    , annotation = Just (Type.namedWith [] "ErrorDetails" [])
                     }
                 )
                 [ ar0 ]
@@ -697,6 +711,23 @@ make_ =
                     }
                 )
                 [ ar0 ]
+    , globalFragmentNameFilenameMismatch =
+        \ar0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "GlobalFragmentNameFilenameMismatch"
+                    , annotation = Just (Type.namedWith [] "ErrorDetails" [])
+                    }
+                )
+                [ ar0 ]
+    , globalFragmentTooMuchStuff =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+            , name = "GlobalFragmentTooMuchStuff"
+            , annotation = Just (Type.namedWith [] "ErrorDetails" [])
+            }
     , explanation =
         \ar0 ->
             Elm.apply
@@ -743,7 +774,8 @@ caseOf_ :
     , errorDetails :
         Elm.Expression
         -> { errorDetailsTags_2_0
-            | queryUnknown : Elm.Expression -> Elm.Expression
+            | unableToParse : Elm.Expression -> Elm.Expression
+            , queryUnknown : Elm.Expression -> Elm.Expression
             , enumUnknown : Elm.Expression -> Elm.Expression
             , objectUnknown : Elm.Expression -> Elm.Expression
             , unionUnknown : Elm.Expression -> Elm.Expression
@@ -766,6 +798,9 @@ caseOf_ :
                 Elm.Expression -> Elm.Expression
             , fragmentInlineTopLevel : Elm.Expression -> Elm.Expression
             , fragmentCyclicDependency : Elm.Expression -> Elm.Expression
+            , globalFragmentNameFilenameMismatch :
+                Elm.Expression -> Elm.Expression
+            , globalFragmentTooMuchStuff : Elm.Expression
             , explanation : Elm.Expression -> Elm.Expression
         }
         -> Elm.Expression
@@ -896,6 +931,10 @@ caseOf_ =
                     []
                 )
                 [ Elm.Case.branch1
+                    "UnableToParse"
+                    ( "one", Type.record [ ( "description", Type.string ) ] )
+                    errorDetailsTags.unableToParse
+                , Elm.Case.branch1
                     "QueryUnknown"
                     ( "string.String", Type.string )
                     errorDetailsTags.queryUnknown
@@ -1077,6 +1116,18 @@ caseOf_ =
                         ]
                     )
                     errorDetailsTags.fragmentCyclicDependency
+                , Elm.Case.branch1
+                    "GlobalFragmentNameFilenameMismatch"
+                    ( "one"
+                    , Type.record
+                        [ ( "filename", Type.string )
+                        , ( "fragmentName", Type.string )
+                        ]
+                    )
+                    errorDetailsTags.globalFragmentNameFilenameMismatch
+                , Elm.Case.branch0
+                    "GlobalFragmentTooMuchStuff"
+                    errorDetailsTags.globalFragmentTooMuchStuff
                 , Elm.Case.branch1
                     "Explanation"
                     ( "one"

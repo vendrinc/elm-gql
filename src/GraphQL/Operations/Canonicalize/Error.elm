@@ -79,7 +79,8 @@ type alias Position =
 
 
 type ErrorDetails
-    = QueryUnknown String
+    = UnableToParse { description : String }
+    | QueryUnknown String
     | EnumUnknown String
     | ObjectUnknown String
     | UnionUnknown String
@@ -146,6 +147,11 @@ type ErrorDetails
         { fragment : AST.InlineFragment
         }
     | FragmentCyclicDependency { fragments : List AST.FragmentDetails }
+    | GlobalFragmentNameFilenameMismatch
+        { filename : String
+        , fragmentName : String
+        }
+    | GlobalFragmentTooMuchStuff
     | Explanation
         { query : String
         , explanation : ExplanantionDetails
@@ -262,6 +268,9 @@ color openCode closeCode content =
 toTitle : Error -> String
 toTitle (Error details) =
     case details.error of
+        UnableToParse _ ->
+            "Unable to parse query"
+
         TopLevelFragmentsNotAllowed errorDetails ->
             "Fragment not allowed"
 
@@ -331,10 +340,19 @@ toTitle (Error details) =
         Explanation { query, explanation } ->
             "Explanation"
 
+        GlobalFragmentNameFilenameMismatch _ ->
+            "Fragment name and filename mismatch"
+
+        GlobalFragmentTooMuchStuff ->
+            "Too much stuff in global fragment"
+
 
 toDescription : Error -> String
 toDescription (Error details) =
     case details.error of
+        UnableToParse { description } ->
+            description
+
         TopLevelFragmentsNotAllowed errorDetails ->
             String.join "\n"
                 [ "I found a top level fragment"
@@ -778,6 +796,21 @@ toDescription (Error details) =
                                 tags
                             )
                         ]
+
+        GlobalFragmentNameFilenameMismatch errorDetails ->
+            String.join "\n"
+                [ "The filename and the fragment name don't match"
+                , block
+                    [ yellow errorDetails.filename
+                    , yellow errorDetails.fragmentName
+                    ]
+                ]
+
+        GlobalFragmentTooMuchStuff ->
+            String.join "\n"
+                [ "Global fragment files can only contain one fragment definition, but I found some other stuff in there."
+                , "Also, make sure to name your fragment the same as the filename!"
+                ]
 
 
 queryNotice : String
