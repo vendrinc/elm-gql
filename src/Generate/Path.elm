@@ -1,4 +1,4 @@
-module Generate.Path exposing (Paths, fragment, operation)
+module Generate.Path exposing (Paths, fragment, fragmentGlobal, operation)
 
 import Utils.String
 
@@ -23,6 +23,9 @@ fragment { name, path, gqlDir } =
         fragName =
             Utils.String.formatTypename name
 
+        moduleName =
+            pathFromElmRootToGqlFile ++ [ "Fragments", fragName ]
+
         -- The path between elm root and the gql file
         pathFromElmRootToGqlFile =
             path
@@ -32,7 +35,8 @@ fragment { name, path, gqlDir } =
                         >> String.replace ".graphql" ""
                     )
                 |> removePrefix (List.filter (not << isDot) gqlDir)
-                |> List.map Utils.String.formatTypename
+                |> List.map
+                    Utils.String.formatTypename
 
         filePathPieces =
             gqlDir
@@ -44,8 +48,68 @@ fragment { name, path, gqlDir } =
                 ++ pathFromElmRootToGqlFile
                 ++ [ "Mock", "Fragments", fragName ]
     in
-    { modulePath = pathFromElmRootToGqlFile ++ [ "Fragments", fragName ]
+    { modulePath = moduleName
     , mockModulePath = pathFromElmRootToGqlFile ++ [ "Mock", "Fragments", fragName ]
+    , filePath =
+        String.join "/" filePathPieces ++ ".elm"
+    , mockModuleFilePath =
+        String.join "/" mockFilePathPieces ++ ".elm"
+    }
+
+
+fragmentGlobal :
+    { name : String
+    , namespace : String
+
+    -- all the dirs between CWD and the GQL file
+    , path : String
+
+    -- all the directories between CWD and the Elm root
+    , gqlDir : List String
+    }
+    -> Paths
+fragmentGlobal { name, path, gqlDir, namespace } =
+    let
+        fragName =
+            Utils.String.formatTypename name
+
+        _ =
+            Debug.log
+                "fragpaths"
+                { name = name
+                , path = path
+                , gqlDir = gqlDir
+                , moduleName = moduleName
+                , finalFilepath = String.join "/" filePathPieces ++ ".elm"
+                }
+
+        moduleName =
+            pathFromElmRootToGqlFile ++ [ namespace, "Fragments", fragName ]
+
+        -- The path between elm root and the gql file
+        pathFromElmRootToGqlFile =
+            path
+                |> String.split "/"
+                |> List.map
+                    (String.replace ".gql" ""
+                        >> String.replace ".graphql" ""
+                    )
+                |> removePrefix (List.filter (not << isDot) gqlDir)
+                |> List.map
+                    Utils.String.formatTypename
+
+        filePathPieces =
+            gqlDir
+                ++ pathFromElmRootToGqlFile
+                ++ [ namespace, "Fragments", fragName ]
+
+        mockFilePathPieces =
+            gqlDir
+                ++ pathFromElmRootToGqlFile
+                ++ [ namespace, "Mock", "Fragments", fragName ]
+    in
+    { modulePath = moduleName
+    , mockModulePath = pathFromElmRootToGqlFile ++ [ namespace, "Mock", "Fragments", fragName ]
     , filePath =
         String.join "/" filePathPieces ++ ".elm"
     , mockModuleFilePath =

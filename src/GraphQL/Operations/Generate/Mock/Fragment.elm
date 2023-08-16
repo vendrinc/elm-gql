@@ -30,11 +30,20 @@ generate :
 generate { namespace, schema, document, path, gqlDir } frag =
     let
         paths =
-            Generate.Path.fragment
-                { name = Utils.String.formatTypename (Can.nameToString frag.name)
-                , path = path
-                , gqlDir = gqlDir
-                }
+            if frag.isGlobal then
+                Generate.Path.fragmentGlobal
+                    { name = Utils.String.formatTypename (Can.nameToString frag.name)
+                    , namespace = namespace.namespace
+                    , path = path
+                    , gqlDir = gqlDir
+                    }
+
+            else
+                Generate.Path.fragment
+                    { name = Utils.String.formatTypename (Can.nameToString frag.name)
+                    , path = path
+                    , gqlDir = gqlDir
+                    }
     in
     Elm.fileWith paths.mockModulePath
         { aliases = [ ( paths.modulePath, "Fragment" ) ]

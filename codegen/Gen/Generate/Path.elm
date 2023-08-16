@@ -1,7 +1,7 @@
-module Gen.Generate.Path exposing (annotation_, call_, fragment, make_, moduleName_, operation, values_)
+module Gen.Generate.Path exposing (annotation_, call_, fragment, fragmentGlobal, make_, moduleName_, operation, values_)
 
 {-| 
-@docs moduleName_, operation, fragment, annotation_, make_, call_, values_
+@docs moduleName_, operation, fragmentGlobal, fragment, annotation_, make_, call_, values_
 -}
 
 
@@ -55,6 +55,43 @@ operation operationArg =
             , Tuple.pair
                 "gqlDir"
                 (Elm.list (List.map Elm.string operationArg.gqlDir))
+            ]
+        ]
+
+
+{-| fragmentGlobal: 
+    { name : String, namespace : String, path : String, gqlDir : List String }
+    -> Paths
+-}
+fragmentGlobal :
+    { name : String, namespace : String, path : String, gqlDir : List String }
+    -> Elm.Expression
+fragmentGlobal fragmentGlobalArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Generate", "Path" ]
+            , name = "fragmentGlobal"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.record
+                            [ ( "name", Type.string )
+                            , ( "namespace", Type.string )
+                            , ( "path", Type.string )
+                            , ( "gqlDir", Type.list Type.string )
+                            ]
+                        ]
+                        (Type.namedWith [] "Paths" [])
+                    )
+            }
+        )
+        [ Elm.record
+            [ Tuple.pair "name" (Elm.string fragmentGlobalArg.name)
+            , Tuple.pair "namespace" (Elm.string fragmentGlobalArg.namespace)
+            , Tuple.pair "path" (Elm.string fragmentGlobalArg.path)
+            , Tuple.pair
+                "gqlDir"
+                (Elm.list (List.map Elm.string fragmentGlobalArg.gqlDir))
             ]
         ]
 
@@ -146,6 +183,7 @@ make_ =
 
 call_ :
     { operation : Elm.Expression -> Elm.Expression
+    , fragmentGlobal : Elm.Expression -> Elm.Expression
     , fragment : Elm.Expression -> Elm.Expression
     }
 call_ =
@@ -177,6 +215,27 @@ call_ =
                     }
                 )
                 [ operationArg ]
+    , fragmentGlobal =
+        \fragmentGlobalArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "Generate", "Path" ]
+                    , name = "fragmentGlobal"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.record
+                                    [ ( "name", Type.string )
+                                    , ( "namespace", Type.string )
+                                    , ( "path", Type.string )
+                                    , ( "gqlDir", Type.list Type.string )
+                                    ]
+                                ]
+                                (Type.namedWith [] "Paths" [])
+                            )
+                    }
+                )
+                [ fragmentGlobalArg ]
     , fragment =
         \fragmentArg ->
             Elm.apply
@@ -200,7 +259,11 @@ call_ =
     }
 
 
-values_ : { operation : Elm.Expression, fragment : Elm.Expression }
+values_ :
+    { operation : Elm.Expression
+    , fragmentGlobal : Elm.Expression
+    , fragment : Elm.Expression
+    }
 values_ =
     { operation =
         Elm.value
@@ -222,6 +285,23 @@ values_ =
                             , ( "mockModuleFilePath", Type.string )
                             ]
                         )
+                    )
+            }
+    , fragmentGlobal =
+        Elm.value
+            { importFrom = [ "Generate", "Path" ]
+            , name = "fragmentGlobal"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.record
+                            [ ( "name", Type.string )
+                            , ( "namespace", Type.string )
+                            , ( "path", Type.string )
+                            , ( "gqlDir", Type.list Type.string )
+                            ]
+                        ]
+                        (Type.namedWith [] "Paths" [])
                     )
             }
     , fragment =

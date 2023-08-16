@@ -22,6 +22,7 @@ module GraphQL.Operations.CanonicalAST exposing
     , getAliasedName
     , getFieldName
     , isTypeNameSelection
+    , markFragmentAsGlobal
     , nameToString
     , operationLabel
     , operationName
@@ -140,8 +141,16 @@ type alias FragmentDetails =
     }
 
 
+markFragmentAsGlobal : Fragment -> Fragment
+markFragmentAsGlobal frag =
+    { frag
+        | isGlobal = True
+    }
+
+
 type alias Fragment =
     { name : Name
+    , isGlobal : Bool
     , importFrom : List String
     , importMockFrom : List String
     , typeCondition : Name

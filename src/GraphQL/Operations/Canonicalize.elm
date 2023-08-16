@@ -994,6 +994,7 @@ canonicalizeFragment schema paths frag currentResult =
                                 (existingFrags
                                     |> Dict.insert (AST.nameToString frag.name)
                                         { name = convertName frag.name
+                                        , isGlobal = False
                                         , importFrom = fragPaths.modulePath
                                         , importMockFrom = fragPaths.mockModulePath
                                         , typeCondition = convertName frag.typeCondition
@@ -1043,6 +1044,7 @@ canonicalizeFragment schema paths frag currentResult =
                                         (existingFrags
                                             |> Dict.insert (AST.nameToString frag.name)
                                                 { name = convertName frag.name
+                                                , isGlobal = False
                                                 , importFrom = fragPaths.modulePath
                                                 , importMockFrom = fragPaths.mockModulePath
                                                 , typeCondition = convertName frag.typeCondition
@@ -1090,6 +1092,7 @@ canonicalizeFragment schema paths frag currentResult =
                                                 (existingFrags
                                                     |> Dict.insert (AST.nameToString frag.name)
                                                         { name = convertName frag.name
+                                                        , isGlobal = False
                                                         , importFrom = fragPaths.modulePath
                                                         , importMockFrom = fragPaths.mockModulePath
                                                         , typeCondition = convertName frag.typeCondition

@@ -458,6 +458,9 @@ The full path of where I looked was:
       namespace: options.namespace,
       // @ts-ignore
       gql: fileSources,
+      fragmentDir: options.globalFragments
+        ? options.globalFragments.split(path.sep)
+        : [],
       globalFragments: globalFragmentFileSources,
       header: options.header,
       gqlDir: options.queries.split(path.sep),

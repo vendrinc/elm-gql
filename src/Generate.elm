@@ -12,6 +12,8 @@ import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Canonicalize as Canonicalize
 import GraphQL.Operations.Canonicalize.Error as Error
 import GraphQL.Operations.Generate
+import GraphQL.Operations.Generate.Fragment
+import GraphQL.Operations.Generate.Mock.Fragment as MockFragment
 import GraphQL.Operations.Parse
 import GraphQL.Schema exposing (Namespace)
 import GraphQL.Usage
@@ -185,6 +187,7 @@ generatePlatformHelper :
     -> FlagDetails
     ->
         { fragments : List Can.Fragment
+        , files : List Elm.File
         , usages : GraphQL.Usage.Usages
         }
     -> Cmd Msg
@@ -200,7 +203,7 @@ generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments
             Generate.error [ err ]
 
         Ok parsedGQL ->
-            parsedGQL.files
+            (globalFragments.files ++ parsedGQL.files)
                 |> appendIf (flagDetails.isInit && flagDetails.generatePlatform)
                     (\_ ->
                         [ Generate.Root.generate namespace schema
@@ -327,6 +330,7 @@ parseGlobalFragments :
         Result
             Error
             { fragments : List Can.Fragment
+            , files : List Elm.File
             , usages : GraphQL.Usage.Usages
             }
 parseGlobalFragments namespace schema flagDetails files =
@@ -359,7 +363,7 @@ parseGlobalFragments namespace schema flagDetails files =
     in
     case maybeParsedAst of
         Nothing ->
-            Ok { fragments = [], usages = GraphQL.Usage.init }
+            Ok { fragments = [], files = [], usages = GraphQL.Usage.init }
 
         Just (Err err) ->
             Err err
@@ -368,7 +372,7 @@ parseGlobalFragments namespace schema flagDetails files =
             let
                 canonicalizationResult =
                     Canonicalize.canonicalize schema
-                        { path = "Global fragments"
+                        { path = namespace.namespace
                         , gqlDir = []
                         }
                         []
@@ -384,8 +388,45 @@ parseGlobalFragments namespace schema flagDetails files =
                         )
 
                 Ok canAST ->
+                    let
+                        fragments =
+                            List.map Can.markFragmentAsGlobal canAST.fragments
+                    in
                     Ok
-                        { fragments = canAST.fragments
+                        { fragments =
+                            fragments
+                        , files =
+                            List.concatMap
+                                (\frag ->
+                                    let
+                                        _ =
+                                            Debug.log "   GLOBAL FRAG" frag.name
+
+                                        opts =
+                                            { namespace = namespace
+                                            , schema = schema
+                                            , document =
+                                                { definitions = []
+                                                , fragments = [ frag ]
+                                                , usages = canAST.usages
+                                                }
+                                            , path = namespace.namespace
+                                            , gqlDir = flagDetails.fragmentDir
+                                            , generateMocks = flagDetails.generateMocks
+                                            }
+
+                                        fragFile =
+                                            GraphQL.Operations.Generate.Fragment.generate
+                                                opts
+                                                frag
+                                    in
+                                    if flagDetails.generateMocks then
+                                        [ fragFile, MockFragment.generate opts frag ]
+
+                                    else
+                                        [ fragFile ]
+                                )
+                                fragments
                         , usages = canAST.usages
                         }
 
@@ -564,10 +605,11 @@ parseAndValidateFragments namespace schema flags gql =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.succeed
-        (\gqlDir elmBaseSchema namespace header isInit gql globalFragments schemaUrl genPlatform generateMocks reportUnused existingEnums ->
+        (\gqlDir fragmentDir elmBaseSchema namespace header isInit gql globalFragments schemaUrl genPlatform generateMocks reportUnused existingEnums ->
             Flags
                 { schema = schemaUrl
                 , gql = gql
+                , fragmentDir = fragmentDir
                 , globalFragments = globalFragments
                 , isInit = isInit
                 , gqlDir = gqlDir
@@ -581,6 +623,7 @@ flagsDecoder =
                 }
         )
         |> andField "gqlDir" (Json.Decode.list Json.Decode.string)
+        |> andField "fragmentDir" (Json.Decode.list Json.Decode.string)
         |> andField "elmBaseSchema" (Json.Decode.list Json.Decode.string)
         |> andField "namespace" Json.Decode.string
         |> andField "header" (Json.Decode.list Json.Decode.string)
@@ -662,6 +705,7 @@ type alias FlagDetails =
     { schema : Schema
     , gql : List Gql
     , globalFragments : List Gql
+    , fragmentDir : List String
 
     -- all directories between and including cwd and the elm src dir
     , gqlDir : List String

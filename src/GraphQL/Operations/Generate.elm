@@ -42,9 +42,20 @@ generate opts =
 
             else
                 []
+
+        generatedFragments =
+            List.filterMap
+                (\frag ->
+                    if frag.isGlobal then
+                        Nothing
+
+                    else
+                        Just (GraphQL.Operations.Generate.Fragment.generate opts frag)
+                )
+                opts.document.fragments
     in
     List.map (generateDefinition opts) opts.document.definitions
-        ++ List.map (GraphQL.Operations.Generate.Fragment.generate opts) opts.document.fragments
+        ++ generatedFragments
         ++ mocks
 
 
