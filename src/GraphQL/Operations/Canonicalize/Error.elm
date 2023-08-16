@@ -9,14 +9,39 @@ module GraphQL.Operations.Canonicalize.Error exposing
     , SuggestedVariable
     , VarIssue(..)
     , VariableSummary
-    , cyan
     , error
-    , toString
+    , render
     )
 
 import GraphQL.Operations.AST as AST
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Schema
+
+
+render : { path : String, errors : List Error } -> { title : String, description : String }
+render { path, errors } =
+    case errors of
+        [ single ] ->
+            { title = formatTitle (toTitle single) path
+            , description =
+                toDescription single
+            }
+
+        _ ->
+            { title = formatTitle "ELM GQL" path
+            , description =
+                List.map toDescription errors
+                    |> String.join (cyan "\n-------------------\n\n")
+            }
+
+
+formatTitle : String -> String -> String
+formatTitle title path =
+    let
+        middle =
+            "-" |> String.repeat (78 - (String.length title + 2 + String.length path))
+    in
+    title ++ middle ++ path
 
 
 type Error
@@ -234,8 +259,81 @@ color openCode closeCode content =
 {- -}
 
 
-toString : Error -> String
-toString (Error details) =
+toTitle : Error -> String
+toTitle (Error details) =
+    case details.error of
+        TopLevelFragmentsNotAllowed errorDetails ->
+            "Fragment not allowed"
+
+        FoundSelectionOfInputObject errorDetails ->
+            "Selection of InputObject not allowed"
+
+        UnionVariantNotFound errorDetails ->
+            "Union variant not found"
+
+        FragmentCyclicDependency { fragments } ->
+            "Cyclic fragment"
+
+        EnumUnknown name ->
+            "Unknown Enum"
+
+        QueryUnknown name ->
+            "Unknown Query"
+
+        ObjectUnknown name ->
+            "Unknown Object"
+
+        UnionUnknown name ->
+            "Unknown Union"
+
+        FieldUnknown field ->
+            "Unknown field"
+
+        UnknownArgs deets ->
+            "Unknown arguments"
+
+        EmptySelection deets ->
+            "Empty selection"
+
+        FieldAliasRequired deets ->
+            "Alias required"
+
+        MissingTypename deets ->
+            "Missing typename"
+
+        EmptyUnionVariantSelection deets ->
+            "Empty selection"
+
+        IncorrectInlineInput deets ->
+            "Incorrect input"
+
+        FragmentNotFound deets ->
+            "Fragment not found"
+
+        FragmentTargetDoesntExist deets ->
+            "Unknown fragment target"
+
+        FragmentDuplicateFound deets ->
+            "Duplicate fragment"
+
+        FragmentSelectionNotAllowedInObjects deets ->
+            "Fragment doesn't match"
+
+        FragmentInlineTopLevel deets ->
+            "Fragment not allowed"
+
+        VariableIssueSummary summary ->
+            "Variable issue"
+
+        FragmentVariableIssue summary ->
+            "Fragment variable issue"
+
+        Explanation { query, explanation } ->
+            "Explanation"
+
+
+toDescription : Error -> String
+toDescription (Error details) =
     case details.error of
         TopLevelFragmentsNotAllowed errorDetails ->
             String.join "\n"

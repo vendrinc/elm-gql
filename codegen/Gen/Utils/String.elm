@@ -1,7 +1,7 @@
-module Gen.Utils.String exposing (call_, capitalize, formatScalar, formatTypename, formatValue, moduleName_, values_)
+module Gen.Utils.String exposing (call_, capitalize, formatScalar, formatTypename, formatValue, moduleName_, toFilename, values_)
 
 {-| 
-@docs moduleName_, formatValue, formatScalar, formatTypename, capitalize, call_, values_
+@docs moduleName_, formatValue, formatScalar, formatTypename, capitalize, toFilename, call_, values_
 -}
 
 
@@ -87,11 +87,25 @@ capitalize capitalizeArg =
         [ Elm.string capitalizeArg ]
 
 
+{-| toFilename: String -> String -}
+toFilename : String -> Elm.Expression
+toFilename toFilenameArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Utils", "String" ]
+            , name = "toFilename"
+            , annotation = Just (Type.function [ Type.string ] Type.string)
+            }
+        )
+        [ Elm.string toFilenameArg ]
+
+
 call_ :
     { formatValue : Elm.Expression -> Elm.Expression
     , formatScalar : Elm.Expression -> Elm.Expression
     , formatTypename : Elm.Expression -> Elm.Expression
     , capitalize : Elm.Expression -> Elm.Expression
+    , toFilename : Elm.Expression -> Elm.Expression
     }
 call_ =
     { formatValue =
@@ -138,6 +152,17 @@ call_ =
                     }
                 )
                 [ capitalizeArg ]
+    , toFilename =
+        \toFilenameArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "Utils", "String" ]
+                    , name = "toFilename"
+                    , annotation =
+                        Just (Type.function [ Type.string ] Type.string)
+                    }
+                )
+                [ toFilenameArg ]
     }
 
 
@@ -146,6 +171,7 @@ values_ :
     , formatScalar : Elm.Expression
     , formatTypename : Elm.Expression
     , capitalize : Elm.Expression
+    , toFilename : Elm.Expression
     }
 values_ =
     { formatValue =
@@ -170,6 +196,12 @@ values_ =
         Elm.value
             { importFrom = [ "Utils", "String" ]
             , name = "capitalize"
+            , annotation = Just (Type.function [ Type.string ] Type.string)
+            }
+    , toFilename =
+        Elm.value
+            { importFrom = [ "Utils", "String" ]
+            , name = "toFilename"
             , annotation = Just (Type.function [ Type.string ] Type.string)
             }
     }

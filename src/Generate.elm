@@ -17,6 +17,7 @@ import GraphQL.Usage
 import Http
 import Json.Decode
 import Json.Encode
+import Utils.String
 
 
 main :
@@ -397,17 +398,43 @@ parseAndValidateFragments namespace schema flags gql =
             of
                 Err errors ->
                     Err
-                        { title = formatTitle "ELM GQL" gql.path
-                        , description =
-                            List.map Error.toString errors
-                                |> String.join (Error.cyan "\n-------------------\n\n")
-                        }
+                        (Error.render
+                            { path = gql.path
+                            , errors = errors
+                            }
+                        )
 
                 Ok canAST ->
-                    Ok
-                        { fragments = canAST.fragments
-                        , usages = canAST.usages
-                        }
+                    case canAST.fragments of
+                        [ single ] ->
+                            let
+                                fragname =
+                                    Can.nameToString single.name
+
+                                fragnameFromPath =
+                                    Utils.String.toFilename gql.path
+                            in
+                            if String.toLower fragname == String.toLower fragnameFromPath then
+                                Ok
+                                    { fragments = canAST.fragments
+                                    , usages = canAST.usages
+                                    }
+
+                            else
+                                Err
+                                    (Error.render
+                                        { path = gql.path
+                                        , errors = []
+                                        }
+                                    )
+
+                        _ ->
+                            Err
+                                (Error.render
+                                    { path = gql.path
+                                    , errors = []
+                                    }
+                                )
 
 
 flagsDecoder : Json.Decode.Decoder Input
@@ -609,11 +636,11 @@ parseAndValidateQuery namespace schema flags globalFragments gql =
             of
                 Err errors ->
                     Err
-                        { title = formatTitle "ELM GQL" gql.path
-                        , description =
-                            List.map Error.toString errors
-                                |> String.join (Error.cyan "\n-------------------\n\n")
-                        }
+                        (Error.render
+                            { path = gql.path
+                            , errors = errors
+                            }
+                        )
 
                 Ok canAST ->
                     Ok

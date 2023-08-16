@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Canonicalize.Error exposing (annotation_, call_, caseOf_, cyan, error, make_, moduleName_, toString, values_)
+module Gen.GraphQL.Operations.Canonicalize.Error exposing (annotation_, call_, caseOf_, error, make_, moduleName_, render, values_)
 
 {-| 
-@docs moduleName_, toString, cyan, error, annotation_, make_, caseOf_, call_, values_
+@docs moduleName_, error, render, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -14,34 +14,6 @@ import Elm.Case
 moduleName_ : List String
 moduleName_ =
     [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-
-
-{-| toString: Error -> String -}
-toString : Elm.Expression -> Elm.Expression
-toString toStringArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-            , name = "toString"
-            , annotation =
-                Just
-                    (Type.function [ Type.namedWith [] "Error" [] ] Type.string)
-            }
-        )
-        [ toStringArg ]
-
-
-{-| cyan: String -> String -}
-cyan : String -> Elm.Expression
-cyan cyanArg =
-    Elm.apply
-        (Elm.value
-            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-            , name = "cyan"
-            , annotation = Just (Type.function [ Type.string ] Type.string)
-            }
-        )
-        [ Elm.string cyanArg ]
 
 
 {-| error: ErrorDetails -> Error -}
@@ -60,6 +32,41 @@ error errorArg =
             }
         )
         [ errorArg ]
+
+
+{-| render: 
+    { path : String, errors : List Error }
+    -> { title : String, description : String }
+-}
+render : { path : String, errors : List Elm.Expression } -> Elm.Expression
+render renderArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+            , name = "render"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.record
+                            [ ( "path", Type.string )
+                            , ( "errors"
+                              , Type.list (Type.namedWith [] "Error" [])
+                              )
+                            ]
+                        ]
+                        (Type.record
+                            [ ( "title", Type.string )
+                            , ( "description", Type.string )
+                            ]
+                        )
+                    )
+            }
+        )
+        [ Elm.record
+            [ Tuple.pair "path" (Elm.string renderArg.path)
+            , Tuple.pair "errors" (Elm.list renderArg.errors)
+            ]
+        ]
 
 
 annotation_ :
@@ -1105,40 +1112,11 @@ caseOf_ =
 
 
 call_ :
-    { toString : Elm.Expression -> Elm.Expression
-    , cyan : Elm.Expression -> Elm.Expression
-    , error : Elm.Expression -> Elm.Expression
+    { error : Elm.Expression -> Elm.Expression
+    , render : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { toString =
-        \toStringArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom =
-                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-                    , name = "toString"
-                    , annotation =
-                        Just
-                            (Type.function
-                                [ Type.namedWith [] "Error" [] ]
-                                Type.string
-                            )
-                    }
-                )
-                [ toStringArg ]
-    , cyan =
-        \cyanArg ->
-            Elm.apply
-                (Elm.value
-                    { importFrom =
-                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-                    , name = "cyan"
-                    , annotation =
-                        Just (Type.function [ Type.string ] Type.string)
-                    }
-                )
-                [ cyanArg ]
-    , error =
+    { error =
         \errorArg ->
             Elm.apply
                 (Elm.value
@@ -1154,27 +1132,38 @@ call_ =
                     }
                 )
                 [ errorArg ]
+    , render =
+        \renderArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+                    , name = "render"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.record
+                                    [ ( "path", Type.string )
+                                    , ( "errors"
+                                      , Type.list (Type.namedWith [] "Error" [])
+                                      )
+                                    ]
+                                ]
+                                (Type.record
+                                    [ ( "title", Type.string )
+                                    , ( "description", Type.string )
+                                    ]
+                                )
+                            )
+                    }
+                )
+                [ renderArg ]
     }
 
 
-values_ :
-    { toString : Elm.Expression, cyan : Elm.Expression, error : Elm.Expression }
+values_ : { error : Elm.Expression, render : Elm.Expression }
 values_ =
-    { toString =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-            , name = "toString"
-            , annotation =
-                Just
-                    (Type.function [ Type.namedWith [] "Error" [] ] Type.string)
-            }
-    , cyan =
-        Elm.value
-            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Error" ]
-            , name = "cyan"
-            , annotation = Just (Type.function [ Type.string ] Type.string)
-            }
-    , error =
+    { error =
         Elm.value
             { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Error" ]
             , name = "error"
@@ -1183,6 +1172,27 @@ values_ =
                     (Type.function
                         [ Type.namedWith [] "ErrorDetails" [] ]
                         (Type.namedWith [] "Error" [])
+                    )
+            }
+    , render =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Canonicalize", "Error" ]
+            , name = "render"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.record
+                            [ ( "path", Type.string )
+                            , ( "errors"
+                              , Type.list (Type.namedWith [] "Error" [])
+                              )
+                            ]
+                        ]
+                        (Type.record
+                            [ ( "title", Type.string )
+                            , ( "description", Type.string )
+                            ]
+                        )
                     )
             }
     }

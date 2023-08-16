@@ -1,6 +1,40 @@
-module Utils.String exposing (capitalize, formatScalar, formatTypename, formatValue)
+module Utils.String exposing (capitalize, formatScalar, formatTypename, formatValue, toFilename)
 
 import String
+
+
+toFilename : String -> String
+toFilename path =
+    let
+        fileName =
+            String.split "/" path
+                |> List.reverse
+                |> List.head
+                |> Maybe.withDefault path
+    in
+    fileName
+        |> removeExtension
+        |> String.replace "." ""
+        |> String.replace "-" ""
+        |> String.replace "_" ""
+        |> String.replace " " ""
+        |> String.replace "/" ""
+        |> String.replace "’" ""
+        |> String.replace "'" ""
+
+
+removeExtension : String -> String
+removeExtension str =
+    if str |> String.startsWith "." then
+        str
+
+    else
+        str
+            |> String.split "."
+            |> List.reverse
+            |> List.drop 1
+            |> List.reverse
+            |> String.join "."
 
 
 capitalize : String -> String
