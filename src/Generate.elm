@@ -448,8 +448,8 @@ parseGlobalFragmentsFile namespace schema flags gql =
                                 { path = gql.path
                                 , errors =
                                     [ Error.GlobalFragmentNameFilenameMismatch
-                                        { filename = fragnameFromPath
-                                        , fragmentName = fragname
+                                        { filename = gql.path
+                                        , fragmentName = "fragment " ++ fragname
                                         }
                                         |> Error.error
                                     ]
