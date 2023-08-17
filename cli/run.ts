@@ -443,13 +443,25 @@ The full path of where I looked was:
   }
 
   // Global files need to always be read
+  var globalFragmentsModified = false;
   const globalFragmentFileSources = [];
   for (const file of gql_global_fragments) {
+    const modified = wasModified(options.namespace, cache, file);
     const src = fs.readFileSync(file).toString();
     globalFragmentFileSources.push({ src, path: file });
+    newCache.files[options.namespace][file] = { modified: modified.at };
+
+    if (modified.was || options.force) {
+      globalFragmentsModified = true;
+    }
   }
 
-  if (fileSources.length > 0 || schemaWasModified.was || options.force) {
+  if (
+    fileSources.length > 0 ||
+    schemaWasModified.was ||
+    options.force ||
+    globalFragmentsModified
+  ) {
     run_generator(schema_generator.Elm.Generate, {
       namespace: options.namespace,
       // @ts-ignore
