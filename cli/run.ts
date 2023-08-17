@@ -442,14 +442,11 @@ The full path of where I looked was:
     newCache.files[options.namespace][file] = { modified: modified.at };
   }
 
+  // Global files need to always be read
   const globalFragmentFileSources = [];
   for (const file of gql_global_fragments) {
-    const modified = wasModified(options.namespace, cache, file);
-    if (modified.was || options.force) {
-      const src = fs.readFileSync(file).toString();
-      globalFragmentFileSources.push({ src, path: file });
-    }
-    newCache.files[options.namespace][file] = { modified: modified.at };
+    const src = fs.readFileSync(file).toString();
+    globalFragmentFileSources.push({ src, path: file });
   }
 
   if (fileSources.length > 0 || schemaWasModified.was || options.force) {
