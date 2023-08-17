@@ -12,7 +12,7 @@ import decode from "./templates/Decode.elm";
 // @ts-ignore
 globalThis["XMLHttpRequest"] = XMLHttpRequest.XMLHttpRequest;
 
-export const version: string = "0.9.2";
+export const version: string = "0.9.3";
 type Cache = {
   engineVersion: string;
   files: { [namespace: string]: { [name: string]: { modified: Date } } };
@@ -432,16 +432,6 @@ The full path of where I looked was:
     }
   }
 
-  const fileSources = [];
-  for (const file of gql_filepaths) {
-    const modified = wasModified(options.namespace, cache, file);
-    if (modified.was || options.force) {
-      const src = fs.readFileSync(file).toString();
-      fileSources.push({ src, path: file });
-    }
-    newCache.files[options.namespace][file] = { modified: modified.at };
-  }
-
   // Global files need to always be read
   var globalFragmentsModified = false;
   const globalFragmentFileSources = [];
@@ -454,6 +444,16 @@ The full path of where I looked was:
     if (modified.was || options.force) {
       globalFragmentsModified = true;
     }
+  }
+
+  const fileSources = [];
+  for (const file of gql_filepaths) {
+    const modified = wasModified(options.namespace, cache, file);
+    if (modified.was || options.force || globalFragmentsModified) {
+      const src = fs.readFileSync(file).toString();
+      fileSources.push({ src, path: file });
+    }
+    newCache.files[options.namespace][file] = { modified: modified.at };
   }
 
   if (
