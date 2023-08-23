@@ -26,11 +26,12 @@ field namespace fullField =
         Can.Field fieldDetails ->
             case fieldDetails.selectsOnlyFragment of
                 Just fragment ->
-                    Elm.value
-                        { importFrom = fragment.importMockFrom
-                        , name = Utils.String.formatValue fragment.name
-                        , annotation = Nothing
-                        }
+                    wrapScalar fieldDetails.wrapper <|
+                        Elm.value
+                            { importFrom = fragment.importMockFrom
+                            , name = Utils.String.formatValue fragment.name
+                            , annotation = Nothing
+                            }
 
                 Nothing ->
                     case fieldDetails.selection of
@@ -73,54 +74,68 @@ field namespace fullField =
 
 mockScalar : Namespace -> Can.FieldDetails -> GraphQL.Schema.Type -> Elm.Expression
 mockScalar namespace fieldDetails scalar =
-    case scalar of
-        GraphQL.Schema.Scalar name ->
-            case String.toLower name of
-                "int" ->
-                    Elm.int 5
+    wrapScalar fieldDetails.wrapper <|
+        case scalar of
+            GraphQL.Schema.Scalar name ->
+                case String.toLower name of
+                    "int" ->
+                        Elm.int 5
 
-                "float" ->
-                    Elm.float 5
+                    "float" ->
+                        Elm.float 5
 
-                "boolean" ->
-                    Elm.bool True
+                    "boolean" ->
+                        Elm.bool True
 
-                "string" ->
-                    fieldDetails.alias_
-                        |> Maybe.withDefault fieldDetails.name
-                        |> Can.nameToString
-                        |> Elm.string
+                    "string" ->
+                        fieldDetails.alias_
+                            |> Maybe.withDefault fieldDetails.name
+                            |> Can.nameToString
+                            |> Elm.string
 
-                _ ->
-                    Elm.value
-                        { importFrom =
-                            [ namespace.namespace
-                            ]
-                        , name = Utils.String.formatValue name
-                        , annotation = Nothing
-                        }
-                        |> Elm.get "defaultTestingValue"
+                    _ ->
+                        Elm.value
+                            { importFrom =
+                                [ namespace.namespace
+                                ]
+                            , name = Utils.String.formatValue name
+                            , annotation = Nothing
+                            }
+                            |> Elm.get "defaultTestingValue"
 
-        GraphQL.Schema.InputObject _ ->
-            Elm.unit
+            GraphQL.Schema.InputObject _ ->
+                Elm.unit
 
-        GraphQL.Schema.Object _ ->
-            Elm.unit
+            GraphQL.Schema.Object _ ->
+                Elm.unit
 
-        GraphQL.Schema.Enum _ ->
-            Elm.unit
+            GraphQL.Schema.Enum _ ->
+                Elm.unit
 
-        GraphQL.Schema.Union _ ->
-            Elm.unit
+            GraphQL.Schema.Union _ ->
+                Elm.unit
 
-        GraphQL.Schema.Interface _ ->
-            Elm.unit
+            GraphQL.Schema.Interface _ ->
+                Elm.unit
 
-        GraphQL.Schema.List_ inner ->
-            Elm.list [ mockScalar namespace fieldDetails inner ]
+            GraphQL.Schema.List_ inner ->
+                Elm.list [ mockScalar namespace fieldDetails inner ]
 
-        GraphQL.Schema.Nullable inner ->
-            Elm.just (mockScalar namespace fieldDetails inner)
+            GraphQL.Schema.Nullable inner ->
+                Elm.just (mockScalar namespace fieldDetails inner)
+
+
+wrapScalar : GraphQL.Schema.Wrapped -> Elm.Expression -> Elm.Expression
+wrapScalar wrapper value =
+    case wrapper of
+        GraphQL.Schema.UnwrappedValue ->
+            value
+
+        GraphQL.Schema.InList inner ->
+            Elm.list [ wrapScalar inner value ]
+
+        GraphQL.Schema.InMaybe inner ->
+            Elm.just (wrapScalar inner value)
 
 
 
@@ -134,68 +149,72 @@ builders paths namespace fullField =
             []
 
         Can.Field fieldDetails ->
-            case fieldDetails.selection of
-                Can.FieldScalar _ ->
-                    -- Don't need builders for scalars
-                    []
+            if fieldDetails.selectsOnlyFragment /= Nothing then
+                []
 
-                Can.FieldEnum _ ->
-                    -- Don't need builders for enums
-                    []
+            else
+                case fieldDetails.selection of
+                    Can.FieldScalar _ ->
+                        -- Don't need builders for scalars
+                        []
 
-                Can.FieldObject fields ->
-                    let
-                        objectType =
-                            GeneratedTypes.toFields namespace [] fields
-                                |> Type.record
+                    Can.FieldEnum _ ->
+                        -- Don't need builders for enums
+                        []
 
-                        builderForThisObject =
-                            Elm.declaration
-                                (fieldDetails.globalAlias
-                                    |> Can.nameToString
-                                    |> Utils.String.formatValue
-                                )
-                                (Elm.record
-                                    (fields
-                                        |> List.reverse
-                                        |> List.concatMap
-                                            (\innerField ->
-                                                if Can.isTypeNameSelection innerField then
-                                                    []
+                    Can.FieldObject fields ->
+                        let
+                            objectType =
+                                GeneratedTypes.toFields namespace [] fields
+                                    |> Type.record
 
-                                                else
-                                                    [ ( Can.getFieldName innerField
-                                                            |> Utils.String.formatValue
-                                                      , field namespace innerField
-                                                      )
-                                                    ]
+                            builderForThisObject =
+                                Elm.declaration
+                                    (fieldDetails.globalAlias
+                                        |> Can.nameToString
+                                        |> Utils.String.formatValue
+                                    )
+                                    (Elm.record
+                                        (fields
+                                            |> List.reverse
+                                            |> List.concatMap
+                                                (\innerField ->
+                                                    if Can.isTypeNameSelection innerField then
+                                                        []
+
+                                                    else
+                                                        [ ( Can.getFieldName innerField
+                                                                |> Utils.String.formatValue
+                                                          , field namespace innerField
+                                                          )
+                                                        ]
+                                                )
+                                        )
+                                        |> Elm.withType
+                                            (Type.alias paths.modulePath
+                                                (Can.nameToString fieldDetails.globalAlias)
+                                                []
+                                                objectType
                                             )
                                     )
-                                    |> Elm.withType
-                                        (Type.alias paths.modulePath
-                                            (Can.nameToString fieldDetails.globalAlias)
-                                            []
-                                            objectType
-                                        )
-                                )
-                                |> Elm.exposeWith
-                                    { exposeConstructor = True
-                                    , group = Just "builders"
-                                    }
+                                    |> Elm.exposeWith
+                                        { exposeConstructor = True
+                                        , group = Just "builders"
+                                        }
 
-                        -- What is this, a builder for ANTS?!
-                        buildersForChildren =
-                            List.concatMap
-                                (builders paths namespace)
-                                fields
-                    in
-                    builderForThisObject :: buildersForChildren
+                            -- What is this, a builder for ANTS?!
+                            buildersForChildren =
+                                List.concatMap
+                                    (builders paths namespace)
+                                    fields
+                        in
+                        builderForThisObject :: buildersForChildren
 
-                Can.FieldUnion union ->
-                    variantBuilders paths namespace fieldDetails union
+                    Can.FieldUnion union ->
+                        variantBuilders paths namespace fieldDetails union
 
-                Can.FieldInterface interface ->
-                    variantBuilders paths namespace fieldDetails interface
+                    Can.FieldInterface interface ->
+                        variantBuilders paths namespace fieldDetails interface
 
 
 variantBuilders :
