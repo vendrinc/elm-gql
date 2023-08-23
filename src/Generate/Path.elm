@@ -74,7 +74,7 @@ fragmentGlobal { name, path, gqlDir, namespace } =
             Utils.String.formatTypename name
 
         moduleName =
-            pathFromElmRootToGqlFile ++ [ namespace, "Fragments", fragName ]
+            [ namespace, "Fragments", fragName ]
 
         -- The path between elm root and the gql file
         pathFromElmRootToGqlFile =
@@ -99,7 +99,7 @@ fragmentGlobal { name, path, gqlDir, namespace } =
                 ++ [ namespace, "Mock", "Fragments", fragName ]
     in
     { modulePath = moduleName
-    , mockModulePath = pathFromElmRootToGqlFile ++ [ namespace, "Mock", "Fragments", fragName ]
+    , mockModulePath = [ namespace, "Mock", "Fragments", fragName ]
     , filePath =
         String.join "/" filePathPieces ++ ".elm"
     , mockModuleFilePath =
