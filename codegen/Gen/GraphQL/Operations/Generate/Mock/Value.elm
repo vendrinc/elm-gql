@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Generate.Mock.Value exposing (builders, call_, field, moduleName_, values_, variantBuilders)
+module Gen.GraphQL.Operations.Generate.Mock.Value exposing (builders, call_, expandedFields, field, moduleName_, values_, variantBuilders)
 
 {-| 
-@docs moduleName_, variantBuilders, builders, field, call_, values_
+@docs moduleName_, variantBuilders, builders, field, expandedFields, call_, values_
 -}
 
 
@@ -131,6 +131,32 @@ field fieldArg fieldArg0 =
         [ fieldArg, fieldArg0 ]
 
 
+{-| expandedFields: Namespace -> Can.Field -> List ( String, Elm.Expression ) -}
+expandedFields : Elm.Expression -> Elm.Expression -> Elm.Expression
+expandedFields expandedFieldsArg expandedFieldsArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom =
+                [ "GraphQL", "Operations", "Generate", "Mock", "Value" ]
+            , name = "expandedFields"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" []
+                        , Type.namedWith [ "Can" ] "Field" []
+                        ]
+                        (Type.list
+                            (Type.tuple
+                                Type.string
+                                (Type.namedWith [ "Elm" ] "Expression" [])
+                            )
+                        )
+                    )
+            }
+        )
+        [ expandedFieldsArg, expandedFieldsArg0 ]
+
+
 call_ :
     { variantBuilders :
         Elm.Expression
@@ -141,6 +167,7 @@ call_ :
     , builders :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , field : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , expandedFields : Elm.Expression -> Elm.Expression -> Elm.Expression
     }
 call_ =
     { variantBuilders =
@@ -237,6 +264,33 @@ call_ =
                     }
                 )
                 [ fieldArg, fieldArg0 ]
+    , expandedFields =
+        \expandedFieldsArg expandedFieldsArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Generate", "Mock", "Value" ]
+                    , name = "expandedFields"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Namespace" []
+                                , Type.namedWith [ "Can" ] "Field" []
+                                ]
+                                (Type.list
+                                    (Type.tuple
+                                        Type.string
+                                        (Type.namedWith
+                                            [ "Elm" ]
+                                            "Expression"
+                                            []
+                                        )
+                                    )
+                                )
+                            )
+                    }
+                )
+                [ expandedFieldsArg, expandedFieldsArg0 ]
     }
 
 
@@ -244,6 +298,7 @@ values_ :
     { variantBuilders : Elm.Expression
     , builders : Elm.Expression
     , field : Elm.Expression
+    , expandedFields : Elm.Expression
     }
 values_ =
     { variantBuilders =
@@ -309,6 +364,25 @@ values_ =
                         , Type.namedWith [ "Can" ] "Field" []
                         ]
                         (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+    , expandedFields =
+        Elm.value
+            { importFrom =
+                [ "GraphQL", "Operations", "Generate", "Mock", "Value" ]
+            , name = "expandedFields"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Namespace" []
+                        , Type.namedWith [ "Can" ] "Field" []
+                        ]
+                        (Type.list
+                            (Type.tuple
+                                Type.string
+                                (Type.namedWith [ "Elm" ] "Expression" [])
+                            )
+                        )
                     )
             }
     }

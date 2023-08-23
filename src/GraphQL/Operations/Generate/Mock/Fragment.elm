@@ -61,6 +61,9 @@ mockFragment paths namespace frag =
     case frag.selection of
         Can.FragmentObject { selection } ->
             let
+                selectsForOnlyOne =
+                    List.length (List.filter (not << Can.isTypeNameSelection) selection) == 1
+
                 primaryObject =
                     Elm.declaration
                         (frag.name
@@ -74,11 +77,38 @@ mockFragment paths namespace frag =
                                         []
 
                                     else
-                                        [ ( Can.getFieldName field
-                                                |> Utils.String.formatValue
-                                          , Mock.field namespace field
-                                          )
-                                        ]
+                                        {-
+                                           If we are selecting more than one field, we need to
+                                           Expand any fragments that we are selecting for
+
+                                           For example, if we have a fragment like this:
+
+                                                item {
+                                                    ...Item
+                                                }
+
+                                           Then we'd generate
+
+                                                { item : Fragment.Item
+                                                }
+
+                                            But if we have
+
+                                                item {
+                                                    name
+                                                    ...Item
+                                                }
+
+                                            Then, we'd want
+
+                                                { item : { name : String, id : Fragment.Item.id, description : Fragment.Item.description }
+
+                                                }
+
+
+                                        -}
+                                        Mock.expandedFields namespace field
+                                            |> List.reverse
                                 )
                                 (List.reverse selection)
                             )

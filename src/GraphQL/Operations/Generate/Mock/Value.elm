@@ -1,4 +1,4 @@
-module GraphQL.Operations.Generate.Mock.Value exposing (builders, field, variantBuilders)
+module GraphQL.Operations.Generate.Mock.Value exposing (builders, expandedFields, field, variantBuilders)
 
 import Elm
 import Elm.Annotation as Type
@@ -10,6 +10,76 @@ import GraphQL.Schema
 import Utils.String
 
 
+expandedFields :
+    Namespace
+    -> Can.Field
+    -> List ( String, Elm.Expression )
+expandedFields namespace fullField =
+    expandedFieldsWith namespace Nothing fullField
+
+
+expandedFieldsWith : Namespace -> Maybe Can.FragmentDetails -> Can.Field -> List ( String, Elm.Expression )
+expandedFieldsWith namespace maybeParentFragment fullField =
+    case fullField of
+        Can.Frag fragment ->
+            case fragment.fragment.selection of
+                Can.FragmentObject { selection } ->
+                    getExpandedRecordFields namespace (Just fragment) selection
+
+                Can.FragmentUnion { selection, variants, remainingTags } ->
+                    getExpandedRecordFields namespace (Just fragment) selection
+
+                Can.FragmentInterface { selection, variants, remainingTags } ->
+                    getExpandedRecordFields namespace (Just fragment) selection
+
+        Can.Field fieldDetails ->
+            case maybeParentFragment of
+                Nothing ->
+                    [ ( Can.getFieldName fullField
+                            |> Utils.String.formatValue
+                      , field namespace fullField
+                      )
+                    ]
+
+                Just parent ->
+                    let
+                        fieldName =
+                            Can.getFieldName fullField
+                                |> Utils.String.formatValue
+                    in
+                    [ ( fieldName
+                      , fragmentValue parent
+                            |> Elm.get fieldName
+                      )
+                    ]
+
+
+getExpandedRecordFields :
+    Namespace
+    -> Maybe Can.FragmentDetails
+    -> List Can.Field
+    -> List ( String, Elm.Expression )
+getExpandedRecordFields namespace maybeParentFragment fields =
+    List.concatMap
+        (\fieldDetails ->
+            if Can.isTypeNameSelection fieldDetails then
+                []
+
+            else
+                expandedFieldsWith namespace maybeParentFragment fieldDetails
+        )
+        fields
+
+
+fragmentValue : Can.FragmentDetails -> Elm.Expression
+fragmentValue frag =
+    Elm.value
+        { importFrom = frag.fragment.importMockFrom
+        , name = Utils.String.formatValue (Can.nameToString frag.fragment.name)
+        , annotation = Nothing
+        }
+
+
 field :
     Namespace
     -> Can.Field
@@ -17,11 +87,7 @@ field :
 field namespace fullField =
     case fullField of
         Can.Frag fragment ->
-            Elm.value
-                { importFrom = fragment.fragment.importMockFrom
-                , name = Utils.String.formatValue (Can.nameToString fragment.fragment.name)
-                , annotation = Nothing
-                }
+            fragmentValue fragment
 
         Can.Field fieldDetails ->
             case fieldDetails.selectsOnlyFragment of
@@ -34,95 +100,95 @@ field namespace fullField =
                             }
 
                 Nothing ->
-                    case fieldDetails.selection of
-                        Can.FieldObject _ ->
-                            Can.nameToString fieldDetails.globalAlias
-                                |> Utils.String.formatValue
-                                |> Elm.val
+                    wrapScalar fieldDetails.wrapper <|
+                        case fieldDetails.selection of
+                            Can.FieldObject _ ->
+                                Can.nameToString fieldDetails.globalAlias
+                                    |> Utils.String.formatValue
+                                    |> Elm.val
 
-                        Can.FieldScalar type_ ->
-                            mockScalar namespace fieldDetails type_
+                            Can.FieldScalar type_ ->
+                                mockScalar namespace fieldDetails type_
 
-                        Can.FieldEnum enum ->
-                            case enum.values of
-                                [] ->
-                                    Elm.string "Enum with no values"
+                            Can.FieldEnum enum ->
+                                case enum.values of
+                                    [] ->
+                                        Elm.string "Enum with no values"
 
-                                top :: _ ->
-                                    Elm.value
-                                        { name = top.name
-                                        , importFrom =
-                                            [ namespace.enums
-                                            , "Enum"
-                                            , Utils.String.formatTypename enum.enumName
-                                            ]
-                                        , annotation =
-                                            Just
-                                                (GeneratedTypes.enumType namespace enum.enumName)
-                                        }
+                                    top :: _ ->
+                                        Elm.value
+                                            { name = top.name
+                                            , importFrom =
+                                                [ namespace.enums
+                                                , "Enum"
+                                                , Utils.String.formatTypename enum.enumName
+                                                ]
+                                            , annotation =
+                                                Just
+                                                    (GeneratedTypes.enumType namespace enum.enumName)
+                                            }
 
-                        Can.FieldUnion _ ->
-                            Can.nameToString fieldDetails.globalAlias
-                                |> Utils.String.formatValue
-                                |> Elm.val
+                            Can.FieldUnion _ ->
+                                Can.nameToString fieldDetails.globalAlias
+                                    |> Utils.String.formatValue
+                                    |> Elm.val
 
-                        Can.FieldInterface _ ->
-                            Can.nameToString fieldDetails.globalAlias
-                                |> Utils.String.formatValue
-                                |> Elm.val
+                            Can.FieldInterface _ ->
+                                Can.nameToString fieldDetails.globalAlias
+                                    |> Utils.String.formatValue
+                                    |> Elm.val
 
 
 mockScalar : Namespace -> Can.FieldDetails -> GraphQL.Schema.Type -> Elm.Expression
 mockScalar namespace fieldDetails scalar =
-    wrapScalar fieldDetails.wrapper <|
-        case scalar of
-            GraphQL.Schema.Scalar name ->
-                case String.toLower name of
-                    "int" ->
-                        Elm.int 5
+    case scalar of
+        GraphQL.Schema.Scalar name ->
+            case String.toLower name of
+                "int" ->
+                    Elm.int 5
 
-                    "float" ->
-                        Elm.float 5
+                "float" ->
+                    Elm.float 5
 
-                    "boolean" ->
-                        Elm.bool True
+                "boolean" ->
+                    Elm.bool True
 
-                    "string" ->
-                        fieldDetails.alias_
-                            |> Maybe.withDefault fieldDetails.name
-                            |> Can.nameToString
-                            |> Elm.string
+                "string" ->
+                    fieldDetails.alias_
+                        |> Maybe.withDefault fieldDetails.name
+                        |> Can.nameToString
+                        |> Elm.string
 
-                    _ ->
-                        Elm.value
-                            { importFrom =
-                                [ namespace.namespace
-                                ]
-                            , name = Utils.String.formatValue name
-                            , annotation = Nothing
-                            }
-                            |> Elm.get "defaultTestingValue"
+                _ ->
+                    Elm.value
+                        { importFrom =
+                            [ namespace.namespace
+                            ]
+                        , name = Utils.String.formatValue name
+                        , annotation = Nothing
+                        }
+                        |> Elm.get "defaultTestingValue"
 
-            GraphQL.Schema.InputObject _ ->
-                Elm.unit
+        GraphQL.Schema.InputObject _ ->
+            Elm.unit
 
-            GraphQL.Schema.Object _ ->
-                Elm.unit
+        GraphQL.Schema.Object _ ->
+            Elm.unit
 
-            GraphQL.Schema.Enum _ ->
-                Elm.unit
+        GraphQL.Schema.Enum _ ->
+            Elm.unit
 
-            GraphQL.Schema.Union _ ->
-                Elm.unit
+        GraphQL.Schema.Union _ ->
+            Elm.unit
 
-            GraphQL.Schema.Interface _ ->
-                Elm.unit
+        GraphQL.Schema.Interface _ ->
+            Elm.unit
 
-            GraphQL.Schema.List_ inner ->
-                Elm.list [ mockScalar namespace fieldDetails inner ]
+        GraphQL.Schema.List_ inner ->
+            Elm.list [ mockScalar namespace fieldDetails inner ]
 
-            GraphQL.Schema.Nullable inner ->
-                Elm.just (mockScalar namespace fieldDetails inner)
+        GraphQL.Schema.Nullable inner ->
+            Elm.just (mockScalar namespace fieldDetails inner)
 
 
 wrapScalar : GraphQL.Schema.Wrapped -> Elm.Expression -> Elm.Expression
