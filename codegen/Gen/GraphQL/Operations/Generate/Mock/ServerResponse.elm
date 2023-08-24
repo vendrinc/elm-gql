@@ -63,10 +63,11 @@ This will ultimately be used in testing as follows
 
 -}
 
-toJsonEncoder: Namespace -> Can.Definition -> Elm.Declaration
+toJsonEncoder: Type.Annotation -> Namespace -> Can.Definition -> List Elm.Declaration
 -}
-toJsonEncoder : Elm.Expression -> Elm.Expression -> Elm.Expression
-toJsonEncoder toJsonEncoderArg toJsonEncoderArg0 =
+toJsonEncoder :
+    Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+toJsonEncoder toJsonEncoderArg toJsonEncoderArg0 toJsonEncoderArg1 =
     Elm.apply
         (Elm.value
             { importFrom =
@@ -80,20 +81,24 @@ toJsonEncoder toJsonEncoderArg toJsonEncoderArg0 =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [] "Namespace" []
+                        [ Type.namedWith [ "Type" ] "Annotation" []
+                        , Type.namedWith [] "Namespace" []
                         , Type.namedWith [ "Can" ] "Definition" []
                         ]
-                        (Type.namedWith [ "Elm" ] "Declaration" [])
+                        (Type.list (Type.namedWith [ "Elm" ] "Declaration" []))
                     )
             }
         )
-        [ toJsonEncoderArg, toJsonEncoderArg0 ]
+        [ toJsonEncoderArg, toJsonEncoderArg0, toJsonEncoderArg1 ]
 
 
-call_ : { toJsonEncoder : Elm.Expression -> Elm.Expression -> Elm.Expression }
+call_ :
+    { toJsonEncoder :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    }
 call_ =
     { toJsonEncoder =
-        \toJsonEncoderArg toJsonEncoderArg0 ->
+        \toJsonEncoderArg toJsonEncoderArg0 toJsonEncoderArg1 ->
             Elm.apply
                 (Elm.value
                     { importFrom =
@@ -107,14 +112,17 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.namedWith [] "Namespace" []
+                                [ Type.namedWith [ "Type" ] "Annotation" []
+                                , Type.namedWith [] "Namespace" []
                                 , Type.namedWith [ "Can" ] "Definition" []
                                 ]
-                                (Type.namedWith [ "Elm" ] "Declaration" [])
+                                (Type.list
+                                    (Type.namedWith [ "Elm" ] "Declaration" [])
+                                )
                             )
                     }
                 )
-                [ toJsonEncoderArg, toJsonEncoderArg0 ]
+                [ toJsonEncoderArg, toJsonEncoderArg0, toJsonEncoderArg1 ]
     }
 
 
@@ -133,10 +141,11 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [] "Namespace" []
+                        [ Type.namedWith [ "Type" ] "Annotation" []
+                        , Type.namedWith [] "Namespace" []
                         , Type.namedWith [ "Can" ] "Definition" []
                         ]
-                        (Type.namedWith [ "Elm" ] "Declaration" [])
+                        (Type.list (Type.namedWith [ "Elm" ] "Declaration" []))
                     )
             }
     }

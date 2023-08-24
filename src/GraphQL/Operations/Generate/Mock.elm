@@ -5,11 +5,13 @@ module GraphQL.Operations.Generate.Mock exposing (generate)
 
 import Elm
 import Elm.Annotation as Type
+import Gen.Json.Encode
 import Generate.Path
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Generate.Decode exposing (Namespace)
 import GraphQL.Operations.Generate.Help as Help
 import GraphQL.Operations.Generate.Mock.Fragment as MockFragment
+import GraphQL.Operations.Generate.Mock.ServerResponse as ServerResponse
 import GraphQL.Operations.Generate.Mock.Value as Mock
 import GraphQL.Operations.Generate.Types as GeneratedTypes
 import GraphQL.Schema
@@ -116,6 +118,12 @@ mockPrimaryResult paths namespace def =
                     GeneratedTypes.toFields namespace [] op.fields
                         |> Type.record
 
+                responseType =
+                    Type.alias paths.modulePath
+                        responseName
+                        []
+                        record
+
                 primaryResponse =
                     Elm.declaration responseName
                         (Elm.record
@@ -134,11 +142,7 @@ mockPrimaryResult paths namespace def =
                                 op.fields
                             )
                             |> Elm.withType
-                                (Type.alias paths.modulePath
-                                    responseName
-                                    []
-                                    record
-                                )
+                                responseType
                         )
                         |> Elm.exposeWith
                             { exposeConstructor = True
@@ -150,4 +154,4 @@ mockPrimaryResult paths namespace def =
                         (Mock.builders paths namespace)
                         op.fields
             in
-            primaryResponse :: builders
+            primaryResponse :: builders ++ ServerResponse.toJsonEncoder responseType namespace def
