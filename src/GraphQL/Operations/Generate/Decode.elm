@@ -1,6 +1,7 @@
 module GraphQL.Operations.Generate.Decode exposing
     ( Index
     , Namespace
+    , child
     , decodeFields
     , decodeInterface
     , decodeUnion

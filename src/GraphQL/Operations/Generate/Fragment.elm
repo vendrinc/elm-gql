@@ -77,6 +77,12 @@ generateFragmentDecoder namespace frag =
     let
         finalType =
             Type.var (Can.nameToString frag.name)
+
+        index =
+            -- Fragments are always children because they're not queries themselves
+            -- This has the effect of not using versioned fields
+            GraphQL.Operations.Generate.Decode.initIndex
+                |> GraphQL.Operations.Generate.Decode.child
     in
     case frag.selection of
         Can.FragmentObject fragSelection ->
@@ -98,7 +104,7 @@ generateFragmentDecoder namespace frag =
                 (\version start ->
                     GraphQL.Operations.Generate.Decode.decodeFields namespace
                         version
-                        GraphQL.Operations.Generate.Decode.initIndex
+                        index
                         fragSelection.selection
                         start
                         |> Elm.withType
@@ -111,7 +117,7 @@ generateFragmentDecoder namespace frag =
                 (\version ->
                     GraphQL.Operations.Generate.Decode.decodeUnion namespace
                         version
-                        GraphQL.Operations.Generate.Decode.initIndex
+                        index
                         fragSelection
                         |> Elm.withType (Decode.annotation_.decoder (Type.named [] (Can.nameToString frag.name)))
                 )
@@ -124,7 +130,7 @@ generateFragmentDecoder namespace frag =
                     start
                         |> GraphQL.Operations.Generate.Decode.decodeInterface namespace
                             version
-                            GraphQL.Operations.Generate.Decode.initIndex
+                            index
                             fragSelection
                 )
 

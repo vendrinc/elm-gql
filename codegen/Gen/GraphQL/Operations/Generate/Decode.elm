@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Generate.Decode exposing (annotation_, call_, decodeFields, decodeInterface, decodeUnion, initIndex, make_, moduleName_, removeTypename, values_)
+module Gen.GraphQL.Operations.Generate.Decode exposing (annotation_, call_, child, decodeFields, decodeInterface, decodeUnion, initIndex, make_, moduleName_, removeTypename, values_)
 
 {-| 
-@docs moduleName_, removeTypename, decodeUnion, decodeInterface, decodeFields, initIndex, annotation_, make_, call_, values_
+@docs moduleName_, removeTypename, decodeUnion, decodeInterface, decodeFields, child, initIndex, annotation_, make_, call_, values_
 -}
 
 
@@ -148,6 +148,24 @@ decodeFields decodeFieldsArg decodeFieldsArg0 decodeFieldsArg1 decodeFieldsArg2 
         ]
 
 
+{-| child: Index -> Index -}
+child : Elm.Expression -> Elm.Expression
+child childArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Generate", "Decode" ]
+            , name = "child"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Index" [] ]
+                        (Type.namedWith [] "Index" [])
+                    )
+            }
+        )
+        [ childArg ]
+
+
 {-| initIndex: Index -}
 initIndex : Elm.Expression
 initIndex =
@@ -224,6 +242,7 @@ call_ :
         -> Elm.Expression
         -> Elm.Expression
         -> Elm.Expression
+    , child : Elm.Expression -> Elm.Expression
     }
 call_ =
     { removeTypename =
@@ -325,6 +344,22 @@ call_ =
                 , decodeFieldsArg2
                 , decodeFieldsArg3
                 ]
+    , child =
+        \childArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL", "Operations", "Generate", "Decode" ]
+                    , name = "child"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "Index" [] ]
+                                (Type.namedWith [] "Index" [])
+                            )
+                    }
+                )
+                [ childArg ]
     }
 
 
@@ -333,6 +368,7 @@ values_ :
     , decodeUnion : Elm.Expression
     , decodeInterface : Elm.Expression
     , decodeFields : Elm.Expression
+    , child : Elm.Expression
     , initIndex : Elm.Expression
     }
 values_ =
@@ -392,6 +428,17 @@ values_ =
                         , Type.namedWith [ "Elm" ] "Expression" []
                         ]
                         (Type.namedWith [ "Elm" ] "Expression" [])
+                    )
+            }
+    , child =
+        Elm.value
+            { importFrom = [ "GraphQL", "Operations", "Generate", "Decode" ]
+            , name = "child"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "Index" [] ]
+                        (Type.namedWith [] "Index" [])
                     )
             }
     , initIndex =
