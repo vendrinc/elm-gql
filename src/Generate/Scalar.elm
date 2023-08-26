@@ -41,7 +41,7 @@ encode namespace scalarName wrapped =
                 (encode namespace scalarName inner)
 
         GraphQL.Schema.InMaybe inner ->
-            Gen.GraphQL.InputObject.maybeScalarEncode
+            Gen.GraphQL.InputObject.maybe
                 (encode namespace
                     scalarName
                     inner

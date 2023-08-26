@@ -1,7 +1,7 @@
 module GraphQL.InputObject exposing
     ( InputObject, inputObject
     , addField, addOptionalField
-    , maybeScalarEncode
+    , maybe
     , encode, toFieldList
     )
 
@@ -11,7 +11,7 @@ module GraphQL.InputObject exposing
 
 @docs addField, addOptionalField
 
-@docs maybeScalarEncode
+@docs maybe
 
 @docs encode, toFieldList
 
@@ -130,8 +130,8 @@ encodeOptionals opts =
 
 
 {-| -}
-maybeScalarEncode : (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
-maybeScalarEncode encoder maybeA =
+maybe : (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
+maybe encoder maybeA =
     maybeA
         |> Maybe.map encoder
         |> Maybe.withDefault Json.Encode.null

@@ -553,7 +553,7 @@ encodeHelper :
 encodeHelper namespace schema type_ val =
     case type_ of
         GraphQL.Schema.Nullable newType ->
-            Gen.GraphQL.InputObject.maybeScalarEncode
+            Gen.GraphQL.InputObject.maybe
                 (encodeHelper namespace schema newType)
                 val
 

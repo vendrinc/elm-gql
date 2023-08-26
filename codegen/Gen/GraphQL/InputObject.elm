@@ -1,7 +1,7 @@
-module Gen.GraphQL.InputObject exposing (addField, addOptionalField, annotation_, call_, encode, inputObject, maybeScalarEncode, moduleName_, toFieldList, values_)
+module Gen.GraphQL.InputObject exposing (addField, addOptionalField, annotation_, call_, encode, inputObject, maybe, moduleName_, toFieldList, values_)
 
 {-| 
-@docs moduleName_, maybeScalarEncode, encode, toFieldList, addOptionalField, addField, inputObject, annotation_, call_, values_
+@docs moduleName_, maybe, encode, toFieldList, addOptionalField, addField, inputObject, annotation_, call_, values_
 -}
 
 
@@ -17,15 +17,14 @@ moduleName_ =
 
 {-| {-| -}
 
-maybeScalarEncode: (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
+maybe: (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
 -}
-maybeScalarEncode :
-    (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
-maybeScalarEncode maybeScalarEncodeArg maybeScalarEncodeArg0 =
+maybe : (Elm.Expression -> Elm.Expression) -> Elm.Expression -> Elm.Expression
+maybe maybeArg maybeArg0 =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "InputObject" ]
-            , name = "maybeScalarEncode"
+            , name = "maybe"
             , annotation =
                 Just
                     (Type.function
@@ -38,9 +37,7 @@ maybeScalarEncode maybeScalarEncodeArg maybeScalarEncodeArg0 =
                     )
             }
         )
-        [ Elm.functionReduced "maybeScalarEncodeUnpack" maybeScalarEncodeArg
-        , maybeScalarEncodeArg0
-        ]
+        [ Elm.functionReduced "maybeUnpack" maybeArg, maybeArg0 ]
 
 
 {-| {-| -}
@@ -198,7 +195,7 @@ annotation_ =
 
 
 call_ :
-    { maybeScalarEncode : Elm.Expression -> Elm.Expression -> Elm.Expression
+    { maybe : Elm.Expression -> Elm.Expression -> Elm.Expression
     , encode : Elm.Expression -> Elm.Expression
     , toFieldList : Elm.Expression -> Elm.Expression
     , addOptionalField :
@@ -217,12 +214,12 @@ call_ :
     , inputObject : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { maybeScalarEncode =
-        \maybeScalarEncodeArg maybeScalarEncodeArg0 ->
+    { maybe =
+        \maybeArg maybeArg0 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "InputObject" ]
-                    , name = "maybeScalarEncode"
+                    , name = "maybe"
                     , annotation =
                         Just
                             (Type.function
@@ -239,7 +236,7 @@ call_ =
                             )
                     }
                 )
-                [ maybeScalarEncodeArg, maybeScalarEncodeArg0 ]
+                [ maybeArg, maybeArg0 ]
     , encode =
         \encodeArg ->
             Elm.apply
@@ -373,7 +370,7 @@ call_ =
 
 
 values_ :
-    { maybeScalarEncode : Elm.Expression
+    { maybe : Elm.Expression
     , encode : Elm.Expression
     , toFieldList : Elm.Expression
     , addOptionalField : Elm.Expression
@@ -381,10 +378,10 @@ values_ :
     , inputObject : Elm.Expression
     }
 values_ =
-    { maybeScalarEncode =
+    { maybe =
         Elm.value
             { importFrom = [ "GraphQL", "InputObject" ]
-            , name = "maybeScalarEncode"
+            , name = "maybe"
             , annotation =
                 Just
                     (Type.function
