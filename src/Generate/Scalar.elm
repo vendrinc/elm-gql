@@ -143,6 +143,9 @@ generateScalarCodec ( rawname, details ) =
             name =
                 Utils.String.formatValue
                     typename
+
+            typenameConstructor =
+                Elm.val typename
         in
         [ Elm.customType typename
             [ Elm.variantWith typename
@@ -169,10 +172,12 @@ generateScalarCodec ( rawname, details ) =
                 , ( "decoder"
                   , Gen.Json.Decode.string
                         |> Gen.Json.Decode.call_.map
-                            (Elm.val typename)
+                            typenameConstructor
                   )
                 , ( "defaultTestingValue"
-                  , Elm.string "REPLACE ME!"
+                  , Elm.apply
+                        typenameConstructor
+                        [ Elm.string "REPLACE ME!" ]
                   )
                 ]
                 |> Elm.withType
