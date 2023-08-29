@@ -19,6 +19,11 @@ import Set
 import Utils.String
 
 
+type alias TargetModule =
+    { importFrom : List String
+    }
+
+
 {-| A standard query generates some Elm code that returns
 
     Api.Query DataReturned
@@ -66,11 +71,11 @@ This will ultimately be used in testing as follows
             }
 
 -}
-toJsonEncoder : Type.Annotation -> Namespace -> Can.Definition -> List Elm.Declaration
-toJsonEncoder responseType namespace ((Can.Operation def) as op) =
+toJsonEncoder : TargetModule -> Type.Annotation -> Namespace -> Can.Definition -> List Elm.Declaration
+toJsonEncoder targetModule responseType namespace ((Can.Operation def) as op) =
     let
         builders =
-            createBuilders namespace Nothing def.fields
+            createBuilders targetModule namespace Nothing def.fields
 
         topEncoder =
             createFieldsEncoder "encode" (Just responseType) namespace def.fields
@@ -112,10 +117,10 @@ createFieldsEncoder name annotation namespace fields =
         )
 
 
-createBuilders : Namespace -> Maybe Can.FragmentDetails -> List Can.Field -> List ( String, Elm.Declaration )
-createBuilders namespace maybeFragmentName fields =
+createBuilders : TargetModule -> Namespace -> Maybe Can.FragmentDetails -> List Can.Field -> List ( String, Elm.Declaration )
+createBuilders targetModule namespace maybeFragmentName fields =
     List.concatMap
-        (createBuilder namespace maybeFragmentName)
+        (createBuilder targetModule namespace maybeFragmentName)
         fields
 
 
@@ -150,8 +155,8 @@ toEncoderName maybeSingleSelection maybeFragment name =
     "encode" ++ fragName ++ Utils.String.capitalize name
 
 
-createBuilder : Namespace -> Maybe Can.FragmentDetails -> Can.Field -> List ( String, Elm.Declaration )
-createBuilder namespace maybeFragmentName field =
+createBuilder : TargetModule -> Namespace -> Maybe Can.FragmentDetails -> Can.Field -> List ( String, Elm.Declaration )
+createBuilder targetModule namespace maybeFragmentName field =
     let
         name =
             Can.getFieldName field
@@ -161,13 +166,13 @@ createBuilder namespace maybeFragmentName field =
         Can.Frag fragment ->
             case fragment.fragment.selection of
                 Can.FragmentObject { selection } ->
-                    createBuilders namespace (Just fragment) selection
+                    createBuilders targetModule namespace (Just fragment) selection
 
                 Can.FragmentUnion union ->
-                    createBuilders namespace (Just fragment) union.selection
+                    createBuilders targetModule namespace (Just fragment) union.selection
 
                 Can.FragmentInterface interface ->
-                    createBuilders namespace (Just fragment) interface.selection
+                    createBuilders targetModule namespace (Just fragment) interface.selection
 
         Can.Field fieldDetails ->
             let
@@ -190,12 +195,11 @@ createBuilder namespace maybeFragmentName field =
                                     case maybeFragmentName of
                                         Just frag ->
                                             Type.named frag.fragment.importFrom
-                                                -- (Can.nameToString frag.fragment.name)
                                                 name
                                                 |> Just
 
                                         Nothing ->
-                                            Type.named [] globalAlias
+                                            Type.named targetModule.importFrom globalAlias
                                                 |> Just
 
                                 Just frag ->
@@ -210,9 +214,11 @@ createBuilder namespace maybeFragmentName field =
                                 annotation
                                 namespace
                                 fields
+                                |> Elm.withDocumentation
+                                    (Debug.toString fieldDetails)
 
                         innerBuilders =
-                            createBuilders namespace maybeFragmentName fields
+                            createBuilders targetModule namespace maybeFragmentName fields
                     in
                     ( encoderName, builder ) :: innerBuilders
 
@@ -228,7 +234,7 @@ createBuilder namespace maybeFragmentName field =
                                 union.selection
 
                         innerBuilders =
-                            createBuilders namespace maybeFragmentName union.selection
+                            createBuilders targetModule namespace maybeFragmentName union.selection
                     in
                     ( encoderName, builder ) :: innerBuilders
 
@@ -241,7 +247,7 @@ createBuilder namespace maybeFragmentName field =
                             createFieldsEncoder encoderName Nothing namespace interface.selection
 
                         innerBuilders =
-                            createBuilders namespace maybeFragmentName interface.selection
+                            createBuilders targetModule namespace maybeFragmentName interface.selection
                     in
                     ( encoderName, builder ) :: innerBuilders
 

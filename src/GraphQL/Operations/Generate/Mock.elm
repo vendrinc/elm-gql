@@ -154,4 +154,4 @@ mockPrimaryResult paths namespace def =
                         (Mock.builders paths namespace)
                         op.fields
             in
-            primaryResponse :: builders ++ ServerResponse.toJsonEncoder responseType namespace def
+            primaryResponse :: builders ++ ServerResponse.toJsonEncoder { importFrom = paths.modulePath } responseType namespace def

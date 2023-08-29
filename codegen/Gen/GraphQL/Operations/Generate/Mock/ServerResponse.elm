@@ -63,11 +63,20 @@ This will ultimately be used in testing as follows
 
 -}
 
-toJsonEncoder: Type.Annotation -> Namespace -> Can.Definition -> List Elm.Declaration
+toJsonEncoder: 
+    TargetModule
+    -> Type.Annotation
+    -> Namespace
+    -> Can.Definition
+    -> List Elm.Declaration
 -}
 toJsonEncoder :
-    Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
-toJsonEncoder toJsonEncoderArg toJsonEncoderArg0 toJsonEncoderArg1 =
+    Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+    -> Elm.Expression
+toJsonEncoder toJsonEncoderArg toJsonEncoderArg0 toJsonEncoderArg1 toJsonEncoderArg2 =
     Elm.apply
         (Elm.value
             { importFrom =
@@ -81,7 +90,8 @@ toJsonEncoder toJsonEncoderArg toJsonEncoderArg0 toJsonEncoderArg1 =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [ "Type" ] "Annotation" []
+                        [ Type.namedWith [] "TargetModule" []
+                        , Type.namedWith [ "Type" ] "Annotation" []
                         , Type.namedWith [] "Namespace" []
                         , Type.namedWith [ "Can" ] "Definition" []
                         ]
@@ -89,16 +99,24 @@ toJsonEncoder toJsonEncoderArg toJsonEncoderArg0 toJsonEncoderArg1 =
                     )
             }
         )
-        [ toJsonEncoderArg, toJsonEncoderArg0, toJsonEncoderArg1 ]
+        [ toJsonEncoderArg
+        , toJsonEncoderArg0
+        , toJsonEncoderArg1
+        , toJsonEncoderArg2
+        ]
 
 
 call_ :
     { toJsonEncoder :
-        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+        Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
+        -> Elm.Expression
     }
 call_ =
     { toJsonEncoder =
-        \toJsonEncoderArg toJsonEncoderArg0 toJsonEncoderArg1 ->
+        \toJsonEncoderArg toJsonEncoderArg0 toJsonEncoderArg1 toJsonEncoderArg2 ->
             Elm.apply
                 (Elm.value
                     { importFrom =
@@ -112,7 +130,8 @@ call_ =
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.namedWith [ "Type" ] "Annotation" []
+                                [ Type.namedWith [] "TargetModule" []
+                                , Type.namedWith [ "Type" ] "Annotation" []
                                 , Type.namedWith [] "Namespace" []
                                 , Type.namedWith [ "Can" ] "Definition" []
                                 ]
@@ -122,7 +141,11 @@ call_ =
                             )
                     }
                 )
-                [ toJsonEncoderArg, toJsonEncoderArg0, toJsonEncoderArg1 ]
+                [ toJsonEncoderArg
+                , toJsonEncoderArg0
+                , toJsonEncoderArg1
+                , toJsonEncoderArg2
+                ]
     }
 
 
@@ -141,7 +164,8 @@ values_ =
             , annotation =
                 Just
                     (Type.function
-                        [ Type.namedWith [ "Type" ] "Annotation" []
+                        [ Type.namedWith [] "TargetModule" []
+                        , Type.namedWith [ "Type" ] "Annotation" []
                         , Type.namedWith [] "Namespace" []
                         , Type.namedWith [ "Can" ] "Definition" []
                         ]
