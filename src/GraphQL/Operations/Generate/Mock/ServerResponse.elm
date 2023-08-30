@@ -1,4 +1,4 @@
-module GraphQL.Operations.Generate.Mock.ServerResponse exposing (toJsonEncoder)
+module GraphQL.Operations.Generate.Mock.ServerResponse exposing (fragmentToJsonEncoder, toJsonEncoder)
 
 {-| Given an Elm Value of a decoded query or mutation, generate a JSON value.
 -}
@@ -22,6 +22,65 @@ import Utils.String
 type alias TargetModule =
     { importFrom : List String
     }
+
+
+fragmentToJsonEncoder : TargetModule -> Namespace -> Can.Fragment -> List Elm.Declaration
+fragmentToJsonEncoder targetModule namespace frag =
+    let
+        name =
+            Can.nameToString frag.name
+                |> Utils.String.formatTypename
+    in
+    Elm.comment "Encoders"
+        :: (case frag.selection of
+                Can.FragmentObject def ->
+                    let
+                        record =
+                            GeneratedTypes.toFields namespace [] def.selection
+                                |> Type.record
+
+                        responseType =
+                            Type.alias targetModule.importFrom
+                                (frag.name
+                                    |> Can.nameToString
+                                    |> Utils.String.formatTypename
+                                )
+                                []
+                                record
+
+                        builders =
+                            createBuilders targetModule namespace Nothing def.selection
+
+                        topEncoder =
+                            createFieldsEncoder "encode" (Just responseType) namespace def.selection
+                    in
+                    List.map Elm.expose (topEncoder :: deduplicate builders)
+
+                Can.FragmentUnion union ->
+                    let
+                        encoderName =
+                            "encode"
+
+                        builder =
+                            createUnionEncoder targetModule namespace name encoderName union
+                                |> Elm.expose
+
+                        allSelections =
+                            List.concatMap .selection union.variants
+
+                        innerBuilders =
+                            createBuilders targetModule
+                                namespace
+                                Nothing
+                                (union.selection ++ allSelections)
+                    in
+                    List.map Elm.expose (builder :: deduplicate innerBuilders)
+
+                Can.FragmentInterface union ->
+                    [ Elm.declaration "encode"
+                        (Elm.string "interface")
+                    ]
+           )
 
 
 {-| A standard query generates some Elm code that returns
@@ -103,18 +162,101 @@ deduplicate builders =
 createFieldsEncoder name annotation namespace fields =
     Elm.declaration name
         (Elm.fn
-            ( "value"
+            ( "valueToEncode"
             , annotation
             )
             (\value ->
                 let
                     data =
                         encodeFields namespace fields value
+                            |> toObject
                 in
                 data
                     |> Elm.withType Gen.Json.Encode.annotation_.value
             )
         )
+
+
+createUnionEncoder : TargetModule -> Namespace -> String -> String -> Can.FieldVariantDetails -> Elm.Declaration
+createUnionEncoder target namespace unionName encoderName union =
+    let
+        branches =
+            List.map
+                (createUnionEncoderBranch target namespace)
+                union.variants
+
+        remainingBranches =
+            List.map
+                (createUnionEncoderBranchEmpty target namespace)
+                union.remainingTags
+
+        unionType =
+            Type.named target.importFrom
+                (Utils.String.formatTypename unionName)
+    in
+    Elm.declaration encoderName
+        (Elm.fn
+            ( "valueToEncode"
+            , Just unionType
+            )
+            (\value ->
+                Elm.Case.custom value
+                    unionType
+                    (List.reverse (remainingBranches ++ branches))
+                    |> Elm.withType Gen.Json.Encode.annotation_.value
+            )
+        )
+
+
+typeNameField : String -> Elm.Expression
+typeNameField name =
+    Elm.tuple (Elm.string "__typename") (Gen.Json.Encode.string name)
+
+
+createUnionEncoderBranchEmpty : TargetModule -> Namespace -> { tag : Can.Name, globalAlias : Can.Name } -> Elm.Case.Branch
+createUnionEncoderBranchEmpty target namespace variant =
+    let
+        typename =
+            typeNameField (Can.nameToString variant.tag)
+    in
+    Elm.Case.branch0
+        (Can.nameToString variant.globalAlias |> Utils.String.formatValue)
+        ([ typename ]
+            |> toObject
+            |> Elm.withType Gen.Json.Encode.annotation_.value
+        )
+
+
+createUnionEncoderBranch : TargetModule -> Namespace -> Can.VariantCase -> Elm.Case.Branch
+createUnionEncoderBranch target namespace variant =
+    let
+        selection =
+            List.filter (not << Can.isTypeNameSelection) variant.selection
+
+        typename =
+            typeNameField (Can.nameToString variant.tag)
+    in
+    if List.isEmpty selection then
+        Elm.Case.branch0
+            (Can.nameToString variant.globalTagName |> Utils.String.formatValue)
+            ([ typename ]
+                |> toObject
+                |> Elm.withType Gen.Json.Encode.annotation_.value
+            )
+
+    else
+        let
+            tagName =
+                variant.globalTagName |> Can.nameToString
+        in
+        Elm.Case.branch1 (tagName |> Utils.String.formatValue)
+            ( tagName ++ "__details", Type.named target.importFrom (tagName |> Utils.String.formatTypename) )
+            (\details ->
+                typename
+                    :: encodeFields namespace selection details
+                    |> toObject
+                    |> Elm.withType Gen.Json.Encode.annotation_.value
+            )
 
 
 createBuilders : TargetModule -> Namespace -> Maybe Can.FragmentDetails -> List Can.Field -> List ( String, Elm.Declaration )
@@ -164,95 +306,121 @@ createBuilder targetModule namespace maybeFragmentName field =
     in
     case field of
         Can.Frag fragment ->
-            case fragment.fragment.selection of
-                Can.FragmentObject { selection } ->
-                    createBuilders targetModule namespace (Just fragment) selection
-
-                Can.FragmentUnion union ->
-                    createBuilders targetModule namespace (Just fragment) union.selection
-
-                Can.FragmentInterface interface ->
-                    createBuilders targetModule namespace (Just fragment) interface.selection
+            -- case fragment.fragment.selection of
+            --     Can.FragmentObject { selection } ->
+            --         createBuilders targetModule namespace (Just fragment) selection
+            --     Can.FragmentUnion union ->
+            --         let
+            --             encoderName =
+            --                 toEncoderName Nothing maybeFragmentName name
+            --             builder =
+            --                 createUnionEncoder targetModule namespace name encoderName union
+            --             allSelections =
+            --                 List.concatMap .selection union.variants
+            --             innerBuilders =
+            --                 createBuilders targetModule
+            --                     namespace
+            --                     maybeFragmentName
+            --                     (union.selection ++ allSelections)
+            --         in
+            --         ( encoderName, builder )
+            --             :: innerBuilders
+            --     Can.FragmentInterface interface ->
+            --         createBuilders targetModule namespace (Just fragment) interface.selection
+            []
 
         Can.Field fieldDetails ->
-            let
-                globalAlias =
-                    Can.nameToString fieldDetails.globalAlias
-                        |> Utils.String.formatTypename
-            in
-            case fieldDetails.selection of
-                Can.FieldScalar scalarType ->
+            case fieldDetails.selectsOnlyFragment of
+                Just onlyFragment ->
                     []
 
-                Can.FieldEnum enum ->
-                    []
-
-                Can.FieldObject fields ->
+                Nothing ->
                     let
-                        annotation =
-                            case fieldDetails.selectsOnlyFragment of
-                                Nothing ->
-                                    case maybeFragmentName of
-                                        Just frag ->
-                                            Type.named frag.fragment.importFrom
-                                                name
-                                                |> Just
+                        globalAlias =
+                            Can.nameToString fieldDetails.globalAlias
+                                |> Utils.String.formatTypename
+                    in
+                    case fieldDetails.selection of
+                        Can.FieldScalar scalarType ->
+                            []
 
+                        Can.FieldEnum enum ->
+                            []
+
+                        Can.FieldObject fields ->
+                            let
+                                annotation =
+                                    case fieldDetails.selectsOnlyFragment of
                                         Nothing ->
-                                            Type.named targetModule.importFrom globalAlias
+                                            case maybeFragmentName of
+                                                Just frag ->
+                                                    Type.named frag.fragment.importFrom
+                                                        (Utils.String.formatTypename name)
+                                                        |> Just
+
+                                                Nothing ->
+                                                    Type.named targetModule.importFrom globalAlias
+                                                        |> Just
+
+                                        Just frag ->
+                                            Type.named frag.importFrom (Utils.String.formatTypename frag.name)
                                                 |> Just
 
-                                Just frag ->
-                                    Type.named frag.importFrom frag.name
-                                        |> Just
+                                encoderName =
+                                    toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name
 
-                        encoderName =
-                            toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name
+                                builder =
+                                    createFieldsEncoder encoderName
+                                        annotation
+                                        namespace
+                                        fields
 
-                        builder =
-                            createFieldsEncoder encoderName
-                                annotation
-                                namespace
-                                fields
-                                |> Elm.withDocumentation
-                                    (Debug.toString fieldDetails)
+                                innerBuilders =
+                                    createBuilders targetModule namespace maybeFragmentName fields
+                            in
+                            ( encoderName, builder ) :: innerBuilders
 
-                        innerBuilders =
-                            createBuilders targetModule namespace maybeFragmentName fields
-                    in
-                    ( encoderName, builder ) :: innerBuilders
+                        Can.FieldUnion union ->
+                            let
+                                encoderName =
+                                    toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name
 
-                Can.FieldUnion union ->
-                    let
-                        encoderName =
-                            toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name
+                                builder =
+                                    createUnionEncoder targetModule namespace globalAlias encoderName union
 
-                        builder =
-                            createFieldsEncoder encoderName
-                                Nothing
-                                namespace
-                                union.selection
+                                allSelections =
+                                    List.concatMap .selection union.variants
 
-                        innerBuilders =
-                            createBuilders targetModule namespace maybeFragmentName union.selection
-                    in
-                    ( encoderName, builder ) :: innerBuilders
+                                innerBuilders =
+                                    createBuilders targetModule
+                                        namespace
+                                        maybeFragmentName
+                                        (union.selection ++ allSelections)
+                            in
+                            ( encoderName, builder ) :: innerBuilders
 
-                Can.FieldInterface interface ->
-                    let
-                        encoderName =
-                            toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name
+                        Can.FieldInterface interface ->
+                            let
+                                encoderName =
+                                    toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name
 
-                        builder =
-                            createFieldsEncoder encoderName Nothing namespace interface.selection
+                                builder =
+                                    createFieldsEncoder encoderName Nothing namespace interface.selection
 
-                        innerBuilders =
-                            createBuilders targetModule namespace maybeFragmentName interface.selection
-                    in
-                    ( encoderName, builder ) :: innerBuilders
+                                innerBuilders =
+                                    createBuilders targetModule namespace maybeFragmentName interface.selection
+                            in
+                            ( encoderName, builder ) :: innerBuilders
 
 
-encodeFields : Namespace -> List Can.Field -> Elm.Expression -> Elm.Expression
+toObject fields =
+    Gen.Json.Encode.call_.object
+        (fields
+            |> Elm.list
+        )
+
+
+encodeFields : Namespace -> List Can.Field -> Elm.Expression -> List Elm.Expression
 encodeFields namespace fields runtimeValue =
     let
         encodedFields =
@@ -260,11 +428,7 @@ encodeFields namespace fields runtimeValue =
                 (encodeFragmentFields namespace Nothing runtimeValue)
                 fields
     in
-    Gen.Json.Encode.call_.object
-        (encodedFields
-            |> List.reverse
-            |> Elm.list
-        )
+    List.reverse encodedFields
 
 
 fieldToJson : String -> Elm.Expression -> Elm.Expression
@@ -273,7 +437,7 @@ fieldToJson name value =
 
 
 encodeFragmentFields : Namespace -> Maybe Can.FragmentDetails -> Elm.Expression -> Can.Field -> List Elm.Expression
-encodeFragmentFields namespace maybeFragmentName parentObjectRuntimeValue field =
+encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue field =
     let
         name =
             Can.getFieldName field
@@ -302,55 +466,122 @@ encodeFragmentFields namespace maybeFragmentName parentObjectRuntimeValue field 
                         interface.selection
 
         Can.Field fieldDetails ->
-            case fieldDetails.selection of
-                Can.FieldScalar scalarType ->
-                    [ fieldToJson name
-                        (encodeScalar namespace
-                            fieldDetails.wrapper
-                            scalarType
-                            runtimeValue
-                        )
-                    ]
-
-                Can.FieldEnum enum ->
-                    [ fieldToJson name
-                        (encodeEnum namespace
-                            fieldDetails.wrapper
-                            enum
-                            runtimeValue
-                        )
-                    ]
-
-                Can.FieldObject fields ->
-                    [ Elm.tuple (Elm.string name)
+            case fieldDetails.selectsOnlyFragment of
+                Just onlyFragment ->
+                    [ Elm.tuple
+                        (Elm.string name)
                         (wrapEncoder fieldDetails.wrapper
-                            (Elm.val
-                                (toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name)
+                            (Elm.value
+                                { importFrom = onlyFragment.importMockFrom
+                                , name = "encode"
+                                , annotation = Nothing
+                                }
                             )
                             runtimeValue
                         )
                     ]
 
-                Can.FieldUnion union ->
-                    [ fieldToJson name
-                        (encodeFields namespace
-                            union.selection
-                            runtimeValue
-                        )
-                    ]
+                Nothing ->
+                    case fieldDetails.selection of
+                        Can.FieldScalar scalarType ->
+                            [ fieldToJson name
+                                (encodeScalar namespace
+                                    fieldDetails.wrapper
+                                    scalarType
+                                    runtimeValue
+                                )
+                            ]
 
-                Can.FieldInterface interface ->
-                    [ fieldToJson name
-                        (encodeFields namespace
-                            interface.selection
-                            runtimeValue
-                        )
-                    ]
+                        Can.FieldEnum enum ->
+                            [ fieldToJson name
+                                (encodeEnum namespace
+                                    fieldDetails.wrapper
+                                    enum
+                                    runtimeValue
+                                )
+                            ]
+
+                        Can.FieldObject fields ->
+                            case maybeParentFragment of
+                                Just parent ->
+                                    [ Elm.tuple
+                                        (Elm.string name)
+                                        (wrapEncoder fieldDetails.wrapper
+                                            (Elm.value
+                                                { importFrom = parent.fragment.importMockFrom
+                                                , name = "encode" ++ Utils.String.capitalize name
+                                                , annotation = Nothing
+                                                }
+                                            )
+                                            runtimeValue
+                                        )
+                                    ]
+
+                                Nothing ->
+                                    [ Elm.tuple (Elm.string name)
+                                        (wrapEncoder fieldDetails.wrapper
+                                            (Elm.val
+                                                (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
+                                            )
+                                            runtimeValue
+                                        )
+                                    ]
+
+                        Can.FieldUnion union ->
+                            case maybeParentFragment of
+                                Just parent ->
+                                    [ Elm.tuple
+                                        (Elm.string name)
+                                        (wrapEncoder fieldDetails.wrapper
+                                            (Elm.value
+                                                { importFrom = parent.fragment.importMockFrom
+                                                , name = "encode" ++ Utils.String.capitalize name
+                                                , annotation = Nothing
+                                                }
+                                            )
+                                            runtimeValue
+                                        )
+                                    ]
+
+                                Nothing ->
+                                    [ fieldToJson name
+                                        (wrapEncoder fieldDetails.wrapper
+                                            (Elm.val
+                                                (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
+                                            )
+                                            runtimeValue
+                                        )
+                                    ]
+
+                        Can.FieldInterface interface ->
+                            case maybeParentFragment of
+                                Just parent ->
+                                    [ Elm.tuple
+                                        (Elm.string name)
+                                        (wrapEncoder fieldDetails.wrapper
+                                            (Elm.value
+                                                { importFrom = parent.fragment.importMockFrom
+                                                , name = "encode" ++ Utils.String.capitalize name
+                                                , annotation = Nothing
+                                                }
+                                            )
+                                            runtimeValue
+                                        )
+                                    ]
+
+                                Nothing ->
+                                    [ fieldToJson name
+                                        (encodeFields namespace
+                                            interface.selection
+                                            runtimeValue
+                                            |> toObject
+                                        )
+                                    ]
 
 
 encodeEnum : Namespace -> GraphQL.Schema.Wrapped -> Can.FieldEnumDetails -> Elm.Expression -> Elm.Expression
 encodeEnum namespace wrapper enum value =
-    Elm.apply
+    wrapEncoder wrapper
         (Elm.value
             { importFrom =
                 [ namespace.enums
@@ -362,7 +593,7 @@ encodeEnum namespace wrapper enum value =
                 Nothing
             }
         )
-        [ value ]
+        value
 
 
 encodeScalar : Namespace -> GraphQL.Schema.Wrapped -> GraphQL.Schema.Type -> Elm.Expression -> Elm.Expression
@@ -402,10 +633,24 @@ wrapEncoder : GraphQL.Schema.Wrapped -> Elm.Expression -> Elm.Expression -> Elm.
 wrapEncoder wrapper encoder value =
     case wrapper of
         GraphQL.Schema.InMaybe inner ->
-            wrapEncoder inner (Elm.apply Gen.GraphQL.InputObject.values_.maybe [ encoder ]) value
+            Elm.Case.maybe value
+                { nothing = Gen.Json.Encode.null
+                , just =
+                    ( "innerMaybeJust"
+                    , \val ->
+                        wrapEncoder inner encoder val
+                    )
+                }
 
         GraphQL.Schema.InList inner ->
-            wrapEncoder inner (Elm.apply Gen.Json.Encode.values_.list [ encoder ]) value
+            Gen.Json.Encode.call_.list
+                (Elm.fn
+                    ( "innerItemToEncode", Nothing )
+                    (\innerValue ->
+                        wrapEncoder inner encoder innerValue
+                    )
+                )
+                value
 
         GraphQL.Schema.UnwrappedValue ->
             Elm.apply encoder [ value ]

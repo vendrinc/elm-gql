@@ -8,6 +8,7 @@ import Generate.Path
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Generate.Decode exposing (Namespace)
 import GraphQL.Operations.Generate.Help as Help
+import GraphQL.Operations.Generate.Mock.ServerResponse as ServerResponse
 import GraphQL.Operations.Generate.Mock.Value as Mock
 import GraphQL.Schema
 import Utils.String
@@ -52,7 +53,9 @@ generate { namespace, schema, document, path, gqlDir } frag =
                 [ "This is a **mock** module for the `" ++ Can.nameToString frag.name ++ "` fragment.  It is intended to be used in tests.\n\nThis file is generated from " ++ path ++ " using `elm-gql`\n" ++ Help.renderStandardComment docs
                 ]
         }
-        (mockFragment paths namespace frag)
+        (mockFragment paths namespace frag
+            ++ ServerResponse.fragmentToJsonEncoder { importFrom = paths.modulePath } namespace frag
+        )
         |> Help.replaceFilePath paths.mockModuleFilePath
 
 

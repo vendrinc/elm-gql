@@ -1,7 +1,7 @@
-module Gen.GraphQL.Operations.Generate.Mock.ServerResponse exposing (call_, moduleName_, toJsonEncoder, values_)
+module Gen.GraphQL.Operations.Generate.Mock.ServerResponse exposing (call_, fragmentToJsonEncoder, moduleName_, toJsonEncoder, values_)
 
 {-| 
-@docs moduleName_, toJsonEncoder, call_, values_
+@docs moduleName_, toJsonEncoder, fragmentToJsonEncoder, call_, values_
 -}
 
 
@@ -106,6 +106,37 @@ toJsonEncoder toJsonEncoderArg toJsonEncoderArg0 toJsonEncoderArg1 toJsonEncoder
         ]
 
 
+{-| fragmentToJsonEncoder: TargetModule -> Namespace -> Can.Fragment -> List Elm.Declaration -}
+fragmentToJsonEncoder :
+    Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+fragmentToJsonEncoder fragmentToJsonEncoderArg fragmentToJsonEncoderArg0 fragmentToJsonEncoderArg1 =
+    Elm.apply
+        (Elm.value
+            { importFrom =
+                [ "GraphQL"
+                , "Operations"
+                , "Generate"
+                , "Mock"
+                , "ServerResponse"
+                ]
+            , name = "fragmentToJsonEncoder"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "TargetModule" []
+                        , Type.namedWith [] "Namespace" []
+                        , Type.namedWith [ "Can" ] "Fragment" []
+                        ]
+                        (Type.list (Type.namedWith [ "Elm" ] "Declaration" []))
+                    )
+            }
+        )
+        [ fragmentToJsonEncoderArg
+        , fragmentToJsonEncoderArg0
+        , fragmentToJsonEncoderArg1
+        ]
+
+
 call_ :
     { toJsonEncoder :
         Elm.Expression
@@ -113,6 +144,8 @@ call_ :
         -> Elm.Expression
         -> Elm.Expression
         -> Elm.Expression
+    , fragmentToJsonEncoder :
+        Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     }
 call_ =
     { toJsonEncoder =
@@ -146,10 +179,40 @@ call_ =
                 , toJsonEncoderArg1
                 , toJsonEncoderArg2
                 ]
+    , fragmentToJsonEncoder =
+        \fragmentToJsonEncoderArg fragmentToJsonEncoderArg0 fragmentToJsonEncoderArg1 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom =
+                        [ "GraphQL"
+                        , "Operations"
+                        , "Generate"
+                        , "Mock"
+                        , "ServerResponse"
+                        ]
+                    , name = "fragmentToJsonEncoder"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [] "TargetModule" []
+                                , Type.namedWith [] "Namespace" []
+                                , Type.namedWith [ "Can" ] "Fragment" []
+                                ]
+                                (Type.list
+                                    (Type.namedWith [ "Elm" ] "Declaration" [])
+                                )
+                            )
+                    }
+                )
+                [ fragmentToJsonEncoderArg
+                , fragmentToJsonEncoderArg0
+                , fragmentToJsonEncoderArg1
+                ]
     }
 
 
-values_ : { toJsonEncoder : Elm.Expression }
+values_ :
+    { toJsonEncoder : Elm.Expression, fragmentToJsonEncoder : Elm.Expression }
 values_ =
     { toJsonEncoder =
         Elm.value
@@ -168,6 +231,26 @@ values_ =
                         , Type.namedWith [ "Type" ] "Annotation" []
                         , Type.namedWith [] "Namespace" []
                         , Type.namedWith [ "Can" ] "Definition" []
+                        ]
+                        (Type.list (Type.namedWith [ "Elm" ] "Declaration" []))
+                    )
+            }
+    , fragmentToJsonEncoder =
+        Elm.value
+            { importFrom =
+                [ "GraphQL"
+                , "Operations"
+                , "Generate"
+                , "Mock"
+                , "ServerResponse"
+                ]
+            , name = "fragmentToJsonEncoder"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [] "TargetModule" []
+                        , Type.namedWith [] "Namespace" []
+                        , Type.namedWith [ "Can" ] "Fragment" []
                         ]
                         (Type.list (Type.namedWith [ "Elm" ] "Declaration" []))
                     )
