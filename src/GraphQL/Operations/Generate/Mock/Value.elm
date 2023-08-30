@@ -230,6 +230,11 @@ builders paths namespace fullField =
 
                     Can.FieldObject fields ->
                         let
+                            objExpandedFields =
+                                List.concatMap
+                                    (expandedFields namespace)
+                                    fields
+
                             objectType =
                                 GeneratedTypes.toFields namespace [] fields
                                     |> Type.record
@@ -240,22 +245,7 @@ builders paths namespace fullField =
                                         |> Can.nameToString
                                         |> Utils.String.formatValue
                                     )
-                                    (Elm.record
-                                        (fields
-                                            |> List.reverse
-                                            |> List.concatMap
-                                                (\innerField ->
-                                                    if Can.isTypeNameSelection innerField then
-                                                        []
-
-                                                    else
-                                                        [ ( Can.getFieldName innerField
-                                                                |> Utils.String.formatValue
-                                                          , field namespace innerField
-                                                          )
-                                                        ]
-                                                )
-                                        )
+                                    (Elm.record objExpandedFields
                                         |> Elm.withType
                                             (Type.alias paths.modulePath
                                                 (Can.nameToString fieldDetails.globalAlias)

@@ -12,7 +12,7 @@ import GraphQL.Operations.Generate.Decode exposing (Namespace)
 import GraphQL.Operations.Generate.Help as Help
 import GraphQL.Operations.Generate.Mock.Fragment as MockFragment
 import GraphQL.Operations.Generate.Mock.ServerResponse as ServerResponse
-import GraphQL.Operations.Generate.Mock.Value as Mock
+import GraphQL.Operations.Generate.Mock.Value
 import GraphQL.Operations.Generate.Types as GeneratedTypes
 import GraphQL.Schema
 import Utils.String
@@ -135,7 +135,7 @@ mockPrimaryResult paths namespace def =
                                     else
                                         [ ( Can.getFieldName field
                                                 |> Utils.String.formatValue
-                                          , Mock.field namespace field
+                                          , GraphQL.Operations.Generate.Mock.Value.field namespace field
                                           )
                                         ]
                                 )
@@ -151,7 +151,7 @@ mockPrimaryResult paths namespace def =
 
                 builders =
                     List.concatMap
-                        (Mock.builders paths namespace)
+                        (GraphQL.Operations.Generate.Mock.Value.builders paths namespace)
                         op.fields
             in
             primaryResponse :: builders ++ ServerResponse.toJsonEncoder { importFrom = paths.modulePath } responseType namespace def
