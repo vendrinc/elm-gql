@@ -271,22 +271,69 @@ builders paths namespace fullField =
 
                     Can.FieldInterface interface ->
                         -- We also need builders for the "specifics" of the interface
-                        let
-                            fields =
-                                interface.selection
+                        case interface.variants of
+                            [] ->
+                                let
+                                    fields =
+                                        interface.selection
 
-                            objectType =
-                                GeneratedTypes.toFields namespace [] fields
-                                    |> Type.record
+                                    objectType =
+                                        GeneratedTypes.toFields namespace [] fields
+                                            |> Type.record
 
-                            builderForThisObject =
-                                Elm.declaration
-                                    (fieldDetails.globalAlias
-                                        |> Can.nameToString
-                                        |> Utils.String.formatValue
-                                    )
-                                    (Elm.record
-                                        (fields
+                                    builderForThisObject =
+                                        Elm.declaration
+                                            (fieldDetails.globalAlias
+                                                |> Can.nameToString
+                                                |> Utils.String.formatValue
+                                            )
+                                            (Elm.record
+                                                (fields
+                                                    |> List.reverse
+                                                    |> List.concatMap
+                                                        (\innerField ->
+                                                            if Can.isTypeNameSelection innerField then
+                                                                []
+
+                                                            else
+                                                                [ ( Can.getFieldName innerField
+                                                                        |> Utils.String.formatValue
+                                                                  , field namespace innerField
+                                                                  )
+                                                                ]
+                                                        )
+                                                )
+                                                |> Elm.withType
+                                                    (Type.alias paths.modulePath
+                                                        (Can.nameToString fieldDetails.globalAlias)
+                                                        []
+                                                        objectType
+                                                    )
+                                            )
+                                            |> Elm.exposeWith
+                                                { exposeConstructor = True
+                                                , group = Just "builders"
+                                                }
+
+                                    -- What is this, a builder for ANTS?!
+                                    buildersForChildren =
+                                        List.concatMap
+                                            (builders paths namespace)
+                                            fields
+                                in
+                                builderForThisObject :: buildersForChildren
+
+                            _ ->
+                                let
+                                    fields =
+                                        interface.selection
+
+                                    objectType =
+                                        GeneratedTypes.toFields namespace [] fields
+                                            |> Type.record
+
+                                    recordFields =
+                                        fields
                                             |> List.reverse
                                             |> List.concatMap
                                                 (\innerField ->
@@ -300,26 +347,136 @@ builders paths namespace fullField =
                                                           )
                                                         ]
                                                 )
-                                        )
-                                        |> Elm.withType
-                                            (Type.alias paths.modulePath
-                                                (Can.nameToString fieldDetails.globalAlias)
-                                                []
-                                                objectType
-                                            )
-                                    )
-                                    |> Elm.exposeWith
-                                        { exposeConstructor = True
-                                        , group = Just "builders"
-                                        }
 
-                            -- What is this, a builder for ANTS?!
-                            buildersForChildren =
-                                List.concatMap
-                                    (builders paths namespace)
-                                    fields
-                        in
-                        builderForThisObject :: buildersForChildren
+                                    specificsField =
+                                        ( "specifics_"
+                                            |> Utils.String.formatValue
+                                        , Elm.value
+                                            { name =
+                                                (Can.nameToString fieldDetails.globalAlias ++ "_specifics")
+                                                    |> Utils.String.formatValue
+                                            , importFrom = []
+                                            , annotation =
+                                                Just (Type.namedWith paths.modulePath (Can.nameToString fieldDetails.globalAlias ++ "_Specifics") [])
+                                            }
+                                        )
+
+                                    builderForThisObject =
+                                        Elm.declaration
+                                            (fieldDetails.globalAlias
+                                                |> Can.nameToString
+                                                |> Utils.String.formatValue
+                                            )
+                                            (Elm.record
+                                                (recordFields ++ [ specificsField ])
+                                                |> Elm.withType
+                                                    (Type.alias paths.modulePath
+                                                        (Can.nameToString fieldDetails.globalAlias)
+                                                        []
+                                                        objectType
+                                                    )
+                                            )
+                                            |> Elm.exposeWith
+                                                { exposeConstructor = True
+                                                , group = Just "builders"
+                                                }
+
+                                    -- What is this, a builder for ANTS?!
+                                    buildersForChildren =
+                                        List.concatMap
+                                            (builders paths namespace)
+                                            fields
+
+                                    buildersForVariants =
+                                        variantBuildersForInterface paths namespace fieldDetails interface
+                                in
+                                builderForThisObject :: buildersForVariants ++ buildersForChildren
+
+
+{-|
+
+    There are some subtle differences between this code and the `variantBuilders` function.
+
+-}
+variantBuildersForInterface :
+    Generate.Path.Paths
+    -> Namespace
+    ->
+        { parentField
+            | globalAlias : Can.Name
+            , selectsOnlyFragment :
+                Maybe
+                    { importFrom : List String
+                    , importMockFrom : List String
+                    , name : String
+                    }
+        }
+    -> Can.FieldVariantDetails
+    -> List Elm.Declaration
+variantBuildersForInterface paths namespace parentField variantDetails =
+    if parentField.selectsOnlyFragment /= Nothing then
+        []
+
+    else
+        let
+            variantBuildersPrimary =
+                List.concatMap
+                    (generateVariantBuilder paths
+                        namespace
+                        variantTypeName
+                        parentField
+                        variantDetails
+                    )
+                    variantDetails.variants
+
+            variantTypeName =
+                Type.namedWith paths.modulePath (Can.nameToString parentField.globalAlias ++ "_Specifics") []
+
+            variantBuildersForRemainigTags =
+                List.map
+                    (\tag ->
+                        Elm.declaration (Utils.String.formatValue (Can.nameToString tag.globalAlias))
+                            (Elm.value
+                                { name = Can.nameToString tag.globalAlias
+                                , importFrom = paths.modulePath
+                                , annotation =
+                                    Just variantTypeName
+                                }
+                            )
+                            |> Elm.expose
+                    )
+                    variantDetails.remainingTags
+
+            builtBuilders =
+                Elm.comment (Can.nameToString parentField.globalAlias)
+                    :: variantBuildersPrimary
+                    ++ variantBuildersForRemainigTags
+
+            defaultBuilderDeclarationName =
+                Utils.String.formatValue (Can.nameToString parentField.globalAlias) ++ "_specifics"
+
+            defaultBuilder name =
+                Elm.declaration defaultBuilderDeclarationName
+                    (Elm.value
+                        { name = Utils.String.formatValue (Can.nameToString name)
+                        , importFrom = []
+                        , annotation =
+                            Just variantTypeName
+                        }
+                    )
+                    |> Elm.expose
+        in
+        case variantDetails.variants of
+            [] ->
+                case variantDetails.remainingTags of
+                    [] ->
+                        builtBuilders
+
+                    topTag :: _ ->
+                        defaultBuilder topTag.globalAlias :: builtBuilders
+
+            topTag :: _ ->
+                defaultBuilder topTag.globalTagName :: builtBuilders
 
 
 variantBuilders :
@@ -345,7 +502,15 @@ variantBuilders paths namespace parentField variantDetails =
         let
             variantBuildersPrimary =
                 List.concatMap
-                    (generateVariantBuilder paths namespace parentField variantDetails)
+                    (generateVariantBuilder paths
+                        namespace
+                        (Type.namedWith paths.modulePath
+                            (Can.nameToString parentField.globalAlias)
+                            []
+                        )
+                        parentField
+                        variantDetails
+                    )
                     variantDetails.variants
 
             variantBuildersForRemainigTags =
@@ -395,6 +560,7 @@ variantBuilders paths namespace parentField variantDetails =
 generateVariantBuilder :
     Generate.Path.Paths
     -> Namespace
+    -> Type.Annotation
     ->
         { parentField
             | globalAlias : Can.Name
@@ -402,7 +568,7 @@ generateVariantBuilder :
     -> Can.FieldVariantDetails
     -> Can.VariantCase
     -> List Elm.Declaration
-generateVariantBuilder paths namespace parentDetails parent variant =
+generateVariantBuilder paths namespace returnType parentDetails parent variant =
     let
         variantName =
             Can.nameToString variant.globalTagName
@@ -439,7 +605,7 @@ generateVariantBuilder paths namespace parentDetails parent variant =
                             , annotation = Nothing
                             }
                             |> Elm.withType
-                                (Type.namedWith paths.modulePath (Can.nameToString parentDetails.globalAlias) [])
+                                returnType
 
                     _ ->
                         Elm.record
@@ -453,7 +619,7 @@ generateVariantBuilder paths namespace parentDetails parent variant =
                                     }
                                 )
                             |> Elm.withType
-                                (Type.namedWith paths.modulePath (Can.nameToString parentDetails.globalAlias) [])
+                                returnType
                 )
                 |> Elm.exposeWith
                     { exposeConstructor = True

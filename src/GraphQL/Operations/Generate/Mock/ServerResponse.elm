@@ -7,6 +7,8 @@ import Elm
 import Elm.Annotation as Type
 import Elm.Case
 import Elm.Case.Branch
+import Elm.Let
+import Elm.Op
 import Gen.GraphQL.InputObject
 import Gen.Json.Encode
 import Gen.List
@@ -177,6 +179,51 @@ createFieldsEncoder name annotation namespace fields =
         )
 
 
+createInterfaceEncoder : TargetModule -> Namespace -> String -> String -> Can.FieldVariantDetails -> Elm.Declaration
+createInterfaceEncoder target namespace interfaceName encoderName interface =
+    case interface.variants of
+        [] ->
+            let
+                interfaceType =
+                    Type.named target.importFrom
+                        (Utils.String.formatTypename interfaceName)
+            in
+            createFieldsEncoder encoderName (Just interfaceType) namespace interface.selection
+
+        _ ->
+            let
+                branches =
+                    List.map
+                        (createUnionEncoderBranch target namespace)
+                        interface.variants
+
+                interfaceType =
+                    Type.named target.importFrom
+                        (Utils.String.formatTypename interfaceName)
+            in
+            Elm.declaration encoderName
+                (Elm.fn
+                    ( "valueToEncode"
+                    , Just interfaceType
+                    )
+                    (\value ->
+                        Elm.Let.letIn
+                            (\common specifics ->
+                                Elm.Op.append common specifics
+                                    |> Gen.Json.Encode.call_.object
+                            )
+                            |> Elm.Let.value "commonFields_" (Elm.list (encodeFields namespace interface.selection value))
+                            |> Elm.Let.value "specifics_"
+                                (Elm.Case.custom (Elm.get "specifics_" value)
+                                    interfaceType
+                                    (List.reverse branches)
+                                )
+                            |> Elm.Let.toExpression
+                            |> Elm.withType Gen.Json.Encode.annotation_.value
+                    )
+                )
+
+
 createUnionEncoder : TargetModule -> Namespace -> String -> String -> Can.FieldVariantDetails -> Elm.Declaration
 createUnionEncoder target namespace unionName encoderName union =
     let
@@ -203,6 +250,7 @@ createUnionEncoder target namespace unionName encoderName union =
                 Elm.Case.custom value
                     unionType
                     (List.reverse (remainingBranches ++ branches))
+                    |> Gen.Json.Encode.call_.object
                     |> Elm.withType Gen.Json.Encode.annotation_.value
             )
         )
@@ -222,7 +270,7 @@ createUnionEncoderBranchEmpty target namespace variant =
     Elm.Case.branch0
         (Can.nameToString variant.globalAlias |> Utils.String.formatValue)
         ([ typename ]
-            |> toObject
+            |> Elm.list
             |> Elm.withType Gen.Json.Encode.annotation_.value
         )
 
@@ -240,7 +288,7 @@ createUnionEncoderBranch target namespace variant =
         Elm.Case.branch0
             (Can.nameToString variant.globalTagName |> Utils.String.formatValue)
             ([ typename ]
-                |> toObject
+                |> Elm.list
                 |> Elm.withType Gen.Json.Encode.annotation_.value
             )
 
@@ -254,7 +302,7 @@ createUnionEncoderBranch target namespace variant =
             (\details ->
                 typename
                     :: encodeFields namespace selection details
-                    |> toObject
+                    |> Elm.list
                     |> Elm.withType Gen.Json.Encode.annotation_.value
             )
 
@@ -336,6 +384,23 @@ createBuilder targetModule namespace maybeFragmentName field =
 
                 Nothing ->
                     let
+                        annotation =
+                            case fieldDetails.selectsOnlyFragment of
+                                Nothing ->
+                                    case maybeFragmentName of
+                                        Just frag ->
+                                            Type.named frag.fragment.importFrom
+                                                (Utils.String.formatTypename name)
+                                                |> Just
+
+                                        Nothing ->
+                                            Type.named targetModule.importFrom globalAlias
+                                                |> Just
+
+                                Just frag ->
+                                    Type.named frag.importFrom (Utils.String.formatTypename frag.name)
+                                        |> Just
+
                         globalAlias =
                             Can.nameToString fieldDetails.globalAlias
                                 |> Utils.String.formatTypename
@@ -349,23 +414,6 @@ createBuilder targetModule namespace maybeFragmentName field =
 
                         Can.FieldObject fields ->
                             let
-                                annotation =
-                                    case fieldDetails.selectsOnlyFragment of
-                                        Nothing ->
-                                            case maybeFragmentName of
-                                                Just frag ->
-                                                    Type.named frag.fragment.importFrom
-                                                        (Utils.String.formatTypename name)
-                                                        |> Just
-
-                                                Nothing ->
-                                                    Type.named targetModule.importFrom globalAlias
-                                                        |> Just
-
-                                        Just frag ->
-                                            Type.named frag.importFrom (Utils.String.formatTypename frag.name)
-                                                |> Just
-
                                 encoderName =
                                     toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name
 
@@ -404,11 +452,14 @@ createBuilder targetModule namespace maybeFragmentName field =
                                 encoderName =
                                     toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name
 
+                                allSelections =
+                                    List.concatMap .selection interface.variants
+
                                 builder =
-                                    createFieldsEncoder encoderName Nothing namespace interface.selection
+                                    createInterfaceEncoder targetModule namespace globalAlias encoderName interface
 
                                 innerBuilders =
-                                    createBuilders targetModule namespace maybeFragmentName interface.selection
+                                    createBuilders targetModule namespace maybeFragmentName (interface.selection ++ allSelections)
                             in
                             ( encoderName, builder ) :: innerBuilders
 
@@ -466,117 +517,122 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                         interface.selection
 
         Can.Field fieldDetails ->
-            case fieldDetails.selectsOnlyFragment of
-                Just onlyFragment ->
-                    [ Elm.tuple
-                        (Elm.string name)
-                        (wrapEncoder fieldDetails.wrapper
-                            (Elm.value
-                                { importFrom = onlyFragment.importMockFrom
-                                , name = "encode"
-                                , annotation = Nothing
-                                }
+            if Can.isTypeNameSelection field then
+                []
+
+            else
+                case fieldDetails.selectsOnlyFragment of
+                    Just onlyFragment ->
+                        [ Elm.tuple
+                            (Elm.string name)
+                            (wrapEncoder fieldDetails.wrapper
+                                (Elm.value
+                                    { importFrom = onlyFragment.importMockFrom
+                                    , name = "encode"
+                                    , annotation = Nothing
+                                    }
+                                )
+                                runtimeValue
                             )
-                            runtimeValue
-                        )
-                    ]
+                        ]
 
-                Nothing ->
-                    case fieldDetails.selection of
-                        Can.FieldScalar scalarType ->
-                            [ fieldToJson name
-                                (encodeScalar namespace
-                                    fieldDetails.wrapper
-                                    scalarType
-                                    runtimeValue
-                                )
-                            ]
+                    Nothing ->
+                        case fieldDetails.selection of
+                            Can.FieldScalar scalarType ->
+                                [ fieldToJson name
+                                    (encodeScalar namespace
+                                        fieldDetails.wrapper
+                                        scalarType
+                                        runtimeValue
+                                    )
+                                ]
 
-                        Can.FieldEnum enum ->
-                            [ fieldToJson name
-                                (encodeEnum namespace
-                                    fieldDetails.wrapper
-                                    enum
-                                    runtimeValue
-                                )
-                            ]
+                            Can.FieldEnum enum ->
+                                [ fieldToJson name
+                                    (encodeEnum namespace
+                                        fieldDetails.wrapper
+                                        enum
+                                        runtimeValue
+                                    )
+                                ]
 
-                        Can.FieldObject fields ->
-                            case maybeParentFragment of
-                                Just parent ->
-                                    [ Elm.tuple
-                                        (Elm.string name)
-                                        (wrapEncoder fieldDetails.wrapper
-                                            (Elm.value
-                                                { importFrom = parent.fragment.importMockFrom
-                                                , name = "encode" ++ Utils.String.capitalize name
-                                                , annotation = Nothing
-                                                }
+                            Can.FieldObject fields ->
+                                case maybeParentFragment of
+                                    Just parent ->
+                                        [ Elm.tuple
+                                            (Elm.string name)
+                                            (wrapEncoder fieldDetails.wrapper
+                                                (Elm.value
+                                                    { importFrom = parent.fragment.importMockFrom
+                                                    , name = "encode" ++ Utils.String.capitalize name
+                                                    , annotation = Nothing
+                                                    }
+                                                )
+                                                runtimeValue
                                             )
-                                            runtimeValue
-                                        )
-                                    ]
+                                        ]
 
-                                Nothing ->
-                                    [ Elm.tuple (Elm.string name)
-                                        (wrapEncoder fieldDetails.wrapper
-                                            (Elm.val
-                                                (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
+                                    Nothing ->
+                                        [ Elm.tuple (Elm.string name)
+                                            (wrapEncoder fieldDetails.wrapper
+                                                (Elm.val
+                                                    (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
+                                                )
+                                                runtimeValue
                                             )
-                                            runtimeValue
-                                        )
-                                    ]
+                                        ]
 
-                        Can.FieldUnion union ->
-                            case maybeParentFragment of
-                                Just parent ->
-                                    [ Elm.tuple
-                                        (Elm.string name)
-                                        (wrapEncoder fieldDetails.wrapper
-                                            (Elm.value
-                                                { importFrom = parent.fragment.importMockFrom
-                                                , name = "encode" ++ Utils.String.capitalize name
-                                                , annotation = Nothing
-                                                }
+                            Can.FieldUnion union ->
+                                case maybeParentFragment of
+                                    Just parent ->
+                                        [ Elm.tuple
+                                            (Elm.string name)
+                                            (wrapEncoder fieldDetails.wrapper
+                                                (Elm.value
+                                                    { importFrom = parent.fragment.importMockFrom
+                                                    , name = "encode" ++ Utils.String.capitalize name
+                                                    , annotation = Nothing
+                                                    }
+                                                )
+                                                runtimeValue
                                             )
-                                            runtimeValue
-                                        )
-                                    ]
+                                        ]
 
-                                Nothing ->
-                                    [ fieldToJson name
-                                        (wrapEncoder fieldDetails.wrapper
-                                            (Elm.val
-                                                (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
+                                    Nothing ->
+                                        [ fieldToJson name
+                                            (wrapEncoder fieldDetails.wrapper
+                                                (Elm.val
+                                                    (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
+                                                )
+                                                runtimeValue
                                             )
-                                            runtimeValue
-                                        )
-                                    ]
+                                        ]
 
-                        Can.FieldInterface interface ->
-                            case maybeParentFragment of
-                                Just parent ->
-                                    [ Elm.tuple
-                                        (Elm.string name)
-                                        (wrapEncoder fieldDetails.wrapper
-                                            (Elm.value
-                                                { importFrom = parent.fragment.importMockFrom
-                                                , name = "encode" ++ Utils.String.capitalize name
-                                                , annotation = Nothing
-                                                }
+                            Can.FieldInterface interface ->
+                                case maybeParentFragment of
+                                    Just parent ->
+                                        [ Elm.tuple
+                                            (Elm.string name)
+                                            (wrapEncoder fieldDetails.wrapper
+                                                (Elm.value
+                                                    { importFrom = parent.fragment.importMockFrom
+                                                    , name = "encode" ++ Utils.String.capitalize name
+                                                    , annotation = Nothing
+                                                    }
+                                                )
+                                                runtimeValue
                                             )
-                                            runtimeValue
-                                        )
-                                    ]
+                                        ]
 
-                                Nothing ->
-                                    [ fieldToJson name
-                                        (encodeFields namespace
-                                            interface.selection
-                                            runtimeValue
-                                            |> toObject
-                                        )
-                                    ]
+                                    Nothing ->
+                                        [ fieldToJson name
+                                            (wrapEncoder fieldDetails.wrapper
+                                                (Elm.val
+                                                    (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
+                                                )
+                                                runtimeValue
+                                            )
+                                        ]
 
 
 encodeEnum : Namespace -> GraphQL.Schema.Wrapped -> Can.FieldEnumDetails -> Elm.Expression -> Elm.Expression
