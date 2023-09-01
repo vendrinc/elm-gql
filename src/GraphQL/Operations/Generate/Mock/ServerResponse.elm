@@ -490,6 +490,10 @@ fieldToJson name value =
 encodeFragmentFields : Namespace -> Maybe Can.FragmentDetails -> Elm.Expression -> Can.Field -> List Elm.Expression
 encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue field =
     let
+        jsonFieldName =
+            Can.getFieldName field
+                |> Utils.String.formatJsonFieldName
+
         name =
             Can.getFieldName field
                 |> Utils.String.formatValue
@@ -530,7 +534,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                 case fieldDetails.selectsOnlyFragment of
                     Just onlyFragment ->
                         [ Elm.tuple
-                            (Elm.string name)
+                            (Elm.string jsonFieldName)
                             (wrapEncoder fieldDetails.wrapper
                                 (Elm.value
                                     { importFrom = onlyFragment.importMockFrom
@@ -545,7 +549,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                     Nothing ->
                         case fieldDetails.selection of
                             Can.FieldScalar scalarType ->
-                                [ fieldToJson name
+                                [ fieldToJson jsonFieldName
                                     (encodeScalar namespace
                                         fieldDetails.wrapper
                                         scalarType
@@ -554,7 +558,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                                 ]
 
                             Can.FieldEnum enum ->
-                                [ fieldToJson name
+                                [ fieldToJson jsonFieldName
                                     (encodeEnum namespace
                                         fieldDetails.wrapper
                                         enum
@@ -566,7 +570,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                                 case maybeParentFragment of
                                     Just parent ->
                                         [ Elm.tuple
-                                            (Elm.string name)
+                                            (Elm.string jsonFieldName)
                                             (wrapEncoder fieldDetails.wrapper
                                                 (Elm.value
                                                     { importFrom = parent.fragment.importMockFrom
@@ -579,7 +583,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                                         ]
 
                                     Nothing ->
-                                        [ Elm.tuple (Elm.string name)
+                                        [ Elm.tuple (Elm.string jsonFieldName)
                                             (wrapEncoder fieldDetails.wrapper
                                                 (Elm.val
                                                     (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
@@ -592,7 +596,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                                 case maybeParentFragment of
                                     Just parent ->
                                         [ Elm.tuple
-                                            (Elm.string name)
+                                            (Elm.string jsonFieldName)
                                             (wrapEncoder fieldDetails.wrapper
                                                 (Elm.value
                                                     { importFrom = parent.fragment.importMockFrom
@@ -605,7 +609,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                                         ]
 
                                     Nothing ->
-                                        [ fieldToJson name
+                                        [ fieldToJson jsonFieldName
                                             (wrapEncoder fieldDetails.wrapper
                                                 (Elm.val
                                                     (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
@@ -618,7 +622,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                                 case maybeParentFragment of
                                     Just parent ->
                                         [ Elm.tuple
-                                            (Elm.string name)
+                                            (Elm.string jsonFieldName)
                                             (wrapEncoder fieldDetails.wrapper
                                                 (Elm.value
                                                     { importFrom = parent.fragment.importMockFrom
@@ -631,7 +635,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                                         ]
 
                                     Nothing ->
-                                        [ fieldToJson name
+                                        [ fieldToJson jsonFieldName
                                             (wrapEncoder fieldDetails.wrapper
                                                 (Elm.val
                                                     (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment globalFieldValueName)

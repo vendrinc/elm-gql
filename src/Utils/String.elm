@@ -1,4 +1,4 @@
-module Utils.String exposing (capitalize, formatScalar, formatTypename, formatValue, toFilename)
+module Utils.String exposing (capitalize, formatJsonFieldName, formatScalar, formatTypename, formatValue, toFilename)
 
 import String
 
@@ -119,6 +119,32 @@ formatValue introName =
         ++ body
         ++ leadingUnderscores
         |> sanitize
+
+
+{-| Same logic as above, but no sanitization
+-}
+formatJsonFieldName : String -> String
+formatJsonFieldName introName =
+    let
+        ( leadingUnderscores, name ) =
+            getLeadingUnderscores introName
+
+        first =
+            String.left 1 name
+
+        remaining =
+            String.dropLeft 1 name
+
+        body =
+            String.foldl
+                elmify
+                ( False, "" )
+                remaining
+                |> Tuple.second
+    in
+    String.toLower first
+        ++ body
+        ++ leadingUnderscores
 
 
 getLeadingUnderscores : String -> ( String, String )

@@ -1,7 +1,7 @@
-module Gen.Utils.String exposing (call_, capitalize, formatScalar, formatTypename, formatValue, moduleName_, toFilename, values_)
+module Gen.Utils.String exposing (call_, capitalize, formatJsonFieldName, formatScalar, formatTypename, formatValue, moduleName_, toFilename, values_)
 
 {-| 
-@docs moduleName_, formatValue, formatScalar, formatTypename, capitalize, toFilename, call_, values_
+@docs moduleName_, formatJsonFieldName, formatValue, formatScalar, formatTypename, capitalize, toFilename, call_, values_
 -}
 
 
@@ -13,6 +13,23 @@ import Elm.Annotation as Type
 moduleName_ : List String
 moduleName_ =
     [ "Utils", "String" ]
+
+
+{-| {-| Same logic as above, but no sanitization
+-}
+
+formatJsonFieldName: String -> String
+-}
+formatJsonFieldName : String -> Elm.Expression
+formatJsonFieldName formatJsonFieldNameArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Utils", "String" ]
+            , name = "formatJsonFieldName"
+            , annotation = Just (Type.function [ Type.string ] Type.string)
+            }
+        )
+        [ Elm.string formatJsonFieldNameArg ]
 
 
 {-| {-| Same logic as above, but the first letter is lowercase
@@ -101,14 +118,26 @@ toFilename toFilenameArg =
 
 
 call_ :
-    { formatValue : Elm.Expression -> Elm.Expression
+    { formatJsonFieldName : Elm.Expression -> Elm.Expression
+    , formatValue : Elm.Expression -> Elm.Expression
     , formatScalar : Elm.Expression -> Elm.Expression
     , formatTypename : Elm.Expression -> Elm.Expression
     , capitalize : Elm.Expression -> Elm.Expression
     , toFilename : Elm.Expression -> Elm.Expression
     }
 call_ =
-    { formatValue =
+    { formatJsonFieldName =
+        \formatJsonFieldNameArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "Utils", "String" ]
+                    , name = "formatJsonFieldName"
+                    , annotation =
+                        Just (Type.function [ Type.string ] Type.string)
+                    }
+                )
+                [ formatJsonFieldNameArg ]
+    , formatValue =
         \formatValueArg ->
             Elm.apply
                 (Elm.value
@@ -167,14 +196,21 @@ call_ =
 
 
 values_ :
-    { formatValue : Elm.Expression
+    { formatJsonFieldName : Elm.Expression
+    , formatValue : Elm.Expression
     , formatScalar : Elm.Expression
     , formatTypename : Elm.Expression
     , capitalize : Elm.Expression
     , toFilename : Elm.Expression
     }
 values_ =
-    { formatValue =
+    { formatJsonFieldName =
+        Elm.value
+            { importFrom = [ "Utils", "String" ]
+            , name = "formatJsonFieldName"
+            , annotation = Just (Type.function [ Type.string ] Type.string)
+            }
+    , formatValue =
         Elm.value
             { importFrom = [ "Utils", "String" ]
             , name = "formatValue"

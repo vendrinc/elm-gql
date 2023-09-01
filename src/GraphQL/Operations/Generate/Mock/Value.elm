@@ -36,7 +36,7 @@ expandedFieldsWith namespace maybeParentFragment fullField =
             case maybeParentFragment of
                 Nothing ->
                     [ ( Can.getFieldName fullField
-                            |> Utils.String.formatValue
+                            |> Utils.String.formatJsonFieldName
                       , field namespace fullField
                       )
                     ]
@@ -45,11 +45,14 @@ expandedFieldsWith namespace maybeParentFragment fullField =
                     let
                         fieldName =
                             Can.getFieldName fullField
-                                |> Utils.String.formatValue
                     in
                     [ ( fieldName
+                            |> Utils.String.formatJsonFieldName
                       , fragmentValue parent
-                            |> Elm.get fieldName
+                            |> Elm.get
+                                (fieldName
+                                    |> Utils.String.formatValue
+                                )
                       )
                     ]
 
@@ -297,7 +300,7 @@ builders paths namespace fullField =
 
                                                             else
                                                                 [ ( Can.getFieldName innerField
-                                                                        |> Utils.String.formatValue
+                                                                        |> Utils.String.formatJsonFieldName
                                                                   , field namespace innerField
                                                                   )
                                                                 ]
@@ -342,7 +345,7 @@ builders paths namespace fullField =
 
                                                     else
                                                         [ ( Can.getFieldName innerField
-                                                                |> Utils.String.formatValue
+                                                                |> Utils.String.formatJsonFieldName
                                                           , field namespace innerField
                                                           )
                                                         ]
@@ -350,11 +353,11 @@ builders paths namespace fullField =
 
                                     specificsField =
                                         ( "specifics_"
-                                            |> Utils.String.formatValue
+                                            |> Utils.String.formatJsonFieldName
                                         , Elm.value
                                             { name =
                                                 (Can.nameToString fieldDetails.globalAlias ++ "_specifics")
-                                                    |> Utils.String.formatValue
+                                                    |> Utils.String.formatJsonFieldName
                                             , importFrom = []
                                             , annotation =
                                                 Just (Type.namedWith paths.modulePath (Can.nameToString fieldDetails.globalAlias ++ "_Specifics") [])
@@ -586,7 +589,7 @@ generateVariantBuilder paths namespace returnType parentDetails parent variant =
 
                         else
                             [ ( Can.getFieldName fieldItem
-                                    |> Utils.String.formatValue
+                                    |> Utils.String.formatJsonFieldName
                               , field namespace fieldItem
                               )
                             ]
