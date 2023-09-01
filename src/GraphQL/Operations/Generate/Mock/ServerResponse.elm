@@ -647,19 +647,44 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
 
 encodeEnum : Namespace -> GraphQL.Schema.Wrapped -> Can.FieldEnumDetails -> Elm.Expression -> Elm.Expression
 encodeEnum namespace wrapper enum value =
-    wrapEncoder wrapper
-        (Elm.value
-            { importFrom =
-                [ namespace.enums
-                , "Enum"
-                , Utils.String.formatTypename enum.enumName
-                ]
-            , name = "encode"
-            , annotation =
-                Nothing
-            }
-        )
-        value
+    if namespace.enums == namespace.namespace then
+        wrapEncoder wrapper
+            (Elm.value
+                { importFrom =
+                    [ namespace.enums
+                    , "Enum"
+                    , Utils.String.formatTypename enum.enumName
+                    ]
+                , name = "encode"
+                , annotation =
+                    Nothing
+                }
+            )
+            value
+
+    else
+        -- We're using dillonkearns/elm-graphql, so we need to use the generated code from there
+        wrapEncoder wrapper
+            (Elm.fn
+                ( "innerEnum", Nothing )
+                (\innerEnum ->
+                    Elm.apply
+                        (Elm.value
+                            { importFrom =
+                                [ namespace.enums
+                                , "Enum"
+                                , Utils.String.formatTypename enum.enumName
+                                ]
+                            , name = "toString"
+                            , annotation =
+                                Nothing
+                            }
+                        )
+                        [ innerEnum ]
+                        |> Gen.Json.Encode.call_.string
+                )
+            )
+            value
 
 
 encodeScalar : Namespace -> GraphQL.Schema.Wrapped -> GraphQL.Schema.Type -> Elm.Expression -> Elm.Expression
