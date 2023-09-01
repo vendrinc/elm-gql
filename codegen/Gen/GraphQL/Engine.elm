@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (annotation_, batch, call_, caseOf_, encodeVariables, make_, map, map2, mapRequest, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, operation, query, queryRisky, queryRiskyTask, queryString, queryTask, select, selectionVariables, send, simulate, subscription, values_, versionedAlias, versionedName, withName)
+module Gen.GraphQL.Engine exposing (annotation_, batch, call_, caseOf_, encodeVariables, make_, map, map2, mapRequest, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, operation, query, queryRisky, queryRiskyTask, queryString, queryTask, queryToTestingDetails, select, selectionVariables, send, simulate, subscription, values_, versionedAlias, versionedName, withName)
 
 {-| 
-@docs moduleName_, queryString, encodeVariables, selectionVariables, mutationRiskyTask, queryRiskyTask, mutationRisky, queryRisky, mutationTask, queryTask, mutation, query, subscription, simulate, send, mapRequest, versionedAlias, versionedName, operation, map2, map, withName, select, batch, annotation_, make_, caseOf_, call_, values_
+@docs moduleName_, queryString, encodeVariables, selectionVariables, mutationRiskyTask, queryRiskyTask, mutationRisky, queryRisky, mutationTask, queryTask, mutation, query, subscription, simulate, queryToTestingDetails, send, mapRequest, versionedAlias, versionedName, operation, map2, map, withName, select, batch, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -743,6 +743,44 @@ simulate simulateArg simulateArg0 =
 
 {-| {-| -}
 
+queryToTestingDetails: 
+    Selection Query data
+    -> { payload : Json.Encode.Value, decoder : Json.Decode.Decoder data }
+-}
+queryToTestingDetails : Elm.Expression -> Elm.Expression
+queryToTestingDetails queryToTestingDetailsArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "queryToTestingDetails"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Query" [], Type.var "data" ]
+                        ]
+                        (Type.record
+                            [ ( "payload"
+                              , Type.namedWith [ "Json", "Encode" ] "Value" []
+                              )
+                            , ( "decoder"
+                              , Type.namedWith
+                                    [ "Json", "Decode" ]
+                                    "Decoder"
+                                    [ Type.var "data" ]
+                              )
+                            ]
+                        )
+                    )
+            }
+        )
+        [ queryToTestingDetailsArg ]
+
+
+{-| {-| -}
+
 send: Request data -> Cmd (Result Error data)
 -}
 send : Elm.Expression -> Elm.Expression
@@ -1419,6 +1457,7 @@ call_ :
     , query : Elm.Expression -> Elm.Expression -> Elm.Expression
     , subscription : Elm.Expression -> Elm.Expression
     , simulate : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , queryToTestingDetails : Elm.Expression -> Elm.Expression
     , send : Elm.Expression -> Elm.Expression
     , mapRequest : Elm.Expression -> Elm.Expression -> Elm.Expression
     , versionedAlias : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -1987,6 +2026,41 @@ call_ =
                     }
                 )
                 [ simulateArg, simulateArg0 ]
+    , queryToTestingDetails =
+        \queryToTestingDetailsArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "Engine" ]
+                    , name = "queryToTestingDetails"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.namedWith [] "Query" []
+                                    , Type.var "data"
+                                    ]
+                                ]
+                                (Type.record
+                                    [ ( "payload"
+                                      , Type.namedWith
+                                            [ "Json", "Encode" ]
+                                            "Value"
+                                            []
+                                      )
+                                    , ( "decoder"
+                                      , Type.namedWith
+                                            [ "Json", "Decode" ]
+                                            "Decoder"
+                                            [ Type.var "data" ]
+                                      )
+                                    ]
+                                )
+                            )
+                    }
+                )
+                [ queryToTestingDetailsArg ]
     , send =
         \sendArg ->
             Elm.apply
@@ -2245,6 +2319,7 @@ values_ :
     , query : Elm.Expression
     , subscription : Elm.Expression
     , simulate : Elm.Expression
+    , queryToTestingDetails : Elm.Expression
     , send : Elm.Expression
     , mapRequest : Elm.Expression
     , versionedAlias : Elm.Expression
@@ -2677,6 +2752,32 @@ values_ =
                         , Type.namedWith [] "Request" [ Type.var "value" ]
                         ]
                         (Type.var "simulated")
+                    )
+            }
+    , queryToTestingDetails =
+        Elm.value
+            { importFrom = [ "GraphQL", "Engine" ]
+            , name = "queryToTestingDetails"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Query" [], Type.var "data" ]
+                        ]
+                        (Type.record
+                            [ ( "payload"
+                              , Type.namedWith [ "Json", "Encode" ] "Value" []
+                              )
+                            , ( "decoder"
+                              , Type.namedWith
+                                    [ "Json", "Decode" ]
+                                    "Decoder"
+                                    [ Type.var "data" ]
+                              )
+                            ]
+                        )
                     )
             }
     , send =

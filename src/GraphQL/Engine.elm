@@ -6,7 +6,7 @@ module GraphQL.Engine exposing
     , Subscription, subscription
     , Error(..), GqlError, Location
     , VariableDetails, selectionVariables, encodeVariables
-    , queryString
+    , queryString, queryToTestingDetails
     , Request, send, simulate, mapRequest
     , Option(..)
     , operation
@@ -29,7 +29,7 @@ module GraphQL.Engine exposing
 
 @docs VariableDetails, selectionVariables, encodeVariables
 
-@docs queryString
+@docs queryString, queryToTestingDetails
 
 
 ## Requests
@@ -430,6 +430,23 @@ send (Request req) =
         , timeout = req.timeout
         , tracker = req.tracker
         }
+
+
+{-| -}
+queryToTestingDetails :
+    Selection Query data
+    ->
+        { payload : Json.Encode.Value
+        , decoder : Json.Decode.Decoder data
+        }
+queryToTestingDetails ((Selection (Details _ fields toDecoder)) as sel) =
+    let
+        ( context_, decoder ) =
+            toDecoder empty
+    in
+    { payload = encodePayload "subscription" sel
+    , decoder = decoder
+    }
 
 
 {-| -}
