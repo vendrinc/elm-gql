@@ -6,8 +6,8 @@ module GraphQL.Engine exposing
     , Subscription, subscription
     , Error(..), GqlError, Location
     , VariableDetails, selectionVariables, encodeVariables
-    , queryString, queryToTestingDetails
-    , Request, send, simulate, mapRequest
+    , queryString, queryToTestingDetails, mutationToTestingDetails
+    , Request, send, mapRequest
     , Option(..)
     , operation
     , versionedName, versionedAlias
@@ -29,12 +29,12 @@ module GraphQL.Engine exposing
 
 @docs VariableDetails, selectionVariables, encodeVariables
 
-@docs queryString, queryToTestingDetails
+@docs queryString, queryToTestingDetails, mutationToTestingDetails
 
 
 ## Requests
 
-@docs Request, toRequest, send, simulate, mapRequest
+@docs Request, toRequest, send, mapRequest
 
 @docs Option
 
@@ -444,39 +444,26 @@ queryToTestingDetails ((Selection (Details _ fields toDecoder)) as sel) =
         ( context_, decoder ) =
             toDecoder empty
     in
-    { payload = encodePayload "subscription" sel
+    { payload = encodePayload "query" sel
     , decoder = decoder
     }
 
 
 {-| -}
-simulate :
-    { toHeader : String -> String -> header
-    , toExpectation : (Http.Response String -> Result Error value) -> expectation
-    , toBody : Json.Encode.Value -> body
-    , toRequest :
-        { method : String
-        , headers : List header
-        , url : String
-        , body : body
-        , expect : expectation
-        , timeout : Maybe Float
-        , tracker : Maybe String
+mutationToTestingDetails :
+    Selection Mutation data
+    ->
+        { payload : Json.Encode.Value
+        , decoder : Json.Decode.Decoder data
         }
-        -> simulated
+mutationToTestingDetails ((Selection (Details _ fields toDecoder)) as sel) =
+    let
+        ( context_, decoder ) =
+            toDecoder empty
+    in
+    { payload = encodePayload "mutation" sel
+    , decoder = decoder
     }
-    -> Request value
-    -> simulated
-simulate config (Request req) =
-    config.toRequest
-        { method = req.method
-        , headers = List.map (\( key, val ) -> config.toHeader key val) req.headers
-        , url = req.url
-        , body = config.toBody req.body
-        , expect = config.toExpectation req.expect
-        , timeout = req.timeout
-        , tracker = req.tracker
-        }
 
 
 {-| -}

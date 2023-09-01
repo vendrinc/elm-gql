@@ -1,7 +1,7 @@
-module Gen.GraphQL.Engine exposing (annotation_, batch, call_, caseOf_, encodeVariables, make_, map, map2, mapRequest, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, operation, query, queryRisky, queryRiskyTask, queryString, queryTask, queryToTestingDetails, select, selectionVariables, send, simulate, subscription, values_, versionedAlias, versionedName, withName)
+module Gen.GraphQL.Engine exposing (annotation_, batch, call_, caseOf_, encodeVariables, make_, map, map2, mapRequest, moduleName_, mutation, mutationRisky, mutationRiskyTask, mutationTask, mutationToTestingDetails, operation, query, queryRisky, queryRiskyTask, queryString, queryTask, queryToTestingDetails, select, selectionVariables, send, subscription, values_, versionedAlias, versionedName, withName)
 
 {-| 
-@docs moduleName_, queryString, encodeVariables, selectionVariables, mutationRiskyTask, queryRiskyTask, mutationRisky, queryRisky, mutationTask, queryTask, mutation, query, subscription, simulate, queryToTestingDetails, send, mapRequest, versionedAlias, versionedName, operation, map2, map, withName, select, batch, annotation_, make_, caseOf_, call_, values_
+@docs moduleName_, queryString, encodeVariables, selectionVariables, mutationRiskyTask, queryRiskyTask, mutationRisky, queryRisky, mutationTask, queryTask, mutation, query, subscription, mutationToTestingDetails, queryToTestingDetails, send, mapRequest, versionedAlias, versionedName, operation, map2, map, withName, select, batch, annotation_, make_, caseOf_, call_, values_
 -}
 
 
@@ -616,129 +616,40 @@ subscription subscriptionArg =
 
 {-| {-| -}
 
-simulate: 
-    { toHeader : String -> String -> header
-    , toExpectation : (Http.Response String -> Result Error value) -> expectation
-    , toBody : Json.Encode.Value -> body
-    , toRequest :
-        { method : String
-        , headers : List header
-        , url : String
-        , body : body
-        , expect : expectation
-        , timeout : Maybe Float
-        , tracker : Maybe String
-        }
-        -> simulated
-    }
-    -> Request value
-    -> simulated
+mutationToTestingDetails: 
+    Selection Mutation data
+    -> { payload : Json.Encode.Value, decoder : Json.Decode.Decoder data }
 -}
-simulate :
-    { toHeader : Elm.Expression -> Elm.Expression -> Elm.Expression
-    , toExpectation : Elm.Expression -> Elm.Expression
-    , toBody : Elm.Expression -> Elm.Expression
-    , toRequest : Elm.Expression -> Elm.Expression
-    }
-    -> Elm.Expression
-    -> Elm.Expression
-simulate simulateArg simulateArg0 =
+mutationToTestingDetails : Elm.Expression -> Elm.Expression
+mutationToTestingDetails mutationToTestingDetailsArg =
     Elm.apply
         (Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
-            , name = "simulate"
+            , name = "mutationToTestingDetails"
             , annotation =
                 Just
                     (Type.function
-                        [ Type.record
-                            [ ( "toHeader"
-                              , Type.function
-                                    [ Type.string, Type.string ]
-                                    (Type.var "header")
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Mutation" [], Type.var "data" ]
+                        ]
+                        (Type.record
+                            [ ( "payload"
+                              , Type.namedWith [ "Json", "Encode" ] "Value" []
                               )
-                            , ( "toExpectation"
-                              , Type.function
-                                    [ Type.function
-                                        [ Type.namedWith
-                                            [ "Http" ]
-                                            "Response"
-                                            [ Type.string ]
-                                        ]
-                                        (Type.namedWith
-                                            []
-                                            "Result"
-                                            [ Type.namedWith [] "Error" []
-                                            , Type.var "value"
-                                            ]
-                                        )
-                                    ]
-                                    (Type.var "expectation")
-                              )
-                            , ( "toBody"
-                              , Type.function
-                                    [ Type.namedWith
-                                        [ "Json", "Encode" ]
-                                        "Value"
-                                        []
-                                    ]
-                                    (Type.var "body")
-                              )
-                            , ( "toRequest"
-                              , Type.function
-                                    [ Type.record
-                                        [ ( "method", Type.string )
-                                        , ( "headers"
-                                          , Type.list (Type.var "header")
-                                          )
-                                        , ( "url", Type.string )
-                                        , ( "body", Type.var "body" )
-                                        , ( "expect", Type.var "expectation" )
-                                        , ( "timeout"
-                                          , Type.namedWith
-                                                []
-                                                "Maybe"
-                                                [ Type.float ]
-                                          )
-                                        , ( "tracker"
-                                          , Type.namedWith
-                                                []
-                                                "Maybe"
-                                                [ Type.string ]
-                                          )
-                                        ]
-                                    ]
-                                    (Type.var "simulated")
+                            , ( "decoder"
+                              , Type.namedWith
+                                    [ "Json", "Decode" ]
+                                    "Decoder"
+                                    [ Type.var "data" ]
                               )
                             ]
-                        , Type.namedWith [] "Request" [ Type.var "value" ]
-                        ]
-                        (Type.var "simulated")
+                        )
                     )
             }
         )
-        [ Elm.record
-            [ Tuple.pair
-                "toHeader"
-                (Elm.functionReduced
-                    "simulateUnpack"
-                    (\functionReducedUnpack ->
-                        Elm.functionReduced
-                            "unpack"
-                            (simulateArg.toHeader functionReducedUnpack)
-                    )
-                )
-            , Tuple.pair
-                "toExpectation"
-                (Elm.functionReduced "simulateUnpack" simulateArg.toExpectation)
-            , Tuple.pair
-                "toBody"
-                (Elm.functionReduced "simulateUnpack" simulateArg.toBody)
-            , Tuple.pair
-                "toRequest"
-                (Elm.functionReduced "simulateUnpack" simulateArg.toRequest)
-            ]
-        , simulateArg0
-        ]
+        [ mutationToTestingDetailsArg ]
 
 
 {-| {-| -}
@@ -1456,7 +1367,7 @@ call_ :
     , mutation : Elm.Expression -> Elm.Expression -> Elm.Expression
     , query : Elm.Expression -> Elm.Expression -> Elm.Expression
     , subscription : Elm.Expression -> Elm.Expression
-    , simulate : Elm.Expression -> Elm.Expression -> Elm.Expression
+    , mutationToTestingDetails : Elm.Expression -> Elm.Expression
     , queryToTestingDetails : Elm.Expression -> Elm.Expression
     , send : Elm.Expression -> Elm.Expression
     , mapRequest : Elm.Expression -> Elm.Expression -> Elm.Expression
@@ -1941,91 +1852,41 @@ call_ =
                     }
                 )
                 [ subscriptionArg ]
-    , simulate =
-        \simulateArg simulateArg0 ->
+    , mutationToTestingDetails =
+        \mutationToTestingDetailsArg ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "GraphQL", "Engine" ]
-                    , name = "simulate"
+                    , name = "mutationToTestingDetails"
                     , annotation =
                         Just
                             (Type.function
-                                [ Type.record
-                                    [ ( "toHeader"
-                                      , Type.function
-                                            [ Type.string, Type.string ]
-                                            (Type.var "header")
+                                [ Type.namedWith
+                                    []
+                                    "Selection"
+                                    [ Type.namedWith [] "Mutation" []
+                                    , Type.var "data"
+                                    ]
+                                ]
+                                (Type.record
+                                    [ ( "payload"
+                                      , Type.namedWith
+                                            [ "Json", "Encode" ]
+                                            "Value"
+                                            []
                                       )
-                                    , ( "toExpectation"
-                                      , Type.function
-                                            [ Type.function
-                                                [ Type.namedWith
-                                                    [ "Http" ]
-                                                    "Response"
-                                                    [ Type.string ]
-                                                ]
-                                                (Type.namedWith
-                                                    []
-                                                    "Result"
-                                                    [ Type.namedWith
-                                                        []
-                                                        "Error"
-                                                        []
-                                                    , Type.var "value"
-                                                    ]
-                                                )
-                                            ]
-                                            (Type.var "expectation")
-                                      )
-                                    , ( "toBody"
-                                      , Type.function
-                                            [ Type.namedWith
-                                                [ "Json", "Encode" ]
-                                                "Value"
-                                                []
-                                            ]
-                                            (Type.var "body")
-                                      )
-                                    , ( "toRequest"
-                                      , Type.function
-                                            [ Type.record
-                                                [ ( "method", Type.string )
-                                                , ( "headers"
-                                                  , Type.list
-                                                        (Type.var "header")
-                                                  )
-                                                , ( "url", Type.string )
-                                                , ( "body", Type.var "body" )
-                                                , ( "expect"
-                                                  , Type.var "expectation"
-                                                  )
-                                                , ( "timeout"
-                                                  , Type.namedWith
-                                                        []
-                                                        "Maybe"
-                                                        [ Type.float ]
-                                                  )
-                                                , ( "tracker"
-                                                  , Type.namedWith
-                                                        []
-                                                        "Maybe"
-                                                        [ Type.string ]
-                                                  )
-                                                ]
-                                            ]
-                                            (Type.var "simulated")
+                                    , ( "decoder"
+                                      , Type.namedWith
+                                            [ "Json", "Decode" ]
+                                            "Decoder"
+                                            [ Type.var "data" ]
                                       )
                                     ]
-                                , Type.namedWith
-                                    []
-                                    "Request"
-                                    [ Type.var "value" ]
-                                ]
-                                (Type.var "simulated")
+                                )
                             )
                     }
                 )
-                [ simulateArg, simulateArg0 ]
+                [ mutationToTestingDetailsArg ]
     , queryToTestingDetails =
         \queryToTestingDetailsArg ->
             Elm.apply
@@ -2318,7 +2179,7 @@ values_ :
     , mutation : Elm.Expression
     , query : Elm.Expression
     , subscription : Elm.Expression
-    , simulate : Elm.Expression
+    , mutationToTestingDetails : Elm.Expression
     , queryToTestingDetails : Elm.Expression
     , send : Elm.Expression
     , mapRequest : Elm.Expression
@@ -2682,76 +2543,30 @@ values_ =
                         )
                     )
             }
-    , simulate =
+    , mutationToTestingDetails =
         Elm.value
             { importFrom = [ "GraphQL", "Engine" ]
-            , name = "simulate"
+            , name = "mutationToTestingDetails"
             , annotation =
                 Just
                     (Type.function
-                        [ Type.record
-                            [ ( "toHeader"
-                              , Type.function
-                                    [ Type.string, Type.string ]
-                                    (Type.var "header")
+                        [ Type.namedWith
+                            []
+                            "Selection"
+                            [ Type.namedWith [] "Mutation" [], Type.var "data" ]
+                        ]
+                        (Type.record
+                            [ ( "payload"
+                              , Type.namedWith [ "Json", "Encode" ] "Value" []
                               )
-                            , ( "toExpectation"
-                              , Type.function
-                                    [ Type.function
-                                        [ Type.namedWith
-                                            [ "Http" ]
-                                            "Response"
-                                            [ Type.string ]
-                                        ]
-                                        (Type.namedWith
-                                            []
-                                            "Result"
-                                            [ Type.namedWith [] "Error" []
-                                            , Type.var "value"
-                                            ]
-                                        )
-                                    ]
-                                    (Type.var "expectation")
-                              )
-                            , ( "toBody"
-                              , Type.function
-                                    [ Type.namedWith
-                                        [ "Json", "Encode" ]
-                                        "Value"
-                                        []
-                                    ]
-                                    (Type.var "body")
-                              )
-                            , ( "toRequest"
-                              , Type.function
-                                    [ Type.record
-                                        [ ( "method", Type.string )
-                                        , ( "headers"
-                                          , Type.list (Type.var "header")
-                                          )
-                                        , ( "url", Type.string )
-                                        , ( "body", Type.var "body" )
-                                        , ( "expect", Type.var "expectation" )
-                                        , ( "timeout"
-                                          , Type.namedWith
-                                                []
-                                                "Maybe"
-                                                [ Type.float ]
-                                          )
-                                        , ( "tracker"
-                                          , Type.namedWith
-                                                []
-                                                "Maybe"
-                                                [ Type.string ]
-                                          )
-                                        ]
-                                    ]
-                                    (Type.var "simulated")
+                            , ( "decoder"
+                              , Type.namedWith
+                                    [ "Json", "Decode" ]
+                                    "Decoder"
+                                    [ Type.var "data" ]
                               )
                             ]
-                        , Type.namedWith [] "Request" [ Type.var "value" ]
-                        ]
-                        (Type.var "simulated")
+                        )
                     )
             }
     , queryToTestingDetails =
