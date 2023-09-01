@@ -33,7 +33,16 @@ generate :
     -> List Elm.File
 generate opts =
     List.map (generateDefinition opts) opts.document.definitions
-        ++ List.map (MockFragment.generate opts) opts.document.fragments
+        ++ List.filterMap
+            (\frag ->
+                -- Don't generate global fragments for this operation file
+                if frag.isGlobal then
+                    Nothing
+
+                else
+                    Just (MockFragment.generate opts frag)
+            )
+            opts.document.fragments
 
 
 opTypeName : Can.OperationType -> String
