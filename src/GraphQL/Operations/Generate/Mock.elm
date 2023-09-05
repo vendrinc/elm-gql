@@ -28,6 +28,7 @@ generate :
 
     -- all the directories between the Elm source folder and the GQL file
     , gqlDir : List String
+    , outDir : List String
     , generateMocks : Bool
     }
     -> List Elm.File
@@ -82,11 +83,12 @@ generateDefinition :
 
     -- all the directories between the Elm source folder and the GQL file
     , gqlDir : List String
+    , outDir : List String
     , generateMocks : Bool
     }
     -> Can.Definition
     -> Elm.File
-generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation op) as def) =
+generateDefinition { namespace, schema, document, path, gqlDir, outDir } ((Can.Operation op) as def) =
     let
         opName =
             getOpName def
@@ -96,6 +98,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
                 { name = Utils.String.formatTypename opName
                 , path = path
                 , gqlDir = gqlDir
+                , outDir = outDir
                 }
     in
     Elm.fileWith paths.mockModulePath

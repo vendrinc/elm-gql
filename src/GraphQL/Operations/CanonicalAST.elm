@@ -149,6 +149,7 @@ markFragmentAsGlobal :
 
     -- all the directories between CWD and the Elm root
     , gqlDir : List String
+    , outDir : List String
     }
     -> Fragment
     -> Fragment
@@ -159,6 +160,7 @@ markFragmentAsGlobal paths frag =
                 { name = nameToString frag.name
                 , path = paths.path
                 , gqlDir = paths.gqlDir
+                , outDir = paths.outDir
                 , namespace = paths.namespace
                 }
     in

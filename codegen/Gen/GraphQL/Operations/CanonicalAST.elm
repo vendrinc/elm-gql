@@ -209,12 +209,20 @@ isTypeNameSelection isTypeNameSelectionArg =
 
 
 {-| markFragmentAsGlobal: 
-    { path : String, namespace : String, gqlDir : List String }
+    { path : String
+    , namespace : String
+    , gqlDir : List String
+    , outDir : List String
+    }
     -> Fragment
     -> Fragment
 -}
 markFragmentAsGlobal :
-    { path : String, namespace : String, gqlDir : List String }
+    { path : String
+    , namespace : String
+    , gqlDir : List String
+    , outDir : List String
+    }
     -> Elm.Expression
     -> Elm.Expression
 markFragmentAsGlobal markFragmentAsGlobalArg markFragmentAsGlobalArg0 =
@@ -229,6 +237,7 @@ markFragmentAsGlobal markFragmentAsGlobalArg markFragmentAsGlobalArg0 =
                             [ ( "path", Type.string )
                             , ( "namespace", Type.string )
                             , ( "gqlDir", Type.list Type.string )
+                            , ( "outDir", Type.list Type.string )
                             ]
                         , Type.namedWith [] "Fragment" []
                         ]
@@ -244,6 +253,9 @@ markFragmentAsGlobal markFragmentAsGlobalArg markFragmentAsGlobalArg0 =
             , Tuple.pair
                 "gqlDir"
                 (Elm.list (List.map Elm.string markFragmentAsGlobalArg.gqlDir))
+            , Tuple.pair
+                "outDir"
+                (Elm.list (List.map Elm.string markFragmentAsGlobalArg.outDir))
             ]
         , markFragmentAsGlobalArg0
         ]
@@ -1549,6 +1561,7 @@ call_ =
                                     [ ( "path", Type.string )
                                     , ( "namespace", Type.string )
                                     , ( "gqlDir", Type.list Type.string )
+                                    , ( "outDir", Type.list Type.string )
                                     ]
                                 , Type.namedWith [] "Fragment" []
                                 ]
@@ -1689,6 +1702,7 @@ values_ =
                             [ ( "path", Type.string )
                             , ( "namespace", Type.string )
                             , ( "gqlDir", Type.list Type.string )
+                            , ( "outDir", Type.list Type.string )
                             ]
                         , Type.namedWith [] "Fragment" []
                         ]

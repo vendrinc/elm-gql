@@ -24,11 +24,12 @@ generate :
 
     -- all the directories between the Elm source folder and the GQL file
     , gqlDir : List String
+    , outDir : List String
     , generateMocks : Bool
     }
     -> Can.Fragment
     -> Elm.File
-generate { namespace, schema, document, path, gqlDir } frag =
+generate { namespace, schema, document, path, gqlDir, outDir } frag =
     let
         paths =
             if frag.isGlobal then
@@ -37,6 +38,7 @@ generate { namespace, schema, document, path, gqlDir } frag =
                     , namespace = namespace.namespace
                     , path = path
                     , gqlDir = gqlDir
+                    , outDir = outDir
                     }
 
             else
@@ -44,6 +46,7 @@ generate { namespace, schema, document, path, gqlDir } frag =
                     { name = Utils.String.formatTypename (Can.nameToString frag.name)
                     , path = path
                     , gqlDir = gqlDir
+                    , outDir = outDir
                     }
 
         fragmentDecoders =

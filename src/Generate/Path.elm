@@ -16,9 +16,10 @@ fragment :
 
     -- all the directories between CWD and the Elm root
     , gqlDir : List String
+    , outDir : List String
     }
     -> Paths
-fragment { name, path, gqlDir } =
+fragment { name, path, gqlDir, outDir } =
     let
         fragName =
             Utils.String.formatTypename name
@@ -39,7 +40,7 @@ fragment { name, path, gqlDir } =
                     Utils.String.formatTypename
 
         filePathPieces =
-            gqlDir
+            outDir
                 ++ pathFromElmRootToGqlFile
                 ++ [ "Fragments", fragName ]
 
@@ -66,9 +67,10 @@ fragmentGlobal :
 
     -- all the directories between CWD and the Elm root
     , gqlDir : List String
+    , outDir : List String
     }
     -> Paths
-fragmentGlobal { name, path, gqlDir, namespace } =
+fragmentGlobal { name, path, gqlDir, outDir, namespace } =
     let
         fragName =
             Utils.String.formatTypename name
@@ -89,7 +91,7 @@ fragmentGlobal { name, path, gqlDir, namespace } =
                     Utils.String.formatTypename
 
         filePathPieces =
-            gqlDir
+            outDir
                 ++ pathFromElmRootToGqlFile
                 ++ [ namespace, "Fragments", fragName ]
 
@@ -123,6 +125,7 @@ operation :
 
     -- all the directories between CWD and the Elm root
     , gqlDir : List String
+    , outDir : List String
     }
     ->
         { modulePath : List String
@@ -130,7 +133,7 @@ operation :
         , filePath : String
         , mockModuleFilePath : String
         }
-operation { name, path, gqlDir } =
+operation { name, path, gqlDir, outDir } =
     let
         fragName =
             Utils.String.formatTypename name
@@ -147,7 +150,7 @@ operation { name, path, gqlDir } =
                 |> List.map Utils.String.formatTypename
 
         filePathPieces =
-            gqlDir
+            outDir
                 ++ pathFromElmRootToGqlFile
                 ++ [ fragName ]
 

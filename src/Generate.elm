@@ -375,6 +375,7 @@ parseGlobalFragments namespace schema flagDetails files =
                         schema
                         { path = namespace.namespace
                         , gqlDir = []
+                        , outDir = []
                         , fragmentDir = flagDetails.fragmentDir
                         }
                         []
@@ -396,6 +397,7 @@ parseGlobalFragments namespace schema flagDetails files =
                                 (Can.markFragmentAsGlobal
                                     { path = namespace.namespace
                                     , gqlDir = flagDetails.fragmentDir
+                                    , outDir = flagDetails.elmBaseSchema
                                     , namespace = namespace.namespace
                                     }
                                 )
@@ -418,6 +420,7 @@ parseGlobalFragments namespace schema flagDetails files =
                                                 }
                                             , path = namespace.namespace
                                             , gqlDir = flagDetails.fragmentDir
+                                            , outDir = flagDetails.elmBaseSchema
                                             , generateMocks = flagDetails.generateMocks
                                             }
 
@@ -545,6 +548,7 @@ parseAndValidateFragments namespace schema flags gql =
                     schema
                     { path = gql.path
                     , gqlDir = flags.gqlDir
+                    , outDir = flags.elmBaseSchema
                     , fragmentDir = flags.fragmentDir
                     }
                     []
@@ -811,6 +815,7 @@ parseAndValidateQuery namespace schema flags globalFragments gql =
                     schema
                     { path = gql.path
                     , gqlDir = flags.gqlDir
+                    , outDir = flags.elmBaseSchema
                     , fragmentDir = flags.fragmentDir
                     }
                     globalFragments
@@ -833,6 +838,7 @@ parseAndValidateQuery namespace schema flags globalFragments gql =
                                 , document = canAST
                                 , path = gql.path
                                 , gqlDir = flags.gqlDir
+                                , outDir = flags.elmBaseSchema
                                 , generateMocks = flags.generateMocks
                                 }
                         , usages = canAST.usages
