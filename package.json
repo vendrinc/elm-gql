@@ -13,7 +13,7 @@
     "build:elm:opt": "elm make src/GraphQL/Engine.elm --output=/dev/null ; elm-codegen install; elm-optimize-level-2 src/Generate.elm --output=./dist/generators/schema.js",
     "prepublishOnly": "npm run build",
     "elm-gql": "node ./bin/elm-gql",
-    "elm-gql:run": "cd sandbox ; node ../bin/elm-gql run ../schema.json --force --queries queries/elm",
+    "elm-gql:run": "bash tests/iz-example/run.sh",
     "elm-gql:init": "cd sandbox ; node ../bin/elm-gql init ../schema.json --force --queries queries/elm",
     "sandbox": "cd sandbox ; elm make src/Main.elm",
     "test": "elm-test",

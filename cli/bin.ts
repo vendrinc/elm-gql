@@ -62,8 +62,12 @@ program
   )
   .option(
     "--output <dir>",
-    "The directory where your generated files should go.",
+    "The directory where your generated files should go. Files generated from a .gql file will be placed in a sibling directory.",
     "api"
+  )
+  .option(
+    "--output-all <dir>",
+    "The directory where your generated files should go."
   )
   .option(
     "--existing-enum-definitions <name>",
@@ -112,6 +116,11 @@ program
   )
   .option(
     "--output <dir>",
+    "The directory where your generated files should go.",
+    "api"
+  )
+  .option(
+    "--output-all <dir>",
     "The directory where your generated files should go.",
     "api"
   )

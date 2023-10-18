@@ -456,6 +456,8 @@ The full path of where I looked was:
     newCache.files[options.namespace][file] = { modified: modified.at };
   }
 
+  const outputDir = options.outputAll ? options.outputAll : options.output;
+
   if (
     fileSources.length > 0 ||
     schemaWasModified.was ||
@@ -472,7 +474,8 @@ The full path of where I looked was:
       globalFragments: globalFragmentFileSources,
       header: options.header,
       gqlDir: options.queries.split(path.sep),
-      elmBaseSchema: options.output.split(path.sep),
+      elmBaseSchema: outputDir.split(path.sep),
+      outputAll: options.outputAll ? options.outputAll.split(path.sep) : null,
       schema: schema,
       generateMocks: options.generateMocks,
       generatePlatform: schemaWasModified.was || options.force,
@@ -490,17 +493,14 @@ The full path of where I looked was:
   }
 
   // Copy gql engine to target dir
-  fs.mkdirSync(path.join(options.output, "GraphQL"), {
+  fs.mkdirSync(path.join(outputDir, "GraphQL"), {
     recursive: true,
   });
 
   // Standard engine
-  writeIfChanged(path.join(options.output, "GraphQL", "Engine.elm"), engine());
-  writeIfChanged(
-    path.join(options.output, "GraphQL", "InputObject.elm"),
-    input()
-  );
-  writeIfChanged(path.join(options.output, "GraphQL", "Decode.elm"), decode());
+  writeIfChanged(path.join(outputDir, "GraphQL", "Engine.elm"), engine());
+  writeIfChanged(path.join(outputDir, "GraphQL", "InputObject.elm"), input());
+  writeIfChanged(path.join(outputDir, "GraphQL", "Decode.elm"), decode());
   fs.writeFileSync(".elm-gql-cache", JSON.stringify(newCache));
 }
 
@@ -529,6 +529,7 @@ function checkNamespace(options: Options) {
 
 export type Options = {
   output: string;
+  outputAll: string | null;
   namespace: string;
   header: string[];
   force: boolean;
