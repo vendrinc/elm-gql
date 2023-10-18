@@ -10,22 +10,13 @@ import GraphQL.Operations.Generate.Decode exposing (Namespace)
 import GraphQL.Operations.Generate.Help as Help
 import GraphQL.Operations.Generate.Mock.ServerResponse as ServerResponse
 import GraphQL.Operations.Generate.Mock.Value as Mock
+import GraphQL.Operations.Generate.Options as Options
 import GraphQL.Schema
 import Utils.String
 
 
 generate :
-    { namespace : Namespace
-    , schema : GraphQL.Schema.Schema
-    , document : Can.Document
-
-    -- all the dirs between CWD and the GQL file
-    , path : String
-
-    -- all the directories between the Elm source folder and the GQL file
-    , gqlDir : List String
-    , generateMocks : Bool
-    }
+    Options.Options
     -> Can.Fragment
     -> Elm.File
 generate { namespace, schema, document, path, gqlDir } frag =

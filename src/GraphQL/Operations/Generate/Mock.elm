@@ -13,24 +13,13 @@ import GraphQL.Operations.Generate.Help as Help
 import GraphQL.Operations.Generate.Mock.Fragment as MockFragment
 import GraphQL.Operations.Generate.Mock.ServerResponse as ServerResponse
 import GraphQL.Operations.Generate.Mock.Value
+import GraphQL.Operations.Generate.Options as Options
 import GraphQL.Operations.Generate.Types as GeneratedTypes
 import GraphQL.Schema
 import Utils.String
 
 
-generate :
-    { namespace : Namespace
-    , schema : GraphQL.Schema.Schema
-    , document : Can.Document
-
-    -- all the dirs between CWD and the GQL file
-    , path : String
-
-    -- all the directories between the Elm source folder and the GQL file
-    , gqlDir : List String
-    , generateMocks : Bool
-    }
-    -> List Elm.File
+generate : Options.Options -> List Elm.File
 generate opts =
     List.map (generateDefinition opts) opts.document.definitions
         ++ List.filterMap
@@ -73,17 +62,7 @@ responseName =
 
 
 generateDefinition :
-    { namespace : Namespace
-    , schema : GraphQL.Schema.Schema
-    , document : Can.Document
-
-    -- all the dirs between CWD and the GQL file
-    , path : String
-
-    -- all the directories between the Elm source folder and the GQL file
-    , gqlDir : List String
-    , generateMocks : Bool
-    }
+    Options.Options
     -> Can.Definition
     -> Elm.File
 generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation op) as def) =

@@ -203,9 +203,40 @@ generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments
             Generate.error [ err ]
 
         Ok parsedGQL ->
-            (globalFragments.files ++ parsedGQL.files)
+            let
+                gqlFiles =
+                    case flagDetails.outputAll of
+                        Nothing ->
+                            parsedGQL.files
+
+                        Just outputDir ->
+                            parsedGQL.files
+                                |> List.map
+                                    (replaceOutputDir
+                                        { new = outputDir
+                                        , original = flagDetails.gqlDir
+                                        }
+                                    )
+
+                finalGlobalFragments =
+                    case flagDetails.outputAll of
+                        Nothing ->
+                            globalFragments.files
+
+                        Just outputDir ->
+                            globalFragments.files
+                                |> List.map
+                                    (replaceOutputDir
+                                        { new = outputDir
+                                        , original = flagDetails.fragmentDir
+                                        }
+                                    )
+            in
+            (finalGlobalFragments ++ gqlFiles)
                 |> appendIf (flagDetails.isInit && flagDetails.generatePlatform)
                     (\_ ->
+                        -- These are files that are only generated when `elm-gql init` is run
+                        -- And the user should own
                         [ Generate.Root.generate namespace schema
                             |> addOutputDir [ "src" ]
                         ]
@@ -254,6 +285,28 @@ appendIf condition fn list =
 
     else
         list
+
+
+replaceOutputDir : { original : List String, new : List String } -> { a | path : String } -> { a | path : String }
+replaceOutputDir { original, new } file =
+    { file
+        | path =
+            String.join "/" new
+                ++ "/"
+                ++ (file.path
+                        |> dropStarting (String.join "/" original)
+                        |> dropStarting "/"
+                   )
+    }
+
+
+dropStarting : String -> String -> String
+dropStarting starting str =
+    if String.startsWith starting str then
+        String.dropLeft (String.length starting) str
+
+    else
+        str
 
 
 addOutputDir : List String -> { a | path : String } -> { a | path : String }
@@ -613,7 +666,7 @@ parseAndValidateFragments namespace schema flags gql =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.succeed
-        (\gqlDir fragmentDir elmBaseSchema namespace header isInit gql globalFragments schemaUrl genPlatform generateMocks reportUnused existingEnums ->
+        (\gqlDir fragmentDir elmBaseSchema outputAll namespace header isInit gql globalFragments schemaUrl genPlatform generateMocks reportUnused existingEnums ->
             Flags
                 { schema = schemaUrl
                 , gql = gql
@@ -621,7 +674,14 @@ flagsDecoder =
                 , globalFragments = globalFragments
                 , isInit = isInit
                 , gqlDir = gqlDir
-                , elmBaseSchema = elmBaseSchema
+                , elmBaseSchema =
+                    case outputAll of
+                        Nothing ->
+                            elmBaseSchema
+
+                        Just outputDir ->
+                            outputDir
+                , outputAll = outputAll
                 , namespace = namespace
                 , header = header
                 , generatePlatform = genPlatform
@@ -633,6 +693,7 @@ flagsDecoder =
         |> andField "gqlDir" (Json.Decode.list Json.Decode.string)
         |> andField "fragmentDir" (Json.Decode.list Json.Decode.string)
         |> andField "elmBaseSchema" (Json.Decode.list Json.Decode.string)
+        |> andField "outputAll" (Json.Decode.maybe (Json.Decode.list Json.Decode.string))
         |> andField "namespace" Json.Decode.string
         |> andField "header" (Json.Decode.list Json.Decode.string)
         |> andField "init" Json.Decode.bool
@@ -724,6 +785,7 @@ type alias FlagDetails =
     -- same as above, but for the schema-related files
     -- sometimes it's nice to separate that out into a separate dir.
     , elmBaseSchema : List String
+    , outputAll : Maybe (List String)
     , namespace : String
 
     -- The unparsed header for the introspection query

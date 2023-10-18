@@ -13,3 +13,6 @@ unused
 .elm-gql-cache
 api
 queries
+secret-example
+iz-example
+relay
