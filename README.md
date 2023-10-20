@@ -57,4 +57,4 @@ If you have any further questions or feedback, there is both
 - [The #graphql channel in the Elm slack](https://elm-lang.org/community/slack) which is for people who are getting started with `elm-gql` or want to find people to help them debug a situation.
 - [The #elm-gql channel in the "Incremental Elm" Discord](https://incrementalelm.com/chat/) which is where I discuss future development of `vendr/elm-gql` and coordinate with collaborators, but I'm also happy to hear about initial experiences.
 
-See you in thre :wave:!
+See you in there :wave:!
