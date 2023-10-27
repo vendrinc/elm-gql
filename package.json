@@ -4,7 +4,9 @@
   "description": "Write GraphQL, get nice Elm code!",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": "./bin/elm-gql",
+  "bin": {
+    "elm-gql": "./bin/elm-gql"
+  },
   "scripts": {
     "build": "node cli/build.js ; tsc ; yarn build:elm:opt ; cp cli/package.json dist/package.json",
     "build:elm": "elm make src/GraphQL/Engine.elm --output=/dev/null ; elm-codegen install; elm make src/Generate.elm --output=./dist/generators/schema.js",
