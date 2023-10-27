@@ -415,7 +415,7 @@ createBuilder targetModule namespace maybeFragmentName field =
                         Can.FieldObject fields ->
                             let
                                 encoderName =
-                                    toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name
+                                    toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName globalAlias
 
                                 builder =
                                     createFieldsEncoder encoderName
@@ -431,7 +431,7 @@ createBuilder targetModule namespace maybeFragmentName field =
                         Can.FieldUnion union ->
                             let
                                 encoderName =
-                                    toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName name
+                                    toEncoderName fieldDetails.selectsOnlyFragment maybeFragmentName globalAlias
 
                                 builder =
                                     createUnionEncoder targetModule namespace globalAlias encoderName union
@@ -586,7 +586,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                                         [ Elm.tuple (Elm.string jsonFieldName)
                                             (wrapEncoder fieldDetails.wrapper
                                                 (Elm.val
-                                                    (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
+                                                    (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment globalFieldValueName)
                                                 )
                                                 runtimeValue
                                             )
@@ -612,7 +612,7 @@ encodeFragmentFields namespace maybeParentFragment parentObjectRuntimeValue fiel
                                         [ fieldToJson jsonFieldName
                                             (wrapEncoder fieldDetails.wrapper
                                                 (Elm.val
-                                                    (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment name)
+                                                    (toEncoderName fieldDetails.selectsOnlyFragment maybeParentFragment globalFieldValueName)
                                                 )
                                                 runtimeValue
                                             )
