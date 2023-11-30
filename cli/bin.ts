@@ -121,8 +121,7 @@ program
   )
   .option(
     "--output-all <dir>",
-    "The directory where your generated files should go.",
-    "api"
+    "The directory where your generated files should go."
   )
   .option(
     "--existing-enum-definitions <name>",
