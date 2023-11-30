@@ -159,7 +159,8 @@ const getFilesRecursively = (filepath: string): string[] => {
 /* CLI feedback formatting */
 
 function format_title(title: string): string {
-  const tail = "-".repeat(80 - (title.length + 2));
+  const spacing = Math.max(0, 80 - (title.length + 2));
+  const tail = "-".repeat(spacing);
   return chalk.cyan("--" + title + tail);
 }
 
