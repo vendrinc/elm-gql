@@ -345,7 +345,7 @@ function forceMessage(
   lines.push(
     `If you find yourself using ${chalk.yellow(
       "--force"
-    )} all the time, check to make sure it's actaully needed.`
+    )} all the time, check to make sure it's actually needed.`
   );
   lines.push(`Running without it will be much faster!`);
 
