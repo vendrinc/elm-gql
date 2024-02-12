@@ -57,14 +57,14 @@ generateFiles namespace graphQLSchema =
                                         (\str ->
                                             Elm.Case.string str
                                                 { cases =
-                                                    constructors
+                                                    enumDefinition.values
                                                         |> List.map
-                                                            (\( name, _ ) ->
-                                                                ( name
+                                                            (\definition ->
+                                                                ( definition.name
                                                                 , Decode.succeed
                                                                     (Elm.value
                                                                         { importFrom = []
-                                                                        , name = name
+                                                                        , name = enumNameToConstructorName definition.name
                                                                         , annotation = Just (Elm.Annotation.named [] enumDefinition.name)
                                                                         }
                                                                     )
