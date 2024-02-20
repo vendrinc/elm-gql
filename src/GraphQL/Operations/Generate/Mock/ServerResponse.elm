@@ -268,7 +268,7 @@ createUnionEncoderBranchEmpty target namespace variant =
             typeNameField (Can.nameToString variant.tag)
     in
     Elm.Case.branch0
-        (Can.nameToString variant.globalAlias |> Utils.String.formatValue)
+        (Can.nameToString variant.globalAlias)
         ([ typename ]
             |> Elm.list
             |> Elm.withType Gen.Json.Encode.annotation_.value
@@ -286,7 +286,7 @@ createUnionEncoderBranch target namespace variant =
     in
     if List.isEmpty selection then
         Elm.Case.branch0
-            (Can.nameToString variant.globalTagName |> Utils.String.formatValue)
+            (Can.nameToString variant.globalTagName)
             ([ typename ]
                 |> Elm.list
                 |> Elm.withType Gen.Json.Encode.annotation_.value
@@ -297,7 +297,7 @@ createUnionEncoderBranch target namespace variant =
             tagName =
                 variant.globalTagName |> Can.nameToString
         in
-        Elm.Case.branch1 (tagName |> Utils.String.formatValue)
+        Elm.Case.branch1 tagName
             ( tagName ++ "__details", Type.named target.importFrom (tagName |> Utils.String.formatTypename) )
             (\details ->
                 typename
@@ -350,7 +350,6 @@ createBuilder targetModule namespace maybeFragmentName field =
     let
         name =
             Can.getFieldName field
-                |> Utils.String.formatValue
     in
     case field of
         Can.Frag fragment ->
