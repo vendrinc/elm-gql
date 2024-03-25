@@ -28,16 +28,20 @@ function emptyCache(namespace: string): Cache {
   };
 }
 
+export type Summary =
+  | { errors: Error[] }
+  | { message: string; generated: Generated[] };
+
+export type Error = { title: string; description: string };
+export type Generated = { outputDir: string; path: string };
+
 // Run a standard generator made by elm-codegen
-async function run_generator(generator: any, flags: any) {
+async function run_generator(generator: any, flags: any): Promise<Summary> {
   const promise = new Promise((resolve, reject) => {
     // @ts-ignore
     const app = generator.init({ flags: flags });
     if (app.ports.onSuccessSend) {
       app.ports.onSuccessSend.subscribe(resolve);
-    }
-    if (app.ports.onInfoSend) {
-      app.ports.onInfoSend.subscribe((info: string) => console.log(info));
     }
     if (app.ports.onFailureSend) {
       app.ports.onFailureSend.subscribe(reject);
@@ -52,9 +56,14 @@ async function run_generator(generator: any, flags: any) {
         clearDir(path.join(targetDir, "Fragments"));
       }
 
+      let files_written: Generated[] = [];
       let files_written_count = 0;
       let files_skipped = 0;
       for (const file of files) {
+        files_written.push({
+          outputDir: flags.outputAll ? flags.outputAll : flags.output,
+          path: file.path,
+        });
         fs.mkdirSync(path.dirname(file.path), { recursive: true });
         if (writeIfChanged(file.path, file.contents)) {
           files_written_count = files_written_count + 1;
@@ -64,9 +73,11 @@ async function run_generator(generator: any, flags: any) {
       }
 
       if (flags.init) {
-        initGreeting(files_written_count + files_skipped, flags);
+        const lines = initGreeting(files_written_count + files_skipped, flags);
+        return { message: format_block(lines), generated: files };
       } else if (flags.force) {
-        forceMessage(files_written_count, files_skipped, flags);
+        const lines = forceMessage(files_written_count, files_skipped, flags);
+        return { message: format_block(lines), generated: files };
       } else {
         const lines = [];
         if (files_written_count > 0) {
@@ -113,18 +124,17 @@ async function run_generator(generator: any, flags: any) {
             );
           }
         }
-        console.log(format_block(lines));
+
+        return { message: format_block(lines), generated: files };
       }
     })
     .catch((errorList) => {
+      const errors: Error[] = [];
       for (const error of errorList) {
-        console.error(
-          format_title(error.title),
-          "\n\n" + error.description + "\n"
-        );
+        errors.push({ title: error.title, description: error.description });
       }
 
-      process.exit(1);
+      return { errors: errors };
     });
   return promise;
 }
@@ -248,7 +258,7 @@ const clearDir = (dir: string) => {
   } catch {}
 };
 
-function initGreeting(filesGenerated: number, flags: any) {
+function initGreeting(filesGenerated: number, flags: any): string[] {
   const lines = [];
   lines.push(`Welcome to ${chalk.cyan("elm-gql")}!`);
   lines.push(`I've generated a number of files to get you started:`);
@@ -293,10 +303,10 @@ function initGreeting(filesGenerated: number, flags: any) {
       "https://github.com/vendrinc/elm-gql/blob/main/guide/LifeOfAQuery.md"
     )
   );
-  console.log(format_block(lines));
+  return lines;
 }
 
-function initOverwriteWarning() {
+function initOverwriteWarning(): Summary {
   const lines = [];
   lines.push(
     `I tried to run ${chalk.yellow(
@@ -309,14 +319,18 @@ function initOverwriteWarning() {
     )}, pass ${chalk.yellow("--force")}`
   );
 
-  console.log(format_block(lines));
+  return {
+    errors: [
+      { title: "Already initialized", description: format_block(lines) },
+    ],
+  };
 }
 
 function forceMessage(
   filesGenerated: number,
   files_skipped: number,
   flags: any
-) {
+): string[] {
   const lines = [];
   lines.push(
     `${
@@ -349,10 +363,10 @@ function forceMessage(
   );
   lines.push(`Running without it will be much faster!`);
 
-  console.log(format_block(lines));
+  return lines;
 }
 
-async function generate(schema: string, options: Options) {
+async function generate(schema: string, options: Options): Promise<Summary> {
   let newCache = emptyCache(options.namespace);
 
   let cache = readCache(options.namespace, options.force);
@@ -366,13 +380,12 @@ async function generate(schema: string, options: Options) {
     try {
       schema = JSON.parse(fs.readFileSync(schema).toString());
     } catch (error) {
-      console.log(
-        format_block([
-          `${chalk.cyan(
-            "elm-gql: "
-          )} I was trying to read the GraphQL Schema from the local filesystem at ${chalk.yellow(
-            schema
-          )}, but wasn't able to!
+      const description = format_block([
+        `${chalk.cyan(
+          "elm-gql: "
+        )} I was trying to read the GraphQL Schema from the local filesystem at ${chalk.yellow(
+          schema
+        )}, but wasn't able to!
   
   The full path of where I looked was
   
@@ -383,9 +396,8 @@ async function generate(schema: string, options: Options) {
       ${chalk.cyan(error)}
           
   `,
-        ])
-      );
-      process.exit(1);
+      ]);
+      return { errors: [{ title: "Error reading schema", description }] };
     }
   }
 
@@ -394,20 +406,19 @@ async function generate(schema: string, options: Options) {
   try {
     gql_filepaths = getFilesRecursively(options.queries);
   } catch (error) {
-    console.log(
-      format_block([
-        `${chalk.cyan("elm-gql: ")} I was trying to read the ${chalk.yellow(
-          options.queries
-        )} directory for GraphQL files, but wasn't able to!
+    const description = format_block([
+      `${chalk.cyan("elm-gql: ")} I was trying to read the ${chalk.yellow(
+        options.queries
+      )} directory for GraphQL files, but wasn't able to!
 
 The full path of where I looked was:
 
     ${chalk.cyan(path.join(process.cwd(), options.queries))}
         
 `,
-      ])
-    );
-    process.exit(1);
+    ]);
+
+    return { errors: [{ title: "Error reading queries", description }] };
   }
 
   // Global fragments
@@ -416,20 +427,21 @@ The full path of where I looked was:
     try {
       gql_global_fragments = getFilesRecursively(options.globalFragments);
     } catch (error) {
-      console.log(
-        format_block([
-          `${chalk.cyan("elm-gql: ")} I was trying to read the ${chalk.yellow(
-            options.globalFragments
-          )} directory for GraphQL files, but wasn't able to!
+      const description = format_block([
+        `${chalk.cyan("elm-gql: ")} I was trying to read the ${chalk.yellow(
+          options.globalFragments
+        )} directory for GraphQL files, but wasn't able to!
   
   The full path of where I looked was:
   
       ${chalk.cyan(path.join(process.cwd(), options.globalFragments))}
           
   `,
-        ])
-      );
-      process.exit(1);
+      ]);
+
+      return {
+        errors: [{ title: "Error reading global fragments", description }],
+      };
     }
   }
 
@@ -458,6 +470,14 @@ The full path of where I looked was:
   }
 
   const outputDir = options.outputAll ? options.outputAll : options.output;
+  let result: Summary = {
+    message: "",
+    generated: [
+      { outputDir, path: path.join("GraphQL", "Engine.elm") },
+      { outputDir, path: path.join("GraphQL", "InputObject.elm") },
+      { outputDir, path: path.join("GraphQL", "Decode.elm") },
+    ],
+  };
 
   if (
     fileSources.length > 0 ||
@@ -465,7 +485,7 @@ The full path of where I looked was:
     options.force ||
     globalFragmentsModified
   ) {
-    run_generator(schema_generator.Elm.Generate, {
+    result = await run_generator(schema_generator.Elm.Generate, {
       namespace: options.namespace,
       // @ts-ignore
       gql: fileSources,
@@ -485,12 +505,13 @@ The full path of where I looked was:
       reportUnused: true,
       existingEnumDefinitions: options.existingEnumDefinitions,
     });
+    if ("errors" in result) {
+      return result;
+    }
   } else {
-    console.log(
-      format_block([
-        `${chalk.cyan("elm-gql: ")} No files were modified, skipping codegen.`,
-      ])
-    );
+    result.message = format_block([
+      `${chalk.cyan("elm-gql: ")} No files were modified, skipping codegen.`,
+    ]);
   }
 
   // Copy gql engine to target dir
@@ -503,9 +524,10 @@ The full path of where I looked was:
   writeIfChanged(path.join(outputDir, "GraphQL", "InputObject.elm"), input());
   writeIfChanged(path.join(outputDir, "GraphQL", "Decode.elm"), decode());
   fs.writeFileSync(".elm-gql-cache", JSON.stringify(newCache));
+  return result;
 }
 
-function checkNamespace(options: Options) {
+function checkNamespace(options: Options): Summary | null {
   // Namespace must match a single Elm module name
   //(Below is a NOT check (I always miss the !)
   if (!/^[A-Z][a-zA-Z]+$/.test(options.namespace)) {
@@ -521,9 +543,13 @@ function checkNamespace(options: Options) {
       )} or ${chalk.cyan("Gql")} and it can't contain any periods or slashes!`
     );
 
-    console.log(format_block(lines));
-    process.exit(1);
+    return {
+      errors: [
+        { title: "Invalid namespace", description: format_block(lines) },
+      ],
+    };
   }
+  return null;
 }
 
 // Exports
@@ -541,20 +567,48 @@ export type Options = {
   init: boolean;
 };
 
-export async function run(schema: string, options: Options) {
+export async function run(schema: string, options: Options): Promise<Summary> {
   options.init = false;
   checkNamespace(options);
-  generate(schema, options);
+  const result = await generate(schema, options);
+  return result;
 }
 
-export async function init(schema: string, options: Options) {
+export async function init(schema: string, options: Options): Promise<Summary> {
   options.init = true;
-  checkNamespace(options);
+  const namespaceError = checkNamespace(options);
+  if (namespaceError) {
+    return namespaceError;
+  }
   if (!options.force && cacheExists(options.namespace)) {
-    initOverwriteWarning();
-    process.exit(1);
+    return initOverwriteWarning();
   }
 
   options.force = true;
-  generate(schema, options);
+  const result = await generate(schema, options);
+  return result;
 }
+
+export async function runCLI(schema: string, options: Options): Promise<void> {
+  const result = await run(schema, options);
+  printResult(result);
+}
+
+export async function initCLI(schema: string, options: Options): Promise<void> {
+  const result = await init(schema, options);
+  printResult(result);
+}
+
+const printResult = (result: Summary) => {
+  if ("errors" in result) {
+    for (const error of result.errors) {
+      console.error(
+        format_title(error.title),
+        "\n\n" + error.description + "\n"
+      );
+    }
+    process.exit(1);
+  } else {
+    console.log(result.message);
+  }
+};

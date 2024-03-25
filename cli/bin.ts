@@ -73,7 +73,7 @@ program
     "--existing-enum-definitions <name>",
     "This option isn't used very commonly.  If you already have Enum definitions generated, this will skip Enum generation and point to your existing enums."
   )
-  .action(Run.run);
+  .action(Run.runCLI);
 
 program
   .command("init")
@@ -127,7 +127,7 @@ program
     "--existing-enum-definitions <name>",
     "This option isn't used very commonly.  If you already have Enum definitions generated, this will skip Enum generation and point to your existing enums."
   )
-  .action(Run.init);
+  .action(Run.initCLI);
 
 program.showHelpAfterError();
 program.parseAsync(process.argv);

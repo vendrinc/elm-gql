@@ -12,8 +12,11 @@ export type Options = {
   existingEnumDefinitions?: string | null;
 };
 
-export async function run(targetFile: string, options: Options) {
-  return Run.run(targetFile, {
+export async function run(
+  schema: string,
+  options: Options
+): Promise<Run.Summary> {
+  return Run.run(schema, {
     output: options.outputDir ? options.outputDir : "api",
     outputAll: options.outputAll ? options.outputAll : null,
     namespace: options.namespace ? options.namespace : "Api",
@@ -29,8 +32,11 @@ export async function run(targetFile: string, options: Options) {
   });
 }
 
-export async function init(targetFile: string, options: Options) {
-  return Run.init(targetFile, {
+export async function init(
+  schema: string,
+  options: Options
+): Promise<Run.Summary> {
+  return Run.init(schema, {
     output: options.outputDir ? options.outputDir : "api",
     outputAll: options.outputAll ? options.outputAll : null,
     namespace: options.namespace ? options.namespace : "Api",
