@@ -1,6 +1,6 @@
 # Write GQL, get Elm
 
-GraphQL and Elm have very similar type systems in many aspects!
+GraphQL and Elm have very similar type systems!
 
 With this library you can write GraphQL queries and mutations directly and receive nice Elm code for you to use them.
 
