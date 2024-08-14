@@ -133,7 +133,7 @@ This will ultimately be used in testing as follows
 
 -}
 toJsonEncoder : TargetModule -> Type.Annotation -> Namespace -> Can.Definition -> List Elm.Declaration
-toJsonEncoder targetModule responseType namespace ((Can.Operation def) as op) =
+toJsonEncoder targetModule responseType namespace (Can.Operation def) =
     let
         builders =
             createBuilders targetModule namespace Nothing def.fields
