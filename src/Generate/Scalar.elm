@@ -1,14 +1,12 @@
-module Generate.Scalar exposing (decoder, encode, generate, type_)
+module Generate.Scalar exposing (encode, generate, type_)
 
 import Dict
 import Elm
 import Elm.Annotation as Type
 import Elm.Case
-import Gen.GraphQL.Engine as Engine
 import Gen.GraphQL.InputObject
 import Gen.Json.Decode
 import Gen.Json.Encode
-import Gen.List
 import GraphQL.Schema exposing (Namespace)
 import Utils.String
 
@@ -79,48 +77,6 @@ encode namespace scalarName wrapped =
                                 |> Elm.get "encode"
                             )
                             [ val ]
-
-
-decoder : Namespace -> String -> GraphQL.Schema.Wrapped -> Elm.Expression
-decoder namespace scalarName wrapped =
-    case wrapped of
-        GraphQL.Schema.InList inner ->
-            Gen.Json.Decode.call_.list (decoder namespace scalarName inner)
-
-        GraphQL.Schema.InMaybe inner ->
-            Gen.Json.Decode.maybe
-                (decoder namespace
-                    scalarName
-                    inner
-                )
-
-        GraphQL.Schema.UnwrappedValue ->
-            let
-                lowered =
-                    String.toLower scalarName
-            in
-            case lowered of
-                "int" ->
-                    Gen.Json.Decode.values_.int
-
-                "float" ->
-                    Gen.Json.Decode.values_.float
-
-                "string" ->
-                    Gen.Json.Decode.values_.string
-
-                "boolean" ->
-                    Gen.Json.Decode.values_.bool
-
-                _ ->
-                    Elm.value
-                        { importFrom =
-                            [ namespace.namespace
-                            ]
-                        , name = Utils.String.formatValue scalarName
-                        , annotation = Nothing
-                        }
-                        |> Elm.get "decoder"
 
 
 {-|
