@@ -372,6 +372,10 @@ toInputDecoder input =
             { exposeConstructor = False
             , group = Just docGroups.inputStarter
             }
+        |> Elm.withDocumentation """This is a rarely needed function and it is unlikely that you will need this.
+
+It may be useful in edge cases where you need to do mocking/simulation of your queries within your app (tests shouldn't need this).
+"""
 
 
 toOptionHelpers :

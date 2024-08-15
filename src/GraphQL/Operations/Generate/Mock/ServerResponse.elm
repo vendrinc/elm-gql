@@ -6,13 +6,9 @@ module GraphQL.Operations.Generate.Mock.ServerResponse exposing (fragmentToJsonE
 import Elm
 import Elm.Annotation as Type
 import Elm.Case
-import Elm.Case.Branch
 import Elm.Let
 import Elm.Op
-import Gen.GraphQL.InputObject
 import Gen.Json.Encode
-import Gen.List
-import Generate.Path
 import GraphQL.Operations.CanonicalAST as Can
 import GraphQL.Operations.Generate.Decode exposing (Namespace)
 import GraphQL.Operations.Generate.Types as GeneratedTypes
