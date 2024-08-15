@@ -1,7 +1,7 @@
-module Gen.GraphQL.InputObject exposing (addField, addOptionalField, annotation_, call_, encode, inputObject, maybe, moduleName_, toFieldList, values_)
+module Gen.GraphQL.InputObject exposing (addField, addOptionalField, annotation_, call_, encode, inputObject, maybe, moduleName_, raw, toFieldList, values_)
 
 {-| 
-@docs moduleName_, maybe, encode, toFieldList, addOptionalField, addField, inputObject, annotation_, call_, values_
+@docs moduleName_, maybe, encode, toFieldList, addOptionalField, addField, raw, inputObject, annotation_, call_, values_
 -}
 
 
@@ -164,6 +164,33 @@ addField addFieldArg addFieldArg0 addFieldArg1 addFieldArg2 =
 
 {-| {-| -}
 
+raw: String -> List ( String, VariableDetails ) -> InputObject value
+-}
+raw : String -> List Elm.Expression -> Elm.Expression
+raw rawArg rawArg0 =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "GraphQL", "InputObject" ]
+            , name = "raw"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.list
+                            (Type.tuple
+                                Type.string
+                                (Type.namedWith [] "VariableDetails" [])
+                            )
+                        ]
+                        (Type.namedWith [] "InputObject" [ Type.var "value" ])
+                    )
+            }
+        )
+        [ Elm.string rawArg, Elm.list rawArg0 ]
+
+
+{-| {-| -}
+
 inputObject: String -> InputObject value
 -}
 inputObject : String -> Elm.Expression
@@ -211,6 +238,7 @@ call_ :
         -> Elm.Expression
         -> Elm.Expression
         -> Elm.Expression
+    , raw : Elm.Expression -> Elm.Expression -> Elm.Expression
     , inputObject : Elm.Expression -> Elm.Expression
     }
 call_ =
@@ -347,6 +375,31 @@ call_ =
                     }
                 )
                 [ addFieldArg, addFieldArg0, addFieldArg1, addFieldArg2 ]
+    , raw =
+        \rawArg rawArg0 ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "GraphQL", "InputObject" ]
+                    , name = "raw"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.string
+                                , Type.list
+                                    (Type.tuple
+                                        Type.string
+                                        (Type.namedWith [] "VariableDetails" [])
+                                    )
+                                ]
+                                (Type.namedWith
+                                    []
+                                    "InputObject"
+                                    [ Type.var "value" ]
+                                )
+                            )
+                    }
+                )
+                [ rawArg, rawArg0 ]
     , inputObject =
         \inputObjectArg ->
             Elm.apply
@@ -375,6 +428,7 @@ values_ :
     , toFieldList : Elm.Expression
     , addOptionalField : Elm.Expression
     , addField : Elm.Expression
+    , raw : Elm.Expression
     , inputObject : Elm.Expression
     }
 values_ =
@@ -449,6 +503,23 @@ values_ =
                         , Type.string
                         , Type.namedWith [ "Json", "Encode" ] "Value" []
                         , Type.namedWith [] "InputObject" [ Type.var "value" ]
+                        ]
+                        (Type.namedWith [] "InputObject" [ Type.var "value" ])
+                    )
+            }
+    , raw =
+        Elm.value
+            { importFrom = [ "GraphQL", "InputObject" ]
+            , name = "raw"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.string
+                        , Type.list
+                            (Type.tuple
+                                Type.string
+                                (Type.namedWith [] "VariableDetails" [])
+                            )
                         ]
                         (Type.namedWith [] "InputObject" [ Type.var "value" ])
                     )

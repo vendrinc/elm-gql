@@ -330,42 +330,35 @@ toInputDecoder input =
             Gen.Json.Decode.dict Gen.Json.Decode.value
                 |> Gen.Json.Decode.map
                     (\decodedFields ->
-                        Gen.List.map
-                            (\field ->
-                                Elm.tuple
-                                    (Elm.get "name" field)
-                                    (Elm.record
-                                        [ ( "gqlTypeName"
-                                          , Elm.get "type_" field
-                                          )
-                                        , ( "value"
-                                          , Gen.Dict.get (Elm.get "name" field) decodedFields
-                                          )
-                                        ]
-                                    )
-                            )
-                            (List.map
+                        Elm.apply
+                            (valueFrom [ "GraphQL", "InputObject" ] "raw")
+                            [ Elm.string input.name
+                            , Gen.List.map
                                 (\field ->
-                                    Elm.record
-                                        [ ( "name", Elm.string field.name )
-                                        , ( "type_", Elm.string (GraphQL.Schema.typeToString field.type_) )
-                                        ]
+                                    Elm.tuple
+                                        (Elm.get "name" field)
+                                        (Elm.record
+                                            [ ( "gqlTypeName"
+                                              , Elm.get "type_" field
+                                              )
+                                            , ( "value"
+                                              , Gen.Dict.get (Elm.get "name" field) decodedFields
+                                              )
+                                            ]
+                                        )
                                 )
-                                input.fields
-                            )
-                    )
-                |> Elm.withType
-                    (Gen.Json.Decode.annotation_.decoder
-                        (Type.list
-                            (Type.tuple Type.string
-                                (Type.record
-                                    [ ( "gqlTypeName", Type.string )
-                                    , ( "value", Type.maybe Gen.Json.Decode.annotation_.value )
-                                    ]
+                                (List.map
+                                    (\field ->
+                                        Elm.record
+                                            [ ( "name", Elm.string field.name )
+                                            , ( "type_", Elm.string (GraphQL.Schema.typeToString field.type_) )
+                                            ]
+                                    )
+                                    input.fields
                                 )
-                            )
-                        )
+                            ]
                     )
+                |> Elm.withType (Gen.Json.Decode.annotation_.decoder (Type.named [] input.name))
     in
     Elm.declaration "decoder" decoder
         |> Elm.exposeWith
