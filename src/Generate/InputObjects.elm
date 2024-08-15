@@ -3,7 +3,6 @@ module Generate.InputObjects exposing (generateFiles)
 import Dict
 import Elm
 import Elm.Annotation as Type
-import Gen.GraphQL.Engine as Engine
 import Gen.GraphQL.InputObject
 import Generate.Input.Encode
 import GraphQL.Schema exposing (Namespace)
@@ -123,6 +122,7 @@ renderNewOptionalSingleFile namespace schema input =
                     schema
                     input
                 , Generate.Input.Encode.toNulls input.name input.fields
+                , [ Generate.Input.Encode.toInputDecoder input ]
                 ]
             ]
 
@@ -147,4 +147,5 @@ oneOf namespace schema input =
             schema
             input
         , Generate.Input.Encode.toOneOfNulls input.name input.fields
+        , [ Generate.Input.Encode.toInputDecoder input ]
         ]

@@ -18,6 +18,7 @@ module GraphQL.InputObject exposing
 -}
 
 import GraphQL.Engine exposing (Option(..))
+import Json.Decode
 import Json.Encode
 import Set
 
