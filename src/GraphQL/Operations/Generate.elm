@@ -294,7 +294,7 @@ aliasedTypes namespace def =
 
 {-| -}
 generateDecoder : Elm.Expression -> Namespace -> Can.Definition -> Elm.Expression
-generateDecoder version namespace ((Can.Operation op) as def) =
+generateDecoder version namespace (Can.Operation op) =
     Decode.succeed
         (Elm.value
             { importFrom = []

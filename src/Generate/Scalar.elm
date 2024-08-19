@@ -4,7 +4,6 @@ import Dict
 import Elm
 import Elm.Annotation as Type
 import Elm.Case
-import Gen.GraphQL.Engine as Engine
 import Gen.GraphQL.InputObject
 import Gen.Json.Decode
 import Gen.Json.Encode

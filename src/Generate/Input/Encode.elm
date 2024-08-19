@@ -4,6 +4,7 @@ module Generate.Input.Encode exposing
     , toOneOfHelper, toOneOfNulls
     , fullRecordToInputObject
     , docGroups
+    , toInputDecoder
     , Namespace
     )
 
@@ -19,14 +20,18 @@ module Generate.Input.Encode exposing
 
 @docs docGroups
 
+@docs toInputDecoder
+
 -}
 
 import Elm
 import Elm.Annotation as Type
 import Elm.Op
-import Gen.GraphQL.Engine as Engine
+import Gen.Dict
 import Gen.GraphQL.InputObject
+import Gen.Json.Decode
 import Gen.Json.Encode as Encode
+import Gen.List
 import Generate.Common
 import Generate.Scalar
 import GraphQL.Schema
@@ -127,14 +132,11 @@ addEncodedVariablesHelper namespace schema argRecord var inputObj =
                         [ Elm.string name
                         , Elm.string (GraphQL.Schema.typeToString var.type_)
                         , Elm.get name argRecord
-                        , Elm.fn
-                            ( "encode", Nothing )
-                            (\x ->
-                                encode
-                                    namespace
-                                    schema
-                                    type_
-                                    x
+                        , Elm.functionReduced "encode_"
+                            (encode
+                                namespace
+                                schema
+                                type_
                             )
                         ]
                     )
@@ -178,7 +180,7 @@ toInputRecordAlias namespace schema name varDefs =
             if List.any isOptionalVar varDefs then
                 """ This input has optional args, which are wrapped in `""" ++ namespace.namespace ++ """.Option`.
 
-First up, if it makes sense, you can make this argument required in your graphql query 
+First up, if it makes sense, you can make this argument required in your graphql query
 by adding ! to that variable definition at the top of the query.  This will make it easier to handle in Elm.
 
 If the field is truly optional, here's how to wrap it.
@@ -314,6 +316,59 @@ toInputObject namespace schema input =
                     { exposeConstructor = False
                     , group = Just docGroups.inputStarter
                     }
+
+
+toInputDecoder :
+    { a
+        | fields : List { b | name : String, type_ : GraphQL.Schema.Type }
+        , name : String
+    }
+    -> Elm.Declaration
+toInputDecoder input =
+    let
+        decoder =
+            Gen.Json.Decode.dict Gen.Json.Decode.value
+                |> Gen.Json.Decode.map
+                    (\decodedFields ->
+                        Elm.apply
+                            (valueFrom [ "GraphQL", "InputObject" ] "raw")
+                            [ Elm.string input.name
+                            , Gen.List.map
+                                (\field ->
+                                    Elm.tuple
+                                        (Elm.get "name" field)
+                                        (Elm.record
+                                            [ ( "gqlTypeName"
+                                              , Elm.get "type_" field
+                                              )
+                                            , ( "value"
+                                              , Gen.Dict.get (Elm.get "name" field) decodedFields
+                                              )
+                                            ]
+                                        )
+                                )
+                                (List.map
+                                    (\field ->
+                                        Elm.record
+                                            [ ( "name", Elm.string field.name )
+                                            , ( "type_", Elm.string (GraphQL.Schema.typeToString field.type_) )
+                                            ]
+                                    )
+                                    input.fields
+                                )
+                            ]
+                    )
+                |> Elm.withType (Gen.Json.Decode.annotation_.decoder (Type.named [] input.name))
+    in
+    Elm.declaration "decoder" decoder
+        |> Elm.exposeWith
+            { exposeConstructor = False
+            , group = Just docGroups.inputStarter
+            }
+        |> Elm.withDocumentation """This is a rarely needed function and it is unlikely that you will need this.
+
+It may be useful in edge cases where you need to do mocking/simulation of your queries within your app (tests shouldn't need this).
+"""
 
 
 toOptionHelpers :

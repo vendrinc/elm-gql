@@ -1,7 +1,7 @@
-module Gen.Generate.Input.Encode exposing (annotation_, call_, fullRecordToInputObject, make_, moduleName_, toInputObject, toInputRecordAlias, toNulls, toOneOfHelper, toOneOfNulls, toOptionHelpers, values_)
+module Gen.Generate.Input.Encode exposing (annotation_, call_, fullRecordToInputObject, make_, moduleName_, toInputDecoder, toInputObject, toInputRecordAlias, toNulls, toOneOfHelper, toOneOfNulls, toOptionHelpers, values_)
 
 {-| 
-@docs moduleName_, toNulls, toOneOfNulls, toOneOfHelper, toOptionHelpers, toInputObject, toInputRecordAlias, fullRecordToInputObject, annotation_, make_, call_, values_
+@docs moduleName_, toNulls, toOneOfNulls, toOneOfHelper, toOptionHelpers, toInputDecoder, toInputObject, toInputRecordAlias, fullRecordToInputObject, annotation_, make_, call_, values_
 -}
 
 
@@ -195,6 +195,69 @@ toOptionHelpers toOptionHelpersArg toOptionHelpersArg0 toOptionHelpersArg1 =
                     )
                 )
             , Tuple.pair "name" (Elm.string toOptionHelpersArg1.name)
+            ]
+        ]
+
+
+{-| toInputDecoder: 
+    { a
+        | fields : List { b | name : String, type_ : GraphQL.Schema.Type }
+        , name : String
+    }
+    -> Elm.Declaration
+-}
+toInputDecoder :
+    { a
+        | fields : List { b | name : String, type_ : Elm.Expression }
+        , name : String
+    }
+    -> Elm.Expression
+toInputDecoder toInputDecoderArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Generate", "Input", "Encode" ]
+            , name = "toInputDecoder"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.extensible
+                            "a"
+                            [ ( "fields"
+                              , Type.list
+                                    (Type.extensible
+                                        "b"
+                                        [ ( "name", Type.string )
+                                        , ( "type_"
+                                          , Type.namedWith
+                                                [ "GraphQL", "Schema" ]
+                                                "Type"
+                                                []
+                                          )
+                                        ]
+                                    )
+                              )
+                            , ( "name", Type.string )
+                            ]
+                        ]
+                        (Type.namedWith [ "Elm" ] "Declaration" [])
+                    )
+            }
+        )
+        [ Elm.record
+            [ Tuple.pair
+                "fields"
+                (Elm.list
+                    (List.map
+                        (\unpack ->
+                            Elm.record
+                                [ Tuple.pair "name" (Elm.string unpack.name)
+                                , Tuple.pair "type_" unpack.type_
+                                ]
+                        )
+                        toInputDecoderArg.fields
+                    )
+                )
+            , Tuple.pair "name" (Elm.string toInputDecoderArg.name)
             ]
         ]
 
@@ -425,6 +488,7 @@ call_ :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , toOptionHelpers :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
+    , toInputDecoder : Elm.Expression -> Elm.Expression
     , toInputObject :
         Elm.Expression -> Elm.Expression -> Elm.Expression -> Elm.Expression
     , toInputRecordAlias :
@@ -569,6 +633,39 @@ call_ =
                     }
                 )
                 [ toOptionHelpersArg, toOptionHelpersArg0, toOptionHelpersArg1 ]
+    , toInputDecoder =
+        \toInputDecoderArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "Generate", "Input", "Encode" ]
+                    , name = "toInputDecoder"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.extensible
+                                    "a"
+                                    [ ( "fields"
+                                      , Type.list
+                                            (Type.extensible
+                                                "b"
+                                                [ ( "name", Type.string )
+                                                , ( "type_"
+                                                  , Type.namedWith
+                                                        [ "GraphQL", "Schema" ]
+                                                        "Type"
+                                                        []
+                                                  )
+                                                ]
+                                            )
+                                      )
+                                    , ( "name", Type.string )
+                                    ]
+                                ]
+                                (Type.namedWith [ "Elm" ] "Declaration" [])
+                            )
+                    }
+                )
+                [ toInputDecoderArg ]
     , toInputObject =
         \toInputObjectArg toInputObjectArg0 toInputObjectArg1 ->
             Elm.apply
@@ -677,6 +774,7 @@ values_ :
     , toOneOfNulls : Elm.Expression
     , toOneOfHelper : Elm.Expression
     , toOptionHelpers : Elm.Expression
+    , toInputDecoder : Elm.Expression
     , toInputObject : Elm.Expression
     , toInputRecordAlias : Elm.Expression
     , fullRecordToInputObject : Elm.Expression
@@ -770,6 +868,35 @@ values_ =
                             ]
                         ]
                         (Type.list (Type.namedWith [ "Elm" ] "Declaration" []))
+                    )
+            }
+    , toInputDecoder =
+        Elm.value
+            { importFrom = [ "Generate", "Input", "Encode" ]
+            , name = "toInputDecoder"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.extensible
+                            "a"
+                            [ ( "fields"
+                              , Type.list
+                                    (Type.extensible
+                                        "b"
+                                        [ ( "name", Type.string )
+                                        , ( "type_"
+                                          , Type.namedWith
+                                                [ "GraphQL", "Schema" ]
+                                                "Type"
+                                                []
+                                          )
+                                        ]
+                                    )
+                              )
+                            , ( "name", Type.string )
+                            ]
+                        ]
+                        (Type.namedWith [ "Elm" ] "Declaration" [])
                     )
             }
     , toInputObject =

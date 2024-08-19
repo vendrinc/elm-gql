@@ -3,6 +3,7 @@ module GraphQL.InputObject exposing
     , addField, addOptionalField
     , maybe
     , encode, toFieldList
+    , raw
     )
 
 {-|
@@ -14,6 +15,8 @@ module GraphQL.InputObject exposing
 @docs maybe
 
 @docs encode, toFieldList
+
+@docs raw
 
 -}
 
@@ -50,6 +53,12 @@ type alias VariableDetails =
 inputObject : String -> InputObject value
 inputObject name =
     InputObject name []
+
+
+{-| -}
+raw : String -> List ( String, VariableDetails ) -> InputObject value
+raw =
+    InputObject
 
 
 {-| -}
