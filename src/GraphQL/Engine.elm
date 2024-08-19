@@ -756,7 +756,7 @@ responseToResult decoder response =
                             (\_ errs ->
                                 Err errs
                             )
-                            (Json.Decode.field "data" (Json.Decode.null ()))
+                            (Json.Decode.field "data" (Json.Decode.nullable decoder))
                             (Json.Decode.field "errors"
                                 (Json.Decode.list gqlErrorDecoder)
                             )
