@@ -8,10 +8,10 @@
     "elm-gql": "./bin/elm-gql"
   },
   "scripts": {
-    "build": "node cli/build.js ; tsc ; yarn build:elm:opt ; cp cli/package.json dist/package.json",
+    "build": "node cli/build.js ; tsc ; pnpm build:elm:opt ; cp cli/package.json dist/package.json",
     "build:elm": "elm make src/GraphQL/Engine.elm --output=/dev/null ; elm-codegen install; elm make src/Generate.elm --output=./dist/generators/schema.js",
     "build:elm:opt": "elm make src/GraphQL/Engine.elm --output=/dev/null ; elm-codegen install; elm-optimize-level-2 src/Generate.elm --output=./dist/generators/schema.js",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "pnpm run build",
     "elm-gql": "node ./bin/elm-gql",
     "elm-gql:run": "bash tests/iz-example/run.sh",
     "elm-gql:init": "cd sandbox ; node ../bin/elm-gql init ../schema.json --force --queries queries/elm",
