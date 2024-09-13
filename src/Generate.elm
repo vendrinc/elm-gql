@@ -150,7 +150,7 @@ parseSingleHeader headerString result =
                                 ++ headerString
                                 ++ "' but I wasn't able parse it."
                                 ++ """
-Headers should be provided 
+Headers should be provided
 
     --header 'Authorization: bearer TOKEN'
 """
@@ -238,7 +238,7 @@ generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments
                         -- These are files that are only generated when `elm-gql init` is run
                         -- And the user should own
                         [ Generate.Root.generate namespace schema
-                            |> addOutputDir [ "src" ]
+                            |> addOutputDir flagDetails.gqlDir
                         ]
                     )
                 |> appendIf flagDetails.generatePlatform
@@ -255,7 +255,7 @@ generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments
                             |> GraphQL.Usage.toUnusedReport schema
                             |> GraphQL.Schema.toString
                             |> prepend """# This file is generated automatically when `elm-gql` is run.
-# 
+#
 # This captures all parts of the schema that were not used by any of your graphQL queries or mutations.
 
 """
