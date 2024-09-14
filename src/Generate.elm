@@ -233,13 +233,18 @@ generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments
                                     )
             in
             (finalGlobalFragments ++ gqlFiles)
-                |> appendIf (flagDetails.isInit && flagDetails.generatePlatform)
+                |> appendIf (flagDetails.initDir /= Nothing && flagDetails.generatePlatform)
                     (\_ ->
-                        -- These are files that are only generated when `elm-gql init` is run
-                        -- And the user should own
-                        [ Generate.Root.generate namespace schema
-                            |> addOutputDir flagDetails.queryDir
-                        ]
+                        case flagDetails.initDir of
+                            Nothing ->
+                                []
+
+                            Just initDir ->
+                                -- These are files that are only generated when `elm-gql init` is run
+                                -- And the user should own
+                                [ Generate.Root.generate namespace schema
+                                    |> addOutputDir initDir
+                                ]
                     )
                 |> appendIf flagDetails.generatePlatform
                     (\_ ->
@@ -661,13 +666,13 @@ parseAndValidateFragments namespace schema flags gql =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.succeed
-        (\queryDir fragmentDir outputPlatformDir outputAll namespace header isInit gql globalFragments schemaUrl genPlatform generateMocks reportUnused existingEnums ->
+        (\queryDir fragmentDir outputPlatformDir outputAll namespace header initDir gql globalFragments schemaUrl genPlatform generateMocks reportUnused existingEnums ->
             Flags
                 { schema = schemaUrl
                 , gql = gql
                 , fragmentDir = fragmentDir
                 , globalFragments = globalFragments
-                , isInit = isInit
+                , initDir = initDir
                 , queryDir = queryDir
                 , outputPlatformDir =
                     case outputAll of
@@ -691,7 +696,7 @@ flagsDecoder =
         |> andField "outputAll" (Json.Decode.maybe (Json.Decode.list Json.Decode.string))
         |> andField "namespace" Json.Decode.string
         |> andField "header" (Json.Decode.list Json.Decode.string)
-        |> andField "init" Json.Decode.bool
+        |> andField "initDir" (Json.Decode.maybe (Json.Decode.list Json.Decode.string))
         |> andField "gql"
             (Json.Decode.list
                 (Json.Decode.map2
@@ -767,20 +772,22 @@ type Input
 
 type alias FlagDetails =
     { schema : Schema
+    , namespace : String
     , gql : List Gql
     , globalFragments : List Gql
+
+    -- We generate an `Api.elm` file in the following directory if it's provided'
+    , initDir : Maybe (List String)
+
+    --
     , fragmentDir : List String
 
     -- all directories between and including cwd and the elm src dir
     , queryDir : List String
 
-    -- We do a little bit more generation if init is called
-    , isInit : Bool
-
     -- Dir for platform files
     , outputPlatformDir : List String
     , outputAll : Maybe (List String)
-    , namespace : String
 
     -- The unparsed header for the introspection query
     , header : List String

@@ -14,7 +14,7 @@ export type Options = {
 
 export async function run(
   schema: string,
-  options: Options
+  options: Options,
 ): Promise<Run.Summary> {
   return Run.run(schema, {
     output: options.outputDir ? options.outputDir : "api",
@@ -28,15 +28,16 @@ export async function run(
     existingEnumDefinitions: options.existingEnumDefinitions
       ? options.existingEnumDefinitions
       : null,
-    init: false,
+    initDir: null,
   });
 }
 
 export async function init(
   schema: string,
-  options: Options
+  src: string | null,
+  options: Options,
 ): Promise<Run.Summary> {
-  return Run.init(schema, {
+  return Run.run(schema, {
     output: options.outputDir ? options.outputDir : "api",
     outputAll: options.outputAll ? options.outputAll : null,
     namespace: options.namespace ? options.namespace : "Api",
@@ -48,6 +49,6 @@ export async function init(
     existingEnumDefinitions: options.existingEnumDefinitions
       ? options.existingEnumDefinitions
       : null,
-    init: true,
+    initDir: src ? src : "src",
   });
 }

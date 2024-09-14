@@ -501,7 +501,7 @@ The full path of where I looked was:
       generateMocks: options.generateMocks,
       generatePlatform: schemaWasModified.was || options.force,
       force: options.force,
-      init: options.init,
+      initDir: options.initDir ? options.initDir.split(path.sep) : null,
       reportUnused: true,
       existingEnumDefinitions: options.existingEnumDefinitions,
     });
@@ -564,18 +564,33 @@ export type Options = {
   queries: string;
   globalFragments: string | null;
   existingEnumDefinitions: string | null;
-  init: boolean;
+  initDir: string | null;
 };
 
 export async function run(schema: string, options: Options): Promise<Summary> {
-  options.init = false;
-  checkNamespace(options);
+  const namespaceError = checkNamespace(options);
+  if (namespaceError) {
+    return namespaceError;
+  }
+  if (
+    options.initDir &&
+    fs.existsSync(path.join(options.initDir, `${options.namespace}.elm`)) &&
+    !options.force
+  ) {
+    // We're initializing and the file already exists
+    return initOverwriteWarning();
+  }
+
   const result = await generate(schema, options);
   return result;
 }
 
-export async function init(schema: string, options: Options): Promise<Summary> {
-  options.init = true;
+export async function init(
+  schema: string,
+  src: string,
+  options: Options,
+): Promise<Summary> {
+  options.initDir = src;
   const namespaceError = checkNamespace(options);
   if (namespaceError) {
     return namespaceError;
@@ -594,8 +609,12 @@ export async function runCLI(schema: string, options: Options): Promise<void> {
   printResult(result);
 }
 
-export async function initCLI(schema: string, options: Options): Promise<void> {
-  const result = await init(schema, options);
+export async function initCLI(
+  schema: string,
+  src: string,
+  options: Options,
+): Promise<void> {
+  const result = await init(schema, src, options);
   printResult(result);
 }
 
