@@ -14,7 +14,7 @@
     "prepublishOnly": "pnpm run build",
     "elm-gql": "node ./bin/elm-gql",
     "elm-gql:run": "bash tests/iz-example/run.sh",
-    "elm-gql:init": "cd sandbox ; node ../bin/elm-gql init ../schema.json --force --queries queries/elm",
+    "elm-gql:init": "mkdir sandbox ; cd sandbox ; node ../bin/elm-gql init schema.json src/app --force --queries queries/elm --namespace MyApi",
     "sandbox": "cd sandbox ; elm make src/Main.elm",
     "test": "elm-test",
     "review": "elm-review --fix-all"
