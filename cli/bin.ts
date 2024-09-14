@@ -88,7 +88,7 @@ program
   `,
   )
   .argument("<schema>", "The schema.")
-  .argument("<src>", "The Elm directory to initialize in.", "src")
+  .argument("[src]", "The Elm directory to initialize in.", "src")
   .option(
     "--namespace <namespace>",
     "Use a namespace for the generated code.  It must be a capitalized word with no periods or spaces.",
