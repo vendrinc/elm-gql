@@ -209,12 +209,12 @@ isTypeNameSelection isTypeNameSelectionArg =
 
 
 {-| markFragmentAsGlobal: 
-    { path : String, namespace : String, gqlDir : List String }
+    { path : String, namespace : String, queryDir : List String }
     -> Fragment
     -> Fragment
 -}
 markFragmentAsGlobal :
-    { path : String, namespace : String, gqlDir : List String }
+    { path : String, namespace : String, queryDir : List String }
     -> Elm.Expression
     -> Elm.Expression
 markFragmentAsGlobal markFragmentAsGlobalArg markFragmentAsGlobalArg0 =
@@ -228,7 +228,7 @@ markFragmentAsGlobal markFragmentAsGlobalArg markFragmentAsGlobalArg0 =
                         [ Type.record
                             [ ( "path", Type.string )
                             , ( "namespace", Type.string )
-                            , ( "gqlDir", Type.list Type.string )
+                            , ( "queryDir", Type.list Type.string )
                             ]
                         , Type.namedWith [] "Fragment" []
                         ]
@@ -242,8 +242,9 @@ markFragmentAsGlobal markFragmentAsGlobalArg markFragmentAsGlobalArg0 =
                 "namespace"
                 (Elm.string markFragmentAsGlobalArg.namespace)
             , Tuple.pair
-                "gqlDir"
-                (Elm.list (List.map Elm.string markFragmentAsGlobalArg.gqlDir))
+                "queryDir"
+                (Elm.list (List.map Elm.string markFragmentAsGlobalArg.queryDir)
+                )
             ]
         , markFragmentAsGlobalArg0
         ]
@@ -1548,7 +1549,7 @@ call_ =
                                 [ Type.record
                                     [ ( "path", Type.string )
                                     , ( "namespace", Type.string )
-                                    , ( "gqlDir", Type.list Type.string )
+                                    , ( "queryDir", Type.list Type.string )
                                     ]
                                 , Type.namedWith [] "Fragment" []
                                 ]
@@ -1688,7 +1689,7 @@ values_ =
                         [ Type.record
                             [ ( "path", Type.string )
                             , ( "namespace", Type.string )
-                            , ( "gqlDir", Type.list Type.string )
+                            , ( "queryDir", Type.list Type.string )
                             ]
                         , Type.namedWith [] "Fragment" []
                         ]

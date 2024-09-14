@@ -85,11 +85,11 @@ async function run_generator(generator: any, flags: any): Promise<Summary> {
 
           if (flags.generatePlatform) {
             modifiedFileNames = `The ${chalk.cyan(
-              flags.namespace + " schema"
+              flags.namespace + " schema",
             )} has changed, `;
           } else if (flags.gql.length == 1) {
             modifiedFileNames = `${chalk.cyan(
-              flags.gql[0].path
+              flags.gql[0].path,
             )} was modified, `;
           } else {
             modifiedFileNames = `${flags.gql.length} GQL files were modified, `;
@@ -98,14 +98,14 @@ async function run_generator(generator: any, flags: any): Promise<Summary> {
           if (files_written_count == 1) {
             lines.push(
               `${modifiedFileNames}${chalk.yellow(
-                files_written_count
-              )} file generated!`
+                files_written_count,
+              )} file generated!`,
             );
           } else {
             lines.push(
               `${modifiedFileNames}${chalk.yellow(
-                files_written_count
-              )} files generated!`
+                files_written_count,
+              )} files generated!`,
             );
           }
         }
@@ -113,14 +113,14 @@ async function run_generator(generator: any, flags: any): Promise<Summary> {
           if (files_skipped == 1) {
             lines.push(
               `${chalk.gray(
-                files_skipped
-              )} file skipped because it was already present and up-to-date`
+                files_skipped,
+              )} file skipped because it was already present and up-to-date`,
             );
           } else {
             lines.push(
               `${chalk.gray(
-                files_skipped
-              )} files skipped because they were already present and up-to-date`
+                files_skipped,
+              )} files skipped because they were already present and up-to-date`,
             );
           }
         }
@@ -268,40 +268,40 @@ function initGreeting(filesGenerated: number, flags: any): string[] {
   lines.push(
     format_bullet(
       `${chalk.yellow(filesGenerated)} files in ${chalk.cyan(
-        flags.elmBaseSchema.join("/") + "/"
-      )}`
-    )
+        flags.outputPlatformDir.join("/") + "/",
+      )}`,
+    ),
   );
 
   if (flags.gql.length == 1) {
     lines.push(
       format_bullet(
         `I also found ${chalk.yellow(
-          flags.gql.length
-        )} GQL file and generated Elm code to help you use it.`
-      )
+          flags.gql.length,
+        )} GQL file and generated Elm code to help you use it.`,
+      ),
     );
   } else if (flags.gql.length > 0) {
     lines.push(
       format_bullet(
         `I also found ${chalk.yellow(
-          flags.gql.length
-        )} GQL files and generated Elm code to help you use them.`
-      )
+          flags.gql.length,
+        )} GQL files and generated Elm code to help you use them.`,
+      ),
     );
   }
   lines.push(
     format_bullet(
-      `I've saved the schema as ${chalk.cyan(flags.namespace + "/schema.json")}`
-    )
+      `I've saved the schema as ${chalk.cyan(flags.namespace + "/schema.json")}`,
+    ),
   );
 
   lines.push("");
   lines.push(`Learn more about writing a query to get started!`);
   lines.push(
     chalk.yellow(
-      "https://github.com/vendrinc/elm-gql/blob/main/guide/LifeOfAQuery.md"
-    )
+      "https://github.com/vendrinc/elm-gql/blob/main/guide/LifeOfAQuery.md",
+    ),
   );
   return lines;
 }
@@ -310,13 +310,13 @@ function initOverwriteWarning(): Summary {
   const lines = [];
   lines.push(
     `I tried to run ${chalk.yellow(
-      "elm-gql init"
-    )}, but it looks like elm-gql has already been init-ed.`
+      "elm-gql init",
+    )}, but it looks like elm-gql has already been init-ed.`,
   );
   lines.push(
     `If you're sure you want to rerun ${chalk.cyan(
-      "init"
-    )}, pass ${chalk.yellow("--force")}`
+      "init",
+    )}, pass ${chalk.yellow("--force")}`,
   );
 
   return {
@@ -329,37 +329,37 @@ function initOverwriteWarning(): Summary {
 function forceMessage(
   filesGenerated: number,
   files_skipped: number,
-  flags: any
+  flags: any,
 ): string[] {
   const lines = [];
   lines.push(
     `${
       chalk.cyan("elm-gql") + chalk.yellow(" --force")
-    } was used, all files are being regenerated.`
+    } was used, all files are being regenerated.`,
   );
   lines.push("");
 
   lines.push(
     `${chalk.yellow(filesGenerated + files_skipped)} files in ${chalk.cyan(
-      flags.elmBaseSchema.join("/") + "/"
-    )} were recreated`
+      flags.outputPlatformDir.join("/") + "/",
+    )} were recreated`,
   );
 
   if (flags.gql.length == 1) {
     lines.push(
-      `${chalk.yellow(flags.gql.length)} GQL file was found and processed.`
+      `${chalk.yellow(flags.gql.length)} GQL file was found and processed.`,
     );
   } else if (flags.gql.length > 0) {
     lines.push(
-      `${chalk.yellow(flags.gql.length)} GQL files were found and processed.`
+      `${chalk.yellow(flags.gql.length)} GQL files were found and processed.`,
     );
   }
 
   lines.push("");
   lines.push(
     `If you find yourself using ${chalk.yellow(
-      "--force"
-    )} all the time, check to make sure it's actually needed.`
+      "--force",
+    )} all the time, check to make sure it's actually needed.`,
   );
   lines.push(`Running without it will be much faster!`);
 
@@ -382,19 +382,19 @@ async function generate(schema: string, options: Options): Promise<Summary> {
     } catch (error) {
       const description = format_block([
         `${chalk.cyan(
-          "elm-gql: "
+          "elm-gql: ",
         )} I was trying to read the GraphQL Schema from the local filesystem at ${chalk.yellow(
-          schema
+          schema,
         )}, but wasn't able to!
-  
+
   The full path of where I looked was
-  
+
       ${chalk.cyan(path.join(process.cwd(), schema))}
 
   And the error I got was
 
       ${chalk.cyan(error)}
-          
+
   `,
       ]);
       return { errors: [{ title: "Error reading schema", description }] };
@@ -408,13 +408,13 @@ async function generate(schema: string, options: Options): Promise<Summary> {
   } catch (error) {
     const description = format_block([
       `${chalk.cyan("elm-gql: ")} I was trying to read the ${chalk.yellow(
-        options.queries
+        options.queries,
       )} directory for GraphQL files, but wasn't able to!
 
 The full path of where I looked was:
 
     ${chalk.cyan(path.join(process.cwd(), options.queries))}
-        
+
 `,
     ]);
 
@@ -429,13 +429,13 @@ The full path of where I looked was:
     } catch (error) {
       const description = format_block([
         `${chalk.cyan("elm-gql: ")} I was trying to read the ${chalk.yellow(
-          options.globalFragments
+          options.globalFragments,
         )} directory for GraphQL files, but wasn't able to!
-  
+
   The full path of where I looked was:
-  
+
       ${chalk.cyan(path.join(process.cwd(), options.globalFragments))}
-          
+
   `,
       ]);
 
@@ -494,8 +494,8 @@ The full path of where I looked was:
         : [],
       globalFragments: globalFragmentFileSources,
       header: options.header,
-      gqlDir: options.queries.split(path.sep),
-      elmBaseSchema: outputDir.split(path.sep),
+      queryDir: options.queries.split(path.sep),
+      outputPlatformDir: outputDir.split(path.sep),
       outputAll: options.outputAll ? options.outputAll.split(path.sep) : null,
       schema: schema,
       generateMocks: options.generateMocks,
@@ -534,13 +534,13 @@ function checkNamespace(options: Options): Summary | null {
     const lines = [];
     lines.push(
       `The namespace you provided(${chalk.yellow(
-        options.namespace
-      )}) doesn't quite work unfortunately.`
+        options.namespace,
+      )}) doesn't quite work unfortunately.`,
     );
     lines.push(
       `A namespace can only be a single capitalized word like ${chalk.cyan(
-        "Api"
-      )} or ${chalk.cyan("Gql")} and it can't contain any periods or slashes!`
+        "Api",
+      )} or ${chalk.cyan("Gql")} and it can't contain any periods or slashes!`,
     );
 
     return {
@@ -604,7 +604,7 @@ const printResult = (result: Summary) => {
     for (const error of result.errors) {
       console.error(
         format_title(error.title),
-        "\n\n" + error.description + "\n"
+        "\n\n" + error.description + "\n",
       );
     }
     process.exit(1);

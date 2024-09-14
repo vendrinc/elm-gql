@@ -14,6 +14,6 @@ type alias Options =
     , path : String
 
     -- all the directories between the Elm source folder and the GQL file
-    , gqlDir : List String
+    , queryDir : List String
     , generateMocks : Bool
     }

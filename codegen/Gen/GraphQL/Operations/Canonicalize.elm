@@ -71,7 +71,7 @@ annotation_ =
             []
             (Type.record
                 [ ( "path", Type.string )
-                , ( "gqlDir", Type.list Type.string )
+                , ( "queryDir", Type.list Type.string )
                 , ( "fragmentDir", Type.list Type.string )
                 ]
             )
@@ -81,7 +81,7 @@ annotation_ =
 make_ :
     { paths :
         { path : Elm.Expression
-        , gqlDir : Elm.Expression
+        , queryDir : Elm.Expression
         , fragmentDir : Elm.Expression
         }
         -> Elm.Expression
@@ -96,14 +96,14 @@ make_ =
                     []
                     (Type.record
                         [ ( "path", Type.string )
-                        , ( "gqlDir", Type.list Type.string )
+                        , ( "queryDir", Type.list Type.string )
                         , ( "fragmentDir", Type.list Type.string )
                         ]
                     )
                 )
                 (Elm.record
                     [ Tuple.pair "path" paths_args.path
-                    , Tuple.pair "gqlDir" paths_args.gqlDir
+                    , Tuple.pair "queryDir" paths_args.queryDir
                     , Tuple.pair "fragmentDir" paths_args.fragmentDir
                     ]
                 )

@@ -15,10 +15,10 @@ fragment :
     , path : String
 
     -- all the directories between CWD and the Elm root
-    , gqlDir : List String
+    , queryDir : List String
     }
     -> Paths
-fragment { name, path, gqlDir } =
+fragment { name, path, queryDir } =
     let
         fragName =
             Utils.String.formatTypename name
@@ -34,17 +34,17 @@ fragment { name, path, gqlDir } =
                     (String.replace ".gql" ""
                         >> String.replace ".graphql" ""
                     )
-                |> removePrefix (List.filter (not << isDot) gqlDir)
+                |> removePrefix (List.filter (not << isDot) queryDir)
                 |> List.map
                     Utils.String.formatTypename
 
         filePathPieces =
-            gqlDir
+            queryDir
                 ++ pathFromElmRootToGqlFile
                 ++ [ "Fragments", fragName ]
 
         mockFilePathPieces =
-            gqlDir
+            queryDir
                 ++ pathFromElmRootToGqlFile
                 ++ [ "Mock", "Fragments", fragName ]
     in
@@ -65,10 +65,10 @@ fragmentGlobal :
     , path : String
 
     -- all the directories between CWD and the Elm root
-    , gqlDir : List String
+    , queryDir : List String
     }
     -> Paths
-fragmentGlobal { name, path, gqlDir, namespace } =
+fragmentGlobal { name, path, queryDir, namespace } =
     let
         fragName =
             Utils.String.formatTypename name
@@ -84,17 +84,17 @@ fragmentGlobal { name, path, gqlDir, namespace } =
                     (String.replace ".gql" ""
                         >> String.replace ".graphql" ""
                     )
-                |> removePrefix (List.filter (not << isDot) gqlDir)
+                |> removePrefix (List.filter (not << isDot) queryDir)
                 |> List.map
                     Utils.String.formatTypename
 
         filePathPieces =
-            gqlDir
+            queryDir
                 ++ pathFromElmRootToGqlFile
                 ++ [ namespace, "Fragments", fragName ]
 
         mockFilePathPieces =
-            gqlDir
+            queryDir
                 ++ pathFromElmRootToGqlFile
                 ++ [ namespace, "Mock", "Fragments", fragName ]
     in
@@ -122,7 +122,7 @@ operation :
     , path : String
 
     -- all the directories between CWD and the Elm root
-    , gqlDir : List String
+    , queryDir : List String
     }
     ->
         { modulePath : List String
@@ -130,7 +130,7 @@ operation :
         , filePath : String
         , mockModuleFilePath : String
         }
-operation { name, path, gqlDir } =
+operation { name, path, queryDir } =
     let
         fragName =
             Utils.String.formatTypename name
@@ -143,16 +143,16 @@ operation { name, path, gqlDir } =
                     (String.replace ".gql" ""
                         >> String.replace ".graphql" ""
                     )
-                |> removePrefix (List.filter (not << isDot) gqlDir)
+                |> removePrefix (List.filter (not << isDot) queryDir)
                 |> List.map Utils.String.formatTypename
 
         filePathPieces =
-            gqlDir
+            queryDir
                 ++ pathFromElmRootToGqlFile
                 ++ [ fragName ]
 
         mockFilePathPieces =
-            gqlDir
+            queryDir
                 ++ pathFromElmRootToGqlFile
                 ++ [ "Mock", fragName ]
     in

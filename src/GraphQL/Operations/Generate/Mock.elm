@@ -65,7 +65,7 @@ generateDefinition :
     Options.Options
     -> Can.Definition
     -> Elm.File
-generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation op) as def) =
+generateDefinition { namespace, schema, document, path, queryDir } ((Can.Operation op) as def) =
     let
         opName =
             getOpName def
@@ -74,7 +74,7 @@ generateDefinition { namespace, schema, document, path, gqlDir } ((Can.Operation
             Generate.Path.operation
                 { name = Utils.String.formatTypename opName
                 , path = path
-                , gqlDir = gqlDir
+                , queryDir = queryDir
                 }
     in
     Elm.fileWith paths.mockModulePath

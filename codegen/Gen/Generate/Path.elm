@@ -16,7 +16,7 @@ moduleName_ =
 
 
 {-| operation: 
-    { name : String, path : String, gqlDir : List String }
+    { name : String, path : String, queryDir : List String }
     -> { modulePath : List String
     , mockModulePath : List String
     , filePath : String
@@ -24,7 +24,7 @@ moduleName_ =
     }
 -}
 operation :
-    { name : String, path : String, gqlDir : List String } -> Elm.Expression
+    { name : String, path : String, queryDir : List String } -> Elm.Expression
 operation operationArg =
     Elm.apply
         (Elm.value
@@ -36,7 +36,7 @@ operation operationArg =
                         [ Type.record
                             [ ( "name", Type.string )
                             , ( "path", Type.string )
-                            , ( "gqlDir", Type.list Type.string )
+                            , ( "queryDir", Type.list Type.string )
                             ]
                         ]
                         (Type.record
@@ -53,18 +53,18 @@ operation operationArg =
             [ Tuple.pair "name" (Elm.string operationArg.name)
             , Tuple.pair "path" (Elm.string operationArg.path)
             , Tuple.pair
-                "gqlDir"
-                (Elm.list (List.map Elm.string operationArg.gqlDir))
+                "queryDir"
+                (Elm.list (List.map Elm.string operationArg.queryDir))
             ]
         ]
 
 
 {-| fragmentGlobal: 
-    { name : String, namespace : String, path : String, gqlDir : List String }
+    { name : String, namespace : String, path : String, queryDir : List String }
     -> Paths
 -}
 fragmentGlobal :
-    { name : String, namespace : String, path : String, gqlDir : List String }
+    { name : String, namespace : String, path : String, queryDir : List String }
     -> Elm.Expression
 fragmentGlobal fragmentGlobalArg =
     Elm.apply
@@ -78,7 +78,7 @@ fragmentGlobal fragmentGlobalArg =
                             [ ( "name", Type.string )
                             , ( "namespace", Type.string )
                             , ( "path", Type.string )
-                            , ( "gqlDir", Type.list Type.string )
+                            , ( "queryDir", Type.list Type.string )
                             ]
                         ]
                         (Type.namedWith [] "Paths" [])
@@ -90,15 +90,15 @@ fragmentGlobal fragmentGlobalArg =
             , Tuple.pair "namespace" (Elm.string fragmentGlobalArg.namespace)
             , Tuple.pair "path" (Elm.string fragmentGlobalArg.path)
             , Tuple.pair
-                "gqlDir"
-                (Elm.list (List.map Elm.string fragmentGlobalArg.gqlDir))
+                "queryDir"
+                (Elm.list (List.map Elm.string fragmentGlobalArg.queryDir))
             ]
         ]
 
 
-{-| fragment: { name : String, path : String, gqlDir : List String } -> Paths -}
+{-| fragment: { name : String, path : String, queryDir : List String } -> Paths -}
 fragment :
-    { name : String, path : String, gqlDir : List String } -> Elm.Expression
+    { name : String, path : String, queryDir : List String } -> Elm.Expression
 fragment fragmentArg =
     Elm.apply
         (Elm.value
@@ -110,7 +110,7 @@ fragment fragmentArg =
                         [ Type.record
                             [ ( "name", Type.string )
                             , ( "path", Type.string )
-                            , ( "gqlDir", Type.list Type.string )
+                            , ( "queryDir", Type.list Type.string )
                             ]
                         ]
                         (Type.namedWith [] "Paths" [])
@@ -121,8 +121,8 @@ fragment fragmentArg =
             [ Tuple.pair "name" (Elm.string fragmentArg.name)
             , Tuple.pair "path" (Elm.string fragmentArg.path)
             , Tuple.pair
-                "gqlDir"
-                (Elm.list (List.map Elm.string fragmentArg.gqlDir))
+                "queryDir"
+                (Elm.list (List.map Elm.string fragmentArg.queryDir))
             ]
         ]
 
@@ -199,7 +199,7 @@ call_ =
                                 [ Type.record
                                     [ ( "name", Type.string )
                                     , ( "path", Type.string )
-                                    , ( "gqlDir", Type.list Type.string )
+                                    , ( "queryDir", Type.list Type.string )
                                     ]
                                 ]
                                 (Type.record
@@ -228,7 +228,7 @@ call_ =
                                     [ ( "name", Type.string )
                                     , ( "namespace", Type.string )
                                     , ( "path", Type.string )
-                                    , ( "gqlDir", Type.list Type.string )
+                                    , ( "queryDir", Type.list Type.string )
                                     ]
                                 ]
                                 (Type.namedWith [] "Paths" [])
@@ -248,7 +248,7 @@ call_ =
                                 [ Type.record
                                     [ ( "name", Type.string )
                                     , ( "path", Type.string )
-                                    , ( "gqlDir", Type.list Type.string )
+                                    , ( "queryDir", Type.list Type.string )
                                     ]
                                 ]
                                 (Type.namedWith [] "Paths" [])
@@ -275,7 +275,7 @@ values_ =
                         [ Type.record
                             [ ( "name", Type.string )
                             , ( "path", Type.string )
-                            , ( "gqlDir", Type.list Type.string )
+                            , ( "queryDir", Type.list Type.string )
                             ]
                         ]
                         (Type.record
@@ -298,7 +298,7 @@ values_ =
                             [ ( "name", Type.string )
                             , ( "namespace", Type.string )
                             , ( "path", Type.string )
-                            , ( "gqlDir", Type.list Type.string )
+                            , ( "queryDir", Type.list Type.string )
                             ]
                         ]
                         (Type.namedWith [] "Paths" [])
@@ -314,7 +314,7 @@ values_ =
                         [ Type.record
                             [ ( "name", Type.string )
                             , ( "path", Type.string )
-                            , ( "gqlDir", Type.list Type.string )
+                            , ( "queryDir", Type.list Type.string )
                             ]
                         ]
                         (Type.namedWith [] "Paths" [])

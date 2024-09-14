@@ -51,7 +51,7 @@ ok data cache =
 
 type alias Paths =
     { path : String
-    , gqlDir : List String
+    , queryDir : List String
     , fragmentDir : List String
     }
 
@@ -922,14 +922,14 @@ selectsSingleFragment refs fields =
                                     { name = fragName
                                     , namespace = refs.namespace.namespace
                                     , path = refs.namespace.namespace
-                                    , gqlDir = refs.paths.fragmentDir
+                                    , queryDir = refs.paths.fragmentDir
                                     }
 
                             else
                                 Generate.Path.fragment
                                     { name = fragName
                                     , path = refs.paths.path
-                                    , gqlDir = refs.paths.gqlDir
+                                    , queryDir = refs.paths.queryDir
                                     }
                     in
                     Just
@@ -1009,7 +1009,7 @@ canonicalizeFragment namespace schema paths frag currentResult =
                     Generate.Path.fragment
                         { name = fragName.globalName
                         , path = paths.path
-                        , gqlDir = paths.gqlDir
+                        , queryDir = paths.queryDir
                         }
 
                 typeCondition =

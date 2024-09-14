@@ -19,7 +19,7 @@ generate :
     Options.Options
     -> Can.Fragment
     -> Elm.File
-generate { namespace, schema, document, path, gqlDir } frag =
+generate { namespace, schema, document, path, queryDir } frag =
     let
         paths =
             if frag.isGlobal then
@@ -27,14 +27,14 @@ generate { namespace, schema, document, path, gqlDir } frag =
                     { name = Utils.String.formatTypename (Can.nameToString frag.name)
                     , namespace = namespace.namespace
                     , path = path
-                    , gqlDir = gqlDir
+                    , queryDir = queryDir
                     }
 
             else
                 Generate.Path.fragment
                     { name = Utils.String.formatTypename (Can.nameToString frag.name)
                     , path = path
-                    , gqlDir = gqlDir
+                    , queryDir = queryDir
                     }
     in
     Elm.fileWith paths.mockModulePath

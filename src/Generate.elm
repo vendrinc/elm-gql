@@ -214,7 +214,7 @@ generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments
                                 |> List.map
                                     (replaceOutputDir
                                         { new = outputDir
-                                        , original = flagDetails.gqlDir
+                                        , original = flagDetails.queryDir
                                         }
                                     )
 
@@ -238,12 +238,12 @@ generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments
                         -- These are files that are only generated when `elm-gql init` is run
                         -- And the user should own
                         [ Generate.Root.generate namespace schema
-                            |> addOutputDir flagDetails.gqlDir
+                            |> addOutputDir flagDetails.queryDir
                         ]
                     )
                 |> appendIf flagDetails.generatePlatform
                     (\_ ->
-                        List.map (addOutputDir flagDetails.elmBaseSchema)
+                        List.map (addOutputDir flagDetails.outputPlatformDir)
                             (saveSchemaAsJson namespace schemaAsJson
                                 :: Generate.Enums.generateFiles namespace schema
                                 ++ Generate.InputObjects.generateFiles namespace schema
@@ -251,15 +251,18 @@ generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments
                     )
                 |> appendIf flagDetails.reportUnused
                     (\_ ->
-                        [ parsedGQL.usages
-                            |> GraphQL.Usage.toUnusedReport schema
-                            |> GraphQL.Schema.toString
-                            |> prepend """# This file is generated automatically when `elm-gql` is run.
-#
-# This captures all parts of the schema that were not used by any of your graphQL queries or mutations.
+                        [ { path = String.join "/" flagDetails.outputPlatformDir ++ "/unused.schema"
+                          , contents =
+                                parsedGQL.usages
+                                    |> GraphQL.Usage.toUnusedReport schema
+                                    |> GraphQL.Schema.toString
+                                    |> prepend """# This file is generated automatically when `elm-gql` is run.
+    #
+    # This captures all parts of the schema that were not used by any of your graphQL queries or mutations.
 
-"""
-                            |> toFile flagDetails "unused.schema"
+    """
+                          , warnings = []
+                          }
                         ]
                     )
                 |> Generate.files
@@ -268,14 +271,6 @@ generatePlatformHelper namespace schema schemaAsJson flagDetails globalFragments
 prepend : String -> String -> String
 prepend prefix str =
     prefix ++ "\n\n" ++ str
-
-
-toFile : FlagDetails -> String -> String -> Elm.File
-toFile flagDetails path contents =
-    { path = String.join "/" flagDetails.elmBaseSchema ++ "/" ++ path
-    , contents = contents
-    , warnings = []
-    }
 
 
 appendIf : Bool -> (() -> List a) -> List a -> List a
@@ -427,7 +422,7 @@ parseGlobalFragments namespace schema flagDetails files =
                     Canonicalize.canonicalize namespace
                         schema
                         { path = namespace.namespace
-                        , gqlDir = []
+                        , queryDir = []
                         , fragmentDir = flagDetails.fragmentDir
                         }
                         []
@@ -448,7 +443,7 @@ parseGlobalFragments namespace schema flagDetails files =
                             List.map
                                 (Can.markFragmentAsGlobal
                                     { path = namespace.namespace
-                                    , gqlDir = flagDetails.fragmentDir
+                                    , queryDir = flagDetails.fragmentDir
                                     , namespace = namespace.namespace
                                     }
                                 )
@@ -470,7 +465,7 @@ parseGlobalFragments namespace schema flagDetails files =
                                                 , usages = canAST.usages
                                                 }
                                             , path = namespace.namespace
-                                            , gqlDir = flagDetails.fragmentDir
+                                            , queryDir = flagDetails.fragmentDir
                                             , generateMocks = flagDetails.generateMocks
                                             }
 
@@ -597,7 +592,7 @@ parseAndValidateFragments namespace schema flags gql =
                 Canonicalize.canonicalize namespace
                     schema
                     { path = gql.path
-                    , gqlDir = flags.gqlDir
+                    , queryDir = flags.queryDir
                     , fragmentDir = flags.fragmentDir
                     }
                     []
@@ -666,18 +661,18 @@ parseAndValidateFragments namespace schema flags gql =
 flagsDecoder : Json.Decode.Decoder Input
 flagsDecoder =
     Json.Decode.succeed
-        (\gqlDir fragmentDir elmBaseSchema outputAll namespace header isInit gql globalFragments schemaUrl genPlatform generateMocks reportUnused existingEnums ->
+        (\queryDir fragmentDir outputPlatformDir outputAll namespace header isInit gql globalFragments schemaUrl genPlatform generateMocks reportUnused existingEnums ->
             Flags
                 { schema = schemaUrl
                 , gql = gql
                 , fragmentDir = fragmentDir
                 , globalFragments = globalFragments
                 , isInit = isInit
-                , gqlDir = gqlDir
-                , elmBaseSchema =
+                , queryDir = queryDir
+                , outputPlatformDir =
                     case outputAll of
                         Nothing ->
-                            elmBaseSchema
+                            outputPlatformDir
 
                         Just outputDir ->
                             outputDir
@@ -690,9 +685,9 @@ flagsDecoder =
                 , existingEnumDefinitions = existingEnums
                 }
         )
-        |> andField "gqlDir" (Json.Decode.list Json.Decode.string)
+        |> andField "queryDir" (Json.Decode.list Json.Decode.string)
         |> andField "fragmentDir" (Json.Decode.list Json.Decode.string)
-        |> andField "elmBaseSchema" (Json.Decode.list Json.Decode.string)
+        |> andField "outputPlatformDir" (Json.Decode.list Json.Decode.string)
         |> andField "outputAll" (Json.Decode.maybe (Json.Decode.list Json.Decode.string))
         |> andField "namespace" Json.Decode.string
         |> andField "header" (Json.Decode.list Json.Decode.string)
@@ -777,14 +772,13 @@ type alias FlagDetails =
     , fragmentDir : List String
 
     -- all directories between and including cwd and the elm src dir
-    , gqlDir : List String
+    , queryDir : List String
 
     -- We do a little bit more generation if init is called
     , isInit : Bool
 
-    -- same as above, but for the schema-related files
-    -- sometimes it's nice to separate that out into a separate dir.
-    , elmBaseSchema : List String
+    -- Dir for platform files
+    , outputPlatformDir : List String
     , outputAll : Maybe (List String)
     , namespace : String
 
@@ -872,7 +866,7 @@ parseAndValidateQuery namespace schema flags globalFragments gql =
                 Canonicalize.canonicalize namespace
                     schema
                     { path = gql.path
-                    , gqlDir = flags.gqlDir
+                    , queryDir = flags.queryDir
                     , fragmentDir = flags.fragmentDir
                     }
                     globalFragments
@@ -894,7 +888,7 @@ parseAndValidateQuery namespace schema flags globalFragments gql =
                                 , schema = schema
                                 , document = canAST
                                 , path = gql.path
-                                , gqlDir = flags.gqlDir
+                                , queryDir = flags.queryDir
                                 , generateMocks = flags.generateMocks
                                 }
                         , usages = canAST.usages

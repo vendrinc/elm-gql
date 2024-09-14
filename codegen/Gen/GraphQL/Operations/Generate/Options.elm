@@ -29,7 +29,7 @@ annotation_ =
                   )
                 , ( "document", Type.namedWith [ "Can" ] "Document" [] )
                 , ( "path", Type.string )
-                , ( "gqlDir", Type.list Type.string )
+                , ( "queryDir", Type.list Type.string )
                 , ( "generateMocks", Type.bool )
                 ]
             )
@@ -42,7 +42,7 @@ make_ :
         , schema : Elm.Expression
         , document : Elm.Expression
         , path : Elm.Expression
-        , gqlDir : Elm.Expression
+        , queryDir : Elm.Expression
         , generateMocks : Elm.Expression
         }
         -> Elm.Expression
@@ -62,7 +62,7 @@ make_ =
                           )
                         , ( "document", Type.namedWith [ "Can" ] "Document" [] )
                         , ( "path", Type.string )
-                        , ( "gqlDir", Type.list Type.string )
+                        , ( "queryDir", Type.list Type.string )
                         , ( "generateMocks", Type.bool )
                         ]
                     )
@@ -72,7 +72,7 @@ make_ =
                     , Tuple.pair "schema" options_args.schema
                     , Tuple.pair "document" options_args.document
                     , Tuple.pair "path" options_args.path
-                    , Tuple.pair "gqlDir" options_args.gqlDir
+                    , Tuple.pair "queryDir" options_args.queryDir
                     , Tuple.pair "generateMocks" options_args.generateMocks
                     ]
                 )

@@ -62,7 +62,7 @@ suite =
                         let
                             paths =
                                 { path = "/"
-                                , gqlDir = []
+                                , queryDir = []
                                 , fragmentDir = []
                                 }
                         in
